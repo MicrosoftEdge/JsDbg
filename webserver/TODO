@@ -3,16 +3,19 @@ NEW
 
 - status
 - better ui for updating
-- vcs checkin
-- build integration
+- live extending UI
+- tree layout improvements
+
 - automatic root box recognition
 - mshtml versioning
-- distribution model
-- tree layout improvements
-- bit fields
 - box positions
-- live extending UI
 - windbg links
+
+- bit fields from symbols
+
+- sd integration
+- build integration
+- shared hosting model
 
 OLD
 
