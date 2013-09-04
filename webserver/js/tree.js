@@ -28,10 +28,13 @@ var Tree = (function() {
                 console.log("Expansion took " + clock.Elapsed() + "s");
                 that.invalidate();
                 console.log("Full Redraw took " + clock.Elapsed() + "s");
+            } else if (e.ctrlKey) {
+                that.collapse(false);
+                that.invalidate();
             }
         }, true);
         this.representation.addEventListener("mousedown", function(e) {
-            if (!that.isExpanded) {
+            if (e.ctrlKey) {
                 e.preventDefault();
             }
         }, true);
@@ -47,6 +50,25 @@ var Tree = (function() {
             return node;
         });
         this.isExpanded = true;
+    }
+
+    DrawingTreeNode.prototype.collapse = function(removeSelf) {
+        function remove(e) {
+            if (e.parentNode) {
+                e.parentNode.removeChild(e);
+            }
+        }
+        if (removeSelf) {
+            remove(this.representation);
+            remove(this.getParentBar());
+        }
+        remove(this.getChildBar());
+        remove(this.getHorizontalBar());
+
+        this.children.map(function(x) { x.collapse(true); });
+        this.children = [];
+        this.requiredWidth = 0;
+        this.isExpanded = this.nodeChildren.length == 0;
     }
 
     DrawingTreeNode.prototype.invalidate = function() {
@@ -116,7 +138,7 @@ var Tree = (function() {
         // create the element for the node itself.
         var element = this.representation;
         element.className = "node" + (this.isExpanded ? "" : " collapsed");
-        element.style.left = (viewport.x + this.getRequiredWidth() / 2 - NODE_WIDTH / 2) + "px";
+        element.style.left = viewport.x + "px";
         element.style.top = viewport.y + "px";
         if (element.parentNode != container) {
             container.appendChild(element);
@@ -130,17 +152,17 @@ var Tree = (function() {
 
             // draw the child bar for this guy.
             var vertical = this.getChildBar();
-            vertical.style.left = (viewport.x + totalWidth / 2) + "px";
+            vertical.style.left = (viewport.x + NODE_WIDTH / 2) + "px";
             vertical.style.top = (viewport.y + NODE_HEIGHT) + "px";
             if (vertical.parentNode != container) {
                 container.appendChild(vertical);
             }
 
             // draw the horizontal bar. it spans from the middle of the first viewport to the middle of the last viewport.
-            var horizontalBarWidth = totalWidth - firstWidth / 2 - lastWidth / 2;
+            var horizontalBarWidth = totalWidth - lastWidth;
             var horizontal = this.getHorizontalBar();
             horizontal.style.width =  horizontalBarWidth + "px";
-            horizontal.style.left = (viewport.x + firstWidth / 2) + "px";
+            horizontal.style.left = (viewport.x + NODE_WIDTH / 2) + "px";
             horizontal.style.top = (viewport.y + NODE_HEIGHT + NODE_MARGIN_Y / 2) + "px";
             if (horizontal.parentNode != container) {
                 container.appendChild(horizontal);
@@ -154,7 +176,7 @@ var Tree = (function() {
 
                 // draw the parent bar for this child.
                 var childVertical = children[i].getParentBar();
-                childVertical.style.left = (viewport.x + requiredWidth / 2) + "px";
+                childVertical.style.left = viewport.x + NODE_WIDTH / 2 + "px";
                 childVertical.style.top = (viewport.y - NODE_MARGIN_Y / 2) + "px";
                 if (childVertical.parentNode != container) {
                     container.appendChild(childVertical);
