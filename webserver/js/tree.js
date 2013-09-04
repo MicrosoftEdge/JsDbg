@@ -8,12 +8,19 @@ var Tree = (function() {
     var NODE_MARGIN_Y = 20;
 
     function DrawingTreeNode(node, parent) {
+        this.innerNode = node;
         this.nodeChildren = node.getChildren();
         this.parent = parent;
         this.children = [];
         this.requiredWidth = -1;
-        this.representation = node.createRepresentation();
+        this.representation = null;
         this.isExpanded = (this.nodeChildren.length == 0);
+
+        this.createRepresentation();
+    }
+
+    DrawingTreeNode.prototype.createRepresentation = function() {
+        this.representation = this.innerNode.createRepresentation();
 
         var childrenCount = document.createElement("div");
         childrenCount.className = "children";
@@ -32,12 +39,35 @@ var Tree = (function() {
                 that.collapse(false);
                 that.invalidate();
             }
-        }, true);
+        });
         this.representation.addEventListener("mousedown", function(e) {
             if (e.ctrlKey) {
                 e.preventDefault();
             }
-        }, true);
+        });
+    }
+
+    DrawingTreeNode.prototype.updateRepresentation = function() {
+        if (this.representation != null && this.representation.parentNode) {
+            var parent = this.representation.parentNode;
+            var styles = [
+                this.representation.className,
+                this.representation.style.left,
+                this.representation.style.top
+            ];
+            this.representation.parentNode.removeChild(this.representation);
+            this.representation = null;
+
+            this.createRepresentation();
+
+            parent.appendChild(this.representation);
+
+            this.representation.className = styles[0];
+            this.representation.style.left = styles[1];
+            this.representation.style.top = styles[2];
+        }
+
+        this.children.forEach(function(x) { window.setImmediate(function() { x.updateRepresentation(); }) });
     }
 
     DrawingTreeNode.prototype.expand = function(recurse) {
@@ -194,6 +224,8 @@ var Tree = (function() {
             container.className = "node-container";
             var drawingRoot = new DrawingTreeNode(root)
             drawingRoot.draw(container, {x: 0, y:0});
+
+            return drawingRoot;
         }
     }
 })();

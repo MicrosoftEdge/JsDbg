@@ -1,33 +1,17 @@
 "use strict";
 
+var rootTreeNode = null;
 var boxCache = {};
 
 function createBoxTree(rootBoxPointer, container) {
     if (rootBoxPointer) {
         boxCache = {};
         var rootBox = CreateBox(new DbgObject("mshtml", "Layout::LayoutBox", rootBoxPointer));
-        Tree.BuildTree(container, rootBox);
-    }
-}
-
-function injectUserFields() {
-    if (UserFields) {
-        UserFields().forEach(function(field) {
-            if (field.enabled) {
-                var previous = field.type.prototype.collectUserFields;
-                field.type.prototype.collectUserFields = function(fields) {
-                    previous(fields);
-                    fields.push(field);
-                };
-            }
-        });
-        UserFields = undefined;
+        rootTreeNode = Tree.BuildTree(container, rootBox);
     }
 }
 
 function CreateBox(obj) {
-    injectUserFields();
-
     if (obj.ptr() in boxCache) {
         return boxCache[obj.ptr()];
     }
@@ -85,7 +69,7 @@ LayoutBox.prototype.createRepresentation = function() {
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         if (field.html) {
-            element.innerHTML += "<br />" + field.name + ":" + field.html(this.box);
+            element.innerHTML += "<br />" + field.shortname + ":" + field.html(this.box);
         } else if (field.element) {
             field.element(this.box, element);
         }
