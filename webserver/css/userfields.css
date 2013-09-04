@@ -6,4 +6,5 @@
     background:rgba(255, 255, 255, 0.7);
     overflow:auto;
     max-height:500px;
+    z-index:10;
 }
