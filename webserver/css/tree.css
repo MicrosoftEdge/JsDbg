@@ -20,6 +20,11 @@
     border:thin solid black;
     text-align: center;
     background:white;
+    z-index:1;
+}
+
+.node-container .node:hover {
+    z-index:2;
 }
 
 .node-container .node.collapsed {

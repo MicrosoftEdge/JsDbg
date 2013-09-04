@@ -5,7 +5,7 @@ function UserFields() {
         {
             type: ContainerBox,
             name: "w",
-            enabled: false,
+            enabled: true,
             html: function(box) {
                 return box.f("contentBoxWidth").val();
             }
@@ -14,7 +14,7 @@ function UserFields() {
         {
             type: ContainerBox,
             name: "h",
-            enabled: false,
+            enabled: true,
             html: function(box) {
                 return box.f("contentBoxHeight").val();
             }
@@ -31,7 +31,7 @@ function UserFields() {
 
         {
             type: ContainerBox,
-            enabled: false,
+            enabled: true,
             element: function(box, e) {
                 if (box.f("isLayoutInvalid").bits(0, 1)) {
                     e.style.backgroundColor = "#fbc";
@@ -46,7 +46,7 @@ function UserFields() {
         {
             type: LineBox,
             name: "text",
-            enabled: false,
+            enabled: true,
             html: function(box) {
                 var runIndexAtStartOfLine = box.f("textBlockRunIndexAtStartOfLine").val();
                 var characterIndexInTextBlockRunAtStartOfLine = box.f("characterIndexInTextBlockRunAtStartOfLine").val();

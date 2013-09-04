@@ -42,6 +42,7 @@ function CreateBox(obj) {
         "Layout::LineBoxCompactShort" : LineBox,
         "Layout::LineBoxCompactInteger" : LineBox,
         "Layout::LineBoxFullInteger" : LineBox,
+        "Layout::LineBoxFullIntegerWithVisibleBounds" : LineBox,
         "Layout::LineBoxFullShort" : LineBox,
     };
 
