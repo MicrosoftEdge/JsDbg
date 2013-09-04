@@ -7,12 +7,14 @@
     <script type="text/javascript" src="/static/js/jsdbg.js"></script>
     <script type="text/javascript" src="/static/js/fields.js"></script>
     <script type="text/javascript" src="/static/js/tree.js"></script>
+    <script type="text/javascript" src="/static/js/user.js"></script>
     <script type="text/javascript" src="/static/js/boxtree.js"></script>
+    <script type="text/javascript" src="/static/js/timer.js"></script>
     <link rel="stylesheet" href="/static/css/tree.css" type="text/css">
     <script type="text/javascript">
         function loadBoxTree() {
             var rootBoxPointer = parseInt(document.getElementById("boxpointer").value);
-            createBoxTree(rootBoxPointer, document.querySelector("div"));
+            createBoxTree(rootBoxPointer, document.querySelector("#tree"));
             window.location.hash = document.getElementById("boxpointer").value;
         }
 
@@ -29,9 +31,17 @@
 
         document.addEventListener("DOMContentLoaded", init);
     </script>
+    <style type="text/css">
+        body {
+            font-family:Segoe UI;
+            font-size:10pt;
+        }
+    </style>
 </head>
 <body>
-    <label for="boxpointer">Root Box Pointer:</label> <input type="text" id="boxpointer" /> <button id="load">Load</button>
-    <div></div>
+    <label for="boxpointer">Root Box Pointer:</label>
+    <input type="text" id="boxpointer" /> 
+    <button id="load">Load</button>
+    <div id="tree"></div>
 </body>
 </html>

@@ -1,3 +1,5 @@
+"use strict";
+
 var Tree = (function() {
 
     var NODE_WIDTH = 75;
@@ -19,7 +21,7 @@ var Tree = (function() {
             for (var i = 0; i < this.children.length; ++i) {
                 this.requiredWidth += this.children[i].getRequiredWidth();
             }
-            
+
             if (this.children.length > 0) {
                 this.requiredWidth += NODE_MARGIN_X * (this.children.length - 1);
             }

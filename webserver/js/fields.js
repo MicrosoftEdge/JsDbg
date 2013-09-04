@@ -1,7 +1,7 @@
 function DbgObject(module, type, pointer) {
     this.module = module;
     this.pointer = pointer;
-    
+
     // Cleanup type name:
     //  - remove whitespace from the beginning and end
     //  - strip [] from inline arrays
@@ -94,7 +94,7 @@ DbgObject.prototype.idx = function(index) {
     return this.off(this._getStructSize() * index);
 }
 
-DbgObject.prototype.value = function() {
+DbgObject.prototype.val = function() {
     var structSize = this._getStructSize();
     var result = JsDbg.SyncReadNumber(this.ptr(), structSize);
     if (result.error) {
@@ -152,7 +152,7 @@ DbgObject.prototype.vtable = function() {
 }
 
 DbgObject.prototype.bits = function(offset, bits) {
-    var value = this.value();
+    var value = this.val();
     return (value >> offset) & ((1 << bits) - 1);
 }
 

@@ -1,12 +1,39 @@
+"use strict";
+
+var boxCache = {};
 
 function createBoxTree(rootBoxPointer, container) {
     if (rootBoxPointer) {
+        boxCache = {};
+        var clock = Timer.Start();
         var rootBox = CreateBox(new DbgObject("mshtml", "Layout::LayoutBox", rootBoxPointer));
         Tree.BuildTree(container, rootBox);
+        console.log("BuildTree took " + clock.Elapsed() + "s");
+    }
+}
+
+function injectUserFields() {
+    if (UserFields) {
+        UserFields().forEach(function(field) {
+            if (field.enabled) {
+                var previous = field.type.prototype.collectUserFields;
+                field.type.prototype.collectUserFields = function(fields) {
+                    previous(fields);
+                    fields.push(field);
+                };
+            }
+        });
+        UserFields = undefined;
     }
 }
 
 function CreateBox(obj) {
+    injectUserFields();
+
+    if (obj.ptr() in boxCache) {
+        return boxCache[obj.ptr()];
+    }
+
     var boxTypes = {
         "Layout::FlowBox" : FlowBox,
         "Layout::FlexBox" : FlexBox,
@@ -22,10 +49,13 @@ function CreateBox(obj) {
 
     var type = obj.vtable();
     if (type in boxTypes) {
-        return new boxTypes[type](obj);
+        var result = new boxTypes[type](obj);
     } else {
-        return new LayoutBox(obj);
+        var result = new LayoutBox(obj);
     }
+
+    boxCache[obj.ptr()] = result;
+    return result;
 }
 
 function LayoutBox(box) {
@@ -35,9 +65,23 @@ function LayoutBox(box) {
 
 LayoutBox.prototype.typename = function() { return this.box.vtable(); }
 LayoutBox.prototype.collectChildren = function(children) { }
+LayoutBox.prototype.collectUserFields = function(fields) { }
 LayoutBox.prototype.createRepresentation = function() {
     var element = document.createElement("div");
     element.innerHTML = this.typename() + "<br />0x" + this.box.ptr().toString(16);
+
+    var fields = [];
+    this.collectUserFields(fields);
+
+    for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        if (field.html) {
+            element.innerHTML += "<br />" + field.name + ":" + field.html(this.box);
+        } else if (field.element) {
+            field.element(this.box, element);
+        }
+    };
+
     return element;
 }
 LayoutBox.prototype.getChildren = function() {
@@ -74,13 +118,6 @@ ContainerBox.prototype.collectChildren = function(children) {
         } while (!item.equals(firstItem));
     }
 }
-ContainerBox.prototype.createRepresentation = function() {
-    var result = LayoutBox.prototype.createRepresentation.call(this);
-    result.innerHTML += "<br />w:" + this.box.f("contentBoxWidth.value").value() + 
-        "<br />h:" + this.box.f("contentBoxHeight.value").value() + 
-        "<br />lp:" + this.box.f("sourceStyle.fancyFormat._layoutPlacement").bits(0, 5);
-    return result;
-}
 
 function FlowBox(box) {
     ContainerBox.call(this, box);
@@ -109,7 +146,7 @@ FlowBox.prototype.collectChildren = function(children) {
     // add floaters
     var floaterArray = this.box.f("geometry._array");
     if (!floaterArray.isNull()) {
-        var array = floaterArray.array(floaterArray.as("int").idx(-1).value());
+        var array = floaterArray.array(floaterArray.as("int").idx(-1).val());
         for (var i = 0; i < array.length; ++i) {
             var box = array[i].f("floaterBoxReference.m_pT.data.BoxReference.m_pT");
             children.push(box);
@@ -144,7 +181,7 @@ TableGridBox.prototype.collectChildren = function(children) {
     while (!rowLayout.isNull()) {
         var columns = rowLayout.f("Columns.m_pT");
         if (!columns.isNull()) {
-            var array = columns.f("data.Array.data").array(columns.f("data.Array.length").value());
+            var array = columns.f("data.Array.data").array(columns.f("data.Array.length").val());
             for (var i = 0; i < array.length; ++i) {
                 var box = array[i].f("cellBoxReference.m_pT");
                 if (!box.isNull()) {
@@ -170,7 +207,7 @@ GridBox.prototype.collectChildren = function(children) {
     var gridBoxItemArray = this.box.f("Items.m_pT");
 
     if (!gridBoxItemArray.isNull()) {
-        var array = gridBoxItemArray.f("data.Array.data").array(gridBoxItemArray.f("data.Array.length").value());
+        var array = gridBoxItemArray.f("data.Array.data").array(gridBoxItemArray.f("data.Array.length").val());
         for (var i = 0; i < array.length; ++i) {
             var childBox = array[i].f("BoxReference.m_pT");
             if (!childBox.isNull()) {
@@ -204,7 +241,7 @@ MultiColumnBox.prototype.collectChildren = function(children) {
     var items = this.box.f("items.m_pT");
 
     if (!items.isNull()) {
-        var array = items.f("data.Array.data").array(this.box.f("itemsCount").value());
+        var array = items.f("data.Array.data").array(this.box.f("itemsCount").val());
         for (var i = 0; i < array.length; ++i) {
             var childBox = array[i].f("BoxReference.m_pT");
             children.push(childBox);
@@ -221,7 +258,7 @@ LineBox.prototype.typename = function() { return "Line"; }
 LineBox.prototype.collectChildren = function(children) {
     LayoutBox.prototype.collectChildren.call(this, children);
 
-    if ((this.box.f("lineBoxFlags").value() & 0x8) > 0) {
+    if ((this.box.f("lineBoxFlags").val() & 0x8) > 0) {
         var run = this.box.f("firstRun.m_pT");
         while (!run.isNull()) {
             var type = run.vtable();
@@ -234,61 +271,4 @@ LineBox.prototype.collectChildren = function(children) {
             run = run.f("next.m_pT");
         }
     }
-}
-LineBox.prototype.createRepresentation = function() {
-    var element = LayoutBox.prototype.createRepresentation.call(this);
-
-    var runIndexAtStartOfLine = this.box.f("textBlockRunIndexAtStartOfLine").value();
-    var characterIndexInTextBlockRunAtStartOfLine = this.box.f("characterIndexInTextBlockRunAtStartOfLine").value();
-    var runIndexAfterLine = this.box.f("textBlockRunIndexAfterLine").value();
-    var characterIndexInTextBlockRunAfterLine = this.box.f("characterIndexInTextBlockRunAfterLine").value();
-
-    var textBlock = this.box.f("textBlock.m_pT");
-    var result = "";
-    if (!textBlock.isNull() && runIndexAtStartOfLine >= 0) {
-        var runCount = textBlock.f("_aryRuns._c").value();
-        var runArray = textBlock.f("_aryRuns._pv").as("Tree::TextBlockRun*");
-
-        if (runIndexAfterLine >= 0) {
-            runCount = runIndexAfterLine + 1;
-        }
-
-        result = "<br />text:<em>";
-
-        for (var i = runIndexAtStartOfLine; i < runCount; ++i) {
-            var runType = runArray.idx(i).deref().f("_runType").bits(0, 3);
-            if (runType == 0x1) {
-                // It's a character run.
-                var textRun = runArray.idx(i).deref().f("_u._pTextRun");
-                var offset = textRun.f("_cchOffset").value();
-                var length = textRun.f("_cchRunLength").value();
-                if (textRun.f("_fHasTextTransformOrPassword").bits(4, 1)) {
-                    var textData = textRun.f("_characterSourceUnion._pchTransformedCharacters");
-                    offset = 0;
-                } else {
-                    var textData = textRun.f("_characterSourceUnion._pTextData._pText");
-                }
-
-                var stringLength = length;
-
-                if (i == runIndexAtStartOfLine) {
-                    offset += characterIndexInTextBlockRunAtStartOfLine;
-                    stringLength -= characterIndexInTextBlockRunAtStartOfLine;
-                }
-
-                if (i == runIndexAfterLine) {
-                    stringLength -= (length - characterIndexInTextBlockRunAfterLine);
-                }
-
-                var array = textData.idx(offset).array(stringLength);
-                result += array.map(function(x) { return "&#" + x + ";"; }).join("");
-            } else {
-                result += "</em><strong>[RT=" + runType + "]</strong><em>";
-            }
-        }
-        result += "</em>";
-    }
-    
-    element.innerHTML += result;
-    return element;
 }
