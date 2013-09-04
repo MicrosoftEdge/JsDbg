@@ -5,10 +5,8 @@ var boxCache = {};
 function createBoxTree(rootBoxPointer, container) {
     if (rootBoxPointer) {
         boxCache = {};
-        var clock = Timer.Start();
         var rootBox = CreateBox(new DbgObject("mshtml", "Layout::LayoutBox", rootBoxPointer));
         Tree.BuildTree(container, rootBox);
-        console.log("BuildTree took " + clock.Elapsed() + "s");
     }
 }
 

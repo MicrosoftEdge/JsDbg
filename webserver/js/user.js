@@ -31,7 +31,7 @@ function UserFields() {
 
         {
             type: ContainerBox,
-            enabled: true,
+            enabled: false,
             element: function(box, e) {
                 if (box.f("isLayoutInvalid").bits(0, 1)) {
                     e.style.backgroundColor = "#fbc";

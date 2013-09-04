@@ -4,6 +4,11 @@
     font-size:10pt;
 }
 
+.node-container > div {
+    transition-property:left, width;
+    transition-duration:0.1s;
+}
+
 .node-container .node {
     font-size:8pt;
     position:absolute;
@@ -15,6 +20,29 @@
     border:thin solid black;
     text-align: center;
     background:white;
+}
+
+.node-container .node.collapsed {
+    cursor:pointer;
+    border-style:dotted;
+}
+
+.node-container .node .children {
+    display:none;
+    position:absolute;
+    bottom:0px;
+    right:0px;
+}
+
+.node-container .node .children:before {
+    content:"(";
+}
+.node-container .node .children:after {
+    content:")";
+}
+
+.node-container .node.collapsed .children {
+    display:block;
 }
 
 .node-container .horizontal {
