@@ -12,6 +12,7 @@ NEW
 - windbg links
 
 - bit fields from symbols
+- multiple inheritance vcasting
 
 - sd integration
 - build integration
