@@ -1,10 +1,8 @@
 
-function createBoxTree(rootBoxPointer) {   
-    var container = document.getElementById("boxtree_root");
-    container.innerHTML = "";
+function createBoxTree(rootBoxPointer, container) {
     if (rootBoxPointer) {
         var rootBox = CreateBox(new DbgObject("mshtml", "Layout::LayoutBox", rootBoxPointer));
-        Tree.DrawTree(container, rootBox);
+        Tree.BuildTree(container, rootBox);
     }
 }
 
@@ -219,7 +217,7 @@ function LineBox(box) {
     this.box = this.box.as("Layout::LineBox");
 }
 LineBox.prototype = Object.create(LayoutBox.prototype);
-LineBox.prototype.typename = function() { return "LineBox"; }
+LineBox.prototype.typename = function() { return "Line"; }
 LineBox.prototype.collectChildren = function(children) {
     LayoutBox.prototype.collectChildren.call(this, children);
 

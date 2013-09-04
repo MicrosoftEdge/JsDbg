@@ -1,6 +1,3 @@
-
-NEW
-
 - status
 - better ui for updating
 - live extending UI
@@ -17,21 +14,5 @@ NEW
 - sd integration
 - build integration
 - shared hosting model
-
-OLD
-
-- proper graph layout
-    - parent link should be up
-    - avoid repetitive scrolling
-        - re-center on newest node?
-- arrows
-    - repointing to existing node
-- dynamic type recognition (layoutbox -> containerbox / flowbox etc)
-- field display
-- bit fields
-- DFS for graph expansion
-- graph over time
-    - rebuild? snapshots?
-
 
 - plugin model for JsDbg
