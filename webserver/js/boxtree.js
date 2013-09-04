@@ -57,6 +57,16 @@ function CreateBox(obj) {
     return result;
 }
 
+// Extend DbgObject to ease navigation of patchable objects.
+DbgObject.prototype.latestPatch = function() {
+    var nextPatch = this.f("_pNextPatch");
+    if (!nextPatch.isNull()) {
+        return nextPatch.as(this.typename);
+    } else {
+        return this;
+    }
+}
+
 function LayoutBox(box) {
     this.box = box;
     this.cachedChildren = null;
@@ -109,7 +119,7 @@ ContainerBox.prototype.collectChildren = function(children) {
         var item = firstItem;
         do {
             if (item.vtable() == "Layout::PositionedBoxItem") {
-                var childBox = item.as("Layout::PositionedBoxItem").f("flowItem.data.boxReference.m_pT");
+                var childBox = item.as("Layout::PositionedBoxItem").f("flowItem").latestPatch().f(".data.boxReference.m_pT");
                 children.push(childBox);
             }
 
@@ -129,6 +139,7 @@ FlowBox.collectChildrenInFlow = function(flow, children) {
     var initialFlow = flow;
     if (!flow.isNull()) {
         do {
+            flow = flow.latestPatch();
             children.push(flow.f("data.boxReference.m_pT"));
             flow = flow.f("data.next");
         } while (!flow.equals(initialFlow));
@@ -147,7 +158,7 @@ FlowBox.prototype.collectChildren = function(children) {
     if (!floaterArray.isNull()) {
         var array = floaterArray.array(floaterArray.as("int").idx(-1).val());
         for (var i = 0; i < array.length; ++i) {
-            var box = array[i].f("floaterBoxReference.m_pT.data.BoxReference.m_pT");
+            var box = array[i].f("floaterBoxReference.m_pT").latestPatch().f(".data.BoxReference.m_pT");
             children.push(box);
         }
     }
@@ -180,7 +191,7 @@ TableGridBox.prototype.collectChildren = function(children) {
     while (!rowLayout.isNull()) {
         var columns = rowLayout.f("Columns.m_pT");
         if (!columns.isNull()) {
-            var array = columns.f("data.Array.data").array(columns.f("data.Array.length").val());
+            var array = columns.latestPatch().f("data.Array.data").array(columns.f("data.Array.length").val());
             for (var i = 0; i < array.length; ++i) {
                 var box = array[i].f("cellBoxReference.m_pT");
                 if (!box.isNull()) {
@@ -206,7 +217,7 @@ GridBox.prototype.collectChildren = function(children) {
     var gridBoxItemArray = this.box.f("Items.m_pT");
 
     if (!gridBoxItemArray.isNull()) {
-        var array = gridBoxItemArray.f("data.Array.data").array(gridBoxItemArray.f("data.Array.length").val());
+        var array = gridBoxItemArray.latestPatch().f("data.Array.data").array(gridBoxItemArray.f("data.Array.length").val());
         for (var i = 0; i < array.length; ++i) {
             var childBox = array[i].f("BoxReference.m_pT");
             if (!childBox.isNull()) {
@@ -240,7 +251,7 @@ MultiColumnBox.prototype.collectChildren = function(children) {
     var items = this.box.f("items.m_pT");
 
     if (!items.isNull()) {
-        var array = items.f("data.Array.data").array(this.box.f("itemsCount").val());
+        var array = items.latestPatch().f("data.Array.data").array(this.box.f("itemsCount").val());
         for (var i = 0; i < array.length; ++i) {
             var childBox = array[i].f("BoxReference.m_pT");
             children.push(childBox);

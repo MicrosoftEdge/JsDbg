@@ -14,8 +14,8 @@
     <script type="text/javascript">
         function loadBoxTree() {
             var rootBoxPointer = parseInt(document.getElementById("boxpointer").value);
-            createBoxTree(rootBoxPointer, document.querySelector("#tree"));
             window.location.hash = document.getElementById("boxpointer").value;
+            createBoxTree(rootBoxPointer, document.querySelector("#tree"));
         }
 
 
