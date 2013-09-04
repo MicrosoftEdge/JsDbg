@@ -48,11 +48,6 @@ var JsDbg = (function() {
         },
 
 
-
-
-
-
-
         SyncLookupFieldOffset: function(module, type, fields) {
             var retval = null;
             jsonRequest("/fieldoffset?module=" + module + "&type=" + type + "&fields=" + fields.join(","), function(x) { retval = x; }, /*async*/false, /*cache*/true);
@@ -86,12 +81,6 @@ var JsDbg = (function() {
 
             var retval = null;
             jsonRequest("/array?type=" + sizeNames[itemSize] + "&pointer=" + pointer + "&length=" + count, function(x) { retval = x; }, /*async*/false);
-            return retval;
-        },
-
-        SyncReadShortArray: function(pointer, length) {
-            var retval = null;
-            jsonRequest("/array?type=short&pointer=" + pointer + "&length=" + length, function(x) { retval = x; }, /*async*/false);
             return retval;
         },
 

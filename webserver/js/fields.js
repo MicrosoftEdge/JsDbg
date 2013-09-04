@@ -1,6 +1,7 @@
 function DbgObject(module, type, pointer) {
     this.module = module;
     this.pointer = pointer;
+    
     // Cleanup type name:
     //  - remove whitespace from the beginning and end
     //  - strip [] from inline arrays
