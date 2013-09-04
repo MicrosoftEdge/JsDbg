@@ -1,0 +1,31 @@
+#boxtree_root {
+    position:relative;
+    font-family:Consolas;
+    font-size:10pt;
+}
+
+#boxtree_root .box {
+    font-size:8pt;
+    position:absolute;
+    width:75px;
+    height:80px;
+    word-wrap:break-word;
+    box-sizing:border-box;
+    border:thin solid black;
+    text-align: center;
+}
+
+#boxtree_root .horizontal {
+    position:absolute;
+    margin-top:-0.5px;
+    border-top:thin solid black;
+    height:0px;
+}
+
+#boxtree_root .vertical {
+    position:absolute;
+    margin-left:-0.5px;
+    border-left:thin solid black;
+    width:0px;
+    height:10px;
+}

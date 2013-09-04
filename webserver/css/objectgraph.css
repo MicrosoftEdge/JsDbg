@@ -1,0 +1,11 @@
+
+#objectgraph_root {
+    position:relative;
+}
+
+#objectgraph_root > .node {
+    position:absolute;
+    border:thin solid black;
+    min-width:50px;
+    padding:0.5em;
+}

@@ -1,0 +1,33 @@
+
+NEW
+
+- status
+- better ui for updating
+- vcs checkin
+- build integration
+- automatic root box recognition
+- mshtml versioning
+- distribution model
+- tree layout improvements
+- bit fields
+- box positions
+- live extending UI
+- windbg links
+
+OLD
+
+- proper graph layout
+    - parent link should be up
+    - avoid repetitive scrolling
+        - re-center on newest node?
+- arrows
+    - repointing to existing node
+- dynamic type recognition (layoutbox -> containerbox / flowbox etc)
+- field display
+- bit fields
+- DFS for graph expansion
+- graph over time
+    - rebuild? snapshots?
+
+
+- plugin model for JsDbg

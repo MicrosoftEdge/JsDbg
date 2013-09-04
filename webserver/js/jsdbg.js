@@ -1,0 +1,110 @@
+var JsDbg = (function() {
+
+    var responseCache = {};
+
+    function jsonRequest(url, callback, async, cache) {
+        if (cache && url in responseCache) {
+            callback(responseCache[url]);
+            return;
+        }
+
+        var xhr = new XMLHttpRequest();
+        
+        xhr.open("GET", url, async);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                var result = JSON.parse(xhr.responseText);
+                if (cache) {
+                    responseCache[url] = result;
+                }
+                callback(result);
+            }
+        };
+        xhr.send();
+    }
+
+    var sizeNames = {
+        1 : "byte",
+        2 : "short",
+        4 : "int",
+        8 : "long"
+    };
+
+    return {
+        LookupFieldOffset: function(module, type, fields, callback) {
+            jsonRequest("/fieldoffset?module=" + module + "&type=" + type + "&fields=" + fields.join(","), callback, /*async*/true, /*cache*/true);
+        },
+
+        ReadPointer: function(pointer, callback) {
+            jsonRequest("/memory?type=pointer&pointer=" + pointer, callback, /*async*/true);
+        },
+
+        GetPointerSize: function(callback) {
+            jsonRequest("/pointersize", callback, /*async*/true, /*cache*/true);
+        },
+
+        LookupSymbolName: function(pointer, callback) {
+            jsonRequest("/symbolname?pointer=" + pointer, callback, /*async*/true);
+        },
+
+
+
+
+
+
+
+        SyncLookupFieldOffset: function(module, type, fields) {
+            var retval = null;
+            jsonRequest("/fieldoffset?module=" + module + "&type=" + type + "&fields=" + fields.join(","), function(x) { retval = x; }, /*async*/false, /*cache*/true);
+            return retval;
+        },
+
+        SyncReadPointer: function(pointer) {
+            var retval = null;
+            jsonRequest("/memory?type=pointer&pointer=" + pointer, function(x) { retval = x; }, /*async*/false);
+            return retval;
+        },
+
+        SyncReadNumber: function(pointer, size) {
+            if (!(size in sizeNames)) {
+                return {
+                    "error": "Invalid number size.",
+                }
+            }
+
+            var retval = null;
+            jsonRequest("/memory?type=" + sizeNames[size] + "&pointer=" + pointer, function(x) { retval = x; }, /*async*/false);
+            return retval;
+        },
+
+        SyncReadArray: function(pointer, itemSize, count) {
+            if (!(itemSize in sizeNames)) {
+                return {
+                    "error": "Invalid number size.",
+                }
+            }
+
+            var retval = null;
+            jsonRequest("/array?type=" + sizeNames[itemSize] + "&pointer=" + pointer + "&length=" + count, function(x) { retval = x; }, /*async*/false);
+            return retval;
+        },
+
+        SyncReadShortArray: function(pointer, length) {
+            var retval = null;
+            jsonRequest("/array?type=short&pointer=" + pointer + "&length=" + length, function(x) { retval = x; }, /*async*/false);
+            return retval;
+        },
+
+        SyncLookupSymbolName: function(pointer) {
+            var retval = null;
+            jsonRequest("/symbolname?pointer=" + pointer, function(x) { retval = x; }, /*async*/false);
+            return retval;
+        },
+
+        SyncGetPointerSize: function() {
+            var retval = null;
+            jsonRequest("/pointersize", function(x) { retval = x; }, /*async*/false, /*cache*/true);
+            return retval;
+        }
+    }
+})();
