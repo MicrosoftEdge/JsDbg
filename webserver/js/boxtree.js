@@ -78,7 +78,7 @@ ContainerBox.prototype.collectChildren = function(children) {
 }
 ContainerBox.prototype.createRepresentation = function() {
     var result = LayoutBox.prototype.createRepresentation.call(this);
-    result.innerHTML += "w:" + this.box.f("contentBoxWidth.value").value() + 
+    result.innerHTML += "<br />w:" + this.box.f("contentBoxWidth.value").value() + 
         "<br />h:" + this.box.f("contentBoxHeight.value").value() + 
         "<br />lp:" + this.box.f("sourceStyle.fancyFormat._layoutPlacement").bits(0, 5);
     return result;
@@ -255,7 +255,7 @@ LineBox.prototype.createRepresentation = function() {
             runCount = runIndexAfterLine + 1;
         }
 
-        result = "text:<em>";
+        result = "<br />text:<em>";
 
         for (var i = runIndexAtStartOfLine; i < runCount; ++i) {
             var runType = runArray.idx(i).deref().f("_runType").bits(0, 3);
