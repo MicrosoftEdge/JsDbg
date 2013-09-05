@@ -35,7 +35,8 @@ var UserFields = [
         html: function(box) {
             return box.f("sourceStyle.fancyFormat._layoutPlacement")
                       .as("Tree::LayoutPlacementEnum")
-                      .constant(0, 5).substr("LayoutPlacementEnum_".length);
+                      .constant(0, 5)
+                      .substr("LayoutPlacementEnum_".length);
         }
     },
 
@@ -89,9 +90,8 @@ var UserFields = [
                 result = "<em>";
 
                 for (var i = runIndexAtStartOfLine; i < runCount; ++i) {
-                    var runType = runArray.idx(i).deref().f("_runType").bits(0, 3);
-                    if (runType == 0x1) {
-                        // It's a character run.
+                    var runType = runArray.idx(i).deref().f("_runType").as("Tree::TextBlockRunTypeEnum").constant(0, 3).substr("TextBlockRunTypeEnum_".length);
+                    if (runType == "CharacterRun") {
                         var textRun = runArray.idx(i).deref().f("_u._pTextRun");
                         var offset = textRun.f("_cchOffset").val();
                         var length = textRun.f("_cchRunLength").val();
@@ -116,7 +116,7 @@ var UserFields = [
                         var array = textData.idx(offset).array(stringLength);
                         result += array.map(function(x) { return "&#" + x + ";"; }).join("");
                     } else {
-                        result += "</em><strong>[RT=" + runType + "]</strong><em>";
+                        result += "</em><strong>[" + runType + "]</strong><em>";
                     }
                 }
                 result += "</em>";
