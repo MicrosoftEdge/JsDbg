@@ -1,5 +1,8 @@
 "use strict";
 
+// boxtree.js
+// Peter Salas
+//
 // mshtml-specific logic for constructing a box tree.  The methods that new types implement are
 //  - typename -> string               [a name that identifies the type]
 //  - collectChildren(array) -> void   [adds children to the given array]

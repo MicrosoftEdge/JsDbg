@@ -1,5 +1,8 @@
 "use strict";
 
+// user.js
+// Peter Salas
+//
 // Visualizations that can be applied on top of the box tree.  Visualizations can provide an
 // "html" function and a "shortname" which will add innerHTML to each tree node, or they can
 // directly manipulate the node element by providing an "element" function.

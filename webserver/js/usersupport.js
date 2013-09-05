@@ -1,5 +1,8 @@
 "use strict";
 
+// usersupport.js
+// Peter Salas
+//
 // Support functionality for user.js.
 
 var reinjectUserFields = (function() {

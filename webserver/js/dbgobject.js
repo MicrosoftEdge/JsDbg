@@ -1,7 +1,11 @@
+"use strict";
 
+// dbgobject.js
+// Peter Salas
+//
 // A convenience library, written on top of JsDbg, to allow convenient navigation of objects.
 // Provides the following interface:
-//   - f(string) -> DbgObject               [workhorse method, navigates to an object contained by or pointed to from another object]
+//   - f(string) -> DbgObject               [workhorse method, navigates to an object contained or pointed to by another object]
 //   - deref() -> DbgObject                 [derefences a DbgObject; generally only used with arrays of pointers]
 //   - as(string) -> DbgObject              ["casts" the object to the given type]
 //   - idx(number) -> DbgObject             [gets the object at a given index in an array]

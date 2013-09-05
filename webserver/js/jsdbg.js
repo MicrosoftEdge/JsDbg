@@ -1,6 +1,9 @@
 "use strict";
 
-// An interface for communicating with a windbg session.
+// jsdbg.js
+// Peter Salas
+//
+// An interface for communicating with a windbg session via the jsdbg server.
 
 var JsDbg = (function() {
 

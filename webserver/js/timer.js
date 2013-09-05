@@ -1,5 +1,10 @@
 "use strict";
 
+// timer.js
+// Peter Salas
+//
+// A simple wall clock timer for measuring performance.
+
 var Timer = (function() {
     return {
         Start: function() {

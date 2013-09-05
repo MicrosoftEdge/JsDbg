@@ -1,5 +1,8 @@
 "use strict";
 
+// tree.js
+// Peter Salas
+//
 // A tree drawing library.  It provides one method, Tree.BuildTree, which takes a DOM element in which to create the tree,
 // and a "backing node" which implements two methods:
 //  - getChildren -> array of backing nodes
