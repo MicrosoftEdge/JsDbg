@@ -73,6 +73,10 @@ var JsDbg = (function() {
             jsonRequest("/symbolname?pointer=" + pointer, callback, /*async*/true);
         },
 
+        LookupConstantName: function(module, type, constant, callback) {
+            jsonRequest("/constantname?module=" + module + "&type=" + type + "&constant=" + constant, callback, /*async*/true, /*cache*/true);
+        },
+
         GetPointerSize: function(callback) {
             jsonRequest("/pointersize", callback, /*async*/true, /*cache*/true);
         },
@@ -118,6 +122,12 @@ var JsDbg = (function() {
         SyncLookupSymbolName: function(pointer) {
             var retval = null;
             jsonRequest("/symbolname?pointer=" + pointer, function(x) { retval = x; }, /*async*/false);
+            return retval;
+        },
+
+        SyncLookupConstantName: function(module, type, constant) {
+            var retval = null;
+            jsonRequest("/constantname?module=" + module + "&type=" + type + "&constant=" + constant, function(x) { retval = x; }, /*async*/false, /*cache*/true);
             return retval;
         },
 

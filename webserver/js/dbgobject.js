@@ -12,6 +12,7 @@
 //   - array(length) -> array               [gets an array of DbgObjects or numbers]
 //   - val() -> number                      [reads a number]
 //   - ptr() -> number                      [gets the pointer to the object]
+//   - constant(offset?, count?)            [gets the name of a constant.  optional args are for bit fields]
 //   - equals(DbgObject) -> bool            [are two DbgObjects the same pointer?]
 //   - vtable() -> string                   [returns the fully specified type of the vtable, if there is one]
 //   - bits(offset, count) ->number         [reads a set of bits from the current value]
@@ -122,6 +123,22 @@ DbgObject.prototype.val = function() {
     }
 
     return result.value;
+}
+
+DbgObject.prototype.constant = function(offset, bits) {
+    var value;
+    if (offset != undefined && bits != undefined) {
+        // We're using bits.
+        value = this.bits(offset, bits);
+    } else {
+        value = this.val();
+    }
+
+    var result = JsDbg.SyncLookupConstantName(this.module, this.typename, value);
+    if (result.error) {
+        throw result.error;
+    }
+    return result.name;
 }
 
 DbgObject.prototype.array = function(count) {

@@ -33,7 +33,9 @@ var UserFields = [
         fullname: "ContainerBox.LayoutPlacement",
         shortname: "lp",
         html: function(box) {
-            return box.f("sourceStyle.fancyFormat._layoutPlacement").bits(0, 5);
+            return box.f("sourceStyle.fancyFormat._layoutPlacement")
+                      .as("Tree::LayoutPlacementEnum")
+                      .constant(0, 5).substr("LayoutPlacementEnum_".length);
         }
     },
 

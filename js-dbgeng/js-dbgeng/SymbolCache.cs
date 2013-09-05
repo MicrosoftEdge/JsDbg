@@ -55,6 +55,10 @@ namespace JsDbg {
             this.symbols.GetNameByOffset(pointer, out name, out displacement);
         }
 
+        internal string GetConstantName(ulong moduleBase, uint typeId, ulong constant) {
+            return this.symbols.GetConstantName(moduleBase, typeId, constant);
+        }
+
         #region IDisposable Members
 
         public void Dispose() {

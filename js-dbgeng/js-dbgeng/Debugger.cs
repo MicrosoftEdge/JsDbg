@@ -105,6 +105,37 @@ namespace JsDbg {
             }
         }
 
+        internal string LookupConstantName(string module, string type, ulong constant) {
+            this.WaitForBreakIn();
+
+            // Get the module.
+            ulong moduleBase;
+            System.Diagnostics.Debug.WriteLine(String.Format("getting module: {0}", module));
+            try {
+                moduleBase = this.symbolCache.GetModuleBase(module);
+            } catch {
+                throw new DebuggerException(String.Format("Invalid module name: {0}", module));
+            }
+
+            // Get the type id of the type.
+            System.Diagnostics.Debug.WriteLine(String.Format("getting type: {0}", type));
+            uint typeId;
+            try {
+                typeId = this.symbolCache.GetTypeId(moduleBase, type);
+            } catch {
+                throw new DebuggerException(String.Format("Invalid type name: {0}", type));
+            }
+
+            // Lookup the constant name.
+            string result;
+            try {
+                result = this.symbolCache.GetConstantName(moduleBase, typeId, constant);
+            } catch {
+                throw new DebuggerException(String.Format("Invalid constant: {0}", constant));
+            }
+            return result;
+        }
+
         internal string LookupSymbol(ulong pointer) {
             string name;
             ulong displacement;

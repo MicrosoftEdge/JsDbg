@@ -71,6 +71,9 @@ namespace JsDbg {
                         case "pointersize":
                             this.ServePointerSize(segments, context);
                             break;
+                        case "constantname":
+                            this.ServeConstantName(segments, context);
+                            break;
                         default:
                             context.Response.Redirect("/");
                             context.Response.OutputStream.Close();
@@ -81,6 +84,20 @@ namespace JsDbg {
             } catch (Exception ex) {
                 Console.Out.WriteLine(ex.Message);
             }
+        }
+
+        private void ServeFailure(HttpListenerContext context) {
+            context.Response.StatusCode = 400;
+            context.Response.OutputStream.Close();
+        }
+
+        private void ServeUncachedString(string responseString, HttpListenerContext context) {
+            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
+            context.Response.AddHeader("Cache-Control", "no-cache");
+            context.Response.ContentType = "application/json";
+            context.Response.ContentLength64 = buffer.Length;
+            context.Response.OutputStream.Write(buffer, 0, buffer.Length);
+            context.Response.OutputStream.Close();
         }
 
         private void ServeStaticFile(string filename, HttpListenerResponse response) {
@@ -127,13 +144,7 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
-
-            context.Response.AddHeader("Cache-Control", "no-cache");
-            context.Response.ContentType = "application/json";
-            context.Response.ContentLength64 = buffer.Length;
-            context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-            context.Response.OutputStream.Close();
+            this.ServeUncachedString(responseString, context);
         }
 
         private void ServeMemory(string[] segments, HttpListenerContext context) {
@@ -142,8 +153,7 @@ namespace JsDbg {
             ulong pointer;
 
             if (type == null || pointerString == null || !UInt64.TryParse(pointerString, out pointer)) {
-                context.Response.StatusCode = 400;
-                context.Response.OutputStream.Close();
+                this.ServeFailure(context);
                 return;
             }
             
@@ -180,8 +190,7 @@ namespace JsDbg {
                         value = this.debugger.ReadMemory<ulong>(pointer);
                         break;
                     default:
-                        context.Response.StatusCode = 400;
-                        context.Response.OutputStream.Close();
+                        this.ServeFailure(context);
                         return;
                 }
 
@@ -190,13 +199,7 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
-
-            context.Response.AddHeader("Cache-Control", "no-cache");
-            context.Response.ContentType = "application/json";
-            context.Response.ContentLength64 = buffer.Length;
-            context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-            context.Response.OutputStream.Close();
+            this.ServeUncachedString(responseString, context);
         }
 
         private void ServeArray(string[] segments, HttpListenerContext context) {
@@ -207,8 +210,7 @@ namespace JsDbg {
             ulong length;
 
             if (type == null || pointerString == null || !UInt64.TryParse(pointerString, out pointer) || !UInt64.TryParse(lengthString, out length)) {
-                context.Response.StatusCode = 400;
-                context.Response.OutputStream.Close();
+                this.ServeFailure(context);
                 return;
             }
 
@@ -245,8 +247,7 @@ namespace JsDbg {
                     arrayString = ReadJsonArray<ulong>(pointer, length);
                     break;
                 default:
-                    context.Response.StatusCode = 400;
-                    context.Response.OutputStream.Close();
+                    this.ServeFailure(context);
                     return;
                 }
 
@@ -255,13 +256,7 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
-
-            context.Response.AddHeader("Cache-Control", "no-cache");
-            context.Response.ContentType = "application/json";
-            context.Response.ContentLength64 = buffer.Length;
-            context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-            context.Response.OutputStream.Close();
+            this.ServeUncachedString(responseString, context);
         }
 
         private string ReadJsonArray<T>(ulong pointer, ulong length) where T : struct {
@@ -289,8 +284,7 @@ namespace JsDbg {
             
             ulong pointer;
             if (pointerString == null || !UInt64.TryParse(pointerString, out pointer)) {
-                context.Response.StatusCode = 400;
-                context.Response.OutputStream.Close();
+                this.ServeFailure(context);
                 return;
             }
 
@@ -302,23 +296,32 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
-            context.Response.AddHeader("Cache-Control", "no-cache");
-            context.Response.ContentType = "application/json";
-            context.Response.ContentLength64 = buffer.Length;
-            context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-            context.Response.OutputStream.Close();
+            this.ServeUncachedString(responseString, context);
         }
 
         private void ServePointerSize(string[] segments, HttpListenerContext context) {
-            string responseString = String.Format("{{ \"pointerSize\": \"{0}\" }}", (this.debugger.IsPointer64Bit ? 8 : 4));
+            this.ServeUncachedString(String.Format("{{ \"pointerSize\": \"{0}\" }}", (this.debugger.IsPointer64Bit ? 8 : 4)), context);
+        }
 
-            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
-            context.Response.AddHeader("Cache-Control", "no-cache");
-            context.Response.ContentType = "application/json";
-            context.Response.ContentLength64 = buffer.Length;
-            context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-            context.Response.OutputStream.Close();
+        private void ServeConstantName(string[] segments, HttpListenerContext context) {
+            string module = context.Request.QueryString["module"];
+            string type = context.Request.QueryString["type"];
+            string constantString = context.Request.QueryString["constant"];
+            ulong constant;
+            if (module == null || type == null || constantString == null || !UInt64.TryParse(constantString, out constant)) {
+                this.ServeFailure(context);
+                return;
+            }
+
+            string responseString;
+            try {
+                string constantName = this.debugger.LookupConstantName(module, type, constant);
+                responseString = String.Format("{{ \"name\": \"{0}\" }}", constantName);
+            } catch (Debugger.DebuggerException ex) {
+                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+            }
+
+            this.ServeUncachedString(responseString, context);
         }
 
         internal void Abort() {
