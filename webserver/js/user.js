@@ -54,6 +54,15 @@ var UserFields = [
     },
 
     {
+        type:ContainerBox,
+        fullname: "ContainerBox.HasOpacity",
+        shortname: "o",
+        html: function(box) {
+            return box.f("sourceStyle.fancyFormat._fHasOpacity").bits(6, 1) ? true : false;
+        }
+    },
+
+    {
         type: ContainerBox,
         fullname: "ContainerBox.Validity",
         element: function(box, e) {

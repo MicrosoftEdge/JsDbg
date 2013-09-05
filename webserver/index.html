@@ -14,21 +14,21 @@
     <link rel="stylesheet" href="/static/css/tree.css" type="text/css">
     <link rel="stylesheet" href="/static/css/usersupport.css" type="text/css">
     <script type="text/javascript">
-        function loadBoxTree() {
-            var rootBoxPointer = parseInt(document.getElementById("boxpointer").value);
-            window.location.hash = document.getElementById("boxpointer").value;
-            createBoxTree(rootBoxPointer, document.querySelector("#tree"));
+        function loadBoxTree(isTreeNode) {
+            var rootTreeNode = parseInt(document.getElementById("pointer").value);
+            window.location.hash = document.getElementById("pointer").value;
+            createBoxTree(rootTreeNode, isTreeNode, document.querySelector("#tree"));
         }
 
 
         function init() {
             if (window.location.hash) {
-                var rootBox = window.location.hash.substr(1);
-                document.getElementById("boxpointer").value = rootBox;
-                loadBoxTree();
+                var hashPointer = window.location.hash.substr(1);
+                document.getElementById("pointer").value = hashPointer;
             }
 
-            document.getElementById("load").addEventListener("click", loadBoxTree);
+            document.getElementById("loadTreeNode").addEventListener("click", function() { loadBoxTree(true); });
+            document.getElementById("loadLayoutBox").addEventListener("click", function() { loadBoxTree(false); });
         }
 
         document.addEventListener("DOMContentLoaded", init);
@@ -41,9 +41,10 @@
     </style>
 </head>
 <body>
-    <label for="boxpointer">Root Box Pointer:</label>
-    <input type="text" id="boxpointer" /> 
-    <button id="load">Load</button><br />
+    <label for="pointer">Pointer:</label>
+    <input type="text" id="pointer" /> 
+    <button id="loadTreeNode">CTreeNode</button>
+    <button id="loadLayoutBox">LayoutBox</button><br />
     Click a box to show its children.  Ctrl-Click to expand or collapse a subtree.
     <div id="tree"></div>
 </body>

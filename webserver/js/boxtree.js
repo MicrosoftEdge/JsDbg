@@ -16,11 +16,39 @@
 
 var rootTreeNode = null;
 
-function createBoxTree(rootBoxPointer, container) {
-    if (rootBoxPointer) {
-        boxCache = {};
-        var rootBox = CreateBox(new DbgObject("mshtml", "Layout::LayoutBox", rootBoxPointer));
-        rootTreeNode = Tree.BuildTree(container, rootBox);
+function createBoxTree(pointer, isTreeNode, container) {
+    if (pointer) {
+        var box = null;
+        if (isTreeNode) {
+            // Get the box pointer from the tree node.
+            var treeNode = new DbgObject("mshtml", "CTreeNode", pointer);
+            var layoutAssociationPtrBits = treeNode.f("_fHasLayoutAssociationPtr").bits(9, 4);
+            if (layoutAssociationPtrBits & 0x8) {
+                var bits = 0;
+
+                // for each bit not counting the 0x8 bit, dereference the pointer.
+                layoutAssociationPtrBits = layoutAssociationPtrBits & 0x7;
+                var pointer = treeNode.f("_pLayoutAssociation");
+                while (layoutAssociationPtrBits > 0) {
+                    if (layoutAssociationPtrBits & 1) {
+                        pointer = pointer.deref();
+                    }
+                    layoutAssociationPtrBits = layoutAssociationPtrBits>>1;
+                }
+
+                box = pointer.as("Layout::LayoutBox");
+            } else {
+                alert("No box was attached to the tree node.");
+            }
+        } else {
+            box = new DbgObject("mshtml", "Layout::LayoutBox", pointer);
+        }
+
+        if (box != null) {
+            boxCache = {};
+            var rootBox = CreateBox(box);
+            rootTreeNode = Tree.BuildTree(container, rootBox);
+        }
     }
 }
 
