@@ -1,3 +1,7 @@
+"use strict";
+
+// An interface for communicating with a windbg session.
+
 var JsDbg = (function() {
 
     var responseCache = {};
@@ -31,6 +35,9 @@ var JsDbg = (function() {
     };
 
     return {
+
+        // Asynchronous methods.
+
         LookupFieldOffset: function(module, type, fields, callback) {
             jsonRequest("/fieldoffset?module=" + module + "&type=" + type + "&fields=" + fields.join(","), callback, /*async*/true, /*cache*/true);
         },
@@ -39,14 +46,35 @@ var JsDbg = (function() {
             jsonRequest("/memory?type=pointer&pointer=" + pointer, callback, /*async*/true);
         },
 
-        GetPointerSize: function(callback) {
-            jsonRequest("/pointersize", callback, /*async*/true, /*cache*/true);
+        ReadNumber: function(pointer, size, callback) {
+            if (!(size in sizeNames)) {
+                return {
+                    "error": "Invalid number size.",
+                }
+            }
+
+            jsonRequest("/memory?type=" + sizeNames[size] + "&pointer=" + pointer, callback, /*async*/true);
+        },
+
+        ReadArray: function(pointer, itemSize, count, callback) {
+            if (!(itemSize in sizeNames)) {
+                return {
+                    "error": "Invalid number size.",
+                }
+            }
+
+            jsonRequest("/array?type=" + sizeNames[itemSize] + "&pointer=" + pointer + "&length=" + count, callback, /*async*/true);
         },
 
         LookupSymbolName: function(pointer, callback) {
             jsonRequest("/symbolname?pointer=" + pointer, callback, /*async*/true);
         },
 
+        GetPointerSize: function(callback) {
+            jsonRequest("/pointersize", callback, /*async*/true, /*cache*/true);
+        },
+
+        // Synchronous methods.
 
         SyncLookupFieldOffset: function(module, type, fields) {
             var retval = null;

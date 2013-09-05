@@ -1,3 +1,19 @@
+
+// A convenience library, written on top of JsDbg, to allow convenient navigation of objects.
+// Provides the following interface:
+//   - f(string) -> DbgObject               [workhorse method, navigates to an object contained by or pointed to from another object]
+//   - deref() -> DbgObject                 [derefences a DbgObject; generally only used with arrays of pointers]
+//   - as(string) -> DbgObject              ["casts" the object to the given type]
+//   - idx(number) -> DbgObject             [gets the object at a given index in an array]
+//   - array(length) -> array               [gets an array of DbgObjects or numbers]
+//   - val() -> number                      [reads a number]
+//   - ptr() -> number                      [gets the pointer to the object]
+//   - equals(DbgObject) -> bool            [are two DbgObjects the same pointer?]
+//   - vtable() -> string                   [returns the fully specified type of the vtable, if there is one]
+//   - bits(offset, count) ->number         [reads a set of bits from the current value]
+//   - isNull() -> bool                     [indicates if the object is null]
+
+
 function DbgObject(module, type, pointer) {
     this.module = module;
     this.pointer = pointer;
@@ -39,6 +55,10 @@ DbgObject.prototype._getDereferencedTypeName = function() {
     } else {
         return "void";
     }
+}
+
+DbgObject.prototype._off = function(offset) {
+    return new DbgObject(this.module, this.typename, this.pointer + offset);
 }
 
 DbgObject.prototype.deref = function() {
@@ -86,12 +106,8 @@ DbgObject.prototype.as = function(type) {
     return new DbgObject(this.module, type, this.pointer);
 }
 
-DbgObject.prototype.off = function(offset) {
-    return new DbgObject(this.module, this.typename, this.pointer + offset);
-}
-
 DbgObject.prototype.idx = function(index) {
-    return this.off(this._getStructSize() * index);
+    return this._off(this._getStructSize() * index);
 }
 
 DbgObject.prototype.val = function() {

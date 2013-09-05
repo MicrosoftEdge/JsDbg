@@ -13,18 +13,20 @@
     font-size:8pt;
     position:absolute;
     width:75px;
-    min-height:80px;
+    height:80px;
     word-wrap:break-word;
-    padding:3px 0;
     box-sizing:border-box;
     border:thin solid black;
     text-align: center;
     background:white;
     z-index:1;
+    overflow:hidden;
 }
 
 .node-container .node:hover {
     z-index:2;
+    min-height:80px;
+    height:auto;
 }
 
 .node-container .node.collapsed {

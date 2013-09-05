@@ -1,7 +1,17 @@
 "use strict";
 
+// mshtml-specific logic for constructing a box tree.  The methods that new types implement are
+//  - typename -> string               [a name that identifies the type]
+//  - collectChildren(array) -> void   [adds children to the given array]
+//
+// These types also act as backing nodes drawn by tree.js, which means that LayoutBox implements
+//  - getChildren -> array of backing nodes
+//  - createRepresentation -> dom element
+
+
+// public:
+
 var rootTreeNode = null;
-var boxCache = {};
 
 function createBoxTree(rootBoxPointer, container) {
     if (rootBoxPointer) {
@@ -11,11 +21,16 @@ function createBoxTree(rootBoxPointer, container) {
     }
 }
 
+// private:
+
+var boxCache = {};
+
 function CreateBox(obj) {
     if (obj.ptr() in boxCache) {
         return boxCache[obj.ptr()];
     }
 
+    // Map the type given by a vtable to a concrete type.
     var boxTypes = {
         "Layout::FlowBox" : FlowBox,
         "Layout::FlexBox" : FlexBox,
