@@ -4,26 +4,59 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Net;
+using System.Diagnostics;
 
 namespace JsDbg {
     class WebServer : IDisposable {
 
-        internal WebServer(Debugger debugger) {
-            this.httpListener = new HttpListener();
-            this.httpListener.Prefixes.Add("http://127.0.0.1:9999/"); // TODO:ARGS: port
+        internal WebServer(Debugger debugger, int port, string path) {
             this.debugger = debugger;
-            this.path = @"C:\my\dev\webserver\"; // TODO:ARGS: web server path
+            this.path = path;
+            this.port = port;
+        }
+
+        private void CreateHttpListener() {
+            this.httpListener = new HttpListener();
+            this.httpListener.Prefixes.Add(this.Url);
+        }
+
+        internal string Url {
+            get {
+                return String.Format("http://localhost:{0}/", this.port);
+            }
         }
 
         internal async Task Listen() {
+            this.CreateHttpListener();
+
             try {
                 this.httpListener.Start();
+            } catch (HttpListenerException ex) {
+                if (ex.ErrorCode == 5) {
+                    // Access denied, add the url acl and retry.
+                    this.CreateHttpListener();
+                    Console.Out.WriteLine("Access denied, trying to add URL ACL for {0}.  This may fire an admin prompt.", this.Url);
+
+                    try {
+                        ProcessStartInfo netsh = new ProcessStartInfo("netsh", String.Format(@"http add urlacl url={0} user={1}\{2}", this.Url, Environment.UserDomainName, Environment.UserName));
+                        netsh.Verb = "runas";
+                        Process.Start(netsh).WaitForExit();
+
+                        this.httpListener.Start();
+                    } catch (Exception innerEx) {
+                        Console.Out.WriteLine(innerEx.Message);
+                        throw innerEx;
+                    }
+                } else {
+                    Console.Out.WriteLine(ex.Message);
+                    throw ex;
+                }
             } catch (Exception ex) {
                 Console.Out.WriteLine(ex.Message);
                 throw ex;
             }
 
-            Console.Out.WriteLine("Listening for http on port 9999...");
+            Console.Out.WriteLine("Listening on {0}...", this.Url);
             try {
                 while (true) {
                     HttpListenerContext context = await Task<HttpListenerContext>.Run(() => {
@@ -38,7 +71,7 @@ namespace JsDbg {
                         return;
                     }
 
-                    Console.Out.WriteLine("request for " + context.Request.RawUrl);
+                    Task writeTask = Console.Out.WriteLineAsync("request for " + context.Request.RawUrl);
 
                     string[] segments = context.Request.Url.Segments;
 
@@ -340,5 +373,6 @@ namespace JsDbg {
         private HttpListener httpListener;
         private Debugger debugger;
         private string path;
+        private int port;
     }
 }
