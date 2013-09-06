@@ -12,6 +12,26 @@
 var UserFields = [
     {
         type: ContainerBox,
+        fullname: "ContainerBox.CTreeNode",
+        shortname: "tn",
+        html: function(box) {
+            var element = box.f("element.m_pT");
+            var treeNode = null;
+            try {
+                element.f("placeholder");
+                // We're in chk, offset by the size of a void*.
+                treeNode = element.as("void*").idx(1).as("CTreeNode");
+            } catch (ex) {
+                // We're in fre, cast to CTreeNode.
+                treeNode = element.as("CTreeNode");
+            }
+
+            return "0x" + treeNode.ptr().toString(16);
+        }
+    },
+
+    {
+        type: ContainerBox,
         fullname: "ContainerBox.Tag",
         shortname: "tag",
         html: function(box) {
@@ -19,8 +39,8 @@ var UserFields = [
             var treeNode = null;
             try {
                 element.f("placeholder");
-                // We're in chk, ElementNode has CTreeNode.
-                treeNode = element;
+                // We're in chk, offset by the size of a void*.
+                treeNode = element.as("void*").idx(1).as("CTreeNode");
             } catch (ex) {
                 // We're in fre, cast to CTreeNode.
                 treeNode = element.as("CTreeNode");
