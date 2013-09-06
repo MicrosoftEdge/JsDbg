@@ -41,29 +41,37 @@ namespace JsDbg {
                 {"__int64", 8}
             };
 
-        private bool CheckBuiltInTypeName(string type, IList<string> fields, out uint offset, out uint size, out string typeName) {
+
+        internal struct SFieldResult {
+            internal uint Offset;
+            internal uint Size;
+            internal string TypeName;
+        }
+
+        private bool CheckBuiltInTypeName(string type, IList<string> fields, out SFieldResult result) {
             string strippedType = type.Replace("unsigned", "").Replace("signed", "").Trim();
-            offset = 0;
-            size = 0;
-            typeName = type;
+            result.Offset = 0;
+            result.Size = 0;
+            result.TypeName = type;
 
             if (BuiltInTypes.ContainsKey(strippedType) && fields.Count == 0) {
-                offset = 0;
-                size = BuiltInTypes[strippedType];
-                typeName = type;
+                result.Offset = 0;
+                result.Size = BuiltInTypes[strippedType];
+                result.TypeName = type;
                 return true;
             }
 
             return false;
         }
 
-        internal void LookupField(string module, string type, IList<string> fields, out uint offset, out uint size, out string typeName) {
+        internal async Task<SFieldResult> LookupField(string module, string type, IList<string> fields) {
             // Check for built-in types first.
-            if (CheckBuiltInTypeName(type, fields, out offset, out size, out typeName)) {
-                return;
+            SFieldResult result;
+            if (CheckBuiltInTypeName(type, fields, out result)) {
+                return result;
             }
 
-            this.WaitForBreakIn();
+            await this.WaitForBreakIn();
 
             // Get the module.
             ulong moduleBase;
@@ -83,13 +91,13 @@ namespace JsDbg {
                 throw new DebuggerException(String.Format("Invalid type name: {0}", type));
             }
 
-            offset = 0;
+            result.Offset = 0;
             for (int i = 0; i < fields.Count; ++i) {
                 System.Diagnostics.Debug.WriteLine(String.Format("getting field: {0}", fields[i]));
                 try {
                     SymbolCache.SFieldTypeAndOffset fieldTypeAndOffset;
                     fieldTypeAndOffset = this.symbolCache.GetFieldTypeAndOffset(moduleBase, typeId, fields[i]);
-                    offset += fieldTypeAndOffset.Offset;
+                    result.Offset += fieldTypeAndOffset.Offset;
                     typeId = fieldTypeAndOffset.FieldTypeId;
                 } catch {
                     throw new DebuggerException(String.Format("Invalid field name: {0}", fields[i]));
@@ -98,15 +106,17 @@ namespace JsDbg {
 
             System.Diagnostics.Debug.WriteLine("getting field size and name");
             try {
-                typeName = this.symbolCache.GetTypeName(moduleBase, typeId);
-                size = this.symbolCache.GetTypeSize(moduleBase, typeId);
+                result.TypeName = this.symbolCache.GetTypeName(moduleBase, typeId);
+                result.Size = this.symbolCache.GetTypeSize(moduleBase, typeId);
             } catch {
                 throw new DebuggerException("Internal Exception: Invalid field type.");
             }
+
+            return result;
         }
 
-        internal string LookupConstantName(string module, string type, ulong constant) {
-            this.WaitForBreakIn();
+        internal async Task<string> LookupConstantName(string module, string type, ulong constant) {
+            await this.WaitForBreakIn();
 
             // Get the module.
             ulong moduleBase;
@@ -136,7 +146,9 @@ namespace JsDbg {
             return result;
         }
 
-        internal string LookupSymbol(ulong pointer) {
+        internal async Task<string> LookupSymbol(ulong pointer) {
+            await this.WaitForBreakIn();
+
             string name;
             ulong displacement;
             try {
@@ -147,13 +159,9 @@ namespace JsDbg {
             return name;
         }
 
-        internal byte[] ReadBytes(ulong pointer, ulong size, out uint bytesRead) {
-            byte[] result = new byte[size];
-            bytesRead = this.dataSpaces.ReadVirtual<byte>(pointer, result);
-            return result;
-        }
+        internal async Task<T> ReadMemory<T>(ulong pointer) where T : struct {
+            await this.WaitForBreakIn();
 
-        internal T ReadMemory<T>(ulong pointer) where T : struct {
             T[] result = new T[1];
             try {
                 this.dataSpaces.ReadVirtual<T>(pointer, result);
@@ -163,7 +171,9 @@ namespace JsDbg {
             return result[0];
         }
 
-        internal T[] ReadArray<T>(ulong pointer, ulong size) where T : struct {
+        internal async Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct {
+            await this.WaitForBreakIn();
+
             try {
                 // TODO: can we ever have incomplete reads?
                 T[] result = new T[size];
@@ -179,10 +189,11 @@ namespace JsDbg {
             get { return this.isPointer64Bit; }
         }
 
-        private void WaitForBreakIn() {
-            while (this.control.ExecutionStatus != DebugStatus.Break) {
-                if (!this.client.DispatchCallbacks()) {
-                    throw new DebuggerException("DispatchCallbacks() return false");
+        private async Task WaitForBreakIn() {
+            if (this.control.ExecutionStatus != DebugStatus.Break) {
+                Console.Out.WriteLine("Debugger is busy, waiting for break in.");
+                while (this.control.ExecutionStatus != DebugStatus.Break) {
+                    await Task.Delay(1000);
                 }
             }
         }

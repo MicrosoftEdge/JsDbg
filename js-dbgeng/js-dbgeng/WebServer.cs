@@ -152,7 +152,7 @@ namespace JsDbg {
             }
         }
 
-        private void ServeFieldOffset(string[] segments, HttpListenerContext context) {
+        private async void ServeFieldOffset(string[] segments, HttpListenerContext context) {
             string module = context.Request.QueryString["module"];
             string baseType = context.Request.QueryString["type"];
             string fieldsString = context.Request.QueryString["fields"];
@@ -170,12 +170,10 @@ namespace JsDbg {
             string responseString;
 
             try {
-                uint offset, size;
-                string resultType;
-                this.debugger.LookupField(module, baseType, fields, out offset, out size, out resultType);
+                Debugger.SFieldResult result = await this.debugger.LookupField(module, baseType, fields);
 
                 // Construct the response.
-                responseString = String.Format("{{ \"type\": \"{0}\", \"offset\": {1}, \"size\": {2} }}", resultType, offset, size);
+                responseString = String.Format("{{ \"type\": \"{0}\", \"offset\": {1}, \"size\": {2} }}", result.TypeName, result.Offset, result.Size);
             } catch (Debugger.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
@@ -183,7 +181,7 @@ namespace JsDbg {
             this.ServeUncachedString(responseString, context);
         }
 
-        private void ServeMemory(string[] segments, HttpListenerContext context) {
+        private async void ServeMemory(string[] segments, HttpListenerContext context) {
             string type = context.Request.QueryString["type"];
             string pointerString = context.Request.QueryString["pointer"];
             ulong pointer;
@@ -199,31 +197,31 @@ namespace JsDbg {
                 switch (type) {
                     case "pointer":
                         if (this.debugger.IsPointer64Bit) {
-                            value = this.debugger.ReadMemory<ulong>(pointer);
+                            value = await this.debugger.ReadMemory<ulong>(pointer);
                         } else {
-                            value = this.debugger.ReadMemory<uint>(pointer);
+                            value = await this.debugger.ReadMemory<uint>(pointer);
                         }
                         break;
                     case "byte":
-                        value = this.debugger.ReadMemory<byte>(pointer);
+                        value = await this.debugger.ReadMemory<byte>(pointer);
                         break;
                     case "short":
-                        value = this.debugger.ReadMemory<short>(pointer);
+                        value = await this.debugger.ReadMemory<short>(pointer);
                         break;
                     case "int":
-                        value = this.debugger.ReadMemory<int>(pointer);
+                        value = await this.debugger.ReadMemory<int>(pointer);
                         break;
                     case "long":
-                        value = this.debugger.ReadMemory<long>(pointer);
+                        value = await this.debugger.ReadMemory<long>(pointer);
                         break;
                     case "ushort":
-                        value = this.debugger.ReadMemory<ushort>(pointer);
+                        value = await this.debugger.ReadMemory<ushort>(pointer);
                         break;
                     case "uint":
-                        value = this.debugger.ReadMemory<uint>(pointer);
+                        value = await this.debugger.ReadMemory<uint>(pointer);
                         break;
                     case "ulong":
-                        value = this.debugger.ReadMemory<ulong>(pointer);
+                        value = await this.debugger.ReadMemory<ulong>(pointer);
                         break;
                     default:
                         this.ServeFailure(context);
@@ -238,7 +236,7 @@ namespace JsDbg {
             this.ServeUncachedString(responseString, context);
         }
 
-        private void ServeArray(string[] segments, HttpListenerContext context) {
+        private async void ServeArray(string[] segments, HttpListenerContext context) {
             string type = context.Request.QueryString["type"];
             string pointerString = context.Request.QueryString["pointer"];
             string lengthString = context.Request.QueryString["length"];
@@ -256,31 +254,31 @@ namespace JsDbg {
                 switch (type) {
                 case "pointer":
                     if (this.debugger.IsPointer64Bit) {
-                        arrayString = ReadJsonArray<ulong>(pointer, length);
+                        arrayString = await ReadJsonArray<ulong>(pointer, length);
                     } else {
-                        arrayString = ReadJsonArray<uint>(pointer, length);
+                        arrayString = await ReadJsonArray<uint>(pointer, length);
                     }
                     break;
                 case "byte":
-                    arrayString = ReadJsonArray<byte>(pointer, length);
+                    arrayString = await ReadJsonArray<byte>(pointer, length);
                     break;
                 case "short":
-                    arrayString = ReadJsonArray<short>(pointer, length);
+                    arrayString = await ReadJsonArray<short>(pointer, length);
                     break;
                 case "int":
-                    arrayString = ReadJsonArray<int>(pointer, length);
+                    arrayString = await ReadJsonArray<int>(pointer, length);
                     break;
                 case "long":
-                    arrayString = ReadJsonArray<long>(pointer, length);
+                    arrayString = await ReadJsonArray<long>(pointer, length);
                     break;
                 case "ushort":
-                    arrayString = ReadJsonArray<ushort>(pointer, length);
+                    arrayString = await ReadJsonArray<ushort>(pointer, length);
                     break;
                 case "uint":
-                    arrayString = ReadJsonArray<uint>(pointer, length);
+                    arrayString = await ReadJsonArray<uint>(pointer, length);
                     break;
                 case "ulong":
-                    arrayString = ReadJsonArray<ulong>(pointer, length);
+                    arrayString = await ReadJsonArray<ulong>(pointer, length);
                     break;
                 default:
                     this.ServeFailure(context);
@@ -295,8 +293,8 @@ namespace JsDbg {
             this.ServeUncachedString(responseString, context);
         }
 
-        private string ReadJsonArray<T>(ulong pointer, ulong length) where T : struct {
-            return ToJsonArray(this.debugger.ReadArray<T>(pointer, length));
+        private async Task<string> ReadJsonArray<T>(ulong pointer, ulong length) where T : struct {
+            return ToJsonArray(await this.debugger.ReadArray<T>(pointer, length));
         }
 
         private string ToJsonArray(System.Collections.IEnumerable enumerable) {
@@ -315,7 +313,7 @@ namespace JsDbg {
             return builder.ToString();
         }
 
-        private void ServeSymbolName(string[] segments, HttpListenerContext context) {
+        private async void ServeSymbolName(string[] segments, HttpListenerContext context) {
             string pointerString = context.Request.QueryString["pointer"];
             
             ulong pointer;
@@ -326,7 +324,7 @@ namespace JsDbg {
 
             string responseString;
             try {
-                string symbolName = this.debugger.LookupSymbol(pointer);
+                string symbolName = await this.debugger.LookupSymbol(pointer);
                 responseString = String.Format("{{ \"symbolName\": \"{0}\" }}", symbolName);
             } catch (Debugger.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
@@ -339,7 +337,7 @@ namespace JsDbg {
             this.ServeUncachedString(String.Format("{{ \"pointerSize\": \"{0}\" }}", (this.debugger.IsPointer64Bit ? 8 : 4)), context);
         }
 
-        private void ServeConstantName(string[] segments, HttpListenerContext context) {
+        private async void ServeConstantName(string[] segments, HttpListenerContext context) {
             string module = context.Request.QueryString["module"];
             string type = context.Request.QueryString["type"];
             string constantString = context.Request.QueryString["constant"];
@@ -351,7 +349,7 @@ namespace JsDbg {
 
             string responseString;
             try {
-                string constantName = this.debugger.LookupConstantName(module, type, constant);
+                string constantName = await this.debugger.LookupConstantName(module, type, constant);
                 responseString = String.Format("{{ \"name\": \"{0}\" }}", constantName);
             } catch (Debugger.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
