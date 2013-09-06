@@ -2,9 +2,41 @@
     position:fixed;
     right:0px;
     top:0px;
-    padding:1em;
-    background:rgba(255, 255, 255, 0.7);
     overflow:auto;
-    max-height:500px;
+    max-height:100%;
     z-index:10;
+    background:white;
+    border:thin solid #eee;
+    border-right:none;
+    border-top:none;
+}
+
+.field-selection .fields {
+    clear:both;
+    margin:1em;
+}
+
+.field-selection.collapsed {
+    background:none;
+    border:none;
+}
+
+.field-selection.collapsed .fields {
+    display:none;
+}
+
+.field-selection .show-hide {
+    font-size:8pt;
+    color:blue;
+    cursor:pointer;
+    float:right;
+    margin:0.5em;
+}
+
+.field-selection .show-hide:before {
+    content:"[Hide Fields]";
+}
+
+.field-selection.collapsed .show-hide:before {
+    content:"[Show Fields]";
 }

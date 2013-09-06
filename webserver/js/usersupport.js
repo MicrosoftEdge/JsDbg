@@ -40,26 +40,47 @@ document.addEventListener("DOMContentLoaded", function() {
     // Add the field selection UI.
     var container = document.createElement("div");
     container.className = "field-selection";
-    UserFields.forEach(function(f) {
-        var checkbox = document.createElement("input");
-        checkbox.setAttribute("type", "checkbox");
-        checkbox.setAttribute("id", f.fullname);
-        checkbox.checked = f.enabled;
-        container.appendChild(checkbox);
-        checkbox.addEventListener("change", function() {
-            f.enabled = checkbox.checked;
-            reinjectUserFields();
-            if (rootTreeNode != null) {
-                rootTreeNode.updateRepresentation();
-            }
-        })
 
-        var label = document.createElement("label");
-        label.setAttribute("for", f.fullname);
-        label.innerHTML = f.fullname;
-        container.appendChild(label);
+    var showHide = document.createElement("div");
+    showHide.className = "show-hide";
+    var isCollapsed = false;
+    showHide.addEventListener("click", function() {
+        if (isCollapsed) {
+            container.className = "field-selection";
+        } else {
+            container.className = "field-selection collapsed";
+        }
+        isCollapsed = !isCollapsed;
+    })
+    container.appendChild(showHide);
 
-        container.appendChild(document.createElement("br"));
-    });
+    var fields = document.createElement("div");
+    fields.className = "fields";
+    container.appendChild(fields);
+
+    UserFields
+        .sort(function(a, b) { return a.fullname.localeCompare(b.fullname); })
+        .forEach(function(f) {
+            var checkbox = document.createElement("input");
+            checkbox.setAttribute("type", "checkbox");
+            checkbox.setAttribute("id", f.fullname);
+            checkbox.checked = f.enabled;
+            fields.appendChild(checkbox);
+            checkbox.addEventListener("change", function() {
+                f.enabled = checkbox.checked;
+                reinjectUserFields();
+                if (rootTreeNode != null) {
+                    rootTreeNode.updateRepresentation();
+                }
+            })
+
+            var label = document.createElement("label");
+            label.setAttribute("for", f.fullname);
+            label.innerHTML = f.fullname;
+            fields.appendChild(label);
+
+            fields.appendChild(document.createElement("br"));
+        });
+
     document.body.appendChild(container);
 });
