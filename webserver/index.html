@@ -1,51 +1,11 @@
 <!DOCTYPE html>
-<!-- saved from url=(0016)http://localhost -->
 <html>
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>Box Tree</title>
-    <script type="text/javascript" src="/static/js/timer.js"></script>
-    <script type="text/javascript" src="/static/js/jsdbg.js"></script>
-    <script type="text/javascript" src="/static/js/dbgobject.js"></script>
-    <script type="text/javascript" src="/static/js/tree.js"></script>
-    <script type="text/javascript" src="/static/js/boxtree.js"></script>
-    <script type="text/javascript" src="/static/js/user.js"></script>
-    <script type="text/javascript" src="/static/js/usersupport.js"></script>
-    <link rel="stylesheet" href="/static/css/tree.css" type="text/css">
-    <link rel="stylesheet" href="/static/css/usersupport.css" type="text/css">
-    <script type="text/javascript">
-        function loadBoxTree(isTreeNode) {
-            var rootTreeNode = parseInt(document.getElementById("pointer").value);
-            window.location.hash = document.getElementById("pointer").value;
-            createBoxTree(rootTreeNode, isTreeNode, document.querySelector("#tree"));
-        }
-
-
-        function init() {
-            if (window.location.hash) {
-                var hashPointer = window.location.hash.substr(1);
-                document.getElementById("pointer").value = hashPointer;
-            }
-
-            document.getElementById("loadTreeNode").addEventListener("click", function() { loadBoxTree(true); });
-            document.getElementById("loadLayoutBox").addEventListener("click", function() { loadBoxTree(false); });
-        }
-
-        document.addEventListener("DOMContentLoaded", init);
-    </script>
-    <style type="text/css">
-        body {
-            font-family:Segoe UI;
-            font-size:10pt;
-        }
-    </style>
+    <meta http-equiv="refresh" content="0; URL=/static/boxtree/index.html">
+    <title></title>
 </head>
 <body>
-    <label for="pointer">Pointer:</label>
-    <input type="text" id="pointer" /> 
-    <button id="loadTreeNode">CTreeNode</button>
-    <button id="loadLayoutBox">LayoutBox</button><br />
-    Click a box to show its children.  Ctrl-Click to expand or collapse a subtree.
-    <div id="tree"></div>
+
 </body>
 </html>

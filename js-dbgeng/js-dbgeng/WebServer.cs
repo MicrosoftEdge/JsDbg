@@ -78,7 +78,7 @@ namespace JsDbg {
                     if (segments.Length < 2 || (segments.Length == 2 && segments[1].TrimEnd('/') == "static")) {
                         this.ServeStaticFile("index.html", context.Response);
                         continue;
-                    } else if (segments.Length > 3 && segments[1].TrimEnd('/') == "static") {
+                    } else if (segments.Length >= 3 && segments[1].TrimEnd('/') == "static") {
                         // static file
                         string path = "";
                         for (int i = 2; i < segments.Length; ++i) {
