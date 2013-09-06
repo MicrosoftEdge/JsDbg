@@ -12,10 +12,29 @@
 var UserFields = [
     {
         type: ContainerBox,
+        fullname: "ContainerBox.Tag",
+        shortname: "tag",
+        html: function(box) {
+            var element = box.f("element.m_pT");
+            var treeNode = null;
+            try {
+                element.f("placeholder");
+                // We're in chk, ElementNode has CTreeNode.
+                treeNode = element;
+            } catch (ex) {
+                // We're in fre, cast to CTreeNode.
+                treeNode = element.as("CTreeNode");
+            }
+
+            return treeNode.f("_etag").as("ELEMENT_TAG").constant(0, 16).substr("ETAG_".length);
+        }
+    },
+    {
+        type: ContainerBox,
         fullname: "ContainerBox.ContentBoxWidth",
         shortname: "w",
         html: function(box) {
-            return box.f("contentBoxWidth").val();
+            return box.f("contentBoxWidth").val() / 100 + "px";
         }
     },
 
@@ -24,7 +43,7 @@ var UserFields = [
         fullname: "ContainerBox.ContentBoxHeight",
         shortname: "h",
         html: function(box) {
-            return box.f("contentBoxHeight").val();
+            return box.f("contentBoxHeight").val() / 100 + "px";
         }
     },
 
