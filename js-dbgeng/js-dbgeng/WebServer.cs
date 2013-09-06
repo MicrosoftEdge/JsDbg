@@ -75,43 +75,40 @@ namespace JsDbg {
 
                     string[] segments = context.Request.Url.Segments;
 
-                    if (segments.Length < 2 || (segments.Length == 2 && segments[1].TrimEnd('/') == "static")) {
-                        this.ServeStaticFile("index.html", context.Response);
-                        continue;
-                    } else if (segments.Length >= 3 && segments[1].TrimEnd('/') == "static") {
+                    if (segments.Length > 2 && segments[1].TrimEnd('/') == "jsdbg") {
+                        // jsdbg request
+                        switch (segments[2].TrimEnd('/')) {
+                            case "fieldoffset":
+                                this.ServeFieldOffset(segments, context);
+                                break;
+                            case "memory":
+                                this.ServeMemory(segments, context);
+                                break;
+                            case "array":
+                                this.ServeArray(segments, context);
+                                break;
+                            case "symbolname":
+                                this.ServeSymbolName(segments, context);
+                                break;
+                            case "pointersize":
+                                this.ServePointerSize(segments, context);
+                                break;
+                            case "constantname":
+                                this.ServeConstantName(segments, context);
+                                break;
+                            default:
+                                context.Response.Redirect("/");
+                                context.Response.OutputStream.Close();
+                                break;
+                        }
+                    } else {
                         // static file
                         string path = "";
-                        for (int i = 2; i < segments.Length; ++i) {
+                        for (int i = 1; i < segments.Length; ++i) {
                             path = System.IO.Path.Combine(path, segments[i]);
                         }
                         this.ServeStaticFile(path, context.Response);
                         continue;
-                    } else {
-                        // dynamic request
-                        switch (segments[1].TrimEnd('/')) {
-                        case "fieldoffset":
-                            this.ServeFieldOffset(segments, context);
-                            break;
-                        case "memory":
-                            this.ServeMemory(segments, context);
-                            break;
-                        case "array":
-                            this.ServeArray(segments, context);
-                            break;
-                        case "symbolname":
-                            this.ServeSymbolName(segments, context);
-                            break;
-                        case "pointersize":
-                            this.ServePointerSize(segments, context);
-                            break;
-                        case "constantname":
-                            this.ServeConstantName(segments, context);
-                            break;
-                        default:
-                            context.Response.Redirect("/");
-                            context.Response.OutputStream.Close();
-                            break;
-                        }
                     }
                 }
             } catch (Exception ex) {
@@ -135,6 +132,12 @@ namespace JsDbg {
 
         private void ServeStaticFile(string filename, HttpListenerResponse response) {
             string fullPath = System.IO.Path.Combine(this.path, filename);
+
+            if (System.IO.Directory.Exists(fullPath)) {
+                // If we're given the path to a directory, serve up index.html instead.
+                fullPath = System.IO.Path.Combine(fullPath, "index.html");
+            }
+
             try {
                 using (System.IO.FileStream fileStream = System.IO.File.OpenRead(fullPath)) {
                     response.AddHeader("Cache-Control", "no-cache");
