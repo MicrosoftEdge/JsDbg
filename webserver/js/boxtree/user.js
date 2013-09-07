@@ -7,7 +7,7 @@
 // "html" function and a "shortname" which will add innerHTML to each tree node, or they can
 // directly manipulate the node element by providing an "element" function.
 
-// This is designed to be easily extendable by the end user during a live debugging session.
+// These are the built-in fields/visualizations -- it can be extended live using the UI.
 
 var UserFields = [
     {
@@ -89,15 +89,6 @@ var UserFields = [
             } else {
                 return "null";
             }
-        }
-    },
-
-    {
-        type:ContainerBox,
-        fullname: "ContainerBox.HasOpacity",
-        shortname: "o",
-        html: function() {
-            return this.f("sourceStyle.fancyFormat._fHasOpacity").bits(6, 1) ? true : false;
         }
     },
 

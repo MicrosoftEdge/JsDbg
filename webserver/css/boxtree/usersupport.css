@@ -21,24 +21,14 @@
 
 .field-selection .edit {
     margin-left:1em;
-    visibility: collapse;
 }
 
 .field-selection .edit:before {
     content:"[Edit]";
 }
 
-.field-selection .field:hover .edit {
-    visibility: visible;
-}
-
-.field-selection .field.editing .edit {
-    visibility: visible;
-}
-
 .field-selection .field .editor {
     display:none;
-    line-height:20pt;
 }
 
 .field-selection .editor td:first-child {
@@ -63,8 +53,12 @@
 
 .field-selection .button {
     font-size:8pt;
-    color:blue;
+    color:gray;
     cursor:pointer;
+}
+
+.field-selection .button:hover {
+    color:blue;
 }
 
 .field-selection.collapsed {
