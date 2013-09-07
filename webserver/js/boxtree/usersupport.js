@@ -11,12 +11,16 @@ var reinjectUserFields = (function() {
     function inject() {
         UserFields.forEach(function(field) {
             if (field.enabled) {
-                var previous = field.type.prototype.collectUserFields;
-                modifiedTypes.push([field.type, previous]);
-                field.type.prototype.collectUserFields = function(fields) {
-                    previous(fields);
+                var oldPrototype = field.type.prototype.__proto__;
+                var newPrototype = Object.create(oldPrototype);
+                field.type.prototype.__proto__ = newPrototype;
+                newPrototype.collectUserFields = function(fields) {
+                    if (oldPrototype.collectUserFields) {
+                        oldPrototype.collectUserFields(fields);
+                    }
                     fields.push(field);
                 };
+                modifiedTypes.push(field.type);
             }
         });
     }
@@ -24,8 +28,8 @@ var reinjectUserFields = (function() {
     function uninject() {
         // Unwind the modified type stack.
         while (modifiedTypes.length > 0) {
-            var injection = modifiedTypes.pop();
-            injection[0].prototype.collectUserFields = injection[1];
+            var injectedType = modifiedTypes.pop();
+            injectedType.prototype.__proto__ = injectedType.prototype.__proto__.__proto__;
         }
     }
 

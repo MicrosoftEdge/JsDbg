@@ -104,13 +104,15 @@ function LayoutBox(box) {
 
 LayoutBox.prototype.typename = function() { return this.box.vtable(); }
 LayoutBox.prototype.collectChildren = function(children) { }
-LayoutBox.prototype.collectUserFields = function(fields) { }
+
 LayoutBox.prototype.createRepresentation = function() {
     var element = document.createElement("div");
     element.innerHTML = this.typename() + "<br />" + this.box.ptr();
 
     var fields = [];
-    this.collectUserFields(fields);
+    if (this.collectUserFields) {
+        this.collectUserFields(fields);
+    }
 
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
