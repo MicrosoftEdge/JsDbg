@@ -107,7 +107,7 @@ LayoutBox.prototype.collectChildren = function(children) { }
 LayoutBox.prototype.collectUserFields = function(fields) { }
 LayoutBox.prototype.createRepresentation = function() {
     var element = document.createElement("div");
-    element.innerHTML = this.typename() + "<br />0x" + this.box.ptr().toString(16);
+    element.innerHTML = this.typename() + "<br />" + this.box.ptr();
 
     var fields = [];
     this.collectUserFields(fields);
@@ -115,9 +115,9 @@ LayoutBox.prototype.createRepresentation = function() {
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
         if (field.html) {
-            element.innerHTML += "<br />" + field.shortname + ":" + field.html(this.box);
+            element.innerHTML += "<br />" + field.shortname + ":" + field.html.call(this.box);
         } else if (field.element) {
-            field.element(this.box, element);
+            field.element.call(this.box, element);
         }
     };
 

@@ -141,7 +141,7 @@ namespace JsDbg {
             try {
                 using (System.IO.FileStream fileStream = System.IO.File.OpenRead(fullPath)) {
                     response.AddHeader("Cache-Control", "no-cache");
-                    response.ContentType = System.Web.MimeMapping.GetMimeMapping(filename);
+                    response.ContentType = System.Web.MimeMapping.GetMimeMapping(fullPath);
                     response.ContentLength64 = fileStream.Length;
                     fileStream.CopyTo(response.OutputStream);
                     response.OutputStream.Close();

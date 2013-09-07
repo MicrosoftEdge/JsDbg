@@ -3,6 +3,8 @@
     right:0px;
     top:0px;
     overflow:auto;
+    padding-left:1em;
+    padding-bottom:1em;
     max-height:100%;
     z-index:10;
     background:white;
@@ -13,7 +15,56 @@
 
 .field-selection .fields {
     clear:both;
-    margin:1em;
+    margin-top:1em;
+    margin-right:1em;
+}
+
+.field-selection .edit {
+    margin-left:1em;
+    visibility: collapse;
+}
+
+.field-selection .edit:before {
+    content:"[Edit]";
+}
+
+.field-selection .field:hover .edit {
+    visibility: visible;
+}
+
+.field-selection .field.editing .edit {
+    visibility: visible;
+}
+
+.field-selection .field .editor {
+    display:none;
+    line-height:20pt;
+}
+
+.field-selection .editor td:first-child {
+    text-align: right;
+    vertical-align: top;
+}
+
+.field-selection .editor textarea {
+    font-family:Consolas;
+    font-size:8pt;
+    min-height:20em;
+    min-width:70em;
+}
+
+.field-selection .field.editing .editor {
+    display:block;
+}
+
+.field-selection .field.editing .edit:before {
+    content:"[Done]";
+}
+
+.field-selection .button {
+    font-size:8pt;
+    color:blue;
+    cursor:pointer;
 }
 
 .field-selection.collapsed {
@@ -25,10 +76,11 @@
     display:none;
 }
 
+.field-selection.collapsed .add {
+    display:none;
+}
+
 .field-selection .show-hide {
-    font-size:8pt;
-    color:blue;
-    cursor:pointer;
     float:right;
     margin:0.5em;
 }

@@ -14,8 +14,8 @@ var UserFields = [
         type: ContainerBox,
         fullname: "ContainerBox.CTreeNode",
         shortname: "tn",
-        html: function(box) {
-            var element = box.f("element.m_pT");
+        html: function() {
+            var element = this.f("element.m_pT");
             var treeNode = null;
             try {
                 element.f("placeholder");
@@ -34,8 +34,8 @@ var UserFields = [
         type: ContainerBox,
         fullname: "ContainerBox.Tag",
         shortname: "tag",
-        html: function(box) {
-            var element = box.f("element.m_pT");
+        html: function() {
+            var element = this.f("element.m_pT");
             var treeNode = null;
             try {
                 element.f("placeholder");
@@ -53,8 +53,8 @@ var UserFields = [
         type: ContainerBox,
         fullname: "ContainerBox.ContentBoxWidth",
         shortname: "w",
-        html: function(box) {
-            return box.f("contentBoxWidth").val() / 100 + "px";
+        html: function() {
+            return this.f("contentBoxWidth").val() / 100 + "px";
         }
     },
 
@@ -62,8 +62,8 @@ var UserFields = [
         type: ContainerBox,
         fullname: "ContainerBox.ContentBoxHeight",
         shortname: "h",
-        html: function(box) {
-            return box.f("contentBoxHeight").val() / 100 + "px";
+        html: function() {
+            return this.f("contentBoxHeight").val() / 100 + "px";
         }
     },
 
@@ -71,8 +71,8 @@ var UserFields = [
         type:ContainerBox,
         fullname: "ContainerBox.LayoutPlacement",
         shortname: "lp",
-        html: function(box) {
-            return box.f("sourceStyle.fancyFormat._layoutPlacement")
+        html: function() {
+            return this.f("sourceStyle.fancyFormat._layoutPlacement")
                       .as("Tree::LayoutPlacementEnum")
                       .constant(0, 5)
                       .substr("LayoutPlacementEnum_".length);
@@ -83,9 +83,9 @@ var UserFields = [
         type:ContainerBox,
         fullname: "ContainerBox.DisplayNode",
         shortname: "d",
-        html: function(box) {
-            if (!box.f("isDisplayNodeExtracted").bits(2, 1)) {
-                return "0x" + box.f("rawDisplayNode").ptr().toString(16);
+        html: function() {
+            if (!this.f("isDisplayNodeExtracted").bits(2, 1)) {
+                return "0x" + this.f("rawDisplayNode").ptr().toString(16);
             } else {
                 return "null";
             }
@@ -96,18 +96,18 @@ var UserFields = [
         type:ContainerBox,
         fullname: "ContainerBox.HasOpacity",
         shortname: "o",
-        html: function(box) {
-            return box.f("sourceStyle.fancyFormat._fHasOpacity").bits(6, 1) ? true : false;
+        html: function() {
+            return this.f("sourceStyle.fancyFormat._fHasOpacity").bits(6, 1) ? true : false;
         }
     },
 
     {
         type: ContainerBox,
         fullname: "ContainerBox.Validity",
-        element: function(box, e) {
-            if (box.f("isLayoutInvalid").bits(0, 1)) {
+        element: function(e) {
+            if (this.f("isLayoutInvalid").bits(0, 1)) {
                 e.style.backgroundColor = "#fbc";
-            } else if (box.f("isDisplayInvalid").bits(1, 1)) {
+            } else if (this.f("isDisplayInvalid").bits(1, 1)) {
                 e.style.backgroundColor = "#ffc";
             } else {
                 e.style.backgroundColor = "#bfc";
@@ -119,13 +119,13 @@ var UserFields = [
         type: LineBox,
         fullname: "LineBox.Text",
         shortname: "text",
-        html: function(box) {
-            var runIndexAtStartOfLine = box.f("textBlockRunIndexAtStartOfLine").val();
-            var characterIndexInTextBlockRunAtStartOfLine = box.f("characterIndexInTextBlockRunAtStartOfLine").val();
-            var runIndexAfterLine = box.f("textBlockRunIndexAfterLine").val();
-            var characterIndexInTextBlockRunAfterLine = box.f("characterIndexInTextBlockRunAfterLine").val();
+        html: function() {
+            var runIndexAtStartOfLine = this.f("textBlockRunIndexAtStartOfLine").val();
+            var characterIndexInTextBlockRunAtStartOfLine = this.f("characterIndexInTextBlockRunAtStartOfLine").val();
+            var runIndexAfterLine = this.f("textBlockRunIndexAfterLine").val();
+            var characterIndexInTextBlockRunAfterLine = this.f("characterIndexInTextBlockRunAfterLine").val();
 
-            var textBlock = box.f("textBlock.m_pT");
+            var textBlock = this.f("textBlock.m_pT");
             var result = "";
             if (!textBlock.isNull() && runIndexAtStartOfLine >= 0) {
                 var runCount = textBlock.f("_aryRuns._c").val();

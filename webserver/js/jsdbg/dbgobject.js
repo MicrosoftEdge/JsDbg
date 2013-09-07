@@ -117,7 +117,7 @@ DbgObject.prototype.idx = function(index) {
 
 DbgObject.prototype.val = function() {
     var structSize = this._getStructSize();
-    var result = JsDbg.SyncReadNumber(this.ptr(), structSize);
+    var result = JsDbg.SyncReadNumber(this.pointer, structSize);
     if (result.error) {
         throw result.error;
     }
@@ -144,7 +144,7 @@ DbgObject.prototype.constant = function(offset, bits) {
 DbgObject.prototype.array = function(count) {
     // Try to read the array.  If it's an array of pointers or ints we can do it all at once.
     var structSize = this._getStructSize();
-    var result = JsDbg.SyncReadArray(this.ptr(), structSize, count);
+    var result = JsDbg.SyncReadArray(this.pointer, structSize, count);
     if (result.error) {
         // We weren't able to read the array, so just make an array of idx(i) calls.
         var array = [];
@@ -166,15 +166,15 @@ DbgObject.prototype.array = function(count) {
 }
 
 DbgObject.prototype.ptr = function() {
-    return this.pointer;
+    return this.pointer == 0 ? "NULL" : "0x" + this.pointer.toString(16);
 }
 
 DbgObject.prototype.equals = function(other) {
-    return this.ptr() == other.ptr();
+    return this.pointer == other.pointer;
 }
 
 DbgObject.prototype.vtable = function() {
-    var pointer = this.ptr();
+    var pointer = this.pointer;
     var vtableAddress = JsDbg.SyncReadPointer(pointer);
     if (vtableAddress.error) {
         throw vtableAddress.error;
@@ -194,5 +194,5 @@ DbgObject.prototype.bits = function(offset, bits) {
 }
 
 DbgObject.prototype.isNull = function() {
-    return this.ptr() == 0;
+    return this.pointer == 0;
 }

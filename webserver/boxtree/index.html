@@ -17,7 +17,7 @@
 
     <script type="text/javascript">
         function loadBoxTree(isTreeNode) {
-            var rootTreeNode = parseInt(document.getElementById("pointer").value);
+            var rootTreeNode = parseInt(document.getElementById("pointer").value, 16);
             window.location.hash = document.getElementById("pointer").value;
             createBoxTree(rootTreeNode, isTreeNode, document.querySelector("#tree"));
         }
