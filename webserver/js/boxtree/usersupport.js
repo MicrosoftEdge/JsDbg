@@ -231,7 +231,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function checkField(f, container) {
         try {
-            var type = DbgObject.prototype.BoxTreeEvaluate(typeString);
+            var type = DbgObject.prototype.BoxTreeEvaluate(container.querySelector(".edit-type").value);
             return true;
         } catch (ex) {
             return false;
