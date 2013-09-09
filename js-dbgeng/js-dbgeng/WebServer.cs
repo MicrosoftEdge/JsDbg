@@ -9,10 +9,13 @@ using System.Diagnostics;
 namespace JsDbg {
     class WebServer : IDisposable {
 
-        internal WebServer(Debugger debugger, int port, string path) {
+        private const int StartPortNumber = 50000;
+        private const int EndPortNumber = 50099;
+
+        internal WebServer(Debugger debugger, string path) {
             this.debugger = debugger;
             this.path = path;
-            this.port = port;
+            this.port = StartPortNumber;
         }
 
         private void CreateHttpListener() {
@@ -27,36 +30,49 @@ namespace JsDbg {
         }
 
         internal async Task Listen() {
-            this.CreateHttpListener();
 
-            try {
-                this.httpListener.Start();
-            } catch (HttpListenerException ex) {
-                if (ex.ErrorCode == 5) {
-                    // Access denied, add the url acl and retry.
-                    this.CreateHttpListener();
-                    Console.Out.WriteLine("Access denied, trying to add URL ACL for {0}.  This may fire an admin prompt.", this.Url);
+            bool didTryNetsh = false;
+            while (true) {
+                this.CreateHttpListener();
+                try {
+                    this.httpListener.Start();
+                } catch (HttpListenerException ex) {
+                    if (ex.ErrorCode == 5 && !didTryNetsh) {
+                        // Access denied, add the url acl and retry.
+                        didTryNetsh = true;
+                        Console.Out.WriteLine("Access denied, trying to add URL ACL for {0}.  This may fire an admin prompt.", this.Url);
 
-                    try {
-                        ProcessStartInfo netsh = new ProcessStartInfo("netsh", String.Format(@"http add urlacl url={0} user={1}\{2}", this.Url, Environment.UserDomainName, Environment.UserName));
-                        netsh.Verb = "runas";
-                        Process.Start(netsh).WaitForExit();
+                        try {
+                            ProcessStartInfo netsh = new ProcessStartInfo("netsh", String.Format(@"http add urlacl url={0} user={1}\{2}", this.Url, Environment.UserDomainName, Environment.UserName));
+                            netsh.Verb = "runas";
+                            Process.Start(netsh).WaitForExit();
+                        } catch (Exception innerEx) {
+                            Console.Out.WriteLine(innerEx.Message);
+                            throw innerEx;
+                        }
 
-                        this.httpListener.Start();
-                    } catch (Exception innerEx) {
-                        Console.Out.WriteLine(innerEx.Message);
-                        throw innerEx;
+                        continue;
+                    } else if (ex.ErrorCode == 183 && this.port < EndPortNumber) {
+                        // Registration conflicts with existing registration.  Try the next port.
+                        ++this.port;
+                        continue;
+                    } else {
+                        Console.Out.WriteLine(ex.Message);
+                        throw ex;
                     }
-                } else {
+                } catch (Exception ex) {
                     Console.Out.WriteLine(ex.Message);
                     throw ex;
                 }
-            } catch (Exception ex) {
-                Console.Out.WriteLine(ex.Message);
-                throw ex;
+
+                break;
             }
 
             Console.Out.WriteLine("Listening on {0}...", this.Url);
+
+            // Launch the browser.
+            System.Diagnostics.Process.Start(this.Url);
+
             try {
                 while (true) {
                     HttpListenerContext context = await Task<HttpListenerContext>.Run(() => {

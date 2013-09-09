@@ -20,18 +20,26 @@ namespace JsDbg {
 
         [STAThread]
         static int Main(string[] args) {
-            if (args.Length < 2) {
-                Console.Error.WriteLine("usage: {0} [remote debugger string] [port] [optional: path to serve]", System.AppDomain.CurrentDomain.FriendlyName);
-                return -1;
+            string remoteString;
+            if (args.Length < 1 || args[0] == "/ask") {
+                // A debugger string wasn't specified.  Prompt for a debug string instead.
+                Console.Write("Please specify a debug remote string (e.g. npipe:Pipe=foo;Server=bar):");
+                remoteString = Console.ReadLine();
+
+                if (remoteString.StartsWith("-remote ")) {
+                    remoteString = remoteString.Substring("-remote ".Length);
+                }
+
+                if (remoteString.Trim().Length == 0) {
+                    return -1;
+                }
+            } else {
+                remoteString = args[0];
             }
 
-            string remoteString = args[0];
-
-            int port = Int32.Parse(args[1]);
-
             string path;
-            if (args.Length > 2) {
-                path = args[2];
+            if (args.Length > 1) {
+                path = args[1];
             } else {
                 path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support", Version);
 
@@ -41,10 +49,21 @@ namespace JsDbg {
                     DirectoryCopy(supportDirectory, path, /*copySubDirs*/true);
                 }
             }
-            Console.Out.WriteLine("Serving from {0}", path);
 
-            Debugger debugger = new Debugger(remoteString);
-            using (WebServer webServer = new WebServer(debugger, port, path)) {
+            Debugger debugger;
+            try {
+                Console.Write("Connecting to a debug session at {0}...", remoteString);
+                debugger = new Debugger(remoteString);
+                Console.WriteLine("Connected.");
+            } catch (Exception ex) {
+                Console.WriteLine("Failed: {0}", ex.Message);
+                Console.Write("Press any key to exit...");
+                Console.ReadKey();
+                return -1;
+            }
+
+            Console.Out.WriteLine("Serving from {0}", path);
+            using (WebServer webServer = new WebServer(debugger, path)) {
                 SynchronizationContext previousContext = SynchronizationContext.Current;
                 try {
                     SingleThreadSynchronizationContext syncContext = new SingleThreadSynchronizationContext();
@@ -66,9 +85,6 @@ namespace JsDbg {
                     webServerTask.ContinueWith((Task result) => { syncContext.Complete(); });
 
                     Console.WriteLine("Press enter or ctrl-c to stop.");
-
-                    // Launch the browser.
-                    System.Diagnostics.Process.Start(webServer.Url);
 
                     // Process requests until we're done.
                     syncContext.RunOnCurrentThread();

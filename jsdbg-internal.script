@@ -1,0 +1,3 @@
+.server npipe:pipe=jsdbg-%x
+.foreach (server {.servers}) { as ${/v:JsDbgServer} ${server} }
+.shell -x \\iefs\users\psalas\jsdbg\2013-09-09-01\jsdbg.exe ${JsDbgServer}
