@@ -116,10 +116,9 @@ LayoutBox.prototype.createRepresentation = function() {
 
     for (var i = 0; i < fields.length; i++) {
         var field = fields[i];
-        if (field.html) {
-            element.innerHTML += "<br />" + field.shortname + ":" + field.html.call(this.box);
-        } else if (field.element) {
-            field.element.call(this.box, element);
+        var html = field.html.call(this.box, element);
+        if (html !== undefined) {
+            element.innerHTML += "<br />" + field.shortname + ":" + html;
         }
     };
 

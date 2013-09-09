@@ -41,7 +41,7 @@ var reinjectUserFields = (function() {
 reinjectUserFields();
 
 // Extend DbgObject with the capability to eval a string against itself.
-DbgObject.prototype.BoxTreeEvaluate = function(string) {
+DbgObject.prototype.BoxTreeEvaluate = function(string, e) {
     return eval(string);
 }
 
@@ -133,70 +133,68 @@ document.addEventListener("DOMContentLoaded", function() {
         label.innerHTML = f.fullname;
         container.appendChild(label);
 
-        if (f.html) {
-            var edit = document.createElement("span");
-            edit.className = "edit button subtle";
-            edit.addEventListener("mousedown", function() { editField(f, container); });
-            container.appendChild(edit);
+        var edit = document.createElement("span");
+        edit.className = "edit button subtle";
+        edit.addEventListener("mousedown", function() { editField(f, container); });
+        container.appendChild(edit);
 
-            // Build the editor.
-            var editor = document.createElement("div");
-            editor.className = "editor";
+        // Build the editor.
+        var editor = document.createElement("div");
+        editor.className = "editor";
 
-            var typeInput = document.createElement("input");
-            typeInput.className = "edit-type";
-            typeInput.value = f.fullname.substr(0, f.fullname.indexOf("."));
-            typeInput.addEventListener("change", function() { updateField(f, container); });
-            typeInput.setAttribute("type", "text");
+        var typeInput = document.createElement("input");
+        typeInput.className = "edit-type";
+        typeInput.value = f.fullname.substr(0, f.fullname.indexOf("."));
+        typeInput.addEventListener("change", function() { updateField(f, container); });
+        typeInput.setAttribute("type", "text");
 
-            var typeLabel = document.createElement("label");
-            typeLabel.innerHTML = "Type: ";
+        var typeLabel = document.createElement("label");
+        typeLabel.innerHTML = "Type: ";
 
-            var nameInput = document.createElement("input");
-            nameInput.className = "edit-name";
-            nameInput.setAttribute("type", "text");
-            nameInput.value = f.fullname.substr(f.fullname.indexOf(".") + 1);
-            nameInput.addEventListener("change", function() { updateField(f, container); });
+        var nameInput = document.createElement("input");
+        nameInput.className = "edit-name";
+        nameInput.setAttribute("type", "text");
+        nameInput.value = f.fullname.substr(f.fullname.indexOf(".") + 1);
+        nameInput.addEventListener("change", function() { updateField(f, container); });
 
-            var nameLabel = document.createElement("label");
-            nameLabel.innerHTML = "Name: ";
+        var nameLabel = document.createElement("label");
+        nameLabel.innerHTML = "Name: ";
 
-            var shortNameInput = document.createElement("input");
-            shortNameInput.className = "edit-shortName";
-            shortNameInput.setAttribute("type", "text");
-            shortNameInput.value = f.shortname;
-            shortNameInput.addEventListener("change", function() { updateField(f, container); });
+        var shortNameInput = document.createElement("input");
+        shortNameInput.className = "edit-shortName";
+        shortNameInput.setAttribute("type", "text");
+        shortNameInput.value = f.shortname;
+        shortNameInput.addEventListener("change", function() { updateField(f, container); });
 
-            var shortNameLabel = document.createElement("label");
-            shortNameLabel.innerHTML = "Short Name: ";
+        var shortNameLabel = document.createElement("label");
+        shortNameLabel.innerHTML = "Short Name: ";
 
-            var codeInput = document.createElement("textarea");
-            codeInput.className = "edit-code";
-            codeInput.setAttribute("spellcheck", "false");
-            codeInput.addEventListener("change", function() { updateField(f, container); });
-            codeInput.setAttribute("placeholder", "See built-in fields for examples.");
-            codeInput.value = nativeCodeToString(f.html);
-            codeInput.addEventListener("keydown", function(e) {
-                if (e.keyCode == 9) {
-                    // Replace tab keypresses with 4 spaces.
-                    e.preventDefault();
-                    insertTextAtCursor(codeInput, "    ");
-                }
-            })
+        var codeInput = document.createElement("textarea");
+        codeInput.className = "edit-code";
+        codeInput.setAttribute("spellcheck", "false");
+        codeInput.addEventListener("change", function() { updateField(f, container); });
+        codeInput.setAttribute("placeholder", "See built-in fields for examples.");
+        codeInput.value = nativeCodeToString(f.html);
+        codeInput.addEventListener("keydown", function(e) {
+            if (e.keyCode == 9) {
+                // Replace tab keypresses with 4 spaces.
+                e.preventDefault();
+                insertTextAtCursor(codeInput, "    ");
+            }
+        })
 
-            var codeLabel = document.createElement("label");
-            codeLabel.setAttribute("for", codeInput.getAttribute("id"));
-            codeLabel.innerHTML = "Code: ";
+        var codeLabel = document.createElement("label");
+        codeLabel.setAttribute("for", codeInput.getAttribute("id"));
+        codeLabel.innerHTML = "Code: ";
 
-            editor.appendChild(constructTable([
-                [typeLabel, typeInput],
-                [nameLabel, nameInput],
-                [shortNameLabel, shortNameInput],
-                [codeLabel, codeInput]
-            ]));
+        editor.appendChild(constructTable([
+            [typeLabel, typeInput],
+            [nameLabel, nameInput],
+            [shortNameLabel, shortNameInput],
+            [codeLabel, codeInput]
+        ]));
 
-            container.appendChild(editor);
-        }
+        container.appendChild(editor);
 
         return container;
     }
@@ -232,9 +230,9 @@ document.addEventListener("DOMContentLoaded", function() {
         }
         f.fullname = typeString + "." + nameString;
         f.shortname = shortNameString;
-        f.html = function() { 
+        f.html = function(e) { 
             try {
-                return this.BoxTreeEvaluate("(function() { " + codeString + "}).call(this)");
+                return this.BoxTreeEvaluate("(function() { " + codeString + "}).call(this, e)", e);
             } catch (ex) {
                 return "<span style='color:red' title='" + ex + "'>[ERROR]</span>";
             }

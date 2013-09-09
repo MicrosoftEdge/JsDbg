@@ -95,7 +95,8 @@ var UserFields = [
     {
         type: ContainerBox,
         fullname: "ContainerBox.Validity",
-        element: function(e) {
+        shortname: "validity",
+        html: function(e) {
             if (this.f("isLayoutInvalid").bits(0, 1)) {
                 e.style.backgroundColor = "#fbc";
             } else if (this.f("isDisplayInvalid").bits(1, 1)) {
