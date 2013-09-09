@@ -140,10 +140,16 @@ document.addEventListener("DOMContentLoaded", function() {
         edit.addEventListener("mousedown", function() { editField(f, container); });
         container.appendChild(edit);
 
-        var remove = document.createElement("span");
-        remove.className = "remove button";
-        remove.addEventListener("mousedown", function() { removeField(f, container); });
-        container.appendChild(remove);
+        if (f.localstorageid) {
+            var remove = document.createElement("span");
+            remove.className = "remove button";
+            remove.addEventListener("mousedown", function() {
+                if (confirm("Are you sure you want to remove " + f.fullname + "?")) {
+                    removeField(f, container);
+                }
+            });
+            container.appendChild(remove);
+        }
 
         // Build the editor.
         var editor = document.createElement("div");
@@ -233,7 +239,37 @@ document.addEventListener("DOMContentLoaded", function() {
             refreshTreeUIAfterFieldChange();
         }
 
+        if (f.localstorageid) {
+            window.localStorage.removeItem(f.localstorageid);
+            delete f.localstorageid;
+        }
+
         container.parentNode.removeChild(container);        
+    }
+
+    function saveField(f, container) {
+        if (f.localstorageid) {
+            var typeString = container.querySelector(".edit-type").value;
+            var nameString = container.querySelector(".edit-name").value;
+            var shortNameString = container.querySelector(".edit-shortName").value;
+            var codeString = container.querySelector(".edit-code").value;
+
+            window.localStorage.setItem(f.localstorageid, JSON.stringify({
+                type: typeString,
+                name: nameString,
+                shortName: shortNameString,
+                codeString: codeString
+            }));
+        }
+    }
+
+    function restoreField(serialized, f, container) {
+        container.querySelector(".edit-type").value = serialized.type;
+        container.querySelector(".edit-name").value = serialized.name;
+        container.querySelector(".edit-shortName").value = serialized.shortName;
+        container.querySelector(".edit-code").value = serialized.codeString;
+
+        updateField(f, container);
     }
 
     function evaluate(box, code) {
@@ -276,6 +312,8 @@ document.addEventListener("DOMContentLoaded", function() {
         if (f.enabled) {
             refreshTreeUIAfterFieldChange();
         }
+
+        saveField(f, container);
     }
 
     // Add the field selection UI.
@@ -317,6 +355,7 @@ document.addEventListener("DOMContentLoaded", function() {
             type: LayoutBox,
             enabled:true,
             fullname: "LayoutBox.Custom" + (++addedFieldCounter),
+            localstorageid: "BoxTree.UserField." + (new Date() - 0) + "-" + Math.round(Math.random() * 1000000),
             shortname: "f" + addedFieldCounter,
             html: function(box) { return "_"; }
         });
@@ -325,8 +364,35 @@ document.addEventListener("DOMContentLoaded", function() {
         fieldUI.className += " editing";
         fields.appendChild(fieldUI);
 
+        saveField(UserFields[UserFields.length - 1], fieldUI);
+
         refreshTreeUIAfterFieldChange();
     });
+
+    for (var key in window.localStorage) {
+        if (key.indexOf("BoxTree.UserField") == 0) {
+            try {
+                var savedField = JSON.parse(window.localStorage.getItem(key));
+            } catch (ex) {
+                console.log("Exception retrieving " + key + " from localStorage.  Ignoring.");
+                continue;
+            }
+
+            // Populate
+            UserFields.push({
+                type: function() { },
+                enabled: false,
+                fullname: "",
+                localstorageid: key,
+                shortname: "",
+                html: function() { }
+            });
+
+            var fieldUI = buildFieldUI(UserFields[UserFields.length - 1]);
+            fields.appendChild(fieldUI);
+            restoreField(savedField, UserFields[UserFields.length - 1], fieldUI);
+        }
+    }
 
     document.body.appendChild(container);
 });
