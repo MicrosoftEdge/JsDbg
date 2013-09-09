@@ -26,7 +26,7 @@ var UserFields = [
                 treeNode = element.as("CTreeNode");
             }
 
-            return "0x" + treeNode.ptr().toString(16);
+            return treeNode.ptr();
         }
     },
 
