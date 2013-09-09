@@ -23,8 +23,20 @@
     margin-left:1em;
 }
 
+.field-selection .remove {
+    margin-left:0.2em;
+}
+
+.field-selection .add:before {
+    content:"[new]";
+}
+
 .field-selection .edit:before {
-    content:"[Edit]";
+    content:"[edit]";
+}
+
+.field-selection .remove:before {
+    content:"[remove]";
 }
 
 .field-selection .field .editor {
@@ -48,7 +60,7 @@
 }
 
 .field-selection .field.editing .edit:before {
-    content:"[Done]";
+    content:"[done]";
 }
 
 .field-selection .button {
@@ -80,9 +92,9 @@
 }
 
 .field-selection .show-hide:before {
-    content:"[Hide Fields]";
+    content:"[hide]";
 }
 
 .field-selection.collapsed .show-hide:before {
-    content:"[Show Fields]";
+    content:"[show]";
 }

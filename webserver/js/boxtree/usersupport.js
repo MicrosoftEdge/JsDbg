@@ -134,9 +134,14 @@ document.addEventListener("DOMContentLoaded", function() {
         container.appendChild(label);
 
         var edit = document.createElement("span");
-        edit.className = "edit button subtle";
+        edit.className = "edit button";
         edit.addEventListener("mousedown", function() { editField(f, container); });
         container.appendChild(edit);
+
+        var remove = document.createElement("span");
+        remove.className = "remove button";
+        remove.addEventListener("mousedown", function() { removeField(f, container); });
+        container.appendChild(remove);
 
         // Build the editor.
         var editor = document.createElement("div");
@@ -211,6 +216,15 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    function removeField(f, container) {
+        if (f.enabled) {
+            f.enabled = false;
+            refreshTreeUIAfterFieldChange();
+        }
+
+        container.parentNode.removeChild(container);        
+    }
+
     function evaluate(box, code) {
         return eval(codeString);
     }
@@ -278,7 +292,6 @@ document.addEventListener("DOMContentLoaded", function() {
     // Add a button for adding a new field.
     var addNew = document.createElement("span");
     addNew.className = "add button";
-    addNew.innerHTML = "[New]";
     container.appendChild(addNew);
 
     var addedFieldCounter = 0;
