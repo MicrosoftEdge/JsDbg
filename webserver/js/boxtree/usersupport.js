@@ -207,7 +207,7 @@ document.addEventListener("DOMContentLoaded", function() {
     function editField(f, container) {
         if (container.className.indexOf(" editing") >= 0) {
             // Already being edited, so save.
-            if (updateField(f, container)) {
+            if (checkField(f, container)) {
                 container.className = container.className.replace(" editing", "");
             }
         } else {
@@ -229,6 +229,15 @@ document.addEventListener("DOMContentLoaded", function() {
         return eval(codeString);
     }
 
+    function checkField(f, container) {
+        try {
+            var type = DbgObject.prototype.BoxTreeEvaluate(typeString);
+            return true;
+        } catch (ex) {
+            return false;
+        }
+    }
+
     function updateField(f, container) {
         var typeString = container.querySelector(".edit-type").value;
         var nameString = container.querySelector(".edit-name").value;
@@ -240,7 +249,6 @@ document.addEventListener("DOMContentLoaded", function() {
             container.querySelector(".edit-type").style.color = "";
         } catch (ex) {
             container.querySelector(".edit-type").style.color = "red";
-            return false;
         }
         f.fullname = typeString + "." + nameString;
         f.shortname = shortNameString;
@@ -257,8 +265,6 @@ document.addEventListener("DOMContentLoaded", function() {
         if (f.enabled) {
             refreshTreeUIAfterFieldChange();
         }
-
-        return true;
     }
 
     // Add the field selection UI.
