@@ -315,13 +315,17 @@ document.addEventListener("DOMContentLoaded", function() {
     addNew.addEventListener("click", function() {
         UserFields.push({
             type: LayoutBox,
-            editable:true,
+            enabled:true,
             fullname: "LayoutBox.Custom" + (++addedFieldCounter),
             shortname: "f" + addedFieldCounter,
             html: function(box) { return "_"; }
         });
 
-        fields.appendChild(buildFieldUI(UserFields[UserFields.length - 1]));
+        var fieldUI = buildFieldUI(UserFields[UserFields.length - 1]);
+        fieldUI.className += " editing";
+        fields.appendChild(fieldUI);
+
+        refreshTreeUIAfterFieldChange();
     });
 
     document.body.appendChild(container);
