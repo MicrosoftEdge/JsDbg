@@ -16,6 +16,8 @@ using System.IO;
 
 namespace JsDbg {
     public class Program {
+        private const string Version = "2013-09-09-01";
+
         [STAThread]
         static int Main(string[] args) {
             if (args.Length < 2) {
@@ -31,11 +33,10 @@ namespace JsDbg {
             if (args.Length > 2) {
                 path = args[2];
             } else {
-                string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                path = Path.Combine(appData, "JsDbg", "web");
+                path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support", Version);
 
                 if (!Directory.Exists(path)) {
-                    string supportDirectory = @"\\iefs\users\psalas\jsdbg\support\latest";
+                    string supportDirectory = Path.Combine(@"\\iefs\users\psalas\jsdbg\support\", Version);
                     Console.Out.WriteLine("Installing support files from {0} to {1}", supportDirectory, path);
                     DirectoryCopy(supportDirectory, path, /*copySubDirs*/true);
                 }
