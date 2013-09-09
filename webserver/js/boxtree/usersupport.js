@@ -66,7 +66,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 var cellContents = row[j];
                 var cellElement = document.createElement("td");
 
-                cellElement.appendChild(cellContents);
+                if (cellContents) {
+                    cellElement.appendChild(cellContents);
+                }
                 rowElement.appendChild(cellElement);
             }
             table.appendChild(rowElement);
@@ -190,13 +192,22 @@ document.addEventListener("DOMContentLoaded", function() {
 
         var codeLabel = document.createElement("label");
         codeLabel.setAttribute("for", codeInput.getAttribute("id"));
-        codeLabel.innerHTML = "Code: ";
+        codeLabel.innerHTML = "JavaScript:";
+
+        var codeDescription = document.createElement("span");
+        codeDescription.className = "code-description";
+        var lines = [
+            "<em>this</em> = DbgObject that represents the box; <em>e</em> = dom element",
+            "return an html string or dom element to be displayed, or just modify <em>e.</em>"
+        ]
+        codeDescription.innerHTML = lines.join("<br />");
 
         editor.appendChild(constructTable([
             [typeLabel, typeInput],
             [nameLabel, nameInput],
             [shortNameLabel, shortNameInput],
-            [codeLabel, codeInput]
+            [codeLabel, codeDescription],
+            [null, codeInput]
         ]));
 
         container.appendChild(editor);
