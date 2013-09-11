@@ -141,7 +141,7 @@ namespace JsDbg {
                 }
             }
 
-            if (tokens.Length > 1 && normalizedDescription == "class" || normalizedDescription == "struct" || normalizedDescription == "union") {
+            if (tokens.Length > 1 && normalizedDescription == "class" || normalizedDescription == "struct" || normalizedDescription == "union" || normalizedDescription == "enum") {
                 // The next token is a proper typename.
                 typename = tokens[1];
                 bitField = new SBitFieldDescription();
