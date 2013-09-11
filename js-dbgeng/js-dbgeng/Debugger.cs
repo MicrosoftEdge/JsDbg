@@ -25,59 +25,10 @@ namespace JsDbg {
             this.dataSpaces = new DebugDataSpaces(this.client);
         }
 
-        // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
-        static Dictionary<string, uint> BuiltInTypes = new Dictionary<string, uint>()
-            {
-                {"bool", 1},
-                {"char", 1},
-                {"__int8", 1},
-                {"short", 2},
-                {"__int16", 2},
-                {"int", 4},
-                {"long", 4},
-                {"__int32", 4},
-                {"float", 4},
-                {"double", 8},
-                {"long double", 8},
-                {"long long", 8},
-                {"__int64", 8}
-            };
-
-
         internal struct SFieldResult {
             internal uint Offset;
             internal uint Size;
             internal string TypeName;
-        }
-
-        private bool GetBuiltInTypeSize(string type, out uint size) {
-            string strippedType = type.Replace("unsigned", "").Replace("signed", "").Trim();
-            if (BuiltInTypes.ContainsKey(strippedType)) {
-                size = BuiltInTypes[strippedType];
-                return true;
-            } else if (strippedType.EndsWith("*")) {
-                size = this.IsPointer64Bit ? 8u : 4u;
-                return true;
-            } else {
-                size = 0;
-                return false;
-            }
-        }
-
-        private bool CheckBuiltInTypeName(string type, IList<string> fields, out SFieldResult result) {
-            string strippedType = type.Replace("unsigned", "").Replace("signed", "").Trim();
-            result.Offset = 0;
-            result.Size = 0;
-            result.TypeName = type;
-
-            if (BuiltInTypes.ContainsKey(strippedType) && fields.Count == 0) {
-                result.Offset = 0;
-                result.Size = BuiltInTypes[strippedType];
-                result.TypeName = type;
-                return true;
-            }
-
-            return false;
         }
 
         internal async Task<SFieldResult> LookupField(string module, string typename, IList<string> fields) {
