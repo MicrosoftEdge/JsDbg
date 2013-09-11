@@ -20,6 +20,7 @@ namespace JsDbg {
             this.exitDispatchClient = new DebugClient(connectionString);
             this.symbolCache = new SymbolCache(this.client);
             this.dataSpaces = new DebugDataSpaces(this.client);
+            this.symbols = new DebugSymbols(this.client);
             this.isPointer64Bit = this.control.IsPointer64Bit;
         }
 
@@ -159,6 +160,38 @@ namespace JsDbg {
             return name;
         }
 
+        internal struct SSymbolResult {
+            internal ulong Pointer;
+            internal string Type;
+            internal string Module;
+        }
+
+        internal async Task<SSymbolResult> LookupSymbol(string symbol) {
+            await this.WaitForBreakIn();
+            
+            SSymbolResult result = new SSymbolResult();
+
+            uint typeId;
+            ulong module;
+            try {
+                this.symbols.GetSymbolTypeId(symbol, out typeId, out module);
+                this.symbols.GetOffsetByName(symbol, out result.Pointer);
+            } catch {
+                throw new DebuggerException(String.Format("Invalid symbol: {0}", symbol));
+            }
+
+            // Now that we have type ids and an offset, we can resolve the names.
+            try {
+                result.Type = this.symbolCache.GetTypeName(module, typeId);
+                string imageName, loadedImageName;
+                this.symbols.GetModuleNamesByBaseAddress(module, out imageName, out result.Module, out loadedImageName);
+            } catch {
+                throw new DebuggerException(String.Format("Internal error with symbol: {0}", symbol));
+            }
+
+            return result;
+        }
+
         internal async Task<T> ReadMemory<T>(ulong pointer) where T : struct {
             await this.WaitForBreakIn();
 
@@ -201,6 +234,7 @@ namespace JsDbg {
         #region IDisposable Members
 
         public void Dispose() {
+            this.symbols.Dispose();
             this.dataSpaces.Dispose();
             this.symbolCache.Dispose();
             this.control.Dispose();
@@ -214,6 +248,7 @@ namespace JsDbg {
         private Microsoft.Debuggers.DbgEng.DebugClient exitDispatchClient;
         private Microsoft.Debuggers.DbgEng.DebugControl control;
         private Microsoft.Debuggers.DbgEng.DebugDataSpaces dataSpaces;
+        private Microsoft.Debuggers.DbgEng.DebugSymbols symbols;
         private SymbolCache symbolCache;
         private bool isPointer64Bit;
     }

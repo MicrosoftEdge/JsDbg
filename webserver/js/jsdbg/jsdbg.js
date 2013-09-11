@@ -81,6 +81,10 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/pointersize", callback, /*async*/true, /*cache*/true);
         },
 
+        LookupSymbol: function(symbol, callback) {
+            jsonRequest("/jsdbg/symbol?symbol=" + symbol, callback, /*async*/true);
+        },
+
         // Synchronous methods.
 
         SyncLookupFieldOffset: function(module, type, fields) {
@@ -134,6 +138,12 @@ var JsDbg = (function() {
         SyncGetPointerSize: function() {
             var retval = null;
             jsonRequest("/jsdbg/pointersize", function(x) { retval = x; }, /*async*/false, /*cache*/true);
+            return retval;
+        },
+
+        SyncLookupSymbol: function(symbol) {
+            var retval = null;
+            jsonRequest("/jsdbg/symbol?symbol=" + symbol, function(x) { retval = x; }, /*async*/false);
             return retval;
         }
     }

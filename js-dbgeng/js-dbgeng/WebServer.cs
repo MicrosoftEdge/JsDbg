@@ -106,6 +106,9 @@ namespace JsDbg {
                             case "symbolname":
                                 this.ServeSymbolName(segments, context);
                                 break;
+                            case "symbol":
+                                this.ServeSymbol(segments, context);
+                                break;
                             case "pointersize":
                                 this.ServePointerSize(segments, context);
                                 break;
@@ -342,6 +345,25 @@ namespace JsDbg {
             try {
                 string symbolName = await this.debugger.LookupSymbol(pointer);
                 responseString = String.Format("{{ \"symbolName\": \"{0}\" }}", symbolName);
+            } catch (Debugger.DebuggerException ex) {
+                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+            }
+
+            this.ServeUncachedString(responseString, context);
+        }
+
+        private async void ServeSymbol(string[] segments, HttpListenerContext context) {
+            string symbol = context.Request.QueryString["symbol"];
+
+            if (symbol == null) {
+                this.ServeFailure(context);
+                return;
+            }
+
+            string responseString;
+            try {
+                Debugger.SSymbolResult result = await this.debugger.LookupSymbol(symbol);
+                responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
             } catch (Debugger.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
