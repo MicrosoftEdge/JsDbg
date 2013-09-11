@@ -16,7 +16,7 @@ using System.IO;
 
 namespace JsDbg {
     public class Program {
-        private const string Version = "2013-09-09-01";
+        private const string Version = "2013-09-11-01";
 
         [STAThread]
         static int Main(string[] args) {
