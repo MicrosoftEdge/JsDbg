@@ -28,7 +28,13 @@ namespace JsDbg {
         internal struct SFieldResult {
             internal uint Offset;
             internal uint Size;
+            internal byte BitOffset;
+            internal byte BitCount;
             internal string TypeName;
+
+            internal bool IsBitField {
+                get { return this.BitCount > 0; }
+            }
         }
 
         internal async Task<SFieldResult> LookupField(string module, string typename, IList<string> fields) {
@@ -41,6 +47,8 @@ namespace JsDbg {
                 SField field;
                 if (type.GetField(fieldname, out field)) {
                     result.Offset += field.Offset;
+                    result.BitCount = field.BitCount;
+                    result.BitOffset = field.BitOffset;
                     type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, field.TypeName);
                 } else {
                     throw new DebuggerException(String.Format("Invalid field name: {0}", fieldname));

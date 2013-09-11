@@ -46,7 +46,7 @@ var UserFields = [
                 treeNode = element.as("CTreeNode");
             }
 
-            return treeNode.f("_etag").as("ELEMENT_TAG").constant(0, 16).substr("ETAG_".length);
+            return treeNode.f("_etag").as("ELEMENT_TAG").constant().substr("ETAG_".length);
         }
     },
     {
@@ -74,7 +74,7 @@ var UserFields = [
         html: function() {
             return this.f("sourceStyle.fancyFormat._layoutPlacement")
                       .as("Tree::LayoutPlacementEnum")
-                      .constant(0, 5)
+                      .constant()
                       .substr("LayoutPlacementEnum_".length);
         }
     },
@@ -84,7 +84,7 @@ var UserFields = [
         fullname: "ContainerBox.DisplayNode",
         shortname: "d",
         html: function() {
-            if (!this.f("isDisplayNodeExtracted").bits(2, 1)) {
+            if (!this.f("isDisplayNodeExtracted").val()) {
                 return "0x" + this.f("rawDisplayNode").ptr().toString(16);
             } else {
                 return "null";
@@ -97,9 +97,9 @@ var UserFields = [
         fullname: "ContainerBox.Validity",
         shortname: "validity",
         html: function(e) {
-            if (this.f("isLayoutInvalid").bits(0, 1)) {
+            if (this.f("isLayoutInvalid").val()) {
                 e.style.backgroundColor = "#fbc";
-            } else if (this.f("isDisplayInvalid").bits(1, 1)) {
+            } else if (this.f("isDisplayInvalid").val()) {
                 e.style.backgroundColor = "#ffc";
             } else {
                 e.style.backgroundColor = "#bfc";
@@ -130,12 +130,12 @@ var UserFields = [
                 result = "<em>";
 
                 for (var i = runIndexAtStartOfLine; i < runCount; ++i) {
-                    var runType = runArray.idx(i).deref().f("_runType").as("Tree::TextBlockRunTypeEnum").constant(0, 3).substr("TextBlockRunTypeEnum_".length);
+                    var runType = runArray.idx(i).deref().f("_runType").as("Tree::TextBlockRunTypeEnum").constant().substr("TextBlockRunTypeEnum_".length);
                     if (runType == "CharacterRun") {
                         var textRun = runArray.idx(i).deref().f("_u._pTextRun");
                         var offset = textRun.f("_cchOffset").val();
                         var length = textRun.f("_cchRunLength").val();
-                        if (textRun.f("_fHasTextTransformOrPassword").bits(4, 1)) {
+                        if (textRun.f("_fHasTextTransformOrPassword").val()) {
                             var textData = textRun.f("_characterSourceUnion._pchTransformedCharacters");
                             offset = 0;
                         } else {

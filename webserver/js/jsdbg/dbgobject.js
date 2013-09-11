@@ -15,13 +15,15 @@
 //   - constant(offset?, count?)            [gets the name of a constant.  optional args are for bit fields]
 //   - equals(DbgObject) -> bool            [are two DbgObjects the same pointer?]
 //   - vtable() -> string                   [returns the fully specified type of the vtable, if there is one]
-//   - bits(offset, count) ->number         [reads a set of bits from the current value]
 //   - isNull() -> bool                     [indicates if the object is null]
 
 
-function DbgObject(module, type, pointer) {
+// bitcount and bitoffset are optional.
+function DbgObject(module, type, pointer, bitcount, bitoffset) {
     this.module = module;
     this.pointer = pointer;
+    this.bitcount = bitcount;
+    this.bitoffset = bitoffset;
 
     // Cleanup type name:
     //  - remove whitespace from the beginning and end
@@ -99,7 +101,7 @@ DbgObject.prototype.f = function(field) {
         throw result.error;
     }
 
-    var target = new DbgObject(this.module, result.type, this.pointer + result.offset);
+    var target = new DbgObject(this.module, result.type, this.pointer + result.offset, result.bitcount, result.bitoffset);
     if (target._isPointer()) {
         return target.deref();
     } else {
@@ -108,7 +110,7 @@ DbgObject.prototype.f = function(field) {
 }
 
 DbgObject.prototype.as = function(type) {
-    return new DbgObject(this.module, type, this.pointer);
+    return new DbgObject(this.module, type, this.pointer, this.bitcount, this.bitoffset);
 }
 
 DbgObject.prototype.idx = function(index) {
@@ -122,17 +124,15 @@ DbgObject.prototype.val = function() {
         throw result.error;
     }
 
-    return result.value;
+    var value = result.value;
+    if (this.bitcount && this.bitoffset !== undefined) {
+        value = (value >> this.bitoffset) & ((1 << this.bitcount) - 1);
+    }
+    return value;
 }
 
-DbgObject.prototype.constant = function(offset, bits) {
-    var value;
-    if (offset != undefined && bits != undefined) {
-        // We're using bits.
-        value = this.bits(offset, bits);
-    } else {
-        value = this.val();
-    }
+DbgObject.prototype.constant = function() {
+    var value = value = this.val();
 
     var result = JsDbg.SyncLookupConstantName(this.module, this.typename, value);
     if (result.error) {
@@ -186,11 +186,6 @@ DbgObject.prototype.vtable = function() {
     }
 
     return result.symbolName.substring(result.symbolName.indexOf("!") + 1, result.symbolName.indexOf("::`vftable'"));
-}
-
-DbgObject.prototype.bits = function(offset, bits) {
-    var value = this.val();
-    return (value >> offset) & ((1 << bits) - 1);
 }
 
 DbgObject.prototype.isNull = function() {

@@ -22,7 +22,7 @@ function createBoxTree(pointer, isTreeNode, container) {
         if (isTreeNode) {
             // Get the box pointer from the tree node.
             var treeNode = new DbgObject("mshtml", "CTreeNode", pointer);
-            var layoutAssociationPtrBits = treeNode.f("_fHasLayoutAssociationPtr").bits(9, 4);
+            var layoutAssociationPtrBits = treeNode.f("_fHasLayoutAssociationPtr").val();
             if (layoutAssociationPtrBits & 0x8) {
                 var bits = 0;
 
