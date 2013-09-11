@@ -107,7 +107,7 @@ namespace JsDbg {
         }
 
         internal struct SSymbolResult {
-            internal ulong Pointer;
+            internal ulong Value;
             internal string Type;
             internal string Module;
         }
@@ -121,7 +121,7 @@ namespace JsDbg {
             ulong module;
             try {
                 this.symbols.GetSymbolTypeId(symbol, out typeId, out module);
-                this.symbols.GetOffsetByName(symbol, out result.Pointer);
+                this.symbols.GetOffsetByName(symbol, out result.Value);
             } catch {
                 throw new DebuggerException(String.Format("Invalid symbol: {0}", symbol));
             }

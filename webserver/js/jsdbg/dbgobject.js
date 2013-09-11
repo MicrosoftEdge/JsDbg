@@ -40,8 +40,12 @@ DbgObject.sym = function(symbol) {
         throw result.error;
     }
 
-    var typename = (new DbgObject(result.module, result.type, result.pointer))._getDereferencedTypeName();
-    return new DbgObject(result.module, typename, result.pointer);
+    var typedNull = new DbgObject(result.module, result.type, 0);
+    if (typedNull._isPointer()) {
+        return new DbgObject(result.module, typedNull._getDereferencedTypeName(), result.value);
+    } else {
+        return result.value;
+    }
 }
 
 DbgObject.prototype._isPointer = function() {

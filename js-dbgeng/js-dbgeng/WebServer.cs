@@ -373,7 +373,7 @@ namespace JsDbg {
             string responseString;
             try {
                 Debugger.SSymbolResult result = await this.debugger.LookupSymbol(symbol);
-                responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
+                responseString = String.Format("{{ \"value\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Value, result.Module, result.Type);
             } catch (Debugger.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
