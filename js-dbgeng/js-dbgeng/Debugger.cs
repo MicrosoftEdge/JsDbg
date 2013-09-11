@@ -16,11 +16,13 @@ namespace JsDbg {
 
         internal Debugger(string connectionString) {
             this.client = new DebugClient(connectionString);
+            this.client.OutputMask = OutputModes.Normal;
             this.control = new DebugControl(this.client);
             this.exitDispatchClient = new DebugClient(connectionString);
             this.symbolCache = new SymbolCache(this.client);
             this.dataSpaces = new DebugDataSpaces(this.client);
             this.isPointer64Bit = this.control.IsPointer64Bit;
+            this.dumpedTypes = new Dictionary<string, List<SField>>();
         }
 
         // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
@@ -48,6 +50,20 @@ namespace JsDbg {
             internal string TypeName;
         }
 
+        private bool GetBuiltInTypeSize(string type, out uint size) {
+            string strippedType = type.Replace("unsigned", "").Replace("signed", "").Trim();
+            if (BuiltInTypes.ContainsKey(strippedType)) {
+                size = BuiltInTypes[strippedType];
+                return true;
+            } else if (strippedType.EndsWith("*")) {
+                size = this.IsPointer64Bit ? 8u : 4u;
+                return true;
+            } else {
+                size = 0;
+                return false;
+            }
+        }
+
         private bool CheckBuiltInTypeName(string type, IList<string> fields, out SFieldResult result) {
             string strippedType = type.Replace("unsigned", "").Replace("signed", "").Trim();
             result.Offset = 0;
@@ -72,6 +88,33 @@ namespace JsDbg {
             }
 
             await this.WaitForBreakIn();
+
+            if (fields.Count == 1) {
+                string command = String.Format("dt {0}!{1}", module, type);
+                if (!this.dumpedTypes.ContainsKey(command)) {
+                    DumpTypeParser parser = new DumpTypeParser();
+                    this.client.DebugOutput += parser.DumpTypeOutputHandler;
+                    this.control.Execute(OutputControl.ToThisClient, command, ExecuteOptions.NotLogged);
+                    this.client.DebugOutput -= parser.DumpTypeOutputHandler;
+                    parser.Parse();
+                    this.dumpedTypes.Add(command, parser.ParsedFields);
+                }
+
+                foreach (SField field in this.dumpedTypes[command]) {
+                    if (field.FieldName == fields[0]) {
+                        SFieldResult dtResult = new SFieldResult();
+                        dtResult.Offset = field.Offset;
+                        dtResult.TypeName = field.TypeName;
+                        if (GetBuiltInTypeSize(field.TypeName, out dtResult.Size)) {
+                            return dtResult;
+                        } else {
+                            SFieldResult innerResult = await this.LookupField(module, field.TypeName, new List<string>());
+                            dtResult.Size = innerResult.Size;
+                            return dtResult;
+                        }
+                    }
+                }
+            }
 
             // Get the module.
             ulong moduleBase;
@@ -214,6 +257,7 @@ namespace JsDbg {
         private Microsoft.Debuggers.DbgEng.DebugClient exitDispatchClient;
         private Microsoft.Debuggers.DbgEng.DebugControl control;
         private Microsoft.Debuggers.DbgEng.DebugDataSpaces dataSpaces;
+        private Dictionary<string, List<SField>> dumpedTypes;
         private SymbolCache symbolCache;
         private bool isPointer64Bit;
     }

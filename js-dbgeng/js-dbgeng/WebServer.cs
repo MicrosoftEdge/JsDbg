@@ -239,6 +239,12 @@ namespace JsDbg {
                     case "ulong":
                         value = await this.debugger.ReadMemory<ulong>(pointer);
                         break;
+                    case "float":
+                        value = await this.debugger.ReadMemory<float>(pointer);
+                        break;
+                    case "double":
+                        value = await this.debugger.ReadMemory<double>(pointer);
+                        break;
                     default:
                         this.ServeFailure(context);
                         return;
