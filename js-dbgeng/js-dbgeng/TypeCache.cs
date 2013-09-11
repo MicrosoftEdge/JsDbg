@@ -120,11 +120,13 @@ namespace JsDbg {
 
             // The type is valid so we should be able to dt it without any problems.
             string command = String.Format("dt -v {0}!{1}", module, typename);
+            System.Diagnostics.Debug.WriteLine(String.Format("Executing command: {0}", command));
             DumpTypeParser parser = new DumpTypeParser();
             client.DebugOutput += parser.DumpTypeOutputHandler;
             control.Execute(OutputControl.ToThisClient, command, ExecuteOptions.NotLogged);
             client.FlushCallbacks();
             client.DebugOutput -= parser.DumpTypeOutputHandler;
+            System.Diagnostics.Debug.WriteLine(String.Format("Done executing.", command));
             parser.Parse();
 
             // Construct the type and add it to the cache.
@@ -154,7 +156,11 @@ namespace JsDbg {
 
             Dictionary<string, uint> baseClassOffsets = new Dictionary<string, uint>();
             foreach (DumpTypeParser.SBaseClass parsedBaseClass in parser.ParsedBaseClasses) {
-                baseClassOffsets.Add(parsedBaseClass.TypeName, parsedBaseClass.Offset);
+                if (!baseClassOffsets.ContainsKey(parsedBaseClass.TypeName)) {
+                    baseClassOffsets.Add(parsedBaseClass.TypeName, parsedBaseClass.Offset);
+                } else {
+                    System.Diagnostics.Debug.WriteLine(String.Format("Multiple base classes of type {0} with the same name: {1}", typename, parsedBaseClass.TypeName));
+                }
             }
 
             // Construct the type and add it to the cache.

@@ -39,7 +39,7 @@ namespace JsDbg {
         }
 
         internal void Parse() {
-            string[] lines = SanitizeInput(this.buffer.ToString()).Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] lines = this.buffer.ToString().Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (string line in lines) {
                 string[] parts = line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
                 string offsetString = parts[0];
@@ -70,10 +70,6 @@ namespace JsDbg {
             }
         }
 
-        private static string SanitizeInput(string input) {
-            return input.Replace(",", "");
-        }
-
         private string[] ArraySlice(string[] array, int firstIndex) {
             string[] newArray = new string[array.Length - firstIndex];
             for (int i = firstIndex; i < array.Length; ++i) {
@@ -85,6 +81,7 @@ namespace JsDbg {
 
         private static Dictionary<string, string> TypeMap = new Dictionary<string, string>() {
                 {"void", "void"},
+                {"bool", "char"},
                 {"char", "char"},
                 {"wchar", "short"},
                 {"int1b", "char"},
@@ -143,7 +140,7 @@ namespace JsDbg {
 
             if (tokens.Length > 1 && normalizedDescription == "class" || normalizedDescription == "struct" || normalizedDescription == "union" || normalizedDescription == "enum") {
                 // The next token is a proper typename.
-                typename = tokens[1];
+                typename = tokens[1].TrimEnd(',');
                 bitField = new SBitFieldDescription();
                 return true;
             }
@@ -151,7 +148,7 @@ namespace JsDbg {
             if (tokens.Length > 3 && normalizedDescription == "bitfield") {
                 // Bitfield Pos 0 3 Bits
                 bitField = new SBitFieldDescription();
-                if (byte.TryParse(tokens[2], out bitField.BitOffset) && byte.TryParse(tokens[3], out bitField.BitLength)) {
+                if (byte.TryParse(tokens[2].TrimEnd(','), out bitField.BitOffset) && byte.TryParse(tokens[3], out bitField.BitLength)) {
                     int bitCount = bitField.BitOffset + bitField.BitLength;
                     if (bitCount <= 8) {
                         typename = "char";

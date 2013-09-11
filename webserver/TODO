@@ -1,20 +1,14 @@
-- live extending UI
-    - preserve user fields?
-
 - automatic root box recognition
-- mshtml versioning
 - box positions
 - windbg links
 
 - improve collapse performance
     - maybe put all children in a single div?
 
-- bit fields from symbols
 - multiple inheritance vcasting
 
 - sd integration
 - build integration
-- shared hosting model
 
 - plugin model for JsDbg
 
