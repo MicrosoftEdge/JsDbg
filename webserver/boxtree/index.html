@@ -18,7 +18,6 @@
     <script type="text/javascript">
         function loadBoxTree(isTreeNode) {
             var rootTreeNode = parseInt(document.getElementById("pointer").value, 16);
-            window.location.hash = document.getElementById("pointer").value;
             createBoxTree(rootTreeNode, isTreeNode, document.querySelector("#tree"));
         }
 
@@ -26,10 +25,17 @@
             if (window.location.hash) {
                 var hashPointer = window.location.hash.substr(1);
                 document.getElementById("pointer").value = hashPointer;
+            } else {
+                var roots = getRootCTreeNodesWithLayoutAssociations();
+                if (roots.length == 1) {
+                    // There is exactly one root tree node with a box.  Use it.
+                    document.getElementById("pointer").value = roots[0];
+                    loadBoxTree(true);
+                }
             }
 
-            document.getElementById("loadTreeNode").addEventListener("click", function() { loadBoxTree(true); });
-            document.getElementById("loadLayoutBox").addEventListener("click", function() { loadBoxTree(false); });
+            document.getElementById("loadTreeNode").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadBoxTree(true); });
+            document.getElementById("loadLayoutBox").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadBoxTree(false); });
         }
 
         document.addEventListener("DOMContentLoaded", init);
