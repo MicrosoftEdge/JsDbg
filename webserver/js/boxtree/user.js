@@ -85,7 +85,7 @@ var UserFields = [
         shortname: "d",
         html: function() {
             if (!this.f("isDisplayNodeExtracted").val()) {
-                return "0x" + this.f("rawDisplayNode").ptr().toString(16);
+                return this.f("rawDisplayNode").ptr();
             } else {
                 return "null";
             }
