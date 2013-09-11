@@ -17,3 +17,7 @@
 - shared hosting model
 
 - plugin model for JsDbg
+
+FEEDBACK
+
+one feedback:  if a node has no box associateed with it, after an alert, maybe also need to clear the box 

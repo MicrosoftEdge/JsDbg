@@ -34,6 +34,16 @@ function DbgObject(module, type, pointer, bitcount, bitoffset) {
         .replace("[]", "");
 }
 
+DbgObject.sym = function(symbol) {
+    var result = JsDbg.SyncLookupSymbol(symbol);
+    if (result.error) {
+        throw result.error;
+    }
+
+    var typename = (new DbgObject(result.module, result.type, result.pointer))._getDereferencedTypeName();
+    return new DbgObject(result.module, typename, result.pointer);
+}
+
 DbgObject.prototype._isPointer = function() {
     return this.typename[this.typename.length - 1] == "*";
 }
@@ -107,6 +117,15 @@ DbgObject.prototype.f = function(field) {
     } else {
         return target;
     }
+}
+
+DbgObject.prototype.unembed = function(type, field) {
+    var result = JsDbg.SyncLookupFieldOffset(this.module, type, [field]);
+    if (result.error) {
+        throw result.error;
+    }
+
+    return new DbgObject(this.module, type, this.pointer - result.offset);
 }
 
 DbgObject.prototype.as = function(type) {
