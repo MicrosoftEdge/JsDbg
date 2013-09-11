@@ -18,11 +18,11 @@ namespace JsDbg {
             this.client = new DebugClient(connectionString);
             this.client.OutputMask = OutputModes.Normal;
             this.control = new DebugControl(this.client);
+            this.isPointer64Bit = this.control.IsPointer64Bit;
             this.exitDispatchClient = new DebugClient(connectionString);
             this.symbolCache = new SymbolCache(this.client);
+            this.typeCache = new TypeCache(this.isPointer64Bit);
             this.dataSpaces = new DebugDataSpaces(this.client);
-            this.isPointer64Bit = this.control.IsPointer64Bit;
-            this.dumpedTypes = new Dictionary<string, List<SField>>();
         }
 
         // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
@@ -80,80 +80,24 @@ namespace JsDbg {
             return false;
         }
 
-        internal async Task<SFieldResult> LookupField(string module, string type, IList<string> fields) {
-            // Check for built-in types first.
-            SFieldResult result;
-            if (CheckBuiltInTypeName(type, fields, out result)) {
-                return result;
-            }
-
+        internal async Task<SFieldResult> LookupField(string module, string typename, IList<string> fields) {
             await this.WaitForBreakIn();
 
-            if (fields.Count == 1) {
-                string command = String.Format("dt {0}!{1}", module, type);
-                if (!this.dumpedTypes.ContainsKey(command)) {
-                    DumpTypeParser parser = new DumpTypeParser();
-                    this.client.DebugOutput += parser.DumpTypeOutputHandler;
-                    this.control.Execute(OutputControl.ToThisClient, command, ExecuteOptions.NotLogged);
-                    this.client.DebugOutput -= parser.DumpTypeOutputHandler;
-                    parser.Parse();
-                    this.dumpedTypes.Add(command, parser.ParsedFields);
-                }
-
-                foreach (SField field in this.dumpedTypes[command]) {
-                    if (field.FieldName == fields[0]) {
-                        SFieldResult dtResult = new SFieldResult();
-                        dtResult.Offset = field.Offset;
-                        dtResult.TypeName = field.TypeName;
-                        if (GetBuiltInTypeSize(field.TypeName, out dtResult.Size)) {
-                            return dtResult;
-                        } else {
-                            SFieldResult innerResult = await this.LookupField(module, field.TypeName, new List<string>());
-                            dtResult.Size = innerResult.Size;
-                            return dtResult;
-                        }
-                    }
+            SFieldResult result = new SFieldResult();
+            
+            Type type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename);
+            foreach (string fieldname in fields) {
+                SField field;
+                if (type.GetField(fieldname, out field)) {
+                    result.Offset += field.Offset;
+                    type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, field.TypeName);
+                } else {
+                    throw new DebuggerException(String.Format("Invalid field name: {0}", fieldname));
                 }
             }
 
-            // Get the module.
-            ulong moduleBase;
-            System.Diagnostics.Debug.WriteLine(String.Format("getting module: {0}", module));
-            try {
-                moduleBase = this.symbolCache.GetModuleBase(module);
-            } catch {
-                throw new DebuggerException(String.Format("Invalid module name: {0}", module));
-            }
-
-            // Get the type id of the initial type.
-            System.Diagnostics.Debug.WriteLine(String.Format("getting initial type: {0}", type));
-            uint typeId;
-            try {
-                typeId = this.symbolCache.GetTypeId(moduleBase, type);
-            } catch {
-                throw new DebuggerException(String.Format("Invalid type name: {0}", type));
-            }
-
-            result.Offset = 0;
-            for (int i = 0; i < fields.Count; ++i) {
-                System.Diagnostics.Debug.WriteLine(String.Format("getting field: {0}", fields[i]));
-                try {
-                    SymbolCache.SFieldTypeAndOffset fieldTypeAndOffset;
-                    fieldTypeAndOffset = this.symbolCache.GetFieldTypeAndOffset(moduleBase, typeId, fields[i]);
-                    result.Offset += fieldTypeAndOffset.Offset;
-                    typeId = fieldTypeAndOffset.FieldTypeId;
-                } catch {
-                    throw new DebuggerException(String.Format("Invalid field name: {0}", fields[i]));
-                }
-            }
-
-            System.Diagnostics.Debug.WriteLine("getting field size and name");
-            try {
-                result.TypeName = this.symbolCache.GetTypeName(moduleBase, typeId);
-                result.Size = this.symbolCache.GetTypeSize(moduleBase, typeId);
-            } catch {
-                throw new DebuggerException("Internal Exception: Invalid field type.");
-            }
+            result.TypeName = type.Name;
+            result.Size = type.Size;
 
             return result;
         }
@@ -257,8 +201,8 @@ namespace JsDbg {
         private Microsoft.Debuggers.DbgEng.DebugClient exitDispatchClient;
         private Microsoft.Debuggers.DbgEng.DebugControl control;
         private Microsoft.Debuggers.DbgEng.DebugDataSpaces dataSpaces;
-        private Dictionary<string, List<SField>> dumpedTypes;
         private SymbolCache symbolCache;
+        private TypeCache typeCache;
         private bool isPointer64Bit;
     }
 }

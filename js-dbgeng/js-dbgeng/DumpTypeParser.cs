@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System;   
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,17 +6,30 @@ using System.Threading.Tasks;
 using Microsoft.Debuggers.DbgEng;
 
 namespace JsDbg {
-    internal struct SField {
-        internal uint Offset;
-        internal string FieldName;
-        internal string TypeName;
-        internal byte BitOffset;
-        internal byte BitLength;
-    }
-
-
     internal class DumpTypeParser {
+        internal struct SField {
+            internal uint Offset;
+            internal string FieldName;
+            internal string TypeName;
+            internal SBitFieldDescription BitField;
+        }
+
+        internal struct SBaseClass {
+            internal uint Offset;
+            internal string TypeName;
+        }
+
+        internal struct SBitFieldDescription {
+            internal byte BitOffset;
+            internal byte BitLength;
+
+            internal bool IsBitField {
+                get { return this.BitLength != 0; }
+            }
+        }
+
         internal DumpTypeParser() {
+            this.ParsedBaseClasses = new List<SBaseClass>();
             this.ParsedFields = new List<SField>();
             this.buffer = new StringBuilder();
         }
@@ -26,30 +39,39 @@ namespace JsDbg {
         }
 
         internal void Parse() {
-            string[] lines = this.buffer.ToString().Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            string[] lines = SanitizeInput(this.buffer.ToString()).Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (string line in lines) {
-                try {
-                    string[] parts = line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
-                    string offset = parts[0];
-                    if (offset[0] == '+') {
-                        // Proper offset.
-                        SField field = new SField();
-                        field.Offset = uint.Parse(offset.Substring(3), System.Globalization.NumberStyles.HexNumber);
-                        field.FieldName = parts[1];
+                string[] parts = line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                string offsetString = parts[0];
+                if (offsetString[0] == '+') {
+                    // The line has an offset.
+                    uint offset = uint.Parse(offsetString.Substring(3), System.Globalization.NumberStyles.HexNumber);
 
-                        if (parts[2] != ":") {
-                            continue;
-                        }
-
-                        ParseType(ArraySlice(parts, 3), ref field);
-                        if (field.TypeName != null) {
-                            this.ParsedFields.Add(field);
+                    switch (parts[1]) {
+                        case "__BaseClass":
+                            // +0x000 __BaseClass class [typename]
+                            this.ParsedBaseClasses.Add(new SBaseClass() { Offset = offset, TypeName = parts[3] });
+                            break;
+                        case "__VFN_table":
+                            // Ignore vtables.
+                            break;
+                        default:  {
+                            // A field.
+                            SField field = new SField() { Offset = offset, FieldName = parts[1] };
+                            if (parts.Length > 3 && ParseType(ArraySlice(parts, 3), out field.TypeName, out field.BitField)) {
+                                this.ParsedFields.Add(field);
+                            } else {
+                                System.Diagnostics.Debug.WriteLine(String.Format("Unable to parse type entry: {0}", line));
+                            }
+                            break;
                         }
                     }
-                } catch {
-                    Console.WriteLine("Error parsing type string: {0}", line);
                 }
             }
+        }
+
+        private static string SanitizeInput(string input) {
+            return input.Replace(",", "");
         }
 
         private string[] ArraySlice(string[] array, int firstIndex) {
@@ -64,6 +86,7 @@ namespace JsDbg {
         private static Dictionary<string, string> TypeMap = new Dictionary<string, string>() {
                 {"void", "void"},
                 {"char", "char"},
+                {"wchar", "short"},
                 {"int1b", "char"},
                 {"int2b", "short"},
                 {"int4b", "int"},
@@ -76,37 +99,81 @@ namespace JsDbg {
                 {"float", null}
             };
 
-        private bool ParseType(string[] tokens, ref SField result) {
-            if (TypeMap.ContainsKey(tokens[0].ToLower())) {
-                result.TypeName = TypeMap[tokens[0].ToLower()];
-                return result.TypeName != null;
+        private bool ParseType(string[] tokens, out string typename, out SBitFieldDescription bitField) {
+            typename = null;
+            bitField = new SBitFieldDescription();
+
+            string normalizedDescription = tokens[0].ToLower();
+            if (TypeMap.ContainsKey(normalizedDescription)) {
+                // Simple type.
+                typename = TypeMap[normalizedDescription];
+                bitField = new SBitFieldDescription();
+                return true;
             }
 
-            if (tokens[0] == "Pos") {
-                // bit field
-                result.TypeName = "int";
-                result.BitOffset = byte.Parse(tokens[1].Substring(0, tokens[1].IndexOf(',')));
-                result.BitLength = byte.Parse(tokens[2]);
-            } else if (tokens[0] == "Ptr32" || tokens[0] == "Ptr64") {
-                if (tokens.Length > 1) {
-                    SField innerType = new SField();
-                    ParseType(ArraySlice(tokens, 1), ref innerType);
-                    if (innerType.TypeName == null) {
-                        result.TypeName = null;
-                    } else {
-                        result.TypeName = innerType.TypeName + "*";
+            if (normalizedDescription.StartsWith("ptr")) {
+                if (tokens.Length > 2 && tokens[1] == "to") {
+                    // Pointer type.  Recursively discover the type.
+
+                    // We should never have a pointer to a bit field.
+                    if (ParseType(ArraySlice(tokens, 2), out typename, out bitField) && !bitField.IsBitField) {
+                        // If we could determine the type name, add a * for the pointer-ness.
+                        if (typename != null) {
+                            typename += "*";
+                        }
+                        return true;
                     }
-                } else {
-                    result.TypeName = "void*";
                 }
-            } else {
-                result.TypeName = tokens[0];
+
+                return false;
             }
 
-            return true;
+            if (tokens.Length > 1 && normalizedDescription.StartsWith("[") && normalizedDescription.EndsWith("]")) {
+                // It's an array.  Recursively discover the type.
+
+                // We should never have an array of bit fields.
+                if (ParseType(ArraySlice(tokens, 1), out typename, out bitField) && !bitField.IsBitField) {
+                    // If we could determine the type name, add a [] for the array-ness.
+                    if (typename != null) {
+                        typename += "[]";
+                    }
+                    return true;
+                }
+            }
+
+            if (tokens.Length > 1 && normalizedDescription == "class" || normalizedDescription == "struct" || normalizedDescription == "union") {
+                // The next token is a proper typename.
+                typename = tokens[1];
+                bitField = new SBitFieldDescription();
+                return true;
+            }
+
+            if (tokens.Length > 3 && normalizedDescription == "bitfield") {
+                // Bitfield Pos 0 3 Bits
+                bitField = new SBitFieldDescription();
+                if (byte.TryParse(tokens[2], out bitField.BitOffset) && byte.TryParse(tokens[3], out bitField.BitLength)) {
+                    int bitCount = bitField.BitOffset + bitField.BitLength;
+                    if (bitCount <= 8) {
+                        typename = "char";
+                    } else if (bitCount <= 16) {
+                        typename = "short";
+                    } else if (bitCount <= 32) {
+                        typename = "int";
+                    } else if (bitCount <= 64) {
+                        typename =  "long long";
+                    } else {
+                        return false;
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private StringBuilder buffer;
+        internal List<SBaseClass> ParsedBaseClasses;
         internal List<SField> ParsedFields;
     }
 }
