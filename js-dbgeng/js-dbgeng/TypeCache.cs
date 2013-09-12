@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Debuggers.DbgEng;
+using Dia2Lib;
+using System.Diagnostics;
 
 namespace JsDbg {
     struct SField {
@@ -24,8 +26,18 @@ namespace JsDbg {
         }
     }
 
+    struct SBaseType {
+        internal SBaseType(Type type, int offset) {
+            this.Type = type;
+            this.Offset = offset;
+        }
+
+        internal readonly Type Type;
+        internal readonly int Offset;
+    }
+
     class Type {
-        internal Type(string module, string name, uint size, Dictionary<string, SField> fields, Dictionary<string, uint> baseClassOffsets) {
+        internal Type(string module, string name, uint size, Dictionary<string, SField> fields, List<SBaseType> baseTypes) {
             this.module = module;
             this.name = name;
             this.size = size;
@@ -36,7 +48,7 @@ namespace JsDbg {
                     this.caseInsensitiveFields[field.ToLowerInvariant()] = field;
                 }
             }
-            this.baseClassOffsets = baseClassOffsets;
+            this.baseTypes = baseTypes;
         }
 
         internal string Module {
@@ -59,6 +71,14 @@ namespace JsDbg {
                 } else if (this.caseInsensitiveFields.ContainsKey(name.ToLowerInvariant())) {
                     field = this.fields[this.caseInsensitiveFields[name.ToLowerInvariant()]];
                     return true;
+                } else if (this.baseTypes != null) {
+                    // Check the base types.
+                    foreach (SBaseType baseType in this.baseTypes) {
+                        if (baseType.Type.GetField(name, out field)) {
+                            field = new SField((uint)(field.Offset + baseType.Offset), field.TypeName, field.BitOffset, field.BitCount);
+                            return true;
+                        }
+                    }
                 }
             }
 
@@ -71,12 +91,13 @@ namespace JsDbg {
         private readonly uint size;
         private readonly Dictionary<string, SField> fields;
         private readonly Dictionary<string, string> caseInsensitiveFields;
-        private readonly Dictionary<string, uint> baseClassOffsets;
+        private readonly List<SBaseType> baseTypes;
     }
 
     class TypeCache {
         internal TypeCache(bool isPointer64Bit) {
             this.types = new Dictionary<string, Type>();
+            this.modules = new Dictionary<string, IDiaSession>();
             this.isPointer64Bit = isPointer64Bit;
         }
 
@@ -92,82 +113,96 @@ namespace JsDbg {
                 return builtinType;
             }
 
-            // We need to retrieve the type from the debugger.
+            Console.Out.WriteLine("Loading type information for {0}!{1}...", module, typename);
 
-            // Get the module.
-            ulong moduleBase;
-            try {
-                moduleBase = symbolCache.GetModuleBase(module);
-            } catch {
-                throw new Debugger.DebuggerException(String.Format("Invalid module name: {0}", module));
-            }
-
-            // Get the type id.
-            uint typeId;
-            try {
-                typeId = symbolCache.GetTypeId(moduleBase, typename);
-            } catch {
-                throw new Debugger.DebuggerException(String.Format("Invalid type name: {0}", typename));
-            }
-
-            // Get the type size.
-            uint typeSize;
-            try {
-                typeSize = symbolCache.GetTypeSize(moduleBase, typeId);
-            } catch {
-                throw new Debugger.DebuggerException("Internal Exception: Invalid type id.");
-            }
-
-            // The type is valid so we should be able to dt it without any problems.
-            string command = String.Format("dt -v {0}!{1}", module, typename);
-            System.Diagnostics.Debug.WriteLine(String.Format("Executing command: {0}", command));
-            DumpTypeParser parser = new DumpTypeParser();
-            client.DebugOutput += parser.DumpTypeOutputHandler;
-            control.Execute(OutputControl.ToThisClient, command, ExecuteOptions.NotLogged);
-            client.FlushCallbacks();
-            client.DebugOutput -= parser.DumpTypeOutputHandler;
-            System.Diagnostics.Debug.WriteLine(String.Format("Done executing.", command));
-            parser.Parse();
-
-            // Construct the type and add it to the cache.
+            // We need to retrieve the type from the symbols
+            uint typeSize = 0;
             Dictionary<string, SField> fields = new Dictionary<string, SField>();
-            foreach (DumpTypeParser.SField parsedField in parser.ParsedFields) {
-                string resolvedTypeName = parsedField.TypeName;
-                if (resolvedTypeName == null) {
-                    // We weren't able to parse the type name.  Retrieve it manually.
-                    SymbolCache.SFieldTypeAndOffset fieldTypeAndOffset;
-                    try {
-                        fieldTypeAndOffset = symbolCache.GetFieldTypeAndOffset(moduleBase, typeId, parsedField.FieldName);
+            List<SBaseType> baseTypes = new List<SBaseType>();
 
-                        if (fieldTypeAndOffset.Offset != parsedField.Offset) {
-                            // The offsets don't match...this must be a different field?
-                            throw new Exception();
+            IDiaSession diaSession = null;
+
+            while (true) {
+                try {
+                    diaSession = this.LoadDiaSession(symbolCache, module);
+                    break;
+                } catch (System.Runtime.InteropServices.COMException comException) {
+                    if ((uint)comException.ErrorCode == 0x80040154) {
+                        Console.WriteLine("Attempting to register msdia110.dll.  This will require elevation...");
+                        System.Threading.Thread.Sleep(1000);
+                        ProcessStartInfo regsvr = new ProcessStartInfo("regsvr32", @"\\iefs\users\psalas\jsdbg\support\dia\msdia110.dll");
+                        regsvr.Verb = "runas";
+
+                        try {
+                            Process.Start(regsvr).WaitForExit();
+                        } catch (Exception ex) {
+                            throw new Debugger.DebuggerException(String.Format("Internal error: Unable to register msdia110.dll: {0}", ex.Message));
                         }
-
-                        resolvedTypeName = symbolCache.GetTypeName(moduleBase, fieldTypeAndOffset.FieldTypeId);
-                    } catch {
-                        throw new Debugger.DebuggerException(String.Format("Internal Exception: Inconsistent field name \"{0}\" when parsing type {1}!{2}", parsedField.FieldName, module, typename));
                     }
-                }
-
-                SField field = new SField(parsedField.Offset, resolvedTypeName, parsedField.BitField.BitOffset, parsedField.BitField.BitLength);
-                fields.Add(parsedField.FieldName, field);
-            }
-
-            Dictionary<string, uint> baseClassOffsets = new Dictionary<string, uint>();
-            foreach (DumpTypeParser.SBaseClass parsedBaseClass in parser.ParsedBaseClasses) {
-                if (!baseClassOffsets.ContainsKey(parsedBaseClass.TypeName)) {
-                    baseClassOffsets.Add(parsedBaseClass.TypeName, parsedBaseClass.Offset);
-                } else {
-                    System.Diagnostics.Debug.WriteLine(String.Format("Multiple base classes of type {0} with the same name: {1}", typename, parsedBaseClass.TypeName));
+                } catch (Exception ex) {
+                    throw new Debugger.DebuggerException(String.Format("Internal error: {0}", ex.Message));
                 }
             }
 
-            // Construct the type and add it to the cache.
-            Type type = new Type(module, typename, typeSize, fields, baseClassOffsets);
-            this.types.Add(key, type);
+            IDiaEnumSymbols symbols;
+            diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagNull, typename, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out symbols);
+            foreach (IDiaSymbol symbol in symbols) {
+                SymTagEnum symTag = (SymTagEnum)symbol.symTag;
+                if (symTag == SymTagEnum.SymTagUDT || symTag == SymTagEnum.SymTagBaseType || symTag == SymTagEnum.SymTagEnum) {
+                    // Get the fields for this class.
+                    IDiaEnumSymbols dataSymbols;
+                    symbol.findChildren(SymTagEnum.SymTagData, null, 0, out dataSymbols);
+                    typeSize = (uint)symbol.length;
+                    foreach (IDiaSymbol dataSymbol in dataSymbols) {
+                        DiaHelpers.LocationType location = (DiaHelpers.LocationType)dataSymbol.locationType;
+                        if (location == DiaHelpers.LocationType.LocIsBitField) {
+                            byte bitOffset = (byte)dataSymbol.bitPosition;
+                            byte bitCount = (byte)dataSymbol.length;
+                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, DiaHelpers.GetTypeName(dataSymbol.type), bitOffset, bitCount));
+                        } else if (location == DiaHelpers.LocationType.LocIsThisRel) {
+                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, DiaHelpers.GetTypeName(dataSymbol.type), 0, 0));
+                        }
+                    }
 
-            return type;
+                    // Get the base types.
+                    IDiaEnumSymbols baseClassSymbols;
+                    symbol.findChildren(SymTagEnum.SymTagBaseClass, null, 0, out baseClassSymbols);
+                    foreach (IDiaSymbol baseClassSymbol in baseClassSymbols) {
+                        string baseTypename = DiaHelpers.GetTypeName(baseClassSymbol.type);
+                        Type baseType = this.GetType(client, control, symbolCache, module, baseTypename);
+                        if (baseType != null) {
+                            baseTypes.Add(new SBaseType(baseType, baseClassSymbol.offset));
+                        } else {
+                            System.Diagnostics.Debug.WriteLine("Unable to retrieve base type: {0}", baseTypename);
+                        }
+                    }
+
+                    // Construct the type and add it to the cache.
+                    Type type = new Type(module, typename, typeSize, fields, baseTypes);
+                    this.types.Add(key, type);
+
+                    return type;
+                }
+            }
+
+            throw new Debugger.DebuggerException(String.Format("Unknown type: {0}", typename));
+        }
+
+        internal IDiaSession LoadDiaSession(SymbolCache symbolCache, string module) {
+            IDiaSession diaSession;
+            if (this.modules.ContainsKey(module)) {
+                diaSession = this.modules[module];
+            } else {
+                // Get the symbol path.
+                ulong moduleBase = symbolCache.GetModuleBase(module);
+                string symbolPath = symbolCache.GetModuleSymbolPath(moduleBase);
+                DiaSource source = new DiaSource();
+                source.loadDataFromPdb(symbolPath);
+                source.openSession(out diaSession);
+                this.modules[module] = diaSession;
+            }
+
+            return diaSession;
         }
 
         // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
@@ -204,6 +239,7 @@ namespace JsDbg {
         }
 
         private Dictionary<string, Type> types;
+        private Dictionary<string, IDiaSession> modules;
         private bool isPointer64Bit;
     }
 }

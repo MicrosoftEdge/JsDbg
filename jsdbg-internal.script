@@ -1,3 +1,35 @@
-.server npipe:pipe=jsdbg-%x
-.foreach (server {.servers}) { as ${/v:JsDbgServer} ${server} }
-.shell -x \\iefs\users\psalas\jsdbg\2013-09-09-01\jsdbg.exe ${JsDbgServer}
+r $t0 = 0;
+r $t1 = 0;
+.while (1)
+{
+    .foreach (server {.servers})
+    {
+        .if ($t0)
+        {
+            .printf "Connecting JsDbg to ${server}\r\n";
+            .block {.shell -x \\iefs\users\psalas\jsdbg\2013-09-11-02\jsdbg.exe ${server}}
+            .break;
+        }
+
+        .if ($scmp("${server}", "-remote") == 0)
+        {
+            r $t0 = 1;
+        }
+    }
+    
+    .if ($t0)
+    {
+        .break;
+    }
+    .elsif ($t1)
+    {
+        .printf "Unable to find or start a remote debugging server.\r\n";
+        .break;
+    }
+    .else
+    {
+        .printf "No debugging server found, starting a new one.\r\n";
+        .block {.server npipe:pipe=jsdbg-%x}
+        r $t1 = 1;
+    }
+}
