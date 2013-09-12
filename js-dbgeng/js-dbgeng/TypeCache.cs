@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Debuggers.DbgEng;
 using Dia2Lib;
 using System.Diagnostics;
+using System.IO;
 
 namespace JsDbg {
     struct SField {
@@ -99,6 +100,8 @@ namespace JsDbg {
             this.types = new Dictionary<string, Type>();
             this.modules = new Dictionary<string, IDiaSession>();
             this.isPointer64Bit = isPointer64Bit;
+            this.didAttemptDIARegistration = false;
+            this.isInFallback = false;
         }
 
         internal Type GetType(DebugClient client, DebugControl control, SymbolCache symbolCache, string module, string typename) {
@@ -115,80 +118,77 @@ namespace JsDbg {
 
             Console.Out.WriteLine("Loading type information for {0}!{1}...", module, typename);
 
-            // We need to retrieve the type from the symbols
-            uint typeSize = 0;
-            Dictionary<string, SField> fields = new Dictionary<string, SField>();
-            List<SBaseType> baseTypes = new List<SBaseType>();
-
             IDiaSession diaSession = null;
-
-            while (true) {
+            while (!this.isInFallback) {
                 try {
                     diaSession = this.LoadDiaSession(symbolCache, module);
                     break;
                 } catch (System.Runtime.InteropServices.COMException comException) {
-                    if ((uint)comException.ErrorCode == 0x80040154) {
-                        Console.WriteLine("Attempting to register msdia110.dll.  This will require elevation...");
-                        System.Threading.Thread.Sleep(1000);
-                        ProcessStartInfo regsvr = new ProcessStartInfo("regsvr32", @"\\iefs\users\psalas\jsdbg\support\dia\msdia110.dll");
-                        regsvr.Verb = "runas";
-
-                        try {
-                            Process.Start(regsvr).WaitForExit();
-                        } catch (Exception ex) {
-                            throw new Debugger.DebuggerException(String.Format("Internal error: Unable to register msdia110.dll: {0}", ex.Message));
-                        }
+                    if ((uint)comException.ErrorCode == 0x80040154 && !this.didAttemptDIARegistration) {
+                        // The DLL isn't registered.
+                        this.didAttemptDIARegistration = true;
+                        this.AttemptDIARegistration();
+                        continue;
                     }
-                } catch (Exception ex) {
-                    throw new Debugger.DebuggerException(String.Format("Internal error: {0}", ex.Message));
+
+                    this.isInFallback = true;
+                } catch {
+                    this.isInFallback = true;
                 }
             }
 
-            IDiaEnumSymbols symbols;
-            diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagNull, typename, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out symbols);
-            foreach (IDiaSymbol symbol in symbols) {
-                SymTagEnum symTag = (SymTagEnum)symbol.symTag;
-                if (symTag == SymTagEnum.SymTagUDT || symTag == SymTagEnum.SymTagBaseType || symTag == SymTagEnum.SymTagEnum) {
-                    // Get the fields for this class.
-                    IDiaEnumSymbols dataSymbols;
-                    symbol.findChildren(SymTagEnum.SymTagData, null, 0, out dataSymbols);
-                    typeSize = (uint)symbol.length;
-                    foreach (IDiaSymbol dataSymbol in dataSymbols) {
-                        DiaHelpers.LocationType location = (DiaHelpers.LocationType)dataSymbol.locationType;
-                        if (location == DiaHelpers.LocationType.LocIsBitField) {
-                            byte bitOffset = (byte)dataSymbol.bitPosition;
-                            byte bitCount = (byte)dataSymbol.length;
-                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, DiaHelpers.GetTypeName(dataSymbol.type), bitOffset, bitCount));
-                        } else if (location == DiaHelpers.LocationType.LocIsThisRel) {
-                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, DiaHelpers.GetTypeName(dataSymbol.type), 0, 0));
+            if (diaSession != null) {
+                IDiaEnumSymbols symbols;
+                diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagNull, typename, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out symbols);
+                foreach (IDiaSymbol symbol in symbols) {
+                    SymTagEnum symTag = (SymTagEnum)symbol.symTag;
+                    if (symTag == SymTagEnum.SymTagUDT || symTag == SymTagEnum.SymTagBaseType || symTag == SymTagEnum.SymTagEnum) {
+                        // Get the fields for this class.
+                        IDiaEnumSymbols dataSymbols;
+                        symbol.findChildren(SymTagEnum.SymTagData, null, 0, out dataSymbols);
+                        uint typeSize = (uint)symbol.length;
+                        Dictionary<string, SField> fields = new Dictionary<string, SField>();
+
+                        foreach (IDiaSymbol dataSymbol in dataSymbols) {
+                            DiaHelpers.LocationType location = (DiaHelpers.LocationType)dataSymbol.locationType;
+                            if (location == DiaHelpers.LocationType.LocIsBitField) {
+                                byte bitOffset = (byte)dataSymbol.bitPosition;
+                                byte bitCount = (byte)dataSymbol.length;
+                                fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, DiaHelpers.GetTypeName(dataSymbol.type), bitOffset, bitCount));
+                            } else if (location == DiaHelpers.LocationType.LocIsThisRel) {
+                                fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, DiaHelpers.GetTypeName(dataSymbol.type), 0, 0));
+                            }
                         }
-                    }
 
-                    // Get the base types.
-                    IDiaEnumSymbols baseClassSymbols;
-                    symbol.findChildren(SymTagEnum.SymTagBaseClass, null, 0, out baseClassSymbols);
-                    foreach (IDiaSymbol baseClassSymbol in baseClassSymbols) {
-                        string baseTypename = DiaHelpers.GetTypeName(baseClassSymbol.type);
-                        Type baseType = this.GetType(client, control, symbolCache, module, baseTypename);
-                        if (baseType != null) {
-                            baseTypes.Add(new SBaseType(baseType, baseClassSymbol.offset));
-                        } else {
-                            System.Diagnostics.Debug.WriteLine("Unable to retrieve base type: {0}", baseTypename);
+                        // Get the base types.
+                        List<SBaseType> baseTypes = new List<SBaseType>();
+                        IDiaEnumSymbols baseClassSymbols;
+                        symbol.findChildren(SymTagEnum.SymTagBaseClass, null, 0, out baseClassSymbols);
+                        foreach (IDiaSymbol baseClassSymbol in baseClassSymbols) {
+                            string baseTypename = DiaHelpers.GetTypeName(baseClassSymbol.type);
+                            Type baseType = this.GetType(client, control, symbolCache, module, baseTypename);
+                            if (baseType != null) {
+                                baseTypes.Add(new SBaseType(baseType, baseClassSymbol.offset));
+                            } else {
+                                System.Diagnostics.Debug.WriteLine("Unable to retrieve base type: {0}", baseTypename);
+                            }
                         }
+
+                        // Construct the type and add it to the cache.
+                        Type type = new Type(module, typename, typeSize, fields, baseTypes);
+                        this.types.Add(key, type);
+
+                        return type;
                     }
-
-                    // Construct the type and add it to the cache.
-                    Type type = new Type(module, typename, typeSize, fields, baseTypes);
-                    this.types.Add(key, type);
-
-                    return type;
                 }
             }
 
-            throw new Debugger.DebuggerException(String.Format("Unknown type: {0}", typename));
+            // Something prevented us from using DIA for type discovery.  Fall back to getting type info from the debugger session.
+            Console.Out.WriteLine("WARNING: Unable to load {0}!{1} from PDBs. Falling back to the debugger, which could be slow...", module, typename);
+            return this.GetTypeFromDebugSession(client, control, symbolCache, module, typename);
         }
 
-        internal IDiaSession LoadDiaSession(SymbolCache symbolCache, string module) {
+        private IDiaSession LoadDiaSession(SymbolCache symbolCache, string module) {
             IDiaSession diaSession;
             if (this.modules.ContainsKey(module)) {
                 diaSession = this.modules[module];
@@ -203,6 +203,91 @@ namespace JsDbg {
             }
 
             return diaSession;
+        }
+
+        private void AttemptDIARegistration() {
+            string dllName = "msdia110.dll";
+            Console.WriteLine("Attempting to register {0}.  This will require elevation...", dllName);
+
+            // Copy it down to the support directory if needed.
+            string dllPath = Path.Combine(Program.SupportDirectory, dllName);
+
+            System.Threading.Thread.Sleep(1000);
+            ProcessStartInfo regsvr = new ProcessStartInfo("regsvr32", dllPath);
+            regsvr.Verb = "runas";
+
+            try {
+                Process.Start(regsvr).WaitForExit();
+            } catch (Exception ex) {
+                throw new Debugger.DebuggerException(String.Format("Internal error: Unable to register {0}: {1}", dllPath, ex.Message));
+            }
+        }
+
+        private Type GetTypeFromDebugSession(DebugClient client, DebugControl control, SymbolCache symbolCache, string module, string typename) {
+            uint typeSize = 0;
+
+            ulong moduleBase;
+            try {
+                moduleBase = symbolCache.GetModuleBase(module);
+            } catch {
+                throw new Debugger.DebuggerException(String.Format("Invalid module name: {0}", module));
+            }
+
+            // Get the type id.
+            uint typeId;
+            try {
+                typeId = symbolCache.GetTypeId(moduleBase, typename);
+            } catch {
+                throw new Debugger.DebuggerException(String.Format("Invalid type name: {0}", typename));
+            }
+
+            // Get the type size.
+            try {
+                typeSize = symbolCache.GetTypeSize(moduleBase, typeId);
+            } catch {
+                throw new Debugger.DebuggerException("Internal Exception: Invalid type id.");
+            }
+
+            // The type is valid so we should be able to dt it without any problems.
+            string command = String.Format("dt -v {0}!{1}", module, typename);
+            System.Diagnostics.Debug.WriteLine(String.Format("Executing command: {0}", command));
+            DumpTypeParser parser = new DumpTypeParser();
+            client.DebugOutput += parser.DumpTypeOutputHandler;
+            control.Execute(OutputControl.ToThisClient, command, ExecuteOptions.NotLogged);
+            client.FlushCallbacks();
+            client.DebugOutput -= parser.DumpTypeOutputHandler;
+            System.Diagnostics.Debug.WriteLine(String.Format("Done executing.", command));
+            parser.Parse();
+
+            // Construct the type and add it to the cache.
+            Dictionary<string, SField> fields = new Dictionary<string, SField>();
+            foreach (DumpTypeParser.SField parsedField in parser.ParsedFields) {
+                string resolvedTypeName = parsedField.TypeName;
+                if (resolvedTypeName == null) {
+                    // We weren't able to parse the type name.  Retrieve it manually.
+                    SymbolCache.SFieldTypeAndOffset fieldTypeAndOffset;
+                    try {
+                        fieldTypeAndOffset = symbolCache.GetFieldTypeAndOffset(moduleBase, typeId, parsedField.FieldName);
+
+                        if (fieldTypeAndOffset.Offset != parsedField.Offset) {
+                            // The offsets don't match...this must be a different field?
+                            throw new Exception();
+                        }
+
+                        resolvedTypeName = symbolCache.GetTypeName(moduleBase, fieldTypeAndOffset.FieldTypeId);
+                    } catch {
+                        throw new Debugger.DebuggerException(String.Format("Internal Exception: Inconsistent field name \"{0}\" when parsing type {1}!{2}", parsedField.FieldName, module, typename));
+                    }
+                }
+
+                SField field = new SField(parsedField.Offset, resolvedTypeName, parsedField.BitField.BitOffset, parsedField.BitField.BitLength);
+                fields.Add(parsedField.FieldName, field);
+            }
+
+            // Construct the type and add it to the cache.  We don't need to fill base types because this approach embeds base type information directly in the Type.
+            Type type = new Type(module, typename, typeSize, fields, null);
+            this.types.Add(TypeKey(module, typename), type);
+            return type;
         }
 
         // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
@@ -241,5 +326,7 @@ namespace JsDbg {
         private Dictionary<string, Type> types;
         private Dictionary<string, IDiaSession> modules;
         private bool isPointer64Bit;
+        private bool didAttemptDIARegistration;
+        private bool isInFallback;
     }
 }

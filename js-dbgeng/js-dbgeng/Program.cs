@@ -1,13 +1,4 @@
-﻿//----------------------------------------------------------------------------
-//
-// Example of how to connect to a debugger server and execute
-// a command when the server is broken in.
-//
-// Copyright (C) Microsoft Corporation, 2005.
-//
-//----------------------------------------------------------------------------
-
-using System;
+﻿using System;
 
 using Microsoft.Debuggers.DbgEng;
 using System.Threading;
@@ -17,6 +8,12 @@ using System.IO;
 namespace JsDbg {
     public class Program {
         private const string Version = "2013-09-11-02";
+
+        static internal string SupportDirectory {
+            get {
+                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support", Version);
+            }
+        }
 
         [STAThread]
         static int Main(string[] args) {
@@ -37,17 +34,18 @@ namespace JsDbg {
                 remoteString = args[0];
             }
 
+
+            if (!Directory.Exists(Program.SupportDirectory)) {
+                string supportDirectory = Path.Combine(@"\\iefs\users\psalas\jsdbg\support\", Version);
+                Console.Out.WriteLine("Installing support files from {0} to {1}", supportDirectory, Program.SupportDirectory);
+                DirectoryCopy(supportDirectory, Program.SupportDirectory, /*copySubDirs*/true);
+            }
+
             string path;
             if (args.Length > 1) {
                 path = args[1];
             } else {
-                path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support", Version);
-
-                if (!Directory.Exists(path)) {
-                    string supportDirectory = Path.Combine(@"\\iefs\users\psalas\jsdbg\support\", Version);
-                    Console.Out.WriteLine("Installing support files from {0} to {1}", supportDirectory, path);
-                    DirectoryCopy(supportDirectory, path, /*copySubDirs*/true);
-                }
+                path = Program.SupportDirectory;
             }
 
             Debugger debugger;
