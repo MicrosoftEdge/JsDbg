@@ -230,6 +230,9 @@ var TableGridBox = CreateBoxType("Layout::TableGridBox", ContainerBox);
 TableGridBox.prototype.collectChildren = function(children) {
     TableGridBox.super.prototype.collectChildren.call(this, children);
 
+    FlowBox.collectChildrenInFlow(this.box.f("fragmentedCellContents"), children);
+    FlowBox.collectChildrenInFlow(this.box.f("collapsedCells"), children);
+
     var rowLayout = this.box.f("firstRowLayout.m_pT");
 
     while (!rowLayout.isNull()) {
