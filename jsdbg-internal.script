@@ -10,19 +10,19 @@ r $t2 = 1; $$ should create a remote
 {
     .foreach (server {.servers})
     {
-        .if ($t0 & $t1)
+        .if (@$t0 & @$t1)
         {
             .printf "Connecting JsDbg to ${server}\r\n";
             .block {.shell -x ${JsDbgPath} ${server}}
             .break;
         }
-        .elsif ($t0 & $spat("${server}", "*ipe=jsdbg-*"))
+        .elsif (@$t0 & $spat("${server}", "*ipe=jsdbg-*"))
         {
             $$ there's already a jsdbg remote running.  we can connect the next time around if this is the only remote.
             r $t2 = 0;
             r $t0 = 0;
         }
-        .elsif ($t0)
+        .elsif (@$t0)
         {
             .printf "An existing remote was found. Run\r\n\r\n";
             .printf ${JsDbgStrPath};
@@ -37,16 +37,16 @@ r $t2 = 1; $$ should create a remote
         }
     }
     
-    .if ($t0)
+    .if (@$t0)
     {
         .break;
     }
-    .elsif ($t1)
+    .elsif (@$t1)
     {
         .printf "Unable to find or start a remote debugging server.\r\n";
         .break;
     }
-    .elsif ($t2)
+    .elsif (@$t2)
     {
         .printf "No debugging server found, starting a new one.\r\n";
         .block {.server npipe:pipe=jsdbg-%x}
