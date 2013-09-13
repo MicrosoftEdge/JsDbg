@@ -75,29 +75,16 @@ function getRootCTreeNodesWithLayoutAssociations() {
 
 var boxCache = {};
 
+var BoxTypes = {};
+
 function CreateBox(obj) {
     if (obj.ptr() in boxCache) {
         return boxCache[obj.ptr()];
     }
 
-    // Map the type given by a vtable to a concrete type.
-    var boxTypes = {
-        "Layout::FlowBox" : FlowBox,
-        "Layout::FlexBox" : FlexBox,
-        "Layout::TableBox" : TableBox,
-        "Layout::TableGridBox" : TableGridBox,
-        "Layout::GridBox" : GridBox,
-        "Layout::MultiColumnBox" : MultiColumnBox,
-        "Layout::LineBoxCompactShort" : LineBox,
-        "Layout::LineBoxCompactInteger" : LineBox,
-        "Layout::LineBoxFullInteger" : LineBox,
-        "Layout::LineBoxFullIntegerWithVisibleBounds" : LineBox,
-        "Layout::LineBoxFullShort" : LineBox,
-    };
-
     var type = obj.vtable();
-    if (type in boxTypes) {
-        var result = new boxTypes[type](obj);
+    if (type in BoxTypes) {
+        var result = new BoxTypes[type](obj);
     } else {
         var result = new LayoutBox(obj);
     }
@@ -116,12 +103,35 @@ DbgObject.prototype.latestPatch = function() {
     }
 }
 
+function MapBoxType(typename, type) {
+    BoxTypes[typename] = type;
+}
+
+function CreateBoxType(typename, superType) {
+    // For the description, strip "Layout::" and strip the last "Box".
+    var name = typename.substr("Layout::".length);
+    var lastIndexOfBox = name.lastIndexOf("Box");
+    name = name.substr(0, lastIndexOfBox) + name.substr(lastIndexOfBox + "Box".length);
+
+    var newType = function(box) {
+        superType.call(this, box);
+        this.box = this.box.as(typename);
+    }
+    newType.prototype = Object.create(superType.prototype);
+    newType.prototype.typename = function() { return name; }
+    newType.super = superType;
+    newType.prototype.rawTypename = typename;
+
+    MapBoxType(typename, newType);
+    return newType;
+}
+
 function LayoutBox(box) {
     this.box = box;
     this.cachedChildren = null;
 }
 
-LayoutBox.prototype.typename = function() { return this.box.vtable(); }
+LayoutBox.prototype.typename = function() { var vtable = this.box.vtable(); console.log(vtable); }
 LayoutBox.prototype.collectChildren = function(children) { }
 
 LayoutBox.prototype.createRepresentation = function() {
@@ -160,16 +170,9 @@ LayoutBox.prototype.getChildren = function() {
     return this.cachedChildren;
 }
 
-function ContainerBox(box) {
-    LayoutBox.call(this, box);
-    this.box = this.box.as("Layout::ContainerBox");
-}
-
-ContainerBox.prototype = Object.create(LayoutBox.prototype);
-
-ContainerBox.prototype.typename = function() { return "Container"; }
+var ContainerBox = CreateBoxType("Layout::ContainerBox", LayoutBox);
 ContainerBox.prototype.collectChildren = function(children) {
-    LayoutBox.prototype.collectChildren.call(this, children);
+    ContainerBox.super.prototype.collectChildren.call(this, children);
 
     var firstItem = this.box.f("PositionedItems.firstItem.m_pT");
 
@@ -186,13 +189,7 @@ ContainerBox.prototype.collectChildren = function(children) {
     }
 }
 
-function FlowBox(box) {
-    ContainerBox.call(this, box);
-    this.box = this.box.as("Layout::FlowBox");
-}
-
-FlowBox.prototype = Object.create(ContainerBox.prototype);
-FlowBox.prototype.typename = function() { return "Flow"; }
+var FlowBox = CreateBoxType("Layout::FlowBox", ContainerBox);
 FlowBox.collectChildrenInFlow = function(flow, children) {
     var initialFlow = flow;
     if (!flow.isNull()) {
@@ -204,7 +201,7 @@ FlowBox.collectChildrenInFlow = function(flow, children) {
     }
 }
 FlowBox.prototype.collectChildren = function(children) {
-    ContainerBox.prototype.collectChildren.call(this, children);
+    FlowBox.super.prototype.collectChildren.call(this, children);
 
     var flow = this.box.f("flow");
     var initialFlow = flow;
@@ -222,27 +219,16 @@ FlowBox.prototype.collectChildren = function(children) {
     }
 }
 
-function TableBox(box) {
-    ContainerBox.call(this, box);
-    this.box = this.box.as("Layout::TableBox");
-}
-
-TableBox.prototype = Object.create(ContainerBox.prototype);
-TableBox.prototype.typename = function() { return "Table"; }
+var TableBox = CreateBoxType("Layout::TableBox", ContainerBox);
 TableBox.prototype.collectChildren = function(children) {
-    ContainerBox.prototype.collectChildren.call(this, children);
+    TableBox.super.prototype.collectChildren.call(this, children);
     FlowBox.collectChildrenInFlow(this.box.f("flow"), children);
 }
 
-function TableGridBox(box) {
-    ContainerBox.call(this, box);
-    this.box = this.box.as("Layout::TableGridBox");
-}
 
-TableGridBox.prototype = Object.create(ContainerBox.prototype);
-TableGridBox.prototype.typename = function() { return "TableGrid"; }
+var TableGridBox = CreateBoxType("Layout::TableGridBox", ContainerBox);
 TableGridBox.prototype.collectChildren = function(children) {
-    ContainerBox.prototype.collectChildren.call(this, children);
+    TableGridBox.super.prototype.collectChildren.call(this, children);
 
     var rowLayout = this.box.f("firstRowLayout.m_pT");
 
@@ -262,15 +248,9 @@ TableGridBox.prototype.collectChildren = function(children) {
     }
 }
 
-function GridBox(box) {
-    ContainerBox.call(this, box);
-    this.box = this.box.as("Layout::GridBox");
-}
-
-GridBox.prototype = Object.create(ContainerBox.prototype);
-GridBox.prototype.typename = function() { return "Grid"; }
+var GridBox = CreateBoxType("Layout::GridBox", ContainerBox);
 GridBox.prototype.collectChildren = function(children) {
-    ContainerBox.prototype.collectChildren.call(this, children);
+    GridBox.super.prototype.collectChildren.call(this, children);
 
     var gridBoxItemArray = this.box.f("Items.m_pT");
 
@@ -285,27 +265,16 @@ GridBox.prototype.collectChildren = function(children) {
     }
 }
 
-function FlexBox(box) {
-    ContainerBox.call(this, box);
-    this.box = this.box.as("Layout::FlexBox");
-}
-
-FlexBox.prototype = Object.create(ContainerBox.prototype);
-FlexBox.prototype.typename = function() { return "Flex"; }
+var FlexBox = CreateBoxType("Layout::FlexBox", ContainerBox);
 FlexBox.prototype.collectChildren = function(children) {
-    ContainerBox.prototype.collectChildren.call(this, children);
+    FlexBox.super.prototype.collectChildren.call(this, children);
     FlowBox.collectChildrenInFlow(this.box.f("flow"), children);
 }
 
-function MultiColumnBox(box) {
-    ContainerBox.call(this, box);
-    this.box = this.box.as("Layout::MultiColumnBox");
-}
-
-MultiColumnBox.prototype = Object.create(ContainerBox.prototype);
-MultiColumnBox.prototype.typename = function() { return "MultiColumn"; }
+var MultiFragmentBox = CreateBoxType("Layout::MultiFragmentBox", ContainerBox);
+var MultiColumnBox = CreateBoxType("Layout::MultiColumnBox", MultiFragmentBox);
 MultiColumnBox.prototype.collectChildren = function(children) {
-    ContainerBox.prototype.collectChildren.call(this, children);
+    MultiColumnBox.super.prototype.collectChildren.call(this, children);
     var items = this.box.f("items.m_pT");
 
     if (!items.isNull()) {
@@ -317,14 +286,9 @@ MultiColumnBox.prototype.collectChildren = function(children) {
     }
 }
 
-function LineBox(box) {
-    LayoutBox.call(this, box);
-    this.box = this.box.as("Layout::LineBox");
-}
-LineBox.prototype = Object.create(LayoutBox.prototype);
-LineBox.prototype.typename = function() { return "Line"; }
+var LineBox = CreateBoxType("Layout::LineBox", LayoutBox);
 LineBox.prototype.collectChildren = function(children) {
-    LayoutBox.prototype.collectChildren.call(this, children);
+    LineBox.super.prototype.collectChildren.call(this, children);
 
     if ((this.box.f("lineBoxFlags").val() & 0x8) > 0) {
         var run = this.box.f("firstRun.m_pT");
@@ -340,3 +304,60 @@ LineBox.prototype.collectChildren = function(children) {
         }
     }
 }
+
+MapBoxType("Layout::LineBoxCompactShort", LineBox)
+MapBoxType("Layout::LineBoxCompactInteger", LineBox)
+MapBoxType("Layout::LineBoxFullInteger", LineBox)
+MapBoxType("Layout::LineBoxFullIntegerWithVisibleBounds", LineBox)
+MapBoxType("Layout::LineBoxFullShort", LineBox)
+
+var ReplacedBox = CreateBoxType("Layout::ReplacedBox", ContainerBox);
+
+var ReplacedBoxIFrame = CreateBoxType("Layout::ReplacedBoxIFrame", ReplacedBox);
+ReplacedBoxIFrame.prototype.collectChildren = function(children) {
+    ReplacedBoxIFrame.super.prototype.collectChildren.call(this, children);
+    FlowBox.collectChildrenInFlow(this.box.f("flow"), children);
+}
+
+var ReplacedBoxNative = CreateBoxType("Layout::ReplacedBoxNative", ReplacedBox);
+
+var ReplacedBoxNativeImage = CreateBoxType("Layout::ReplacedBoxNativeImage", ReplacedBoxNative);
+var ReplacedBoxNativeGeneratedImage = CreateBoxType("Layout::ReplacedBoxNativeGeneratedImage", ReplacedBoxNative);
+var ReplacedBoxNativeMSWebView = CreateBoxType("Layout::ReplacedBoxNativeMSWebView", ReplacedBoxNative);
+var ReplacedBoxNativeCheckBoxValue = CreateBoxType("Layout::ReplacedBoxNativeCheckBoxValue", ReplacedBoxNative);
+var ReplacedBoxNativeComboBoxValue = CreateBoxType("Layout::ReplacedBoxNativeComboBoxValue", ReplacedBoxNative);
+var ReplacedBoxNativeInputFileAction = CreateBoxType("Layout::ReplacedBoxNativeInputFileAction", ReplacedBoxNative);
+
+var BoxContainerBox = CreateBoxType("Layout::BoxContainerBox", ReplacedBox);
+BoxContainerBox.prototype.collectChildren = function(children) {
+    BoxContainerBox.super.prototype.collectChildren.call(this, children);
+    FlowBox.collectChildrenInFlow(this.box.f("flowItem"), children);
+}
+var PageFrameBox = CreateBoxType("Layout::PageFrameBox", BoxContainerBox);
+
+
+var SvgCssContainerBox = CreateBoxType("Layout::SvgCssContainerBox", ContainerBox);
+SvgCssContainerBox.prototype.collectChildren = function(children) {
+    SvgCssContainerBox.super.prototype.collectChildren.call(this, children);
+    FlowBox.collectChildrenInFlow(this.box.f("firstSvgItem"), children);
+}
+
+var SvgBox = CreateBoxType("Layout::SvgBox", LayoutBox);
+
+var SvgContainerBox = CreateBoxType("Layout::SvgContainerBox", SvgBox);
+SvgContainerBox.prototype.collectChildren = function(children) {
+    SvgContainerBox.super.prototype.collectChildren.call(this, children);
+    FlowBox.collectChildrenInFlow(this.box.f("firstSvgItem"), children);
+}
+
+var SvgTextBox = CreateBoxType("Layout::SvgTextBox", SvgBox);
+SvgTextBox.prototype.collectChildren = function(children) {
+    SvgTextBox.super.prototype.collectChildren.call(this, children);
+    FlowBox.collectChildrenInFlow(this.box.f("flow"), children);
+}
+
+var SvgPrimitiveBox = CreateBoxType("Layout::SvgPrimitiveBox", SvgBox);
+var SvgLinePrimitiveBox = CreateBoxType("Layout::SvgLinePrimitiveBox", SvgPrimitiveBox);
+var SvgImagePrimitiveBox = CreateBoxType("Layout::SvgImagePrimitiveBox", SvgPrimitiveBox);
+var SvgGeometryBox = CreateBoxType("Layout::SvgGeometryBox", SvgPrimitiveBox);
+var SvgLineBox = CreateBoxType("Layout::SvgLineBox", LineBox);
