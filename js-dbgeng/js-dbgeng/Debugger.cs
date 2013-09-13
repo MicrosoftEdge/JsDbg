@@ -24,6 +24,8 @@ namespace JsDbg {
             this.typeCache = new TypeCache(this.isPointer64Bit);
             this.dataSpaces = new DebugDataSpaces(this.client);
             this.symbols = new DebugSymbols(this.client);
+            this.isShuttingDown = false;
+            this.didShutdown = true;
         }
 
         internal struct SFieldResult {
@@ -35,6 +37,60 @@ namespace JsDbg {
 
             internal bool IsBitField {
                 get { return this.BitCount > 0; }
+            }
+        }
+
+        internal async Task Shutdown() {
+            if (!this.didShutdown) {
+                this.isShuttingDown = true;
+
+                // Wait for "Run" to finish.
+                while (this.isShuttingDown) {
+                    await Task.Yield();
+                }
+            }
+        }
+
+        internal async Task Run() {
+            this.didShutdown = false;
+
+            System.EventHandler<EngineStateChangeEventArgs> engineStateChanged = (object sender, EngineStateChangeEventArgs args) => {
+                if (args.Change == EngineStateChange.EffectiveProcessor) {
+
+                    Processor processorType = (Processor)args.Argument;
+                    if ((processorType == Processor.Amd64) == !(this.isPointer64Bit)) {
+                        // Invalidate the type cache.
+                        Console.Out.WriteLine("Effective processor changed, so invalidating type cache.  You may need to refresh the browser window.");
+                        this.isPointer64Bit = !this.isPointer64Bit;
+                        this.typeCache = new TypeCache(this.isPointer64Bit);
+                    }
+                } else if (args.Change == EngineStateChange.ExecutionStatus) {
+                    DebugStatus executionStatus = (DebugStatus)(args.Argument & (~(ulong)DebugStatus.InsideWait));
+                    if (executionStatus == DebugStatus.NoDebuggee) {
+                        Console.Out.WriteLine("Debugger has no target, shutting down.");
+                        Task shutdownTask = this.Shutdown();
+                    }
+                }
+            };
+
+            this.client.EngineStateChanged += engineStateChanged;
+
+            while (!this.isShuttingDown) {
+                try {
+                    this.client.DispatchCallbacks(TimeSpan.Zero);
+                    await Task.Delay(100);
+                } catch (Exception ex) {
+                    Console.Out.WriteLine("Shutting down due to exception: {0}", ex.Message);
+                    Task shutdownTask = this.Shutdown();
+                }
+            }
+
+            try {
+                this.client.DispatchCallbacks(TimeSpan.Zero);
+                this.client.EngineStateChanged -= engineStateChanged;
+            } finally {
+                this.isShuttingDown = false;
+                this.didShutdown = true;
             }
         }
 
@@ -213,5 +269,7 @@ namespace JsDbg {
         private SymbolCache symbolCache;
         private TypeCache typeCache;
         private bool isPointer64Bit;
+        private bool isShuttingDown;
+        private bool didShutdown;
     }
 }

@@ -21,13 +21,13 @@ namespace JsDbg {
             if (args.Length < 1 || args[0] == "/ask") {
                 // A debugger string wasn't specified.  Prompt for a debug string instead.
                 Console.Write("Please specify a debug remote string (e.g. npipe:Pipe=foo;Server=bar):");
-                remoteString = Console.ReadLine();
+                remoteString = Console.ReadLine().Trim();
 
                 if (remoteString.StartsWith("-remote ")) {
-                    remoteString = remoteString.Substring("-remote ".Length);
+                    remoteString = remoteString.Substring("-remote ".Length).Trim();
                 }
 
-                if (remoteString.Trim().Length == 0) {
+                if (remoteString.Length == 0) {
                     return -1;
                 }
             } else {
@@ -69,22 +69,26 @@ namespace JsDbg {
 
                     System.Console.TreatControlCAsInput = true;
 
-                    Task readlineTask = Task.Run(() => ReadKeyUntilEnter());
-                    
+                    // Run the debugger.  If the debugger ends, kill the web server.
+                    debugger.Run().ContinueWith((Task result) => { 
+                        webServer.Abort();
+                    });
+
                     // Pressing enter kills the web server.
-                    readlineTask.ContinueWith((Task result) => {
+                    Task.Run(() => ReadKeyUntilEnter()).ContinueWith((Task result) => {
                         Console.WriteLine("Shutting down...");
                         webServer.Abort();
                     });
 
-                    Task webServerTask = webServer.Listen();
-
-                    // The web server ending completes our SynchronizationContext which allows us to exit.
-                    webServerTask.ContinueWith((Task result) => { syncContext.Complete(); });
+                    // The web server ending kills the debugger and completes our SynchronizationContext which allows us to exit.
+                    webServer.Listen().ContinueWith(async (Task result) => {
+                        await debugger.Shutdown();
+                        syncContext.Complete();
+                    });
 
                     Console.WriteLine("Press enter or ctrl-c to stop.");
 
-                    // Process requests until we're done.
+                    // Process requests until the web server is taken down.
                     syncContext.RunOnCurrentThread();
                 } finally {
                     SynchronizationContext.SetSynchronizationContext(previousContext);

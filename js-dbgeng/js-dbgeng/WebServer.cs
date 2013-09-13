@@ -431,7 +431,9 @@ namespace JsDbg {
         }
 
         internal void Abort() {
-            this.httpListener.Abort();
+            if (this.httpListener.IsListening) {
+                this.httpListener.Abort();
+            }
         }
 
 
