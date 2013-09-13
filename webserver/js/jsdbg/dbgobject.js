@@ -211,6 +211,16 @@ DbgObject.prototype.vtable = function() {
     return result.symbolName.substring(result.symbolName.indexOf("!") + 1, result.symbolName.indexOf("::`vftable'"));
 }
 
+DbgObject.prototype.vcast = function() {
+    var vtableType = this.vtable();
+    var result = JsDbg.SyncLookupBaseTypeOffset(this.module, vtableType, this.typename);
+    if (result.error) {
+        throw result.error;
+    }
+
+    return new DbgObject(this.module, vtableType, this.pointer - result.offset);
+}
+
 DbgObject.prototype.isNull = function() {
     return this.pointer == 0;
 }

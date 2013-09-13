@@ -50,7 +50,7 @@ namespace JsDbg {
                     switch (parts[1]) {
                         case "__BaseClass":
                             // +0x000 __BaseClass class [typename]
-                            this.ParsedBaseClasses.Add(new SBaseClass() { Offset = offset, TypeName = parts[3] });
+                            this.ParsedBaseClasses.Add(new SBaseClass() { Offset = offset, TypeName = parts[3].TrimEnd(',') });
                             break;
                         case "__VFN_table":
                             // Ignore vtables.

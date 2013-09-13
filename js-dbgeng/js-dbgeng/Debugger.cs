@@ -62,6 +62,18 @@ namespace JsDbg {
             return result;
         }
 
+        internal async Task<int> GetBaseClassOffset(string module, string typename, string baseTypename) {
+            await this.WaitForBreakIn();
+
+            Type type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename);
+            int offset;
+            if (type.GetBaseTypeOffset(baseTypename, out offset)) {
+                return offset;
+            } else {
+                throw new DebuggerException(String.Format("Invalid base type {0} of type {1}", baseTypename, typename));
+            }
+        }
+
         internal async Task<string> LookupConstantName(string module, string type, ulong constant) {
             await this.WaitForBreakIn();
 
@@ -100,6 +112,9 @@ namespace JsDbg {
             ulong displacement;
             try {
                 this.symbolCache.GetSymbolName(pointer, out name, out displacement);
+                if (displacement != 0) {
+                    throw new Exception();
+                }
             } catch {
                 throw new DebuggerException(String.Format("Invalid symbol address: {0}", pointer.ToString()));
             }

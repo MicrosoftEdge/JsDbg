@@ -37,8 +37,18 @@ namespace JsDbg {
         internal readonly int Offset;
     }
 
+    struct SBaseTypeName {
+        internal SBaseTypeName(string name, int offset) {
+            this.Name = name;
+            this.Offset = offset;
+        }
+
+        internal readonly string Name;
+        internal readonly int Offset;
+    }
+
     class Type {
-        internal Type(string module, string name, uint size, Dictionary<string, SField> fields, List<SBaseType> baseTypes) {
+        internal Type(string module, string name, uint size, Dictionary<string, SField> fields, List<SBaseType> baseTypes, List<SBaseTypeName> baseTypeNames) {
             this.module = module;
             this.name = name;
             this.size = size;
@@ -50,6 +60,7 @@ namespace JsDbg {
                 }
             }
             this.baseTypes = baseTypes;
+            this.baseTypeNames = baseTypeNames;
         }
 
         internal string Module {
@@ -87,12 +98,41 @@ namespace JsDbg {
             return false;
         }
 
+        internal bool GetBaseTypeOffset(string baseName, out int offset) {
+            if (this.baseTypes != null) {
+                foreach (SBaseType baseType in this.baseTypes) {
+                    if (baseType.Type.Name == baseName) {
+                        // Our base type matches.
+                        offset = baseType.Offset;
+                        return true;
+                    } else if (baseType.Type.GetBaseTypeOffset(baseName, out offset)) {
+                        // Our base type has a base type that matches.
+                        offset = baseType.Offset + offset;
+                        return true;
+                    }
+                }
+            }
+
+            if (this.baseTypeNames != null) {
+                foreach (SBaseTypeName baseTypeName in this.baseTypeNames) {
+                    if (baseTypeName.Name == baseName) {
+                        offset = baseTypeName.Offset;
+                        return true;
+                    }
+                }
+            }
+
+            offset = 0;
+            return false;
+        }
+
         private readonly string module;
         private readonly string name;
         private readonly uint size;
         private readonly Dictionary<string, SField> fields;
         private readonly Dictionary<string, string> caseInsensitiveFields;
         private readonly List<SBaseType> baseTypes;
+        private readonly List<SBaseTypeName> baseTypeNames;
     }
 
     class TypeCache {
@@ -113,6 +153,7 @@ namespace JsDbg {
             // Is it a built-in type?
             Type builtinType = this.GetBuiltinType(module, typename);
             if (builtinType != null) {
+                this.types.Add(key, builtinType);
                 return builtinType;
             }
 
@@ -179,7 +220,7 @@ namespace JsDbg {
                         }
 
                         // Construct the type and add it to the cache.
-                        Type type = new Type(module, typename, typeSize, fields, baseTypes);
+                        Type type = new Type(module, typename, typeSize, fields, baseTypes, null);
                         this.types.Add(key, type);
 
                         return type;
@@ -284,8 +325,13 @@ namespace JsDbg {
                 fields.Add(parsedField.FieldName, field);
             }
 
+            List<SBaseTypeName> baseTypeNames = new List<SBaseTypeName>();
+            foreach (DumpTypeParser.SBaseClass parsedBaseClass in parser.ParsedBaseClasses) {
+                baseTypeNames.Add(new SBaseTypeName(parsedBaseClass.TypeName, (int)parsedBaseClass.Offset));
+            }
+
             // Construct the type and add it to the cache.  We don't need to fill base types because this approach embeds base type information directly in the Type.
-            Type type = new Type(module, typename, typeSize, fields, null);
+            Type type = new Type(module, typename, typeSize, fields, null, baseTypeNames);
             this.types.Add(TypeKey(module, typename), type);
             return type;
         }
@@ -311,9 +357,9 @@ namespace JsDbg {
         private Type GetBuiltinType(string module, string typename) {
             string strippedType = typename.Replace("unsigned", "").Replace("signed", "").Trim();
             if (BuiltInTypes.ContainsKey(strippedType)) {
-                return new Type(module, typename, BuiltInTypes[strippedType], null, null);
+                return new Type(module, typename, BuiltInTypes[strippedType], null, null, null);
             } else if (strippedType.EndsWith("*")) {
-                return new Type(module, typename, this.isPointer64Bit ? 8u : 4u, null, null);
+                return new Type(module, typename, this.isPointer64Bit ? 8u : 4u, null, null, null);
             } else {
                 return null;
             }

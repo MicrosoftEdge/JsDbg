@@ -115,6 +115,9 @@ namespace JsDbg {
                             case "constantname":
                                 this.ServeConstantName(segments, context);
                                 break;
+                            case "basetypeoffset":
+                                this.ServeBaseTypeOffset(segments, context);
+                                break;
                             default:
                                 context.Response.Redirect("/");
                                 context.Response.OutputStream.Close();
@@ -176,8 +179,7 @@ namespace JsDbg {
             string baseType = context.Request.QueryString["type"];
             string fieldsString = context.Request.QueryString["fields"];
             if (module == null || baseType == null || fieldsString == null) {
-                context.Response.StatusCode = 400;
-                context.Response.OutputStream.Close();
+                this.ServeFailure(context);
                 return;
             }
 
@@ -197,6 +199,28 @@ namespace JsDbg {
                 } else {
                     responseString = String.Format("{{ \"type\": \"{0}\", \"offset\": {1}, \"size\": {2} }}", result.TypeName, result.Offset, result.Size);
                 }
+            } catch (Debugger.DebuggerException ex) {
+                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+            }
+
+            this.ServeUncachedString(responseString, context);
+        }
+
+        private async void ServeBaseTypeOffset(string[] segments, HttpListenerContext context) {
+            string module = context.Request.QueryString["module"];
+            string type = context.Request.QueryString["type"];
+            string baseType = context.Request.QueryString["basetype"];
+
+            if (module == null || baseType == null || type == null) {
+                this.ServeFailure(context);
+                return;
+            }
+
+            string responseString;
+
+            try {
+                int offset = await this.debugger.GetBaseClassOffset(module, type, baseType);
+                responseString = String.Format("{{ \"offset\": {0} }}", offset);
             } catch (Debugger.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
