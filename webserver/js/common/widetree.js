@@ -79,7 +79,8 @@ var WideTree = (function() {
             this.representation.style.top = styles[2];
         }
 
-        this.children.forEach(function(x) { window.setImmediate(function() { x.updateRepresentation(); }) });
+        var that = this;
+        window.setImmediate(function() { that.children.forEach(function(x) { x.updateRepresentation(); }); });
     }
 
     DrawingTreeNode.prototype.expand = function(recurse) {
