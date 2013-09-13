@@ -127,8 +127,12 @@ namespace JsDbg {
                     if ((uint)comException.ErrorCode == 0x80040154 && !this.didAttemptDIARegistration) {
                         // The DLL isn't registered.
                         this.didAttemptDIARegistration = true;
-                        this.AttemptDIARegistration();
-                        continue;
+                        try {
+                            this.AttemptDIARegistration();
+                        } catch (Exception ex) {
+                            // Go into fallback.
+                            Console.Out.WriteLine("Falling back due to DIA registration failure: {0}", ex.Message);
+                        }
                     }
 
                     this.isInFallback = true;
@@ -216,11 +220,7 @@ namespace JsDbg {
             ProcessStartInfo regsvr = new ProcessStartInfo("regsvr32", dllPath);
             regsvr.Verb = "runas";
 
-            try {
-                Process.Start(regsvr).WaitForExit();
-            } catch (Exception ex) {
-                throw new Debugger.DebuggerException(String.Format("Internal error: Unable to register {0}: {1}", dllPath, ex.Message));
-            }
+            Process.Start(regsvr).WaitForExit();
         }
 
         private Type GetTypeFromDebugSession(DebugClient client, DebugControl control, SymbolCache symbolCache, string module, string typename) {

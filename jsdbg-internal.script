@@ -1,15 +1,35 @@
-r $t0 = 0;
-r $t1 = 0;
+.block { as ${/v:JsDbgVersion} 2013-09-12-01}
+.block { as ${/v:JsDbgPath} \\iefs\users\psalas\jsdbg\${JsDbgVersion}\jsdbg.exe}
+.block { as ${/v:JsDbgStrPath} "\\\\iefs\\users\\psalas\\jsdbg\\${JsDbgVersion}\\jsdbg.exe"}
+
+r $t0 = 0; $$ found remote
+r $t1 = 0; $$ connect to next remote
+r $t2 = 1; $$ should create a remote
+
 .while (1)
 {
     .foreach (server {.servers})
     {
-        .if ($t0)
+        .if ($t0 & $t1)
         {
             .printf "Connecting JsDbg to ${server}\r\n";
-            .block {.shell -x \\iefs\users\psalas\jsdbg\2013-09-11-02\jsdbg.exe ${server}}
+            .block {.shell -x ${JsDbgPath} ${server}}
             .break;
         }
+        .elsif ($t0 & $spat("${server}", "*ipe=jsdbg-*"))
+        {
+            $$ there's already a jsdbg remote running.  we can connect the next time around if this is the only remote.
+            r $t2 = 0;
+            r $t0 = 0;
+        }
+        .elsif ($t0)
+        {
+            .printf "An existing remote was found. Run\r\n\r\n";
+            .printf ${JsDbgStrPath};
+            .printf " ${server} \r\n\r\nlocally to launch.\r\n";
+            .break;
+        }
+
 
         .if ($scmp("${server}", "-remote") == 0)
         {
@@ -26,10 +46,18 @@ r $t1 = 0;
         .printf "Unable to find or start a remote debugging server.\r\n";
         .break;
     }
-    .else
+    .elsif ($t2)
     {
         .printf "No debugging server found, starting a new one.\r\n";
         .block {.server npipe:pipe=jsdbg-%x}
-        r $t1 = 1;
     }
+    r $t1 = 1;
 }
+
+r $t0 = 0;
+r $t1 = 0;
+r $t2 = 0;
+
+.block { ad ${/v:JsDbgVersion} }
+.block { ad ${/v:JsDbgPath} }
+.block { ad ${/v:JsDbgStrPath} }
