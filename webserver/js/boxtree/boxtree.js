@@ -14,6 +14,7 @@
 
 // public:
 
+var rootBox = null;
 var rootTreeNode = null;
 
 function createBoxTree(pointer, isTreeNode, container) {
@@ -46,7 +47,7 @@ function createBoxTree(pointer, isTreeNode, container) {
 
         if (box != null) {
             boxCache = {};
-            var rootBox = CreateBox(box);
+            rootBox = CreateBox(box);
             rootTreeNode = Tree.BuildTree(container, rootBox);
         }
     }
@@ -136,7 +137,7 @@ LayoutBox.prototype.collectChildren = function(children) { }
 
 LayoutBox.prototype.createRepresentation = function() {
     var element = document.createElement("div");
-    element.innerHTML = this.typename() + "<br />" + this.box.ptr();
+    element.innerHTML = "<p>" + this.typename() + "</p> <p>" + this.box.ptr() + "</p> ";
 
     var fields = [];
     if (this.collectUserFields) {
@@ -147,15 +148,17 @@ LayoutBox.prototype.createRepresentation = function() {
         var field = fields[i];
         var html = field.html.call(this.box, element);
         if (html !== undefined) {
-            element.innerHTML += "<br />";
+            var p = document.createElement("p");
             if (field.shortname.length > 0) {
-                element.innerHTML += field.shortname + ":";
+                p.innerHTML = field.shortname + ":";
             }
             try {
-                element.appendChild(html);
+                p.appendChild(html);
             } catch (ex) {
-                element.innerHTML += html;
+                p.innerHTML += html;
             }
+            element.appendChild(p);
+            element.appendChild(document.createTextNode(" "));
         }
     };
 

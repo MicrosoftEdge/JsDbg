@@ -23,6 +23,10 @@
     overflow:hidden;
 }
 
+.node-container .node p {
+    margin:0;
+}
+
 .node-container .node:hover {
     z-index:2;
     min-height:80px;
