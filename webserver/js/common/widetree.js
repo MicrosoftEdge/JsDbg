@@ -3,16 +3,16 @@
 // tree.js
 // Peter Salas
 //
-// A tree drawing library.  It provides one method, Tree.BuildTree, which takes a DOM element in which to create the tree,
+// A tree drawing library.  It provides one method, WideTree.BuildTree, which takes a DOM element in which to create the tree,
 // and a "backing node" which implements two methods:
 //  - getChildren -> array of backing nodes
 //  - createRepresentation -> dom element that represents the node
 //
-// Tree.BuildTree returns an object with a single method
+// WideTree.BuildTree returns an object with a single method
 //  - updateRepresentation
 // which can be used to notify the tree that node representations returned by createRepresentation may have changed.
 
-var Tree = (function() {
+var WideTree = (function() {
 
     var NODE_WIDTH = 75;
     var NODE_MARGIN_X = 10;

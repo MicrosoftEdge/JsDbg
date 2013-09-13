@@ -3,7 +3,7 @@
 // tree.js
 // Peter Salas
 //
-// A tree drawing library.  It provides one method, Tree.BuildTree, which takes a DOM element in which to create the tree,
+// A tree drawing library.  It provides one method, TallTree.BuildTree, which takes a DOM element in which to create the tree,
 // and a "backing node" which implements two methods:
 //  - getChildren -> array of backing nodes
 //  - createRepresentation -> dom element that represents the node
@@ -13,11 +13,6 @@
 // which can be used to notify the tree that node representations returned by createRepresentation may have changed.
 
 var TallTree = (function() {
-
-    var NODE_WIDTH = 75;
-    var NODE_MARGIN_X = 10;
-    var NODE_HEIGHT = 80;
-    var NODE_MARGIN_Y = 20;
 
     function DrawingTreeNode(node, parent) {
         this.innerNode = node;

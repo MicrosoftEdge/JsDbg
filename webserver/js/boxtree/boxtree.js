@@ -48,7 +48,7 @@ function createBoxTree(pointer, isTreeNode, container) {
         if (box != null) {
             boxCache = {};
             rootBox = CreateBox(box);
-            rootTreeNode = Tree.BuildTree(container, rootBox);
+            rootTreeNode = WideTree.BuildTree(container, rootBox);
         }
     }
 }
