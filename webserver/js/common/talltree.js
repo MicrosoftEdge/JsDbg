@@ -21,8 +21,11 @@ var TallTree = (function() {
         this.children = [];
         this.representation = null;
         this.childContainer = null;
-        this.isExpanded = (this.nodeChildren.length == 0);
+        this.isExpanded = this.nodeChildren.length == 0;
         this.createRepresentation();
+        if (this.innerNode.drawingTreeNodeIsExpanded) {
+            this.expand();
+        }
     }
 
     DrawingTreeNode.prototype.createRepresentation = function() {
@@ -99,6 +102,7 @@ var TallTree = (function() {
             return node;
         });
         this.isExpanded = true;
+        this.innerNode.drawingTreeNodeIsExpanded = true;
     }
 
     DrawingTreeNode.prototype.collapse = function(removeSelf) {
@@ -115,6 +119,7 @@ var TallTree = (function() {
         this.children.map(function(x) { x.collapse(true); });
         this.children = [];
         this.isExpanded = this.nodeChildren.length == 0;
+        this.innerNode.drawingTreeNodeIsExpanded = this.isExpanded;
     }
 
     DrawingTreeNode.prototype.invalidate = function() {

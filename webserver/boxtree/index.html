@@ -18,9 +18,13 @@
     <link rel="stylesheet" href="/css/boxtree/usersupport.css" type="text/css">
 
     <script type="text/javascript">
+        var rootBox = null;
+        var rootTreeNode = null;
+        var treeAlgorithm = WideTree;
+
         function loadBoxTree(isTreeNode) {
-            var rootTreeNode = parseInt(document.getElementById("pointer").value, 16);
-            createBoxTree(rootTreeNode, isTreeNode, document.querySelector("#tree"));
+            rootBox = createBoxTree(parseInt(document.getElementById("pointer").value, 16), isTreeNode);
+            rootTreeNode = renderBoxTree(treeAlgorithm, rootBox, document.querySelector("#tree"));
         }
 
         function init() {
@@ -38,6 +42,20 @@
 
             document.getElementById("loadTreeNode").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadBoxTree(true); });
             document.getElementById("loadLayoutBox").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadBoxTree(false); });
+
+            function radioChanged() {
+                var oldTreeAlgorithm = treeAlgorithm;
+                if (document.getElementById("wideTreeRadio").checked) {
+                    treeAlgorithm = WideTree;
+                } else {
+                    treeAlgorithm = TallTree;
+                }
+                if (rootBox != null && rootTreeNode != null && treeAlgorithm != oldTreeAlgorithm) {
+                    rootTreeNode = renderBoxTree(treeAlgorithm, rootBox, document.querySelector("#tree"));
+                }
+            }
+            document.getElementById("wideTreeRadio").addEventListener("change", radioChanged);
+            document.getElementById("tallTreeRadio").addEventListener("change", radioChanged);
         }
 
         document.addEventListener("DOMContentLoaded", init);
@@ -53,7 +71,10 @@
     <label for="pointer">Pointer:</label>
     <input type="text" id="pointer" /> 
     <button id="loadTreeNode">CTreeNode</button>
-    <button id="loadLayoutBox">LayoutBox</button><br />
+    <button id="loadLayoutBox">LayoutBox</button>
+    <input id="wideTreeRadio" checked name="treeType" type="radio" /><label for="wideTreeRadio">Wide Tree</label>
+    <input id="tallTreeRadio" name="treeType" type="radio" /><label for="tallTreeRadio">Tall Tree</label>
+    <br />
     Click a box to show its children.  Ctrl-Click to expand or collapse a subtree.<br />
     <div id="tree"></div>
 </body>

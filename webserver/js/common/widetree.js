@@ -29,6 +29,10 @@ var WideTree = (function() {
         this.isExpanded = (this.nodeChildren.length == 0);
 
         this.createRepresentation();
+
+        if (this.innerNode.drawingTreeNodeIsExpanded) {
+            this.expand();
+        }
     }
 
     DrawingTreeNode.prototype.createRepresentation = function() {
@@ -93,6 +97,7 @@ var WideTree = (function() {
             return node;
         });
         this.isExpanded = true;
+        this.innerNode.drawingTreeNodeIsExpanded = this.isExpanded;
     }
 
     DrawingTreeNode.prototype.collapse = function(removeSelf) {
@@ -112,6 +117,7 @@ var WideTree = (function() {
         this.children = [];
         this.requiredWidth = 0;
         this.isExpanded = this.nodeChildren.length == 0;
+        this.innerNode.drawingTreeNodeIsExpanded = this.isExpanded;
     }
 
     DrawingTreeNode.prototype.invalidate = function() {

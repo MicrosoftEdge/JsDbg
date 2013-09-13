@@ -14,10 +14,7 @@
 
 // public:
 
-var rootBox = null;
-var rootTreeNode = null;
-
-function createBoxTree(pointer, isTreeNode, container) {
+function createBoxTree(pointer, isTreeNode) {
     if (pointer) {
         var box = null;
         if (isTreeNode) {
@@ -47,10 +44,15 @@ function createBoxTree(pointer, isTreeNode, container) {
 
         if (box != null) {
             boxCache = {};
-            rootBox = CreateBox(box);
-            rootTreeNode = WideTree.BuildTree(container, rootBox);
+            return CreateBox(box);
         }
     }
+
+    return null;
+}
+
+function renderBoxTree(renderer, boxTree, container) {
+    return renderer.BuildTree(container, boxTree);
 }
 
 function getRootCTreeNodesWithLayoutAssociations() {
