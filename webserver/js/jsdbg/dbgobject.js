@@ -15,6 +15,7 @@
 //   - constant(offset?, count?)            [gets the name of a constant.  optional args are for bit fields]
 //   - equals(DbgObject) -> bool            [are two DbgObjects the same pointer?]
 //   - vtable() -> string                   [returns the fully specified type of the vtable, if there is one]
+//   - vcast() -> DbgObject                 [gets the type of the vtable and attempts a cast]
 //   - isNull() -> bool                     [indicates if the object is null]
 
 
