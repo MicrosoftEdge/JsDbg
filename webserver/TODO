@@ -1,11 +1,6 @@
 - box positions
 - windbg links
 
-- improve collapse performance
-    - maybe put all children in a single div?
-
-- multiple inheritance vcasting
-
 - sd integration
 - build integration
 
