@@ -131,7 +131,7 @@ function LayoutBox(box) {
     this.cachedChildren = null;
 }
 
-LayoutBox.prototype.typename = function() { var vtable = this.box.vtable(); console.log(vtable); }
+LayoutBox.prototype.typename = function() { return this.box.vtable(); }
 LayoutBox.prototype.collectChildren = function(children) { }
 
 LayoutBox.prototype.createRepresentation = function() {
@@ -318,6 +318,9 @@ ReplacedBoxIFrame.prototype.collectChildren = function(children) {
     ReplacedBoxIFrame.super.prototype.collectChildren.call(this, children);
     FlowBox.collectChildrenInFlow(this.box.f("flow"), children);
 }
+
+var ReplacedBoxCLayout = CreateBoxType("Layout::ReplacedBoxCLayout", ReplacedBox);
+var ReplacedBoxCOleLayout = CreateBoxType("Layout::ReplacedBoxCOleLayout", ReplacedBoxCLayout);
 
 var ReplacedBoxNative = CreateBoxType("Layout::ReplacedBoxNative", ReplacedBox);
 
