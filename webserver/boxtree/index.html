@@ -20,7 +20,7 @@
     <script type="text/javascript">
         var rootBox = null;
         var rootTreeNode = null;
-        var treeAlgorithm = WideTree;
+        var treeAlgorithm = TallTree;
 
         function loadBoxTree(isTreeNode) {
             rootBox = createBoxTree(parseInt(document.getElementById("pointer").value, 16), isTreeNode);
@@ -72,8 +72,8 @@
     <input type="text" id="pointer" /> 
     <button id="loadTreeNode">CTreeNode</button>
     <button id="loadLayoutBox">LayoutBox</button>
-    <input id="wideTreeRadio" checked name="treeType" type="radio" /><label for="wideTreeRadio">Wide Tree</label>
-    <input id="tallTreeRadio" name="treeType" type="radio" /><label for="tallTreeRadio">Tall Tree</label>
+    <input id="tallTreeRadio" checked name="treeType" type="radio" /><label for="tallTreeRadio">Tall Tree</label>
+    <input id="wideTreeRadio" name="treeType" type="radio" /><label for="wideTreeRadio">Wide Tree</label>
     <br />
     Click a box to show its children.  Ctrl-Click to expand or collapse a subtree.<br />
     <div id="tree"></div>

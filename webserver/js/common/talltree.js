@@ -47,11 +47,11 @@ var TallTree = (function() {
                 var clock = Timer.Start();
                 that.expand(e.ctrlKey);
                 console.log("Expansion took " + clock.Elapsed() + "s");
-                that.invalidate();
+                that.redraw();
                 console.log("Full Redraw took " + clock.Elapsed() + "s");
             } else if (e.ctrlKey) {
                 that.collapse(false);
-                that.invalidate();
+                that.redraw();
             }
         });
         this.representation.addEventListener("mousedown", function(e) {
@@ -120,14 +120,6 @@ var TallTree = (function() {
         this.children = [];
         this.isExpanded = this.nodeChildren.length == 0;
         this.innerNode.drawingTreeNodeIsExpanded = this.isExpanded;
-    }
-
-    DrawingTreeNode.prototype.invalidate = function() {
-        if (this.parent) {
-            this.parent.invalidate();
-        } else {
-            this.redraw();
-        }
     }
 
     DrawingTreeNode.prototype.redraw = function() {
