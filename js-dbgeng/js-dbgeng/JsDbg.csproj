@@ -57,7 +57,7 @@
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
     <Reference Include="mdbgeng">
-      <HintPath>D:\sdktools\1.obj.x86chk\sdktools\debuggers\mdbgeng\objchk\i386\mdbgeng.dll</HintPath>
+      <HintPath>..\references\mdbgeng.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
