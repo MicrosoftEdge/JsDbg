@@ -126,7 +126,7 @@ var FieldSupport = (function() {
 
             var checkbox = document.createElement("input");
             checkbox.setAttribute("type", "checkbox");
-            checkbox.setAttribute("id", f.type + "." + f.fullname);
+            checkbox.setAttribute("id", "field-cb-" + f.id);
             checkbox.checked = f.enabled;
             container.appendChild(checkbox);
             checkbox.addEventListener("change", function() {
@@ -135,7 +135,7 @@ var FieldSupport = (function() {
             })
 
             var label = document.createElement("label");
-            label.setAttribute("for", f.type + "." + f.fullname);
+            label.setAttribute("for", "field-cb-" + f.id);
             label.innerHTML = f.type + "." + f.fullname;
             container.appendChild(label);
 
@@ -351,9 +351,11 @@ var FieldSupport = (function() {
             }
         }
 
+        var uniqueId = 0;
         UserFields
             .sort(function(a, b) { return (a.type + "." + a.fullname).localeCompare((b.type + "." + b.fullname)); })
             .forEach(function(f) {
+                f.id = ++uniqueId;
                 var ui = buildFieldUI(f);
                 fields.appendChild(ui);
             });
@@ -368,6 +370,7 @@ var FieldSupport = (function() {
             UserFields.push({
                 type: DefaultTypeName,
                 enabled:true,
+                id: ++uniqueId,
                 fullname: "Custom" + (++addedFieldCounter),
                 localstorageid: StoragePrefix + ".UserField." + (new Date() - 0) + "-" + Math.round(Math.random() * 1000000),
                 shortname: "f" + addedFieldCounter,
