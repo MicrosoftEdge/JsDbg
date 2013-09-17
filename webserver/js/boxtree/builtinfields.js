@@ -3,16 +3,15 @@
 // user.js
 // Peter Salas
 //
-// Visualizations that can be applied on top of the box tree.  Visualizations can provide an
-// "html" function and a "shortname" which will add innerHTML to each tree node, or they can
-// directly manipulate the node element by providing an "element" function.
+// Visualizations that can be applied on top of the box tree.
+//
+// These are the built-in fields/visualizations -- it can be extended live using the UI
+// provided by fieldsupport.js.
 
-// These are the built-in fields/visualizations -- it can be extended live using the UI.
-
-var UserFields = [
+var BoxTreeBuiltInFields = [
     {
-        type: ContainerBox,
-        fullname: "ContainerBox.CTreeNode",
+        type: "ContainerBox",
+        fullname: "CTreeNode",
         shortname: "tn",
         html: function() {
             var element = this.f("element.m_pT");
@@ -31,8 +30,8 @@ var UserFields = [
     },
 
     {
-        type: ContainerBox,
-        fullname: "ContainerBox.Tag",
+        type: "ContainerBox",
+        fullname: "Tag",
         shortname: "tag",
         html: function() {
             var element = this.f("element.m_pT");
@@ -50,8 +49,8 @@ var UserFields = [
         }
     },
     {
-        type: ContainerBox,
-        fullname: "ContainerBox.ContentBoxWidth",
+        type: "ContainerBox",
+        fullname: "ContentBoxWidth",
         shortname: "w",
         html: function() {
             return this.f("contentBoxWidth").val() / 100 + "px";
@@ -59,8 +58,8 @@ var UserFields = [
     },
 
     {
-        type: ContainerBox,
-        fullname: "ContainerBox.ContentBoxHeight",
+        type: "ContainerBox",
+        fullname: "ContentBoxHeight",
         shortname: "h",
         html: function() {
             return this.f("contentBoxHeight").val() / 100 + "px";
@@ -68,8 +67,8 @@ var UserFields = [
     },
 
     {
-        type:ContainerBox,
-        fullname: "ContainerBox.LayoutPlacement",
+        type: "ContainerBox",
+        fullname: "LayoutPlacement",
         shortname: "lp",
         html: function() {
             return this.f("sourceStyle.fancyFormat._layoutPlacement")
@@ -80,8 +79,8 @@ var UserFields = [
     },
 
     {
-        type:ContainerBox,
-        fullname: "ContainerBox.DisplayNode",
+        type: "ContainerBox",
+        fullname: "DisplayNode",
         shortname: "d",
         html: function() {
             if (!this.f("isDisplayNodeExtracted").val()) {
@@ -93,8 +92,8 @@ var UserFields = [
     },
 
     {
-        type: ContainerBox,
-        fullname: "ContainerBox.Validity",
+        type: "ContainerBox",
+        fullname: "Validity",
         shortname: "validity",
         html: function(e) {
             if (this.f("isLayoutInvalid").val()) {
@@ -108,8 +107,8 @@ var UserFields = [
     },
 
     {
-        type: LineBox,
-        fullname: "LineBox.Text",
+        type: "LineBox",
+        fullname: "Text",
         shortname: "text",
         html: function() {
             var runIndexAtStartOfLine = this.f("textBlockRunIndexAtStartOfLine").val();
