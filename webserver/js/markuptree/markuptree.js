@@ -54,8 +54,8 @@ var MarkupTree = (function() {
 
     CTreeNode.prototype.createRepresentation = function() {
         var element = document.createElement("div");
-        var tag = this.treeNode.f("_etag");
-        element.innerHTML = "<p>" + tag.as("ELEMENT_TAG").constant() + "</p> <p>" + this.treeNode.ptr() + "</p> ";
+        var tag = this.treeNode.f("_etag").as("ELEMENT_TAG").constant().substr("ETAG_".length);
+        element.innerHTML = "<p>" + tag + "</p> <p>" + this.treeNode.ptr() + "</p> ";
         FieldSupport.RenderFields(this, this.treeNode, element);
         return element;
     }
