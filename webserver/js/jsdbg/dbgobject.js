@@ -142,6 +142,10 @@ DbgObject.prototype.idx = function(index) {
 }
 
 DbgObject.prototype.val = function() {
+    if (this.typename == "void") {
+        return this.pointer;
+    }
+
     var structSize = this._getStructSize();
     var result = JsDbg.SyncReadNumber(this.pointer, structSize);
     if (result.error) {
