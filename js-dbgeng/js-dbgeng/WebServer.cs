@@ -90,10 +90,10 @@ namespace JsDbg {
                     Task writeTask = Console.Out.WriteLineAsync("request for " + context.Request.RawUrl);
 
                     string[] segments = context.Request.Url.Segments;
-
-                    if (segments.Length > 2 && segments[1].TrimEnd('/') == "jsdbg") {
-                        // jsdbg request
-                        switch (segments[2].TrimEnd('/')) {
+                    try {
+                        if (segments.Length > 2 && segments[1].TrimEnd('/') == "jsdbg") {
+                            // jsdbg request
+                            switch (segments[2].TrimEnd('/')) {
                             case "fieldoffset":
                                 this.ServeFieldOffset(segments, context);
                                 break;
@@ -122,15 +122,18 @@ namespace JsDbg {
                                 context.Response.Redirect("/");
                                 context.Response.OutputStream.Close();
                                 break;
+                            }
+                        } else {
+                            // static file
+                            string path = "";
+                            for (int i = 1; i < segments.Length; ++i) {
+                                path = System.IO.Path.Combine(path, segments[i]);
+                            }
+                            this.ServeStaticFile(path, context.Response);
+                            continue;
                         }
-                    } else {
-                        // static file
-                        string path = "";
-                        for (int i = 1; i < segments.Length; ++i) {
-                            path = System.IO.Path.Combine(path, segments[i]);
-                        }
-                        this.ServeStaticFile(path, context.Response);
-                        continue;
+                    } catch (HttpListenerException listenerException) {
+                        Console.Out.WriteLine("HttpListenerException: {0}", listenerException.Message);
                     }
                 }
             } catch (Exception ex) {
