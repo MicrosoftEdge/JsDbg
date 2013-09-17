@@ -89,7 +89,12 @@ var TallTree = (function() {
         }
 
         var that = this;
-        window.setImmediate(function() { that.children.forEach(function(x) { x.updateRepresentation(); }); });
+        var work = function() { that.children.forEach(function(x) { x.updateRepresentation(); }); };
+        if (window.setImmediate) {
+            window.setImmediate(work);
+        } else {
+            window.setTimeout(work, 0);
+        }
     }
 
     DrawingTreeNode.prototype.expand = function(recurse) {
