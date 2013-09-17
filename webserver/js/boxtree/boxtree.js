@@ -122,6 +122,7 @@ var BoxTree = (function() {
         this.box = box;
         this.cachedChildren = null;
     }
+    FieldTypeMap["LayoutBox"] = LayoutBox;
 
     LayoutBox.prototype.typename = function() { return this.box.vtable(); }
     LayoutBox.prototype.collectChildren = function(children) { }

@@ -46,7 +46,6 @@ var FieldSupport = (function() {
                 inject();
             }
         })();
-        reinjectUserFields();
 
         // Extend DbgObject with the capability to eval a string against itself.
         DbgObject.prototype.InjectedFieldEvaluate = function(string, e) {
@@ -192,7 +191,7 @@ var FieldSupport = (function() {
             codeInput.setAttribute("spellcheck", "false");
             codeInput.addEventListener("change", function() { updateField(f, container); });
             codeInput.setAttribute("placeholder", "See built-in fields for examples.");
-            codeInput.value = nativeCodeToString(f.html);
+            codeInput.value = f.htmlString ? f.htmlString : nativeCodeToString(f.html);
             codeInput.addEventListener("keydown", function(e) {
                 if (e.keyCode == 9) {
                     // Replace tab keypresses with 4 spaces.
@@ -268,17 +267,18 @@ var FieldSupport = (function() {
             }
         }
 
-        function restoreField(serialized, f, container) {
-            container.querySelector(".edit-type").value = serialized.type;
-            container.querySelector(".edit-name").value = serialized.name;
-            container.querySelector(".edit-shortName").value = serialized.shortName;
-            container.querySelector(".edit-code").value = serialized.codeString;
-
-            updateField(f, container);
-        }
-
         function checkField(f, container) {
             return container.querySelector(".edit-type").value in TypeMap;
+        }
+
+        function codeStringToFunction(codeString) {
+            return function(e) { 
+                try {
+                    return this.InjectedFieldEvaluate("(function() { " + codeString + "}).call(this, e)", e);
+                } catch (ex) {
+                    return "<span style='color:red' title='" + ex + "'>[ERROR]</span>";
+                }
+            };
         }
 
         function updateField(f, container) {
@@ -296,13 +296,8 @@ var FieldSupport = (function() {
             }
             f.fullname = nameString;
             f.shortname = shortNameString;
-            f.html = function(e) { 
-                try {
-                    return this.InjectedFieldEvaluate("(function() { " + codeString + "}).call(this, e)", e);
-                } catch (ex) {
-                    return "<span style='color:red' title='" + ex + "'>[ERROR]</span>";
-                }
-            };
+            f.html = codeStringToFunction(codeString);
+            f.htmlString = codeString;
 
             container.querySelector("label").innerHTML = f.type + "." + f.fullname;
 
@@ -333,6 +328,28 @@ var FieldSupport = (function() {
         var fields = document.createElement("div");
         fields.className = "fields";
         container.appendChild(fields);
+
+        for (var key in window.localStorage) {
+            if (key.indexOf(StoragePrefix + ".UserField") == 0) {
+                try {
+                    var savedField = JSON.parse(window.localStorage.getItem(key));
+                } catch (ex) {
+                    console.log("Exception retrieving " + key + " from localStorage.  Ignoring.");
+                    continue;
+                }
+
+                // Populate the UserFields array from localStorage.
+                UserFields.push({
+                    type: savedField.type,
+                    enabled: false,
+                    fullname: savedField.name,
+                    localstorageid: key,
+                    shortname: savedField.shortName,
+                    html: codeStringToFunction(savedField.codeString),
+                    htmlString: savedField.codeString
+                });
+            }
+        }
 
         UserFields
             .sort(function(a, b) { return (a.type + "." + a.fullname).localeCompare((b.type + "." + b.fullname)); })
@@ -366,30 +383,7 @@ var FieldSupport = (function() {
             refreshTreeUIAfterFieldChange();
         });
 
-        for (var key in window.localStorage) {
-            if (key.indexOf(StoragePrefix + ".UserField") == 0) {
-                try {
-                    var savedField = JSON.parse(window.localStorage.getItem(key));
-                } catch (ex) {
-                    console.log("Exception retrieving " + key + " from localStorage.  Ignoring.");
-                    continue;
-                }
-
-                // Populate
-                UserFields.push({
-                    type: DefaultTypeName,
-                    enabled: false,
-                    fullname: "",
-                    localstorageid: key,
-                    shortname: "",
-                    html: function() { }
-                });
-
-                var fieldUI = buildFieldUI(UserFields[UserFields.length - 1]);
-                fields.appendChild(fieldUI);
-                restoreField(savedField, UserFields[UserFields.length - 1], fieldUI);
-            }
-        }
+        reinjectUserFields();
 
         document.body.appendChild(container);
     }
