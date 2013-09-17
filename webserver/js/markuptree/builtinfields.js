@@ -12,7 +12,7 @@
 var MarkupTreeBuiltInFields = [
     {
         type: "CTreeNode",
-        fullname: "CTreeNode._iFF",
+        fullname: "_iFF",
         shortname: "_iFF",
         enabled: true,
         html: function() {
@@ -26,7 +26,7 @@ var MarkupTreeBuiltInFields = [
     },
     {
         type: "CTreeNode",
-        fullname: "CTreeNode._iCF",
+        fullname: "_iCF",
         shortname: "_iCF",
         enabled: true,
         html: function() {
@@ -40,7 +40,7 @@ var MarkupTreeBuiltInFields = [
     },
     {
         type: "CTreeNode",
-        fullname: "CTreeNode._iPF",
+        fullname: "_iPF",
         shortname: "_iPF",
         enabled: true,
         html: function() {
@@ -54,7 +54,7 @@ var MarkupTreeBuiltInFields = [
     },
     {
         type: "CTreeNode",
-        fullname: "CTreeNode._iSF",
+        fullname: "_iSF",
         shortname: "_iSF",
         html: function() {
             var validityString = "";
