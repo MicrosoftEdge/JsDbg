@@ -8,9 +8,69 @@ var Eval = (function() {
     function Stack(obj, next) {
         this.object = obj;
         this.next = next ? next : null;
+        this.cachedDescription = null;
     }
     Stack.prototype.push = function(obj) { return new Stack(obj, this); }
     Stack.prototype.pop = function() { return this.next; }
+    Stack.prototype.description = function() {
+        function dbgObjectNumber(dbgObject) {
+            function val(obj) { return obj.isNull() ? "NULL" : obj.val(); }
+            function constant(obj) { return obj.constant(); }
+
+            var typenames = {
+                "bool": val,
+                "char": val,
+                "short": val,
+                "int": val,
+                "unsigned bool": val,
+                "unsigned char": val,
+                "unsigned short": val,
+                "unsigned int": val
+            }
+
+            if (dbgObject.typename in typenames) {
+                return typenames[dbgObject.typename](dbgObject);
+            } else if (dbgObject._isPointer()) {
+                return "0x" + dbgObject.val().toString(16);
+            } else {
+                return dbgObject.ptr();
+            }
+        }
+
+        function simpleDbgObjectDescription(dbgObject) {
+            return dbgObject.typename.replace(/</g, "&lt;").replace(/>/g, "&gt;") + " " + dbgObjectNumber(dbgObject);
+        }
+
+        if (this.cachedDescription == null) {
+            this.cachedDescription = "";
+            if (this.object != undefined) {
+                if (this.object.typename && this.object.ptr) {
+                    var description = simpleDbgObjectDescription(this.object) + "<br />";
+                    try {
+                        var fields = this.object.fields();
+                    } catch (ex) {
+                        var fields = [];
+                    }
+                    var fieldHTML = [];
+                    for (var i = 0; i < fields.length; ++i) {
+                        fieldHTML.push("0x" + (fields[i].offset).toString(16) + " " + fields[i].name + " " + simpleDbgObjectDescription(fields[i].value));
+                    }
+                    if (fields.length > 0) {
+                        description += "<ul><li>" + fieldHTML.join("</li><li>") + "</li></ul>";
+                    } else if (!this.object._isPointer()) {
+                       description += " = " + dbgObjectNumber(this.object) + "<br />";
+                    }
+
+                    this.cachedDescription = description;
+                } else {
+                    this.cachedDescription = this.object + "<br />";
+                }
+            }
+        }
+
+        return this.cachedDescription;
+    }
+
 
     function ArrayIndexStack(innerStack, original) {
         this.innerStack = innerStack;
@@ -19,9 +79,16 @@ var Eval = (function() {
     }
     ArrayIndexStack.prototype.push = function(obj) { return new ArrayIndexStack(this.innerStack.push(obj), this.original); }
     ArrayIndexStack.prototype.pop = function() { return new ArrayIndexStack(this.innerStack.pop(), this.original); }
+    ArrayIndexStack.prototype.description = function() {
+        return "[<br />" + this.innerStack.description() + "]<br />" + this.original.description();
+    }
 
     function log(op, arg, dbgO) {
-        console.log("Performing " + op + " with arg " + arg + " on " + dbgO.ptr() + " " + dbgO.typename);
+        var objectDescription = dbgO;
+        if (dbgO.ptr && dbgO.typename) {
+            objectDescription = dbgO.ptr() + " " + dbgO.typename;
+        }
+        console.log("Performing " + op + " with arg " + arg + " on " + objectDescription);
     }
 
     var ops = [
@@ -45,9 +112,9 @@ var Eval = (function() {
             fn: function(str, stack) {
                 var asInt = parseInt(str);
                 if (!isNaN(asInt)) {
-                    return stack.push(new DbgObject("mshtml", "void", asInt));
+                    return stack.push(asInt);
                 } else {
-                    throw "$ must be followed by an integer.";
+                    return stack.push(0)
                 }
             },
             requiresSubsequentOp: function(str) { return false; }
@@ -63,7 +130,7 @@ var Eval = (function() {
                     return stack.push(stack.object.f(str));
                 }                
             },
-            requiresSubsequentOp: function(str) { return str.length == 0; }
+            requiresSubsequentOp: function(str) { return true; }
         },
         {
             desciption: "cast",
@@ -76,7 +143,7 @@ var Eval = (function() {
         },
         {
             description: "dereference",
-            character: "*",
+            character: "^",
             impliedOperation: ".",
             fn: function(str, stack) {
                 log("deref", null, stack.object);
@@ -91,14 +158,14 @@ var Eval = (function() {
             fn: function(str, stack) {
                 return new ArrayIndexStack(stack, stack);
             },
-            requiresSubsequentOp: function(str) { return true; }
+            requiresSubsequentOp: function(str) { return false; }
         },
         {
             description: "end array index",
             character: "]",
             fn: function(str, stack) {
                 log("val", null, stack.object);
-                var index = stack.object.val();
+                var index = stack.object.val ? stack.object.val() : stack.object;
                 log("index", index, stack.original.object);
                 return stack.original.push(stack.original.object.idx(index));
             },
@@ -147,7 +214,7 @@ var Eval = (function() {
         try {
             if (scanned.op != null || !op.requiresSubsequentOp(scanned.next)) {
                 // Only execute the operation if the opcode wasn't the last character.
-                if (op.impliedOperation && scanned.next.length > 0) {
+                if (op.impliedOperation) {
                     var nextStack = op.fn("", stack);
                     return {
                         rest: str,
@@ -174,14 +241,45 @@ var Eval = (function() {
         }
     }
 
-    function executeAll(str, stack) {
+    var savedContext = [];
+
+    function executeAll(str) {
+        var originalString = str;
         var op = ops[0];
-        
+        var stack = new Stack();
+
+        // find the longest prefix that matches.
+        var foundContext = false;
+        for (var i = savedContext.length - 1; i >= 0; --i) {
+            var context = savedContext[i];
+            if (str.indexOf(context.prefix) == 0) {
+                op = context.nextOp;
+                str = str.substr(context.prefix.length);
+                stack = context.stack;
+                savedContext = savedContext.slice(i);
+                foundContext = true;
+                break;
+            }
+        }
+
+        if (!foundContext) {
+            savedContext = [];
+        }
+
         while (op != null) {
             var next = execute(str, stack, op);
             str = next.rest;
             op = next.op;
             stack = next.stack;
+
+            // Save the context.
+            if (op != null) {
+                savedContext.push({
+                    prefix: originalString.substr(0, originalString.length - str.length),
+                    nextOp: op,
+                    stack: stack
+                });
+            }
         }
 
         return {
@@ -190,70 +288,18 @@ var Eval = (function() {
         };
     }
 
-    function dbgObjectNumber(dbgObject) {
-        function val(obj) { return obj.val(); }
-        function constant(obj) { return obj.constant(); }
-
-        var typenames = {
-            "bool": val,
-            "char": val,
-            "short": val,
-            "int": val,
-            "unsigned bool": val,
-            "unsigned char": val,
-            "unsigned short": val,
-            "unsigned int": val,
-            "void": val
-        }
-
-        if (dbgObject.typename in typenames) {
-            return typenames[dbgObject.typename](dbgObject);
-        } else {
-            return dbgObject.ptr();
-        }
-    }
-
-    function simpleDbgObjectDescription(dbgObject) {
-        return dbgObject.typename.replace(/</g, "&lt;").replace(/>/g, "&gt;") + " " + dbgObjectNumber(dbgObject);
-    }
-
     return {
         evaluate: function(input, stage) {
-            var result = executeAll(input.value, new Stack());
-            var topObject;
+            var result = executeAll(input.value);
+            var stackToDescribe;
             if (result.rest.length > 0) {
                 // topmost object is the exception.
-                topObject = result.stack.pop().object;
-                console.log(result.stack.object);
+                stackToDescribe = result.stack.pop();
             } else {
-                topObject = result.stack.object;
+                stackToDescribe = result.stack;
             }
 
-            if (topObject) {
-                if (topObject.typename && topObject.ptr) {
-                    var description = simpleDbgObjectDescription(topObject);
-                    var fields = topObject.fields();
-                    var fieldHTML = [];
-                    for (var i = 0; i < fields.length; ++i) {
-                        fieldHTML.push("0x" + (fields[i].offset).toString(16) + " " + fields[i].name + " " + simpleDbgObjectDescription(fields[i].value));
-                    }
-                    if (fields.length > 0) {
-                        description += "<ul><li>" + fieldHTML.join("</li><li>") + "</li></ul>";
-                    } else {
-                        try {
-                            description += " = " + topObject.constant();
-                        } catch (ex) {
-                            try {
-                                description += " = " + topObject.val();
-                            } catch (ex) { }
-                        }
-                    }
-
-                    stage.innerHTML = description;
-                } else {
-                    stage.innerText = topObject;
-                }
-            }
+            stage.innerHTML = stackToDescribe.description();
         }
     }
 })();

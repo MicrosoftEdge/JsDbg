@@ -228,18 +228,19 @@ DbgObject.prototype.vcast = function() {
 
 DbgObject.prototype.fields = function() {
     if (this._isPointer()) {
-        return this.deref().fields();
+        throw "You cannot lookup fields on a pointer.";
     }
 
     var result = [];
     var fields = JsDbg.SyncLookupFields(this.module, this.typename);
+    if (fields.error) {
+        throw fields.error;
+    }
+
     fields.fields.sort(function(a, b) { return a.offset - b.offset; });
     for (var i = 0; i < fields.fields.length; ++i) {
         var field = fields.fields[i];
         var value = new DbgObject(this.module, field.type, this.pointer + field.offset, field.bitcount, field.bitoffset);
-        if (value._isPointer()) {
-            value = value.deref();
-        }
         result.push({name: field.name, offset:field.offset, value: value});
     }
     return result;
