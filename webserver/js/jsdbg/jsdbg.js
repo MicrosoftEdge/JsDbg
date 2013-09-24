@@ -47,6 +47,10 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&fields=" + esc(fields.join(",")), callback, /*async*/true, /*cache*/true);
         },
 
+        LookupFields: function(module, type, callback) {
+            jsonRequest("/jsdbg/typefields?module=" + esc(module) + "&type=" + esc(type), callback, /*async*/false, /*cache*/true);
+        },
+
         LookupBaseTypeOffset: function(module, type, baseType, callback) {
             jsonRequest("/jsdbg/basetypeoffset?module=" + esc(module) + "&type=" + esc(type) + "&basetype=" + esc(baseType), callback, /*async*/true, /*cache*/true);
         },
@@ -96,6 +100,12 @@ var JsDbg = (function() {
         SyncLookupFieldOffset: function(module, type, fields) {
             var retval = null;
             jsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&fields=" + esc(fields.join(",")), function(x) { retval = x; }, /*async*/false, /*cache*/true);
+            return retval;
+        },
+
+        SyncLookupFields: function(module, type) {
+            var retval = null;
+            jsonRequest("/jsdbg/typefields?module=" + esc(module) + "&type=" + esc(type), function(x) { retval = x; }, /*async*/false, /*cache*/true);
             return retval;
         },
 

@@ -33,6 +33,7 @@ namespace JsDbg {
             internal uint Size;
             internal byte BitOffset;
             internal byte BitCount;
+            internal string FieldName;
             internal string TypeName;
 
             internal bool IsBitField {
@@ -118,6 +119,13 @@ namespace JsDbg {
             return result;
         }
 
+
+        internal async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename) {
+            await this.WaitForBreakIn();
+            Type type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename);
+            return type.Fields;
+        }
+
         internal async Task<int> GetBaseClassOffset(string module, string typename, string baseTypename) {
             await this.WaitForBreakIn();
 
@@ -188,11 +196,31 @@ namespace JsDbg {
             
             SSymbolResult result = new SSymbolResult();
 
-            uint typeId;
-            ulong module;
+            uint typeId = 0;
+            ulong module = 0;
+            bool needsDereference = true;
+            bool needsPointerAppend = false;
             try {
-                this.symbols.GetSymbolTypeId(symbol, out typeId, out module);
-                this.symbols.GetOffsetByName(symbol, out result.Value);
+                DebugSymbolGroup group = this.symbols.GetScopeSymbolGroup(GroupScope.All);
+                bool foundSymbolInScope = false;
+                for (uint i = 0; i < group.NumberSymbols; ++i) {
+                    if (symbol == group.GetSymbolName(i)) {
+                        DebugSymbolEntry entry = group.GetSymbolEntryInformation(i);
+                        typeId = entry.TypeId;
+                        module = entry.ModuleBase;
+                        result.Value = entry.Offset;
+                        foundSymbolInScope = (entry.Offset != 0);
+
+                        needsPointerAppend = (Dia2Lib.SymTagEnum)entry.Tag != Dia2Lib.SymTagEnum.SymTagPointerType;
+                        needsDereference = foundSymbolInScope && (Dia2Lib.SymTagEnum)entry.Tag == Dia2Lib.SymTagEnum.SymTagPointerType;
+                        break;
+                    }
+                }
+
+                if (!foundSymbolInScope) {
+                    this.symbols.GetSymbolTypeId(symbol, out typeId, out module);
+                    this.symbols.GetOffsetByName(symbol, out result.Value);
+                }
             } catch {
                 throw new DebuggerException(String.Format("Invalid symbol: {0}", symbol));
             }
@@ -200,8 +228,21 @@ namespace JsDbg {
             // Now that we have type ids and an offset, we can resolve the names.
             try {
                 result.Type = this.symbolCache.GetTypeName(module, typeId);
+                if (needsPointerAppend) {
+                    result.Type += "*";
+                }
+
                 string imageName, loadedImageName;
                 this.symbols.GetModuleNamesByBaseAddress(module, out imageName, out result.Module, out loadedImageName);
+
+                if (needsDereference && result.Value != 0) {
+                    // The value is actually a pointer to the value.  We want to dereference it.
+                    if (this.IsPointer64Bit) {
+                        result.Value = await this.ReadMemory<ulong>(result.Value);
+                    } else {
+                        result.Value = await this.ReadMemory<uint>(result.Value);
+                    }
+                }
             } catch {
                 throw new DebuggerException(String.Format("Internal error with symbol: {0}", symbol));
             }

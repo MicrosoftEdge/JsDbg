@@ -126,6 +126,37 @@ namespace JsDbg {
             return false;
         }
 
+
+        internal IEnumerable<Debugger.SFieldResult> Fields {
+            get {
+                if (this.baseTypes != null) {
+                    foreach (SBaseType baseType in this.baseTypes) {
+                        foreach (Debugger.SFieldResult innerBaseField in baseType.Type.Fields) {
+                            Debugger.SFieldResult baseField = innerBaseField;
+                            baseField.Offset = (uint)(baseField.Offset + baseType.Offset);
+                            yield return baseField;
+                        }
+                    }
+                }
+
+                if (this.fields != null) {
+                    foreach (string fieldName in this.fields.Keys) {
+                        SField innerField = this.fields[fieldName];
+                        Debugger.SFieldResult field = new Debugger.SFieldResult();
+                        field.FieldName = fieldName;
+                        field.TypeName = innerField.TypeName;
+                        field.Offset = innerField.Offset;
+                        field.BitCount = innerField.BitCount;
+                        field.BitOffset = innerField.BitOffset;
+                        field.Size = 0;
+                        yield return field;
+                    }
+                }
+
+                yield break;
+            }
+        }
+
         private readonly string module;
         private readonly string name;
         private readonly uint size;

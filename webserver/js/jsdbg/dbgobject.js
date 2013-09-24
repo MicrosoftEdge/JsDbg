@@ -41,7 +41,7 @@ DbgObject.sym = function(symbol) {
         throw result.error;
     }
 
-    var typedNull = new DbgObject(result.module, result.type, 0);
+    var typedNull = new DbgObject(result.module, result.type, result.value);
     if (typedNull._isPointer()) {
         return new DbgObject(result.module, typedNull._getDereferencedTypeName(), result.value);
     } else {
@@ -224,6 +224,25 @@ DbgObject.prototype.vcast = function() {
     }
 
     return new DbgObject(this.module, vtableType, this.pointer - result.offset);
+}
+
+DbgObject.prototype.fields = function() {
+    if (this._isPointer()) {
+        return this.deref().fields();
+    }
+
+    var result = [];
+    var fields = JsDbg.SyncLookupFields(this.module, this.typename);
+    fields.fields.sort(function(a, b) { return a.offset - b.offset; });
+    for (var i = 0; i < fields.fields.length; ++i) {
+        var field = fields.fields[i];
+        var value = new DbgObject(this.module, field.type, this.pointer + field.offset, field.bitcount, field.bitoffset);
+        if (value._isPointer()) {
+            value = value.deref();
+        }
+        result.push({name: field.name, offset:field.offset, value: value});
+    }
+    return result;
 }
 
 DbgObject.prototype.isNull = function() {

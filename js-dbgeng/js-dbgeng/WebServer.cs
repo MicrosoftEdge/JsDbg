@@ -118,6 +118,9 @@ namespace JsDbg {
                             case "basetypeoffset":
                                 this.ServeBaseTypeOffset(segments, context);
                                 break;
+                            case "typefields":
+                                this.ServeTypeFields(segments, context);
+                                break;
                             default:
                                 context.Response.Redirect("/");
                                 context.Response.OutputStream.Close();
@@ -423,6 +426,44 @@ namespace JsDbg {
             try {
                 string constantName = await this.debugger.LookupConstantName(module, type, constant);
                 responseString = String.Format("{{ \"name\": \"{0}\" }}", constantName);
+            } catch (Debugger.DebuggerException ex) {
+                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+            }
+
+            this.ServeUncachedString(responseString, context);
+        }
+
+        private async void ServeTypeFields(string[] segments, HttpListenerContext context) {
+            string module = context.Request.QueryString["module"];
+            string type = context.Request.QueryString["type"];
+
+            if (module == null || type == null) {
+                this.ServeFailure(context);
+                return;
+            }
+
+            string responseString;
+            try {
+                StringBuilder builder = new StringBuilder();
+                builder.Append("{ \"fields\": [\n");
+                bool isFirst = true;
+                foreach (Debugger.SFieldResult field in await this.debugger.GetAllFields(module, type)) {
+                    if (!isFirst) {
+                        builder.Append(",\n");
+                    }
+                    isFirst = false;
+                    builder.Append("{");
+                    builder.AppendFormat("\"name\": \"{0}\",", field.FieldName);
+                    builder.AppendFormat("\"offset\": {0},", field.Offset);
+                    builder.AppendFormat("\"type\": \"{0}\"", field.TypeName);
+                    if (field.IsBitField) {
+                        builder.AppendFormat(",\"bitcount\": {0},", field.BitCount);
+                        builder.AppendFormat("\"bitoffset\": {0}", field.BitOffset);
+                    }
+                    builder.Append("}");
+                }
+                builder.Append("\n] }");
+                responseString = builder.ToString();
             } catch (Debugger.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }

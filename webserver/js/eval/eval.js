@@ -77,10 +77,8 @@ var Eval = (function() {
         {
             description: "dereference",
             character: "*",
+            impliedOperation: ".",
             fn: function(str, stack) {
-                if (str.length > 0) {
-                    throw "* must be used on its own.";
-                }
                 log("deref", null, stack.object);
                 return stack.push(stack.object.deref());
             },
@@ -89,6 +87,7 @@ var Eval = (function() {
         {
             description: "begin array index",
             character: "[",
+            impliedOperation: "$",
             fn: function(str, stack) {
                 return new ArrayIndexStack(stack, stack);
             },
@@ -108,6 +107,7 @@ var Eval = (function() {
         {
             description: "vcast",
             character: "#",
+            impliedOperation: ".",
             fn: function(str, stack) {
                 log("vcast", null, stack.object);
                 return stack.push(stack.object.vcast());
@@ -147,7 +147,16 @@ var Eval = (function() {
         try {
             if (scanned.op != null || !op.requiresSubsequentOp(scanned.next)) {
                 // Only execute the operation if the opcode wasn't the last character.
-                var nextStack = op.fn(scanned.next, stack);
+                if (op.impliedOperation && scanned.next.length > 0) {
+                    var nextStack = op.fn("", stack);
+                    return {
+                        rest: str,
+                        op: characters[op.impliedOperation],
+                        stack: nextStack
+                    }
+                } else {
+                    var nextStack = op.fn(scanned.next, stack);
+                }
             } else {
                 var nextStack = stack;
             }
@@ -181,6 +190,33 @@ var Eval = (function() {
         };
     }
 
+    function dbgObjectNumber(dbgObject) {
+        function val(obj) { return obj.val(); }
+        function constant(obj) { return obj.constant(); }
+
+        var typenames = {
+            "bool": val,
+            "char": val,
+            "short": val,
+            "int": val,
+            "unsigned bool": val,
+            "unsigned char": val,
+            "unsigned short": val,
+            "unsigned int": val,
+            "void": val
+        }
+
+        if (dbgObject.typename in typenames) {
+            return typenames[dbgObject.typename](dbgObject);
+        } else {
+            return dbgObject.ptr();
+        }
+    }
+
+    function simpleDbgObjectDescription(dbgObject) {
+        return dbgObject.typename.replace(/</g, "&lt;").replace(/>/g, "&gt;") + " " + dbgObjectNumber(dbgObject);
+    }
+
     return {
         evaluate: function(input, stage) {
             var result = executeAll(input.value, new Stack());
@@ -195,24 +231,14 @@ var Eval = (function() {
 
             if (topObject) {
                 if (topObject.typename && topObject.ptr) {
-                    var description = topObject.typename == "void" ? "" : topObject.typename + " " + topObject.ptr();
-
-                    function val(obj) { return obj.val(); }
-                    function constant(obj) { return obj.constant(); }
-
-                    var typenames = {
-                        "bool": val,
-                        "char": val,
-                        "short": val,
-                        "int": val,
-                        "unsigned bool": val,
-                        "unsigned char": val,
-                        "unsigned short": val,
-                        "unsigned int": val,
-                        "void": val
+                    var description = simpleDbgObjectDescription(topObject);
+                    var fields = topObject.fields();
+                    var fieldHTML = [];
+                    for (var i = 0; i < fields.length; ++i) {
+                        fieldHTML.push("0x" + (fields[i].offset).toString(16) + " " + fields[i].name + " " + simpleDbgObjectDescription(fields[i].value));
                     }
-                    if (topObject.typename in typenames) {
-                        description += " = " + typenames[topObject.typename](topObject);
+                    if (fields.length > 0) {
+                        description += "<ul><li>" + fieldHTML.join("</li><li>") + "</li></ul>";
                     } else {
                         try {
                             description += " = " + topObject.constant();
@@ -223,7 +249,7 @@ var Eval = (function() {
                         }
                     }
 
-                    stage.innerText = description;
+                    stage.innerHTML = description;
                 } else {
                     stage.innerText = topObject;
                 }
