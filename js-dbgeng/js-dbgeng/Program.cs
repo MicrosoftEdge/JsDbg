@@ -7,7 +7,7 @@ using System.IO;
 
 namespace JsDbg {
     public class Program {
-        private const string Version = "2013-09-17-01";
+        private const string Version = "2013-09-25-01";
 
         static internal string SupportDirectory {
             get {
