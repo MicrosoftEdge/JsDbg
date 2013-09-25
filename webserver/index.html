@@ -11,7 +11,7 @@
             font-size:10pt;
         }
 
-        h3, h4, p {
+        h3, h4, h5, p {
             margin:0;
         }
 
@@ -19,13 +19,22 @@
             width:30em;
         }
 
+        p.author {
+            font-size:0.8em;
+        }
+
         .unload {
             font-size:8pt;
             font-weight:normal;
             cursor:pointer;
+            color:gray;
         }
         .unload::before {
             content:"[unload]";
+        }
+
+        .unload:hover {
+            color:blue;
         }
 
         li {
@@ -37,7 +46,8 @@
             var ul = document.querySelector("ul");
             var li = document.createElement("li");
             li.innerHTML = "<h3><a href='/" + ext.name + "/'>" + ext.name + "</a> </h3>" + 
-                "<p>" + ext.description + "</p>";
+                (ext.author ? "<p class='author'>" + ext.author + "</p>" : "") +
+                (ext.description ? "<p class='description'>" + ext.description + "</p>" : "");
             var unload = document.createElement("span");
             unload.className = "unload";
             unload.addEventListener("click", function() {
