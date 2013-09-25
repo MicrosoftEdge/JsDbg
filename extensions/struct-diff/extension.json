@@ -1,0 +1,5 @@
+{
+    "name": "struct-diff",
+    "author": "Peter Salas",
+    "description": "Diff two structures."
+}

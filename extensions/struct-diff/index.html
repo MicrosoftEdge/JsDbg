@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>Struct Diff</title>
+    <link rel="stylesheet" type="text/css" href="/css/common.css">
+    <script src="/js/jsdbg/jsdbg.js" type="text/javascript"></script>
+    <script src="/js/jsdbg/dbgobject.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        function init() {
+            document.querySelector("button").addEventListener("click", function() {
+                var type = document.querySelector(".type").value;
+                var pointer1 = document.querySelectorAll(".pointer")[0].value;
+                var pointer2 = document.querySelectorAll(".pointer")[1].value;
+
+                if (type.indexOf("!") < 0) {
+                    alert("Please enter a type, prefixed by the module.");
+                    return;
+                }
+
+                if (isNaN(parseInt(pointer1)) || isNaN(parseInt(pointer2))) {
+                    alert("Please enter valid pointer values.");
+                    return;
+                }
+
+                var module = type.substr(0, type.indexOf("!"));
+                var typename = type.substr(type.indexOf("!") + 1);
+
+                var object1 = new DbgObject(module, typename, parseInt(pointer1, 16));
+                var object2 = new DbgObject(module, typename, parseInt(pointer2, 16));
+
+                // get the structure size in a cheesy way off of DbgObject
+                var structureSize = parseInt(object1.idx(1).ptr()) - parseInt(object1.ptr());
+
+                // get some byte arrays.
+                var array1 = object1.as("char").array(structureSize);
+                var array2 = object2.as("char").array(structureSize);
+
+                // find the differences
+                var differences = [];
+                array1.forEach(function(v, i) {
+                    if (v != array2[i]) {
+                        differences.push(i);
+                    }
+                });
+
+                // get the fields.
+                var fields = object1.fields();
+
+                var fieldsAtCurrentOffset = [];
+                var fieldsAtLastOffset = [];
+
+                var differentFields = [];
+                var currentDifferenceIndex = 0;
+
+                for (var i = 0; i < fields.length; ++i) {
+                    if (fieldsAtCurrentOffset.length > 0 && fieldsAtCurrentOffset[0].offset != fields[i].offset) {
+                        fieldsAtLastOffset = fieldsAtCurrentOffset;
+                        fieldsAtCurrentOffset = [];
+                    }
+                    fieldsAtCurrentOffset.push(fields[i]);
+
+                    var didPushField = false;
+                    while (fields[i].offset > differences[currentDifferenceIndex]) {
+                        // We just passed the field.
+                        if (!didPushField) {
+                            fieldsAtLastOffset.forEach(function (f) {
+                                if (f.value.bitcount > 0) {
+                                    if (object1.f(f.name).val() != object2.f(f.name).val()) {
+                                        differentFields.push(f);
+                                    }
+                                } else {
+                                    differentFields.push(f);
+                                }
+                            });
+                            didPushField = true;
+                        }
+                        currentDifferenceIndex++;
+                    }
+                }
+
+                var html = differentFields.map(function(field) {
+                    var f1 = object1.f(field.name);
+                    var f2 = object2.f(field.name);
+
+                    try {
+                        var val1 = f1.val();
+                        var val2 = f2.val();                        
+                    } catch (ex) {
+                        var val1 = f1.ptr();
+                        var val2 = f2.ptr();
+                    }
+
+                    return [field.name, field.value.typename.replace("<", "&lt;").replace(">", "&gt;"), "0x" + field.offset.toString(16), val1, val2];
+                });
+
+                html = html.map(function(cells) {
+                    return "<td>" + cells.join("</td><td>") + "</td>";
+                });
+
+                if (html.length > 0) {
+                    document.getElementById("results").innerHTML = 
+                        "<table><tr><th>Field</th><th>Type</th><th>Offset</th><th>" + object1.ptr() + "</th><th>" + object2.ptr() + "</th></tr>" +
+                        "<tr>" + html.join("</tr><tr>") + "</tr></table>";
+                } else {
+                    document.getElementById("results").innerHTML = "<h3>No difference!</h3>";
+                }
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+    <style type="text/css">
+        .type {
+            width:30em;
+        }
+
+        table {
+            border-collapse:collapse;
+        }
+
+        td {
+            padding:0.2em 1em;
+        }
+
+        tr:nth-of-type(2n) {
+            background:#eee;
+        }
+
+        #results {
+            margin-top:1em;
+        }
+    </style>
+</head>
+<body>
+    <input class="type" type="text" placeholder="Type (e.g. mshtml!CFancyFormat)" />
+    <input class="pointer" type="text" placeholder="Pointer 1" />
+    <input class="pointer" type="text" placeholder="Pointer 2" />
+    <button>Diff!</button>
+    <div id="results"></div>
+</body>
+</html>
