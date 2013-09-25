@@ -42,6 +42,12 @@ var JsDbg = (function() {
     return {
 
         // Asynchronous methods.
+        LoadExtension: function(path, callback) {
+            jsonRequest("/jsdbg/loadextension?path=" + esc(path), callback, /*async*/true);
+        },
+        UnloadExtension: function(name, callback) {
+            jsonRequest("/jsdbg/unloadextension?name=" + esc(name), callback, /*async*/true);
+        },
 
         LookupFieldOffset: function(module, type, fields, callback) {
             jsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&fields=" + esc(fields.join(",")), callback, /*async*/true, /*cache*/true);
@@ -96,6 +102,17 @@ var JsDbg = (function() {
         },
 
         // Synchronous methods.
+        SyncLoadExtension: function(path) {
+            var retval = null;
+            jsonRequest("/jsdbg/loadextension?path=" + esc(path), function(x) { retval = x; }, /*async*/false);
+            return retval;
+        },
+
+        SyncUnloadExtension: function(name) {
+            var retval = null;
+            jsonRequest("/jsdbg/unloadextension?name=" + esc(name), function(x) { retval = x; }, /*async*/false);
+            return retval;
+        },
 
         SyncLookupFieldOffset: function(module, type, fields) {
             var retval = null;

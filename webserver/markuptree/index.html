@@ -2,9 +2,9 @@
 <html>
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>Box Tree</title>
+    <title>Markup Tree</title>
     <link rel="stylesheet" type="text/css" href="/css/common.css">
-    
+
     <script type="text/javascript" src="/js/jsdbg/jsdbg.js"></script>
     <script type="text/javascript" src="/js/jsdbg/dbgobject.js"></script>
 
@@ -17,21 +17,16 @@
     <link rel="stylesheet" href="/css/common/fieldsupport.css" type="text/css">
     <script type="text/javascript" src="/js/mshtml/mshtml.js"></script>
 
-    <script type="text/javascript" src="/js/boxtree/boxtree.js"></script>
-    <script type="text/javascript" src="/js/boxtree/builtinfields.js"></script>
+    <script type="text/javascript" src="/js/markuptree/markuptree.js"></script>
+    <script type="text/javascript" src="/js/markuptree/builtinfields.js"></script>
 
     <script type="text/javascript">
-        var rootBox = null;
+        var rootCTreeNode = null;
         var treeAlgorithm = TallTree;
 
-        function loadBoxTree(isTreeNode) {
-            var pointer = parseInt(document.getElementById("pointer").value, 16);
-            if (isTreeNode) {
-                rootBox = BoxTree.CreateFromCTreeNodePointer(pointer);
-            } else {
-                rootBox = BoxTree.CreateFromLayoutBoxPointer(pointer);
-            }
-            BoxTree.Render(treeAlgorithm, rootBox, document.querySelector("#tree"));
+        function loadMarkupTree() {
+            rootCTreeNode = MarkupTree.Create(parseInt(document.getElementById("pointer").value, 16));
+            MarkupTree.Render(treeAlgorithm, rootCTreeNode, document.querySelector("#tree"));
         }
 
         function init() {
@@ -41,14 +36,13 @@
             } else {
                 var roots = MSHTML.GetRootCTreeNodesWithLayoutAssociations();
                 if (roots.length == 1) {
-                    // There is exactly one root tree node with a layout association.  Use it.
+                    // There is exactly one root tree node with a box.  Use it.
                     document.getElementById("pointer").value = roots[0];
-                    loadBoxTree(true);
+                    loadMarkupTree();
                 }
             }
 
-            document.getElementById("loadTreeNode").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadBoxTree(true); });
-            document.getElementById("loadLayoutBox").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadBoxTree(false); });
+            document.getElementById("loadTreeNode").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadMarkupTree();});
 
             function radioChanged() {
                 var oldTreeAlgorithm = treeAlgorithm;
@@ -57,8 +51,8 @@
                 } else {
                     treeAlgorithm = TallTree;
                 }
-                if (rootBox != null && treeAlgorithm != oldTreeAlgorithm) {
-                    BoxTree.Render(treeAlgorithm, rootBox, document.querySelector("#tree"));
+                if (rootCTreeNode != null && treeAlgorithm != oldTreeAlgorithm) {
+                    MarkupTree.Render(treeAlgorithm, rootCTreeNode, document.querySelector("#tree"));
                 }
             }
             document.getElementById("wideTreeRadio").addEventListener("change", radioChanged);
@@ -72,11 +66,10 @@
     <label for="pointer">Pointer:</label>
     <input type="text" id="pointer" /> 
     <button id="loadTreeNode">CTreeNode</button>
-    <button id="loadLayoutBox">LayoutBox</button>
     <input id="tallTreeRadio" checked name="treeType" type="radio" /><label for="tallTreeRadio">Tall Tree</label>
     <input id="wideTreeRadio" name="treeType" type="radio" /><label for="wideTreeRadio">Wide Tree</label>
     <br />
-    Click a box to show its children.  Ctrl-Click to expand or collapse a subtree.<br />
+    Click a tree node to show its children.  Ctrl-Click to expand or collapse a subtree.<br />
     <div id="tree"></div>
 </body>
 </html>
