@@ -5,8 +5,42 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net;
 using System.Diagnostics;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Json;
 
 namespace JsDbg {
+    
+    [DataContract]
+    public class JsDbgExtension {
+        [DataMember]
+        public string name {
+            get { return this._name; }
+            set { this._name = value; }
+        }
+
+        [DataMember(IsRequired = false)]
+        public string author {
+            get { return this._author; }
+            set { this._author = value; }
+        }
+
+        [DataMember(IsRequired = false)]
+        public string description {
+            get { return this._description; }
+            set { this._description = value; }
+        }
+
+        public string Path {
+            get { return this._path; }
+            set { this._path = value; }
+        }
+
+        private string _name;
+        private string _author;
+        private string _description;
+        private string _path;
+    }
+
     class WebServer : IDisposable {
 
         private const int StartPortNumber = 50000;
@@ -16,6 +50,7 @@ namespace JsDbg {
             this.debugger = debugger;
             this.path = path;
             this.port = StartPortNumber;
+            this.loadedExtensions = new List<JsDbgExtension>();
         }
 
         private void CreateHttpListener() {
@@ -118,6 +153,12 @@ namespace JsDbg {
                             case "basetypeoffset":
                                 this.ServeBaseTypeOffset(segments, context);
                                 break;
+                            case "loadextension":
+                                this.LoadExtension(segments, context);
+                                break;
+                            case "unloadextension":
+                                this.UnloadExtension(segments, context);
+                                break;
                             default:
                                 context.Response.Redirect("/");
                                 context.Response.OutputStream.Close();
@@ -129,7 +170,7 @@ namespace JsDbg {
                             for (int i = 1; i < segments.Length; ++i) {
                                 path = System.IO.Path.Combine(path, segments[i]);
                             }
-                            this.ServeStaticFile(path, context.Response);
+                            this.ServeStaticFile(this.path, path, context.Response);
                             continue;
                         }
                     } catch (HttpListenerException listenerException) {
@@ -155,18 +196,53 @@ namespace JsDbg {
             context.Response.OutputStream.Close();
         }
 
-        private void ServeStaticFile(string filename, HttpListenerResponse response) {
-            string fullPath = System.IO.Path.Combine(this.path, filename);
+        private string GetFilePath(string serviceDirectory, string extensionName, string filename) {
+            string fullPath;
+            if (extensionName != null) {
+                string[] components = filename.Split(new char[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar }, 2);
+                if (components.Length > 0 && components[0] == extensionName) {
+                    fullPath = System.IO.Path.Combine(serviceDirectory, components.Length > 1 ? components[1] : "");
+                } else {
+                    return null;
+                }
+            } else {
+                fullPath = System.IO.Path.Combine(serviceDirectory, filename);
+            }
 
             if (System.IO.Directory.Exists(fullPath)) {
-                // If we're given the path to a directory, serve up index.html instead.
                 fullPath = System.IO.Path.Combine(fullPath, "index.html");
             }
 
+            if (System.IO.File.Exists(fullPath)) {
+                return fullPath;
+            } else {
+                return null;
+            }
+        }
+
+        private void ServeStaticFile(string serviceDirectory, string filename, HttpListenerResponse response) {
+            string filePath = this.GetFilePath(serviceDirectory, null, filename);
+
+            if (filePath == null) {
+                // Try the extensions.
+                foreach (JsDbgExtension extension in this.loadedExtensions) {
+                    filePath = this.GetFilePath(extension.Path, extension.name, filename);
+                    if (filePath != null) {
+                        break;
+                    }
+                }
+            }
+
+            if (filePath == null) {
+                response.StatusCode = 404;
+                response.OutputStream.Close();
+                return;
+            }
+
             try {
-                using (System.IO.FileStream fileStream = System.IO.File.OpenRead(fullPath)) {
+                using (System.IO.FileStream fileStream = System.IO.File.OpenRead(filePath)) {
                     response.AddHeader("Cache-Control", "no-cache");
-                    response.ContentType = System.Web.MimeMapping.GetMimeMapping(fullPath);
+                    response.ContentType = System.Web.MimeMapping.GetMimeMapping(filePath);
                     response.ContentLength64 = fileStream.Length;
                     fileStream.CopyTo(response.OutputStream);
                     response.OutputStream.Close();
@@ -433,6 +509,72 @@ namespace JsDbg {
             this.ServeUncachedString(responseString, context);
         }
 
+        private static DataContractJsonSerializer ExtensionSerializer = new DataContractJsonSerializer(typeof(JsDbgExtension));
+
+        private void LoadExtension(string[] segments, HttpListenerContext context) {
+            string extensionPath = context.Request.QueryString["path"];
+
+            if (extensionPath == null) {
+                this.ServeFailure(context);
+                return;
+            }
+
+            if (!System.IO.Directory.Exists(path)) {
+                this.ServeUncachedString("{ \"error\": \"The path does not exist.\" }", context);
+                return;
+            }
+
+            JsDbgExtension extension;
+            string jsonPath = System.IO.Path.Combine(extensionPath, "extension.json");
+            try {
+                using (System.IO.FileStream file = System.IO.File.Open(jsonPath, System.IO.FileMode.Open, System.IO.FileAccess.Read)) {
+                    extension = (JsDbgExtension)ExtensionSerializer.ReadObject(file);
+                }
+                extension.Path = extensionPath;
+            } catch {
+                this.ServeUncachedString("{ \"error\": \"Unable to read extension.json file.\" }", context);
+                return;
+            }
+
+            bool alreadyLoaded = false;
+            foreach (JsDbgExtension existingExtension in this.loadedExtensions) {
+                // If any existing extension has the same name, fail.
+                if (existingExtension.name == extension.name) {
+                    alreadyLoaded = true;
+                    extension = existingExtension;
+                    break;
+                }
+            }
+
+            if (!alreadyLoaded) {
+                this.loadedExtensions.Add(extension);
+            }
+
+            using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                ExtensionSerializer.WriteObject(memoryStream, extension);
+                this.ServeUncachedString(Encoding.Default.GetString(memoryStream.ToArray()), context);
+            }
+        }
+
+        private void UnloadExtension(string[] segments, HttpListenerContext context) {
+            string extensionName = context.Request.QueryString["name"];
+
+            if (extensionName == null) {
+                this.ServeFailure(context);
+                return;
+            }
+
+            for (int i = 0; i < this.loadedExtensions.Count; ++i) {
+                if (this.loadedExtensions[i].name == extensionName) {
+                    this.loadedExtensions.RemoveAt(i);
+                    this.ServeUncachedString("{ \"success\": true }", context);
+                    return;
+                }
+            }
+
+            this.ServeUncachedString("{ \"error\": \"Unknown extension.\" }", context);
+        }
+
         internal void Abort() {
             if (this.httpListener.IsListening) {
                 this.httpListener.Abort();
@@ -450,6 +592,7 @@ namespace JsDbg {
 
         private HttpListener httpListener;
         private Debugger debugger;
+        private List<JsDbgExtension> loadedExtensions;
         private string path;
         private int port;
     }

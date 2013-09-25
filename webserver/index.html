@@ -2,31 +2,79 @@
 <html>
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title></title>
+    <title>JsDbg</title>
+    <script src="/js/jsdbg/jsdbg.js" type="text/javascript"></script>
+    <script src="/js/extensionloader.js" type="text/javascript"></script>
     <link rel="stylesheet" type="text/css" href="/css/common.css">
     <style>
         body {
-            font-size:1.5em;
+            font-size:10pt;
         }
 
         h3, h4, p {
             margin:0;
         }
 
+        input {
+            width:30em;
+        }
+
+        .unload {
+            font-size:8pt;
+            font-weight:normal;
+            cursor:pointer;
+        }
+        .unload::before {
+            content:"[unload]";
+        }
+
         li {
             margin:1em;
         }
     </style>
+    <script type="text/javascript">
+        function realizeExtension(ext) {
+            var ul = document.querySelector("ul");
+            var li = document.createElement("li");
+            li.innerHTML = "<h3><a href='/" + ext.name + "/'>" + ext.name + "</a> </h3>" + 
+                "<p>" + ext.description + "</p>";
+            var unload = document.createElement("span");
+            unload.className = "unload";
+            unload.addEventListener("click", function() {
+                ExtensionLoader.Remove(ext.name, function() {
+                    ul.removeChild(li);
+                });
+            });
+            li.querySelector("h3").appendChild(unload);
+            ul.appendChild(li);
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            ExtensionLoader.Initialize(function(extensions) {
+                extensions.forEach(realizeExtension);
+
+                document.querySelector("button").addEventListener("click", function() {
+                    ExtensionLoader.Add(document.querySelector("input").value, function(ext) {
+                        document.querySelector("input").value = null;
+                        realizeExtension(ext);
+                    }, function(error) { alert(error); });
+
+                });
+            })
+        });
+    </script>
 </head>
 <body>
-    <h3>JsDbg</h3>
+    <p>
+        Load an extension: <input type="text" placeholder="C:\path\to\extension"> <button>Load</button>
+    </p>
     <ul>
         <li>
-            <h4><a href="/markuptree/">MarkupTree</a></h4>
+            <h3><a href="/markuptree/">MarkupTree</a></h3>
             <p>Inspect and navigate CTreeNodes in a markup tree.</p>
         </li>
         <li>
-            <h4><a href="/boxtree/">BoxTree</a></h4>
+            <h3><a href="/boxtree/">BoxTree</a></h3>
             <p>Inspect and navigate a LayoutBox tree.</p>
         </li>
     </ul>
