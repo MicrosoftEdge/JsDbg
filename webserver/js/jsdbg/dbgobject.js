@@ -16,6 +16,7 @@
 //   - equals(DbgObject) -> bool            [are two DbgObjects the same pointer?]
 //   - vtable() -> string                   [returns the fully specified type of the vtable, if there is one]
 //   - vcast() -> DbgObject                 [gets the type of the vtable and attempts a cast]
+//   - fields() -> [{name, offset, value}]  [gets all the fields available]
 //   - isNull() -> bool                     [indicates if the object is null]
 
 
