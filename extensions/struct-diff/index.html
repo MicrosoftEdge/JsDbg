@@ -44,8 +44,38 @@
                     }
                 });
 
+                function recursivelyGetFields(array, field, offset, prefix) {
+                    field.offset += offset;
+                    field.name = prefix + (prefix.length > 0 ? "." : "") + field.name;
+
+                    var includeField = false;
+                    try {
+                        var recursiveFields = field.value.fields();
+                        if (recursiveFields.length == 0) {
+                            includeField = true;
+                        } else {
+                            recursiveFields.forEach(function(innerField) {
+                                recursivelyGetFields(array, innerField, field.offset, field.name);
+                            });
+                        }
+                    } catch (ex) { 
+                        includeField = true;
+                    }
+
+                    if (includeField) {
+                        array.push(field);
+                    }
+                }
+
                 // get the fields.
-                var fields = object1.fields();
+                if (document.getElementById("recurse").checked) {
+                    var fields = [];
+                    object1.fields().forEach(function(f) {
+                        recursivelyGetFields(fields, f, 0, "");
+                    });
+                } else {
+                    var fields = object1.fields();
+                }
 
                 var fieldsAtCurrentOffset = [];
                 var fieldsAtLastOffset = [];
@@ -83,12 +113,14 @@
                     var f1 = object1.f(field.name);
                     var f2 = object2.f(field.name);
 
-                    try {
-                        var val1 = f1.val();
-                        var val2 = f2.val();                        
-                    } catch (ex) {
-                        var val1 = f1.ptr();
-                        var val2 = f2.ptr();
+                    var val1 = f1.ptr();
+                    var val2 = f2.ptr();
+
+                    if (!field.value._isPointer()) {
+                        try {
+                            val1 = f1.val();
+                            val2 = f2.val();
+                        } catch (ex) { }
                     }
 
                     return [field.name, field.value.typename.replace("<", "&lt;").replace(">", "&gt;"), "0x" + field.offset.toString(16), val1, val2];
@@ -137,6 +169,7 @@
     <input class="pointer" type="text" placeholder="Pointer 1" />
     <input class="pointer" type="text" placeholder="Pointer 2" />
     <button>Diff!</button>
+    <input id="recurse" type="checkbox" /><label for="recurse">Show nested fields</label>
     <div id="results"></div>
 </body>
 </html>
