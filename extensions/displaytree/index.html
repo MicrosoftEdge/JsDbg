@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Display Tree</title>
+    <link rel="stylesheet" type="text/css" href="/css/common.css">
+    
+    <script type="text/javascript" src="/js/jsdbg/jsdbg.js"></script>
+    <script type="text/javascript" src="/js/jsdbg/dbgobject.js"></script>
+
+    <script type="text/javascript" src="/js/common/timer.js"></script>
+    <script type="text/javascript" src="/js/common/widetree.js"></script>
+    <link rel="stylesheet" href="/css/common/widetree.css" type="text/css">
+    <script type="text/javascript" src="/js/common/talltree.js"></script>
+    <link rel="stylesheet" href="/css/common/talltree.css" type="text/css">
+    <script type="text/javascript" src="/js/common/fieldsupport.js"></script>
+    <link rel="stylesheet" href="/css/common/fieldsupport.css" type="text/css">
+    <script type="text/javascript" src="/js/mshtml/mshtml.js"></script>
+
+    <script type="text/javascript" src="/displaytree/displaytree.js"></script>
+    <script type="text/javascript" src="/displaytree/builtinfields.js"></script>
+
+    <script type="text/javascript">
+        var rootDispNode = null;
+        var treeAlgorithm = TallTree;
+
+        function loadDisplayTree(isTreeNode) {
+            var pointer = parseInt(document.getElementById("pointer").value, 16);
+            if (isTreeNode) {
+                rootDispNode = DisplayTree.CreateFromCTreeNodePointer(pointer);
+            } else {
+                rootDispNode = DisplayTree.CreateFromCDispNodePointer(pointer);
+            }
+            DisplayTree.Render(treeAlgorithm, rootDispNode, document.querySelector("#tree"));
+        }
+
+        function init() {
+            if (window.location.hash) {
+                var hashPointer = window.location.hash.substr(1);
+                document.getElementById("pointer").value = hashPointer;
+            } else {
+                var roots = MSHTML.GetRootCTreeNodesWithLayoutAssociations();
+                if (roots.length == 1) {
+                    // There is exactly one root tree node with a layout association.  Use it.
+                    document.getElementById("pointer").value = roots[0];
+                    loadDisplayTree(true);
+                }
+            }
+
+            document.getElementById("loadTreeNode").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadDisplayTree(true); });
+            document.getElementById("loadCDispNode").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadDisplayTree(false); });
+
+            function radioChanged() {
+                var oldTreeAlgorithm = treeAlgorithm;
+                if (document.getElementById("wideTreeRadio").checked) {
+                    treeAlgorithm = WideTree;
+                } else {
+                    treeAlgorithm = TallTree;
+                }
+                if (rootDispNode != null && treeAlgorithm != oldTreeAlgorithm) {
+                    DisplayTree.Render(treeAlgorithm, rootDispNode, document.querySelector("#tree"));
+                }
+            }
+            document.getElementById("wideTreeRadio").addEventListener("change", radioChanged);
+            document.getElementById("tallTreeRadio").addEventListener("change", radioChanged);
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+</head>
+<body>
+    <label for="pointer">Pointer:</label>
+    <input type="text" id="pointer" /> 
+    <button id="loadTreeNode">CTreeNode</button>
+    <button id="loadCDispNode">CDispNode</button>
+    <input id="tallTreeRadio" checked name="treeType" type="radio" /><label for="tallTreeRadio">Tall Tree</label>
+    <input id="wideTreeRadio" name="treeType" type="radio" /><label for="wideTreeRadio">Wide Tree</label>
+    <br />
+    Click a display node to show its children.  Ctrl-Click to expand or collapse a subtree.<br />
+    <div id="tree"></div>
+</body>
+</html>
