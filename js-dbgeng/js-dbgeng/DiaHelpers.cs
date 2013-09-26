@@ -109,8 +109,7 @@ namespace JsDbg {
         internal static string GetTypeName(IDiaSymbol typeSymbol) {
             switch ((SymTagEnum)typeSymbol.symTag) {
                 case SymTagEnum.SymTagArrayType:
-                    // We currently don't track arrays as different from the base type.
-                    return GetTypeName(typeSymbol.type);
+                    return GetTypeName(typeSymbol.type) + "[" + typeSymbol.count + "]";
                 case SymTagEnum.SymTagBaseType:
                     return GetBasicTypeName((BasicType)typeSymbol.baseType, typeSymbol.length);
                 case SymTagEnum.SymTagPointerType:

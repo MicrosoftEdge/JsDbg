@@ -127,12 +127,14 @@ namespace JsDbg {
 
             if (tokens.Length > 1 && normalizedDescription.StartsWith("[") && normalizedDescription.EndsWith("]")) {
                 // It's an array.  Recursively discover the type.
+                int arrayLength = 0;
+                Int32.TryParse(normalizedDescription.Substring(1, normalizedDescription.Length - 2), out arrayLength);
 
                 // We should never have an array of bit fields.
                 if (ParseType(ArraySlice(tokens, 1), out typename, out bitField) && !bitField.IsBitField) {
                     // If we could determine the type name, add a [] for the array-ness.
                     if (typename != null) {
-                        typename += "[]";
+                        typename += "[" + arrayLength.ToString() + "]";
                     }
                     return true;
                 }

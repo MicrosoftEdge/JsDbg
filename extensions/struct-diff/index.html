@@ -44,13 +44,32 @@
                     }
                 });
 
+                function expandArrays(fields) {
+                    var result = [];
+                    fields.forEach(function (field) {
+                        if (field.value.isArray) {
+                            for (var i = 0; i < field.value.arrayLength; ++i) {
+                                var value = field.value.idx(i);
+                                result.push({
+                                    "name": field.name + "[" + i + "]",
+                                    "offset": field.offset + (parseInt(value.ptr()) - parseInt(field.value.ptr())),
+                                    "value": value
+                                });
+                            }
+                        } else {
+                            result.push(field);
+                        }
+                    });
+                    return result;
+                }
+
                 function recursivelyGetFields(array, field, offset, prefix) {
                     field.offset += offset;
                     field.name = prefix + (prefix.length > 0 ? "." : "") + field.name;
 
                     var includeField = false;
                     try {
-                        var recursiveFields = field.value.fields();
+                        var recursiveFields = expandArrays(field.value.fields());
                         if (recursiveFields.length == 0) {
                             includeField = true;
                         } else {
@@ -70,7 +89,7 @@
                 // get the fields.
                 if (document.getElementById("recurse").checked) {
                     var fields = [];
-                    object1.fields().forEach(function(f) {
+                    expandArrays(object1.fields()).forEach(function(f) {
                         recursivelyGetFields(fields, f, 0, "");
                     });
                 } else {
@@ -116,14 +135,14 @@
                     var val1 = f1.ptr();
                     var val2 = f2.ptr();
 
-                    if (!field.value._isPointer()) {
+                    if (!field.value.isPointer()) {
                         try {
                             val1 = f1.val();
                             val2 = f2.val();
                         } catch (ex) { }
                     }
 
-                    return [field.name, field.value.typename.replace("<", "&lt;").replace(">", "&gt;"), "0x" + field.offset.toString(16), val1, val2];
+                    return [field.name, field.value.typeDescription().replace("<", "&lt;").replace(">", "&gt;"), "0x" + field.offset.toString(16), val1, val2];
                 });
 
                 html = html.map(function(cells) {

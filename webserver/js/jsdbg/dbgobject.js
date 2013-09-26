@@ -10,14 +10,16 @@
 //   - as(string) -> DbgObject              ["casts" the object to the given type]
 //   - idx(number) -> DbgObject             [gets the object at a given index in an array]
 //   - array(length) -> array               [gets an array of DbgObjects or numbers]
+//   - unembed(string, string)              [moves from an embedded structure to the containing structure]
 //   - val() -> number                      [reads a number]
 //   - ptr() -> number                      [gets the pointer to the object]
-//   - constant(offset?, count?)            [gets the name of a constant.  optional args are for bit fields]
+//   - constant()                           [gets the name of a constant]
 //   - equals(DbgObject) -> bool            [are two DbgObjects the same pointer?]
 //   - vtable() -> string                   [returns the fully specified type of the vtable, if there is one]
 //   - vcast() -> DbgObject                 [gets the type of the vtable and attempts a cast]
 //   - fields() -> [{name, offset, value}]  [gets all the fields available]
 //   - isNull() -> bool                     [indicates if the object is null]
+//   - isPointer() -> bool                  [indicates if the object is a pointer]
 
 
 // bitcount and bitoffset are optional.
@@ -29,11 +31,21 @@ function DbgObject(module, type, pointer, bitcount, bitoffset) {
 
     // Cleanup type name:
     //  - remove whitespace from the beginning and end
-    //  - strip [] from inline arrays
     this.typename = type
         .replace(/\s+$/g, '')
-        .replace(/^\s+/g, '')
-        .replace("[]", "");
+        .replace(/^\s+/g, '');
+
+    // Get the array size.
+    var arrayRegex = /\[[0-9]+\]/;
+    var matches = this.typename.match(arrayRegex);
+    if (matches) {
+        this.isArray = true;
+        this.arrayLength = parseInt(matches[0].substr(1, matches[0].length - 2));
+        this.typename = this.typename.replace(arrayRegex, '');
+    } else {
+        this.isArray = false;
+        this.arrayLength = 0;
+    }
 }
 
 DbgObject.sym = function(symbol) {
@@ -43,20 +55,16 @@ DbgObject.sym = function(symbol) {
     }
 
     var typedNull = new DbgObject(result.module, result.type, result.value);
-    if (typedNull._isPointer()) {
+    if (typedNull.isPointer()) {
         return new DbgObject(result.module, typedNull._getDereferencedTypeName(), result.value);
     } else {
         return result.value;
     }
 }
 
-DbgObject.prototype._isPointer = function() {
-    return this.typename[this.typename.length - 1] == "*";
-}
-
 DbgObject.prototype._getStructSize = function() {
     var structSize = 0;
-    if (this._isPointer()) {
+    if (this.isPointer()) {
         var result = JsDbg.SyncGetPointerSize();
         if (result.error) {
             throw result.error;
@@ -73,7 +81,7 @@ DbgObject.prototype._getStructSize = function() {
 }
 
 DbgObject.prototype._getDereferencedTypeName = function() {
-    if (this._isPointer()) {
+    if (this.isPointer()) {
         return this.typename.substring(0, this.typename.length - 1);
     } else {
         return "void";
@@ -106,10 +114,20 @@ DbgObject.prototype.f = function(field) {
         return current;
     }
 
-    if (this._isPointer()) {
+    var arrayIndexRegex = /\[[0-9]+\]$/;
+    var indexMatches = field.match(arrayIndexRegex);
+    var index = 0;
+    if (indexMatches) {
+        index = parseInt(indexMatches[0].substr(1, indexMatches[0].length - 2));
+    }
+    field = field.replace(arrayIndexRegex, '');
+
+    if (this.isPointer()) {
         throw "You cannot do a field lookup on a pointer.";
     } else if (this.pointer == 0) {
         throw "You cannot get a field from a null pointer.";
+    } else if (this.isArray) {
+        throw "You cannot get a field from an array.";
     }
 
     var result = JsDbg.SyncLookupFieldOffset(this.module, this.typename, [field]);
@@ -118,7 +136,12 @@ DbgObject.prototype.f = function(field) {
     }
 
     var target = new DbgObject(this.module, result.type, this.pointer + result.offset, result.bitcount, result.bitoffset);
-    if (target._isPointer()) {
+
+    if (indexMatches) {
+        target = target.idx(index);
+    }
+
+    if (target.isPointer()) {
         return target.deref();
     } else {
         return target;
@@ -147,6 +170,10 @@ DbgObject.prototype.val = function() {
         return this.pointer;
     }
 
+    if (this.isArray) {
+        throw "You cannot get a value of an array.";
+    }
+
     var structSize = this._getStructSize();
     var result = JsDbg.SyncReadNumber(this.pointer, structSize);
     if (result.error) {
@@ -171,6 +198,10 @@ DbgObject.prototype.constant = function() {
 }
 
 DbgObject.prototype.array = function(count) {
+    if (count == undefined && this.isArray) {
+        count = this.arrayLength;
+    }
+
     // Try to read the array.  If it's an array of pointers or ints we can do it all at once.
     var structSize = this._getStructSize();
     var result = JsDbg.SyncReadArray(this.pointer, structSize, count);
@@ -183,7 +214,7 @@ DbgObject.prototype.array = function(count) {
         return array;
     }
 
-    if (this._isPointer()) {
+    if (this.isPointer()) {
         // If the type is a pointer, return an array of DbgObjects.
         var that = this;
         var itemTypename = this._getDereferencedTypeName();
@@ -196,6 +227,10 @@ DbgObject.prototype.array = function(count) {
 
 DbgObject.prototype.ptr = function() {
     return this.pointer == 0 ? "NULL" : "0x" + this.pointer.toString(16);
+}
+
+DbgObject.prototype.typeDescription = function() {
+    return this.typename + (this.isArray ? "[" + this.arrayLength + "]" : "");
 }
 
 DbgObject.prototype.equals = function(other) {
@@ -228,7 +263,7 @@ DbgObject.prototype.vcast = function() {
 }
 
 DbgObject.prototype.fields = function() {
-    if (this._isPointer()) {
+    if (this.isPointer()) {
         throw "You cannot lookup fields on a pointer.";
     }
 
@@ -249,4 +284,8 @@ DbgObject.prototype.fields = function() {
 
 DbgObject.prototype.isNull = function() {
     return this.pointer == 0;
+}
+
+DbgObject.prototype.isPointer = function() {
+    return this.typename[this.typename.length - 1] == "*";
 }

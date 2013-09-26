@@ -30,7 +30,7 @@ var Eval = (function() {
 
             if (dbgObject.typename in typenames) {
                 return typenames[dbgObject.typename](dbgObject);
-            } else if (dbgObject._isPointer()) {
+            } else if (dbgObject.isPointer()) {
                 return "0x" + dbgObject.val().toString(16);
             } else {
                 return dbgObject.ptr();
@@ -57,7 +57,7 @@ var Eval = (function() {
                     }
                     if (fields.length > 0) {
                         description += "<ul><li>" + fieldHTML.join("</li><li>") + "</li></ul>";
-                    } else if (!this.object._isPointer()) {
+                    } else if (!this.object.isPointer()) {
                        description += " = " + dbgObjectNumber(this.object) + "<br />";
                     }
 
