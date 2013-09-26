@@ -60,6 +60,7 @@
                             result.push(field);
                         }
                     });
+
                     return result;
                 }
 
@@ -95,6 +96,8 @@
                 } else {
                     var fields = object1.fields();
                 }
+
+                fields.sort(function(a, b) { return a.offset - b.offset; });
 
                 var fieldsAtCurrentOffset = [];
                 var fieldsAtLastOffset = [];
