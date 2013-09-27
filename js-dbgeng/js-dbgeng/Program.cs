@@ -7,7 +7,7 @@ using System.IO;
 
 namespace JsDbg {
     public class Program {
-        private const string Version = "2013-09-25-02";
+        private const string Version = "2013-09-27-01";
 
         static internal string SupportDirectory {
             get {
@@ -60,8 +60,10 @@ namespace JsDbg {
                 return -1;
             }
 
-            Console.Out.WriteLine("Serving from {0}", path);
-            using (WebServer webServer = new WebServer(debugger, path, System.IO.Path.Combine(path, "../extensions"))) {
+            string webRoot = System.IO.Path.Combine(path, "wwwroot");
+            string extensionRoot = System.IO.Path.Combine(path, "extensions");
+            Console.Out.WriteLine("Serving from {0}", webRoot);
+            using (WebServer webServer = new WebServer(debugger, webRoot, extensionRoot)) {
                 webServer.LoadExtension("default");
 
                 SynchronizationContext previousContext = SynchronizationContext.Current;
