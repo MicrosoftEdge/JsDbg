@@ -7,11 +7,17 @@ using System.IO;
 
 namespace JsDbg {
     public class Program {
-        private const string Version = "2013-09-27-02";
+        private const string Version = "2013-09-27-03";
 
-        static internal string SupportDirectory {
+        static internal string LocalSupportDirectory {
             get {
                 return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support", Version);
+            }
+        }
+
+        static internal string SharedSupportDirectory {
+            get {
+                return Path.Combine(@"\\iefs\users\psalas\jsdbg\support\", Version);
             }
         }
 
@@ -34,18 +40,11 @@ namespace JsDbg {
                 remoteString = args[0];
             }
 
-
-            if (!Directory.Exists(Program.SupportDirectory)) {
-                string supportDirectory = Path.Combine(@"\\iefs\users\psalas\jsdbg\support\", Version);
-                Console.Out.WriteLine("Installing support files from {0} to {1}", supportDirectory, Program.SupportDirectory);
-                DirectoryCopy(supportDirectory, Program.SupportDirectory, /*copySubDirs*/true);
-            }
-
             string path;
             if (args.Length > 1) {
                 path = args[1];
             } else {
-                path = Program.SupportDirectory;
+                path = Program.SharedSupportDirectory;
             }
 
             Debugger debugger;

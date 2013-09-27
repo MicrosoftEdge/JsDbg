@@ -286,7 +286,14 @@ namespace JsDbg {
             Console.WriteLine("Attempting to register {0}.  This will require elevation...", dllName);
 
             // Copy it down to the support directory if needed.
-            string dllPath = Path.Combine(Program.SupportDirectory, dllName);
+            string dllPath = Path.Combine(Program.LocalSupportDirectory, dllName);
+            if (!File.Exists(dllName)) {
+                if (!Directory.Exists(Program.LocalSupportDirectory)) {
+                    Directory.CreateDirectory(Program.LocalSupportDirectory);
+                }
+                string remotePath = Path.Combine(Program.SharedSupportDirectory, dllName);
+                File.Copy(remotePath, dllPath);
+            }
 
             System.Threading.Thread.Sleep(1000);
             ProcessStartInfo regsvr = new ProcessStartInfo("regsvr32", dllPath);
