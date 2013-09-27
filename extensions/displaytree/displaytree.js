@@ -139,6 +139,8 @@ var DisplayTree = (function() {
         return this.cachedChildren;
     }
     var CDispLeafNode = CreateDispNodeType("CDispLeafNode", CDispNode);
+    var CDispSVGLeafNode = CreateDispNodeType("CDispSVGLeafNode", CDispNode);
+    var CDispProxyNode = CreateDispNodeType("CDispProxyNode", CDispNode);
 
     var CDispParentNode = CreateDispNodeType("CDispParentNode", CDispNode);
     CDispParentNode.prototype.collectChildren = function(children) {
@@ -153,9 +155,11 @@ var DisplayTree = (function() {
     }
 
     var CDispStructureNode = CreateDispNodeType("CDispStructureNode", CDispParentNode);
+    var CDispSVGStructureNode = CreateDispNodeType("CDispSVGStructureNode", CDispParentNode);
 
     var CDispContainer = CreateDispNodeType("CDispContainer", CDispParentNode);
     var CDispClipNode = CreateDispNodeType("CDispClipNode", CDispContainer);
+    var CDispRoot = CreateDispNodeType("CDispRoot", CDispClipNode);
     var CDispScroller = CreateDispNodeType("CDispScroller", CDispClipNode);
     var CDispTopLevelScroller = CreateDispNodeType("CDispTopLevelScroller", CDispScroller);
 
