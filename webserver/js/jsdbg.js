@@ -48,6 +48,9 @@ var JsDbg = (function() {
         UnloadExtension: function(name, callback) {
             jsonRequest("/jsdbg/unloadextension?name=" + esc(name), callback, /*async*/true);
         },
+        GetExtensions: function(callback) {
+            jsonRequest("/jsdbg/extensions", callback, /*async*/true);
+        },
 
         LookupFieldOffset: function(module, type, fields, callback) {
             jsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&fields=" + esc(fields.join(",")), callback, /*async*/true, /*cache*/true);
@@ -111,6 +114,12 @@ var JsDbg = (function() {
         SyncUnloadExtension: function(name) {
             var retval = null;
             jsonRequest("/jsdbg/unloadextension?name=" + esc(name), function(x) { retval = x; }, /*async*/false);
+            return retval;
+        },
+
+        SyncGetExtensions: function() {
+            var retval = null;
+            jsonRequest("/jsdbg/extensions", function(x) { retval = x; }, /*async*/false);
             return retval;
         },
 

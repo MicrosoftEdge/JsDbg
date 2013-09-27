@@ -1,0 +1,9 @@
+{
+    "name": "field-support",
+    "author": "Peter Salas",
+    "description": "Support for injecting fields into DbgObject-backed visualizations",
+    "headless": true,
+    "dependencies": [
+        "dbgobject"
+    ]
+}

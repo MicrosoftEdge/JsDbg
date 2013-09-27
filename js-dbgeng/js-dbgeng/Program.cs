@@ -61,7 +61,9 @@ namespace JsDbg {
             }
 
             Console.Out.WriteLine("Serving from {0}", path);
-            using (WebServer webServer = new WebServer(debugger, path)) {
+            using (WebServer webServer = new WebServer(debugger, path, System.IO.Path.Combine(path, "../extensions"))) {
+                webServer.LoadExtension("default");
+
                 SynchronizationContext previousContext = SynchronizationContext.Current;
                 try {
                     SingleThreadSynchronizationContext syncContext = new SingleThreadSynchronizationContext();

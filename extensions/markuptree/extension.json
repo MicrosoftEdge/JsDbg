@@ -1,0 +1,11 @@
+{
+    "name": "MarkupTree",
+    "author": "Sushanth Rajasankar, Peter Salas",
+    "description": "Navigate and inspect CTreeNodes in a markup tree.",
+    "dependencies": [
+        "dbgobject",
+        "field-support",
+        "mshtml-helpers",
+        "tree-drawing"
+    ]
+}

@@ -1,0 +1,9 @@
+{
+    "name": "tree-drawing",
+    "author": "Peter Salas",
+    "description": "A tree drawing library.",
+    "headless": true,
+    "dependencies": [
+        "timer"
+    ]
+}

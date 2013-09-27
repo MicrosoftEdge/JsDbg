@@ -1,0 +1,6 @@
+{
+    "name": "DbgObject",
+    "author": "Peter Salas",
+    "description": "Convenience library for navigating objects in memory.",
+    "headless": true
+}

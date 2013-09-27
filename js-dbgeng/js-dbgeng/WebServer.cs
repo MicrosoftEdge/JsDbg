@@ -30,6 +30,18 @@ namespace JsDbg {
             set { this._description = value; }
         }
 
+        [DataMember(IsRequired = false)]
+        public string[] dependencies {
+            get { return this._dependencies; }
+            set { this._dependencies = value; }
+        }
+
+        [DataMember(IsRequired=false)]
+        public bool headless {
+            get { return this._headless; }
+            set { this._headless = value; }
+        }
+
         public string Path {
             get { return this._path; }
             set { this._path = value; }
@@ -38,7 +50,9 @@ namespace JsDbg {
         private string _name;
         private string _author;
         private string _description;
+        private string[] _dependencies;
         private string _path;
+        private bool _headless;
     }
 
     class WebServer : IDisposable {
@@ -46,9 +60,10 @@ namespace JsDbg {
         private const int StartPortNumber = 50000;
         private const int EndPortNumber = 50099;
 
-        internal WebServer(Debugger debugger, string path) {
+        internal WebServer(Debugger debugger, string path, string defaultExtensionPath) {
             this.debugger = debugger;
             this.path = path;
+            this.defaultExtensionPath = defaultExtensionPath;
             this.port = StartPortNumber;
             this.loadedExtensions = new List<JsDbgExtension>();
         }
@@ -162,6 +177,9 @@ namespace JsDbg {
                             case "unloadextension":
                                 this.UnloadExtension(segments, context);
                                 break;
+                            case "extensions":
+                                this.ServeExtensions(segments, context);
+                                break;
                             default:
                                 context.Response.Redirect("/");
                                 context.Response.OutputStream.Close();
@@ -203,7 +221,7 @@ namespace JsDbg {
             string fullPath;
             if (extensionName != null) {
                 string[] components = filename.Split(new char[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar }, 2);
-                if (components.Length > 0 && components[0] == extensionName) {
+                if (components.Length > 0 && components[0].ToLowerInvariant() == extensionName.ToLowerInvariant()) {
                     fullPath = System.IO.Path.Combine(serviceDirectory, components.Length > 1 ? components[1] : "");
                 } else {
                     return null;
@@ -550,18 +568,27 @@ namespace JsDbg {
             this.ServeUncachedString(responseString, context);
         }
 
-            private static DataContractJsonSerializer ExtensionSerializer = new DataContractJsonSerializer(typeof(JsDbgExtension));
+        private static DataContractJsonSerializer ExtensionSerializer = new DataContractJsonSerializer(typeof(JsDbgExtension));
 
-        private void LoadExtension(string[] segments, HttpListenerContext context) {
-            string extensionPath = context.Request.QueryString["path"];
-
-            if (extensionPath == null) {
-                this.ServeFailure(context);
-                return;
+        public bool LoadExtension(string extensionPath) {
+            if (!System.IO.Path.IsPathRooted(extensionPath)) {
+                extensionPath = System.IO.Path.Combine(this.defaultExtensionPath, extensionPath);
             }
-            if (!System.IO.Directory.Exists(path)) {
-                this.ServeUncachedString("{ \"error\": \"The path does not exist.\" }", context);
-                return;
+
+            List<JsDbgExtension> extensionsToLoad = new List<JsDbgExtension>();
+            List<string> failedExtensions = new List<string>();
+            if (this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions)) {
+                this.loadedExtensions.AddRange(extensionsToLoad);
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        private bool LoadExtensionAndDependencies(string extensionPath, List<JsDbgExtension> extensionsToLoad, List<string> failedExtensions) {
+            if (!System.IO.Directory.Exists(extensionPath)) {
+                failedExtensions.Add(extensionPath);
+                return false;
             }
 
             JsDbgExtension extension;
@@ -572,27 +599,61 @@ namespace JsDbg {
                 }
                 extension.Path = extensionPath;
             } catch {
-                this.ServeUncachedString("{ \"error\": \"Unable to read extension.json file.\" }", context);
-                return;
+                failedExtensions.Add(extensionPath);
+                return false;
             }
 
-            bool alreadyLoaded = false;
+            // Check if the extension has already been loaded.
             foreach (JsDbgExtension existingExtension in this.loadedExtensions) {
-                // If any existing extension has the same name, fail.
+                // If any existing extension has the same name, it's already loaded.
                 if (existingExtension.name == extension.name) {
-                    alreadyLoaded = true;
-                    extension = existingExtension;
-                    break;
+                    return true;
+                }
+            }
+            foreach (JsDbgExtension existingExtension in extensionsToLoad) {
+                if (existingExtension.name == extension.name) {
+                    // If any existing extension has the same name, it's already loaded.
+                    return true;
                 }
             }
 
-            if (!alreadyLoaded) {
-                this.loadedExtensions.Add(extension);
+            extensionsToLoad.Add(extension);
+
+            // Now load any dependencies, bubbling any failures.
+            if (extension.dependencies != null) {
+                foreach (string dependencyPath in extension.dependencies) {
+                    string rootedDependencyPath = dependencyPath;
+                    if (!System.IO.Path.IsPathRooted(rootedDependencyPath)) {
+                        rootedDependencyPath = System.IO.Path.Combine(this.defaultExtensionPath, dependencyPath);
+                    }
+
+                    if (!this.LoadExtensionAndDependencies(rootedDependencyPath, extensionsToLoad, failedExtensions)) {
+                        failedExtensions.Add(extensionPath);
+                        return false;
+                    }
+                }
             }
 
-            using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
-                ExtensionSerializer.WriteObject(memoryStream, extension);
-                this.ServeUncachedString(Encoding.Default.GetString(memoryStream.ToArray()), context);
+            // Everything succeeded.
+            return true;
+        }
+
+        private void LoadExtension(string[] segments, HttpListenerContext context) {
+            string extensionPath = context.Request.QueryString["path"];
+
+            if (extensionPath == null) {
+                this.ServeFailure(context);
+                return;
+            }
+
+            List<JsDbgExtension> extensionsToLoad = new List<JsDbgExtension>();
+            List<string> failedExtensions = new List<string>();
+            if (!this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions)) {
+                this.ServeUncachedString("{ \"error\": \"Extensions failed to load:" + String.Join(" -> ", failedExtensions).Replace("\\", "\\\\") + "\" }", context);
+                return;
+            } else {
+                this.loadedExtensions.AddRange(extensionsToLoad);
+                this.ServeUncachedString("{ \"success\": true }", context);
             }
         }
 
@@ -615,6 +676,18 @@ namespace JsDbg {
             this.ServeUncachedString("{ \"error\": \"Unknown extension.\" }", context);
         }
 
+        private void ServeExtensions(string[] segments, HttpListenerContext context) {
+            List<string> jsonExtensions = new List<string>();
+            foreach (JsDbgExtension extension in this.loadedExtensions) {
+                using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                    ExtensionSerializer.WriteObject(memoryStream, extension);
+                    jsonExtensions.Add(Encoding.Default.GetString(memoryStream.ToArray()));
+                }
+            }
+
+            this.ServeUncachedString(String.Format("{{ \"extensions\": [{0}] }}", String.Join(",", jsonExtensions)), context);
+        }
+
         internal void Abort() {
             if (this.httpListener.IsListening) {
                 this.httpListener.Abort();
@@ -634,6 +707,7 @@ namespace JsDbg {
         private Debugger debugger;
         private List<JsDbgExtension> loadedExtensions;
         private string path;
+        private string defaultExtensionPath;
         private int port;
     }
 }

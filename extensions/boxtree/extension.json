@@ -1,7 +1,7 @@
 {
-    "name": "DisplayTree",
+    "name": "BoxTree",
     "author": "Peter Salas",
-    "description": "Navigate and inspect a display tree.",
+    "description": "Navigate and inspect a LayoutBox tree.",
     "dependencies": [
         "dbgobject",
         "field-support",

@@ -1,5 +1,8 @@
 {
     "name": "struct-diff",
     "author": "Peter Salas",
-    "description": "Diff two structures."
+    "description": "Diff two structures.",
+    "dependencies": [
+        "dbgobject"
+    ]
 }

@@ -1,0 +1,12 @@
+{
+    "name": "default",
+    "author": "Peter Salas",
+    "description": "Default extensions for IE devs.",
+    "headless": true,
+    "dependencies": [
+        "boxtree",
+        "markuptree",
+        "displaytree",
+        "struct-diff"
+    ]
+}
