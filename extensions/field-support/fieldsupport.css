@@ -31,6 +31,10 @@
     content:"[new]";
 }
 
+.field-selection .browse:before {
+    content:"[browse all users]";
+}
+
 .field-selection .edit:before {
     content:"[edit]";
 }

@@ -1,0 +1,49 @@
+
+.catalog-viewer {
+    position:fixed;
+    z-index:1000;
+    top:0px;
+    left:0px;
+    height:100%;
+    width:100%;
+
+    z-index:100;
+
+    background:rgba(0, 0, 0, 0.8);
+}
+
+.catalog-viewer > .table-container {
+    margin:5vh 5vw;
+    padding:10px;
+    box-sizing:border-box;
+    max-height:70%;
+    overflow:auto;
+    background:white;
+}
+
+.catalog-viewer > .table-container p {
+    margin:0 0 10px 0;
+}
+
+.catalog-viewer table {
+    border:none;
+    border-collapse: collapse;
+}
+
+.catalog-viewer td {
+    padding:0 1em;
+}
+
+.catalog-viewer td:first-child {
+    padding:0;
+}
+
+.catalog-viewer tr:hover {
+    background-color:#eee;
+    cursor:pointer;
+}
+
+.catalog-viewer .button-container {
+    margin-right:5vw;
+    float:right;
+}

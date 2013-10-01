@@ -310,6 +310,26 @@ var FieldSupport = (function() {
 
         var storage = Catalog.Load(StoragePrefix + ".UserFields");
 
+        // Check if there's anything stored in local storage, and if so, upgrade it to the persistent store.
+        var resultsToSave = {};
+        var keysToDelete = [];
+        for (var key in window.localStorage) {
+            if (key.indexOf(StoragePrefix + ".UserField.") == 0) {
+                try {
+                    var savedField = JSON.parse(window.localStorage.getItem(key));
+                    var newKey = key.substr((StoragePrefix + ".UserField.").length);
+                    savedField.localstorageid = newKey;
+                    resultsToSave[newKey] = savedField;
+                    keysToDelete.push(key);
+                } catch (ex) { }
+            }
+        }
+
+        if (keysToDelete.length > 0) {
+            storage.setMultiple(resultsToSave);
+            keysToDelete.forEach(function(key) { window.localStorage.removeItem(key); });
+        }
+
         // Add the field selection UI.
         var container = document.createElement("div");
         container.className = "field-selection";
@@ -380,6 +400,38 @@ var FieldSupport = (function() {
                 saveField(UserFields[UserFields.length - 1], fieldUI);
 
                 refreshTreeUIAfterFieldChange();
+            });
+
+            var browse = document.createElement("span");
+            browse.className = "browse button";
+            container.appendChild(document.createTextNode(" "));
+            container.appendChild(browse);
+
+            browse.addEventListener("click", function() {
+                CatalogViewer.Instantiate(
+                    StoragePrefix + ".UserFields", 
+                    "Select fields to add:",
+                    function(obj) { return [obj.user, obj.value.type, obj.value.name] },
+                    function(selected) {
+                        selected.forEach(function (object) {
+                            var field = object.value;
+                            UserFields.push({
+                                type: field.type,
+                                id:++uniqueId,
+                                enabled: false,
+                                fullname: field.name,
+                                shortname: field.shortName,
+                                html: codeStringToFunction(field.codeString),
+                                htmlString: field.codeString
+                            });
+
+                            fields.appendChild(buildFieldUI(UserFields[UserFields.length - 1]));
+                        });
+                    },
+                    function(a) {
+                        return (a.user + "." + a.value.type + "." + a.value.name)
+                    }
+                );
             });
 
             reinjectUserFields();
