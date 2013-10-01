@@ -5,6 +5,7 @@
     "headless": true,
     "dependencies": [
         "dbgobject",
-        "catalog"
+        "catalog",
+        "catalog-viewer"
     ]
 }
