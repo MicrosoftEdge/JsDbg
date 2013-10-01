@@ -244,7 +244,7 @@ var FieldSupport = (function() {
             }
 
             if (f.localstorageid) {
-                window.localStorage.removeItem(f.localstorageid);
+                storage.delete(f.localstorageid);
                 delete f.localstorageid;
             }
 
@@ -258,12 +258,12 @@ var FieldSupport = (function() {
                 var shortNameString = container.querySelector(".edit-shortName").value;
                 var codeString = container.querySelector(".edit-code").value;
 
-                window.localStorage.setItem(f.localstorageid, JSON.stringify({
+                storage.set(f.localstorageid, {
                     type: typeString,
                     name: nameString,
                     shortName: shortNameString,
                     codeString: codeString
-                }));
+                });
             }
         }
 
@@ -308,6 +308,8 @@ var FieldSupport = (function() {
             saveField(f, container);
         }
 
+        var storage = Catalog.Load(StoragePrefix + ".UserFields");
+
         // Add the field selection UI.
         var container = document.createElement("div");
         container.className = "field-selection";
@@ -329,14 +331,9 @@ var FieldSupport = (function() {
         fields.className = "fields";
         container.appendChild(fields);
 
-        for (var key in window.localStorage) {
-            if (key.indexOf(StoragePrefix + ".UserField") == 0) {
-                try {
-                    var savedField = JSON.parse(window.localStorage.getItem(key));
-                } catch (ex) {
-                    console.log("Exception retrieving " + key + " from localStorage.  Ignoring.");
-                    continue;
-                }
+        storage.all(function(saved) {
+            for (var key in saved) {
+                var savedField = saved[key];
 
                 // Populate the UserFields array from localStorage.
                 UserFields.push({
@@ -349,46 +346,46 @@ var FieldSupport = (function() {
                     htmlString: savedField.codeString
                 });
             }
-        }
 
-        var uniqueId = 0;
-        UserFields
-            .sort(function(a, b) { return (a.type + "." + a.fullname).localeCompare((b.type + "." + b.fullname)); })
-            .forEach(function(f) {
-                f.id = ++uniqueId;
-                var ui = buildFieldUI(f);
-                fields.appendChild(ui);
+            var uniqueId = 0;
+            UserFields
+                .sort(function(a, b) { return (a.type + "." + a.fullname).localeCompare((b.type + "." + b.fullname)); })
+                .forEach(function(f) {
+                    f.id = ++uniqueId;
+                    var ui = buildFieldUI(f);
+                    fields.appendChild(ui);
+                });
+
+            // Add a button for adding a new field.
+            var addNew = document.createElement("span");
+            addNew.className = "add button";
+            container.appendChild(addNew);
+
+            var addedFieldCounter = 0;
+            addNew.addEventListener("click", function() {
+                UserFields.push({
+                    type: DefaultTypeName,
+                    enabled:true,
+                    id: ++uniqueId,
+                    fullname: "Custom" + (++addedFieldCounter),
+                    localstorageid: (new Date() - 0) + "-" + Math.round(Math.random() * 1000000),
+                    shortname: "f" + addedFieldCounter,
+                    html: function() { return "_"; }
+                });
+
+                var fieldUI = buildFieldUI(UserFields[UserFields.length - 1]);
+                fieldUI.className += " editing";
+                fields.appendChild(fieldUI);
+
+                saveField(UserFields[UserFields.length - 1], fieldUI);
+
+                refreshTreeUIAfterFieldChange();
             });
 
-        // Add a button for adding a new field.
-        var addNew = document.createElement("span");
-        addNew.className = "add button";
-        container.appendChild(addNew);
+            reinjectUserFields();
 
-        var addedFieldCounter = 0;
-        addNew.addEventListener("click", function() {
-            UserFields.push({
-                type: DefaultTypeName,
-                enabled:true,
-                id: ++uniqueId,
-                fullname: "Custom" + (++addedFieldCounter),
-                localstorageid: StoragePrefix + ".UserField." + (new Date() - 0) + "-" + Math.round(Math.random() * 1000000),
-                shortname: "f" + addedFieldCounter,
-                html: function() { return "_"; }
-            });
-
-            var fieldUI = buildFieldUI(UserFields[UserFields.length - 1]);
-            fieldUI.className += " editing";
-            fields.appendChild(fieldUI);
-
-            saveField(UserFields[UserFields.length - 1], fieldUI);
-
-            refreshTreeUIAfterFieldChange();
+            document.body.appendChild(container);
         });
-
-        reinjectUserFields();
-
-        document.body.appendChild(container);
     }
 
     function renderFields(injectedObject, dbgObject, representation) {

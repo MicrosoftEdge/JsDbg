@@ -60,8 +60,9 @@ namespace JsDbg {
         private const int StartPortNumber = 50000;
         private const int EndPortNumber = 50099;
 
-        internal WebServer(Debugger debugger, string path, string defaultExtensionPath) {
+        internal WebServer(Debugger debugger, PersistentStore persistentStore, string path, string defaultExtensionPath) {
             this.debugger = debugger;
+            this.persistentStore = persistentStore;
             this.path = path;
             this.defaultExtensionPath = defaultExtensionPath;
             this.port = StartPortNumber;
@@ -179,6 +180,12 @@ namespace JsDbg {
                                 break;
                             case "extensions":
                                 this.ServeExtensions(segments, context);
+                                break;
+                            case "persistentstorage":
+                                this.ServePersistentStorage(segments, context);
+                                break;
+                            case "persistentstorageusers":
+                                this.ServePersistentStorageUsers(segments, context);
                                 break;
                             default:
                                 context.Response.Redirect("/");
@@ -688,6 +695,31 @@ namespace JsDbg {
             this.ServeUncachedString(String.Format("{{ \"extensions\": [{0}] }}", String.Join(",", jsonExtensions)), context);
         }
 
+        private void ServePersistentStorage(string[] segments, HttpListenerContext context) {
+            if (context.Request.HttpMethod == "GET") {
+                string user = context.Request.QueryString["user"];
+                this.ServeUncachedString(this.persistentStore.Get(user), context);
+            } else if (context.Request.HttpMethod == "PUT") {
+                System.IO.StreamReader reader = new System.IO.StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
+                string data = reader.ReadToEnd();
+                this.persistentStore.Set(data);
+                this.ServeUncachedString("{ \"success\": true }", context);
+            } else {
+                this.ServeFailure(context);
+            }
+        }
+
+        private void ServePersistentStorageUsers(string[] segments, HttpListenerContext context) {
+            string[] users = this.persistentStore.GetUsers();
+
+            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(string[]));
+            using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                serializer.WriteObject(memoryStream, users);
+                string result = Encoding.Default.GetString(memoryStream.ToArray());
+                this.ServeUncachedString(String.Format("{{ \"users\": {0} }}", result), context);
+            }
+        }
+
         internal void Abort() {
             if (this.httpListener.IsListening) {
                 this.httpListener.Abort();
@@ -705,6 +737,7 @@ namespace JsDbg {
 
         private HttpListener httpListener;
         private Debugger debugger;
+        private PersistentStore persistentStore;
         private List<JsDbgExtension> loadedExtensions;
         private string path;
         private string defaultExtensionPath;

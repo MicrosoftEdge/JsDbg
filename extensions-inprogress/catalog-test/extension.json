@@ -1,0 +1,5 @@
+{
+    "name": "catalog-test",
+    "description": "Tests the catalog extension.",
+    "dependencies": ["c:\\my\\dev\\extensions-inprogress\\catalog"]
+}

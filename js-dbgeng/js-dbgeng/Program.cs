@@ -21,6 +21,12 @@ namespace JsDbg {
             }
         }
 
+        static internal string PersistentStoreDirectory {
+            get {
+                return @"\\iefs\users\psalas\jsdbg\support\persistent";
+            }
+        }
+
         [STAThread]
         static int Main(string[] args) {
             string remoteString;
@@ -61,8 +67,10 @@ namespace JsDbg {
 
             string webRoot = System.IO.Path.Combine(path, "wwwroot");
             string extensionRoot = System.IO.Path.Combine(path, "extensions");
+            PersistentStore persistentStore = new PersistentStore(Program.PersistentStoreDirectory);
+
             Console.Out.WriteLine("Serving from {0}", webRoot);
-            using (WebServer webServer = new WebServer(debugger, webRoot, extensionRoot)) {
+            using (WebServer webServer = new WebServer(debugger, persistentStore, webRoot, extensionRoot)) {
                 webServer.LoadExtension("default");
 
                 SynchronizationContext previousContext = SynchronizationContext.Current;

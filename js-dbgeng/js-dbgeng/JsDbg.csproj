@@ -73,6 +73,7 @@
     <Compile Include="Debugger.cs" />
     <Compile Include="DiaHelpers.cs" />
     <Compile Include="DumpTypeParser.cs" />
+    <Compile Include="PersistentStore.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SingleThreadSynchronizationContext.cs" />

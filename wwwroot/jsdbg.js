@@ -9,15 +9,19 @@ var JsDbg = (function() {
 
     var responseCache = {};
 
-    function jsonRequest(url, callback, async, cache) {
+    function jsonRequest(url, callback, async, cache, method, data) {
         if (cache && url in responseCache) {
             callback(responseCache[url]);
             return;
         }
 
+        if (!method) {
+            method = "GET";
+        }
+
         var xhr = new XMLHttpRequest();
         
-        xhr.open("GET", url, async);
+        xhr.open(method, url, async);
         xhr.onreadystatechange = function() {
             if (xhr.readyState == 4 && xhr.status == 200) {
                 var result = JSON.parse(xhr.responseText);
@@ -27,7 +31,7 @@ var JsDbg = (function() {
                 callback(result);
             }
         };
-        xhr.send();
+        xhr.send(data);
     }
 
     function esc(s) { return encodeURIComponent(s); }
@@ -102,6 +106,19 @@ var JsDbg = (function() {
 
         LookupSymbol: function(symbol, callback) {
             jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol), callback, /*async*/true);
+        },
+
+        GetPersistentData: function(user, callback) {
+            jsonRequest("/jsdbg/persistentstorage" + (user ? "?user=" + esc(user) : ""), callback, /*async*/true);
+        },
+
+        SetPersistentData: function(data, callback) {
+            var value = JSON.stringify(data);
+            jsonRequest("/jsdbg/persistentstorage", callback, /*async*/true, /*cache*/false, "PUT", value);
+        },
+
+        GetPersistentDataUsers: function(callback) {
+            jsonRequest("/jsdbg/persistentstorageusers", callback, /*async*/true);
         },
 
         // Synchronous methods.
@@ -192,6 +209,25 @@ var JsDbg = (function() {
         SyncLookupSymbol: function(symbol) {
             var retval = null;
             jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol), function(x) { retval = x; }, /*async*/false);
+            return retval;
+        },
+
+        SyncGetPersistentData: function(user) {
+            var retval = null;
+            jsonRequest("/jsdbg/persistentstorage" + (user ? "?user=" + esc(user) : ""), function(x) { retval = x; }, /*async*/false);
+            return retval;
+        },
+
+        SyncSetPersistentData: function(data) {
+            var value = JSON.stringify(data);
+            var retval = null;
+            jsonRequest("/jsdbg/persistentstorage", function(x) { retval = x; }, /*async*/false, /*cache*/false, "PUT", value);
+            return retval;
+        },
+
+        SyncGetPersistentDataUsers: function() {
+            var retval = null;
+            jsonRequest("/jsdbg/persistentstorageusers", function(x) { retval = x; }, /*async*/false);
             return retval;
         }
     }

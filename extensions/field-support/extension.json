@@ -4,6 +4,7 @@
     "description": "Support for injecting fields into DbgObject-backed visualizations",
     "headless": true,
     "dependencies": [
-        "dbgobject"
+        "dbgobject",
+        "c:\\my\\dev\\extensions-inprogress\\catalog"
     ]
 }
