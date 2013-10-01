@@ -3,5 +3,5 @@
     "author": "Peter Salas",
     "description": "A common UI for selecting and viewing entities from other users' catalogs.",
     "headless": true,
-    "dependencies": ["c:\\my\\dev\\extensions-inprogress\\catalog"]
+    "dependencies": ["catalog"]
 }

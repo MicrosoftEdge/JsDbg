@@ -5,6 +5,6 @@
     "headless": true,
     "dependencies": [
         "dbgobject",
-        "c:\\my\\dev\\extensions-inprogress\\catalog"
+        "catalog"
     ]
 }
