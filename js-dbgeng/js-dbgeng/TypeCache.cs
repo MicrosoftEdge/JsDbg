@@ -7,6 +7,7 @@ using Microsoft.Debuggers.DbgEng;
 using Dia2Lib;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace JsDbg {
     struct SField {
@@ -175,7 +176,10 @@ namespace JsDbg {
             this.isInFallback = false;
         }
 
+        private static Regex ArrayIndexRegex = new Regex(@"\[[0-9]*\]");
         internal Type GetType(DebugClient client, DebugControl control, SymbolCache symbolCache, string module, string typename) {
+            typename = ArrayIndexRegex.Replace(typename, "");
+
             string key = TypeKey(module, typename);
             if (this.types.ContainsKey(key)) {
                 return this.types[key];
