@@ -8,10 +8,27 @@
     <script src="/dbgobject/dbgobject.js" type="text/javascript"></script>
     <script type="text/javascript">
         function init() {
+            document.querySelector(".type").value = window.localStorage.getItem("struct-diff.type");
+            document.querySelectorAll(".pointer")[0].value = window.sessionStorage.getItem("struct-diff.pointer0");
+            document.querySelectorAll(".pointer")[1].value = window.sessionStorage.getItem("struct-diff.pointer1");
+            document.getElementById("recurse").checked = window.sessionStorage.getItem("struct-diff.recurse") === "true" ? true : false;
+
+            if (document.querySelector(".type").value.length > 0) {
+                document.querySelector(".pointer").focus();
+            } else {
+                document.querySelector(".type").focus();
+            }
+
             document.querySelector("button").addEventListener("click", function() {
                 var type = document.querySelector(".type").value;
                 var pointer1 = document.querySelectorAll(".pointer")[0].value;
                 var pointer2 = document.querySelectorAll(".pointer")[1].value;
+                var shouldRecurse = document.getElementById("recurse").checked;
+
+                window.localStorage.setItem("struct-diff.type", type);
+                window.sessionStorage.setItem("struct-diff.pointer0", pointer1);
+                window.sessionStorage.setItem("struct-diff.pointer1", pointer2);
+                window.sessionStorage.setItem("struct-diff.recurse", shouldRecurse);
 
                 if (type.indexOf("!") < 0) {
                     alert("Please enter a type, prefixed by the module.");
@@ -88,7 +105,7 @@
                 }
 
                 // get the fields.
-                if (document.getElementById("recurse").checked) {
+                if (shouldRecurse) {
                     var fields = [];
                     expandArrays(object1.fields()).forEach(function(f) {
                         recursivelyGetFields(fields, f, 0, "");
