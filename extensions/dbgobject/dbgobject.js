@@ -36,11 +36,15 @@ function DbgObject(module, type, pointer, bitcount, bitoffset) {
         .replace(/^\s+/g, '');
 
     // Get the array size.
-    var arrayRegex = /\[[0-9]+\]/;
+    var arrayRegex = /\[[0-9]+\]/g;
     var matches = this.typename.match(arrayRegex);
     if (matches) {
         this.isArray = true;
-        this.arrayLength = parseInt(matches[0].substr(1, matches[0].length - 2));
+        // might be a multi-dimensional array
+        this.arrayLength = 1;
+        for (var i = 0; i < matches.length; ++i) {
+            this.arrayLength *= parseInt(matches[i].substr(1, matches[i].length - 2));
+        }
         this.typename = this.typename.replace(arrayRegex, '');
     } else {
         this.isArray = false;
