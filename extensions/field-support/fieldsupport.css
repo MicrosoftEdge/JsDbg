@@ -90,7 +90,7 @@
     display:none;
 }
 
-.field-selection.collapsed .add {
+.field-selection.collapsed .add, .field-selection.collapsed .browse {
     display:none;
 }
 
