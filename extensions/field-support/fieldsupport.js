@@ -131,6 +131,9 @@ var FieldSupport = (function() {
             container.appendChild(checkbox);
             checkbox.addEventListener("change", function() {
                 f.enabled = checkbox.checked;
+                if (!f.external) {
+                    window.sessionStorage.setItem(getSessionStorageKey(f), f.enabled);
+                }
                 refreshTreeUIAfterFieldChange();
             })
 
@@ -308,6 +311,19 @@ var FieldSupport = (function() {
             saveField(f, container);
         }
 
+        function getSessionStorageKey(f) {
+            var key = StoragePrefix + ".UserFields.Enabled.";
+            if (f.external) {
+                return null;
+            } else if (f.localstorageid) {
+                key += f.localstorageid;
+            } else {
+                key += f.type + "." + f.fullname;
+            }
+
+            return key;
+        }
+
         var storage = Catalog.Load(StoragePrefix + ".UserFields");
 
         // Check if there's anything stored in local storage, and if so, upgrade it to the persistent store.
@@ -371,6 +387,8 @@ var FieldSupport = (function() {
             UserFields
                 .sort(function(a, b) { return (a.type + "." + a.fullname).localeCompare((b.type + "." + b.fullname)); })
                 .forEach(function(f) {
+                    f.enabled = (window.sessionStorage.getItem(getSessionStorageKey(f)) == "true");
+
                     f.id = ++uniqueId;
                     var ui = buildFieldUI(f);
                     fields.appendChild(ui);
@@ -419,6 +437,7 @@ var FieldSupport = (function() {
                                 type: field.type,
                                 id:++uniqueId,
                                 enabled: true,
+                                external: true,
                                 fullname: field.name,
                                 shortname: field.shortName,
                                 html: codeStringToFunction(field.codeString),
@@ -438,7 +457,7 @@ var FieldSupport = (function() {
                 );
             });
 
-            reinjectUserFields();
+            refreshTreeUIAfterFieldChange();
 
             document.body.appendChild(container);
         });
