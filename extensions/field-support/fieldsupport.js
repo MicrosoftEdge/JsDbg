@@ -277,7 +277,7 @@ var FieldSupport = (function() {
         function codeStringToFunction(codeString) {
             return function(e) { 
                 try {
-                    return this.InjectedFieldEvaluate("(function() { " + codeString + "}).call(this, e)", e);
+                    return this.InjectedFieldEvaluate("(function() { " + codeString + "\n/**/}).call(this, e)", e);
                 } catch (ex) {
                     return "<span style='color:red' title='" + ex + "'>[ERROR]</span>";
                 }
