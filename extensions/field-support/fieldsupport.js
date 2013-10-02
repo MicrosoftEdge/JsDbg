@@ -418,7 +418,7 @@ var FieldSupport = (function() {
                             UserFields.push({
                                 type: field.type,
                                 id:++uniqueId,
-                                enabled: false,
+                                enabled: true,
                                 fullname: field.name,
                                 shortname: field.shortName,
                                 html: codeStringToFunction(field.codeString),
@@ -427,6 +427,10 @@ var FieldSupport = (function() {
 
                             fields.appendChild(buildFieldUI(UserFields[UserFields.length - 1]));
                         });
+
+                        if (selected.length > 0) {
+                            refreshTreeUIAfterFieldChange();
+                        }
                     },
                     function(a) {
                         return (a.user + "." + a.value.type + "." + a.value.name)
