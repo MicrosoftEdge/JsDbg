@@ -8,10 +8,16 @@
 var JsDbg = (function() {
 
     var responseCache = {};
+    var everythingCache = null;
 
     function jsonRequest(url, callback, async, cache, method, data) {
         if (cache && url in responseCache) {
             callback(responseCache[url]);
+            return;
+        }
+
+        if (everythingCache != null && url in everythingCache) {
+            callback(everythingCache[url]);
             return;
         }
 
@@ -27,6 +33,8 @@ var JsDbg = (function() {
                 var result = JSON.parse(xhr.responseText);
                 if (cache) {
                     responseCache[url] = result;
+                } else if (everythingCache != null) {
+                    everythingCache[url] = result;
                 }
                 callback(result);
             }
@@ -44,6 +52,18 @@ var JsDbg = (function() {
     };
 
     return {
+        RunWithCachedWorld: function(action) {
+            if (everythingCache == null) {
+                // The world isn't being cached.
+                everythingCache = {};
+                var result = action();
+                everythingCache = null;
+                return result;
+            } else {
+                // The world is already cached.
+                return action();
+            }
+        },
 
         // Asynchronous methods.
         LoadExtension: function(path, callback) {

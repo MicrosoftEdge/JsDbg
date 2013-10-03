@@ -34,4 +34,22 @@ var DisplayTreeBuiltInFields = [
             return this.f("_pDispClient").vtable();
         }
     },
+    {
+        type: "CDispNode",
+        fullname: "All Flags",
+        shortname: "flags",
+        html: function() {
+            // Run it under a cached world so that we don't repeatedly read the same bytes for different bitfields.
+            return JsDbg.RunWithCachedWorld((function() {
+                return this.f("_flags").fields()
+                    .map(function(f) {
+                        if (f.name.indexOf("_fUnused") != 0 && f.value.bitcount == 1 && f.value.val()) {
+                            return f.name + " ";
+                        }
+                        return "";
+                    })
+                    .join("");
+            }).bind(this));
+        }
+    }
 ];

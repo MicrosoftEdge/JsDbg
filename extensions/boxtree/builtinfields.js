@@ -14,18 +14,7 @@ var BoxTreeBuiltInFields = [
         fullname: "CTreeNode",
         shortname: "tn",
         html: function() {
-            var element = this.f("element.m_pT");
-            var treeNode = null;
-            try {
-                element.f("placeholder");
-                // We're in chk, offset by the size of a void*.
-                treeNode = element.as("void*").idx(1).as("CTreeNode");
-            } catch (ex) {
-                // We're in fre, cast to CTreeNode.
-                treeNode = element.as("CTreeNode");
-            }
-
-            return treeNode.ptr();
+            return MSHTML.GetCTreeNodeFromTreeElement(this.f("element.m_pT")).ptr();
         }
     },
 
@@ -34,18 +23,11 @@ var BoxTreeBuiltInFields = [
         fullname: "Tag",
         shortname: "tag",
         html: function() {
-            var element = this.f("element.m_pT");
-            var treeNode = null;
-            try {
-                element.f("placeholder");
-                // We're in chk, offset by the size of a void*.
-                treeNode = element.as("void*").idx(1).as("CTreeNode");
-            } catch (ex) {
-                // We're in fre, cast to CTreeNode.
-                treeNode = element.as("CTreeNode");
-            }
-
-            return treeNode.f("_etag").as("ELEMENT_TAG").constant().substr("ETAG_".length);
+            return MSHTML.GetCTreeNodeFromTreeElement(this.f("element.m_pT"))
+                .f("_etag")
+                .as("ELEMENT_TAG")
+                .constant()
+                .substr("ETAG_".length);
         }
     },
     {

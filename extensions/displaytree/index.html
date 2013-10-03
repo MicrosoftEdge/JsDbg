@@ -42,11 +42,18 @@
                 var hashPointer = window.location.hash.substr(1);
                 document.getElementById("pointer").value = hashPointer;
             } else {
-                var roots = MSHTML.GetRootCTreeNodesWithLayoutAssociations();
-                if (roots.length == 1) {
+                var docs = MSHTML.GetCDocs();
+                var dispRoots = [];
+                docs.forEach(function(doc) {
+                    var dispRoot = doc.f("_view._pDispRoot");
+                    if (!dispRoot.isNull()) {
+                        dispRoots.push(dispRoot);
+                    }
+                });
+                if (dispRoots.length == 1) {
                     // There is exactly one root tree node with a layout association.  Use it.
-                    document.getElementById("pointer").value = roots[0];
-                    loadDisplayTree(true);
+                    document.getElementById("pointer").value = dispRoots[0].ptr();
+                    loadDisplayTree(false);
                 }
             }
 

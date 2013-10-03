@@ -14,7 +14,6 @@ var MarkupTreeBuiltInFields = [
         type: "CTreeNode",
         fullname: "_iFF",
         shortname: "_iFF",
-        enabled: true,
         html: function() {
             var validityString = "";
             if (this.f("_fIFFValid").val() != "1")
@@ -28,7 +27,6 @@ var MarkupTreeBuiltInFields = [
         type: "CTreeNode",
         fullname: "_iCF",
         shortname: "_iCF",
-        enabled: true,
         html: function() {
             var validityString = "";
             if (this.f("_fIPCFValid").val() != "1")
@@ -42,7 +40,6 @@ var MarkupTreeBuiltInFields = [
         type: "CTreeNode",
         fullname: "_iPF",
         shortname: "_iPF",
-        enabled: true,
         html: function() {
             var validityString = "";
             if (this.f("_fIPCFValid").val() != "1")
