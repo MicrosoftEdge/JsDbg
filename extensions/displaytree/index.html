@@ -19,74 +19,18 @@
     <script type="text/javascript" src="/field-support/fieldsupport.js"></script>
     <link rel="stylesheet" href="/field-support/fieldsupport.css" type="text/css">
     <script type="text/javascript" src="/mshtml-helpers/mshtml.js"></script>
+    <link rel="stylesheet" type="text/css" href="/tree-inspector/tree-inspector.css">
+    <script type="text/javascript" src="/tree-inspector/tree-inspector.js"></script>
 
     <script type="text/javascript" src="/displaytree/displaytree.js"></script>
     <script type="text/javascript" src="/displaytree/builtinfields.js"></script>
 
     <script type="text/javascript">
-        var rootDispNode = null;
-        var treeAlgorithm = TallTree;
-
-        function loadDisplayTree(isTreeNode) {
-            var pointer = parseInt(document.getElementById("pointer").value, 16);
-            if (isTreeNode) {
-                rootDispNode = DisplayTree.CreateFromCTreeNodePointer(pointer);
-            } else {
-                rootDispNode = DisplayTree.CreateFromCDispNodePointer(pointer);
-            }
-            DisplayTree.Render(treeAlgorithm, rootDispNode, document.querySelector("#tree"));
-        }
-
-        function init() {
-            if (window.location.hash) {
-                var hashPointer = window.location.hash.substr(1);
-                document.getElementById("pointer").value = hashPointer;
-            } else {
-                var docs = MSHTML.GetCDocs();
-                var dispRoots = [];
-                docs.forEach(function(doc) {
-                    var dispRoot = doc.f("_view._pDispRoot");
-                    if (!dispRoot.isNull()) {
-                        dispRoots.push(dispRoot);
-                    }
-                });
-                if (dispRoots.length == 1) {
-                    // There is exactly one root tree node with a layout association.  Use it.
-                    document.getElementById("pointer").value = dispRoots[0].ptr();
-                    loadDisplayTree(false);
-                }
-            }
-
-            document.getElementById("loadTreeNode").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadDisplayTree(true); });
-            document.getElementById("loadCDispNode").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadDisplayTree(false); });
-
-            function radioChanged() {
-                var oldTreeAlgorithm = treeAlgorithm;
-                if (document.getElementById("wideTreeRadio").checked) {
-                    treeAlgorithm = WideTree;
-                } else {
-                    treeAlgorithm = TallTree;
-                }
-                if (rootDispNode != null && treeAlgorithm != oldTreeAlgorithm) {
-                    DisplayTree.Render(treeAlgorithm, rootDispNode, document.querySelector("#tree"));
-                }
-            }
-            document.getElementById("wideTreeRadio").addEventListener("change", radioChanged);
-            document.getElementById("tallTreeRadio").addEventListener("change", radioChanged);
-        }
-
-        document.addEventListener("DOMContentLoaded", init);
+        document.addEventListener("DOMContentLoaded", function() {
+            TreeInspector.Initialize(DisplayTree, document.body);
+        });
     </script>
 </head>
 <body>
-    <label for="pointer">Pointer:</label>
-    <input type="text" id="pointer" /> 
-    <button id="loadTreeNode">CTreeNode</button>
-    <button id="loadCDispNode">CDispNode</button>
-    <input id="tallTreeRadio" checked name="treeType" type="radio" /><label for="tallTreeRadio">Tall Tree</label>
-    <input id="wideTreeRadio" name="treeType" type="radio" /><label for="wideTreeRadio">Wide Tree</label>
-    <br />
-    Click a display node to show its children.  Ctrl-Click to expand or collapse a subtree.<br />
-    <div id="tree"></div>
 </body>
 </html>

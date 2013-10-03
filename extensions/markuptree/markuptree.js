@@ -14,6 +14,21 @@ var MarkupTree = (function() {
         renderTreeRoot = renderer.BuildTree(container, markupTree);
         return renderTreeRoot;
     }
+
+    function getRootCTreeNodes() {
+        try {
+            var roots = MSHTML.GetRootCTreeNodes();
+            if (roots.length == 0) {
+                throw "";
+            }
+
+            roots.sort(function(a, b) { return b.f("_fHasLayoutAssociationPtr").val() - a.f("_fHasLayoutAssociationPtr").val(); })
+            return roots.map(function(tn) { return tn.ptr(); });
+        } catch (ex) {
+            throw "No root CTreeNodes were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a CTreeNode explicitly.";
+        }
+    }
+
     function updateTreeRepresentation() {
         if (renderTreeRoot != null) {
             renderTreeRoot.updateRepresentation();
@@ -66,7 +81,10 @@ var MarkupTree = (function() {
     });
 
     return {
+        Name: "MarkupTree",
+        BasicType: "CTreeNode",
         Create: createMarkupTree,
         Render: renderMarkupTree,
+        Roots: getRootCTreeNodes
     }
 })();

@@ -14,7 +14,8 @@ var BoxTreeBuiltInFields = [
         fullname: "CTreeNode",
         shortname: "tn",
         html: function() {
-            return MSHTML.GetCTreeNodeFromTreeElement(this.f("element.m_pT")).ptr();
+            var ptr = MSHTML.GetCTreeNodeFromTreeElement(this.f("element.m_pT")).ptr();
+            return "<a href='/markuptree/#" + ptr + "' target='markuptree'>" + ptr + "</a>";
         }
     },
 
@@ -66,7 +67,8 @@ var BoxTreeBuiltInFields = [
         shortname: "d",
         html: function() {
             if (!this.f("isDisplayNodeExtracted").val()) {
-                return this.f("rawDisplayNode").ptr();
+                var ptr = this.f("rawDisplayNode").ptr();
+                return "<a href='/displaytree/#" + ptr + "' target='displaytree'>" + ptr + "</a>";
             } else {
                 return "null";
             }

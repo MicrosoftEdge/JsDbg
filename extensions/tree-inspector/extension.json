@@ -1,0 +1,7 @@
+{
+    "name": "tree-inspector",
+    "author": "Peter Salas",
+    "description": "UI for the tree inspectors.",
+    "headless": true,
+    "dependencies": ["tree-drawing"]
+}

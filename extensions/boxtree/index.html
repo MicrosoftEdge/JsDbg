@@ -19,67 +19,18 @@
     <script type="text/javascript" src="/field-support/fieldsupport.js"></script>
     <link rel="stylesheet" href="/field-support/fieldsupport.css" type="text/css">
     <script type="text/javascript" src="/mshtml-helpers/mshtml.js"></script>
+    <link rel="stylesheet" type="text/css" href="/tree-inspector/tree-inspector.css">
+    <script type="text/javascript" src="/tree-inspector/tree-inspector.js"></script>
 
     <script type="text/javascript" src="/boxtree/boxtree.js"></script>
     <script type="text/javascript" src="/boxtree/builtinfields.js"></script>
 
     <script type="text/javascript">
-        var rootBox = null;
-        var treeAlgorithm = TallTree;
-
-        function loadBoxTree(isTreeNode) {
-            var pointer = parseInt(document.getElementById("pointer").value, 16);
-            if (isTreeNode) {
-                rootBox = BoxTree.CreateFromCTreeNodePointer(pointer);
-            } else {
-                rootBox = BoxTree.CreateFromLayoutBoxPointer(pointer);
-            }
-            BoxTree.Render(treeAlgorithm, rootBox, document.querySelector("#tree"));
-        }
-
-        function init() {
-            if (window.location.hash) {
-                var hashPointer = window.location.hash.substr(1);
-                document.getElementById("pointer").value = hashPointer;
-            } else {
-                var roots = MSHTML.GetRootCTreeNodesWithLayoutAssociations();
-                if (roots.length == 1) {
-                    // There is exactly one root tree node with a layout association.  Use it.
-                    document.getElementById("pointer").value = roots[0];
-                    loadBoxTree(true);
-                }
-            }
-
-            document.getElementById("loadTreeNode").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadBoxTree(true); });
-            document.getElementById("loadLayoutBox").addEventListener("click", function() { window.location.hash = document.getElementById("pointer").value; loadBoxTree(false); });
-
-            function radioChanged() {
-                var oldTreeAlgorithm = treeAlgorithm;
-                if (document.getElementById("wideTreeRadio").checked) {
-                    treeAlgorithm = WideTree;
-                } else {
-                    treeAlgorithm = TallTree;
-                }
-                if (rootBox != null && treeAlgorithm != oldTreeAlgorithm) {
-                    BoxTree.Render(treeAlgorithm, rootBox, document.querySelector("#tree"));
-                }
-            }
-            document.getElementById("wideTreeRadio").addEventListener("change", radioChanged);
-            document.getElementById("tallTreeRadio").addEventListener("change", radioChanged);
-        }
-
-        document.addEventListener("DOMContentLoaded", init);
+        document.addEventListener("DOMContentLoaded", function() {
+            TreeInspector.Initialize(BoxTree, document.body);
+        });
     </script>
 </head>
 <body>
-    <label for="pointer">Pointer:</label>
-    <input type="text" id="pointer" /> 
-    <button id="loadTreeNode">CTreeNode</button>
-    <button id="loadLayoutBox">LayoutBox</button>
-    <input id="tallTreeRadio" checked name="treeType" type="radio" /><label for="tallTreeRadio">Tall Tree</label>
-    <input id="wideTreeRadio" name="treeType" type="radio" /><label for="wideTreeRadio">Wide Tree</label>
-    <br />
-    Click a box to show its children.  Ctrl-Click to expand or collapse a subtree.<br />
-    <div id="tree"></div>
 </body>
 </html>

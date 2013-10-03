@@ -18,38 +18,11 @@ var DisplayTree = (function() {
     var DispNodeTypes = {};
     var FieldTypeMap = {};
 
-    function createDisplayTree(pointer, isTreeNode) {
+    function createDisplayTree(pointer) {
         if (pointer) {
-            var dispNode = null;
-            if (isTreeNode) {
-                // Get the box pointer from the tree node.
-                var treeNode = new DbgObject("mshtml", "CTreeNode", pointer);
-                var layoutAssociationPtrBits = treeNode.f("_fHasLayoutAssociationPtr").val();
-                if (layoutAssociationPtrBits & 0x8) {
-                    var bits = 0;
-
-                    // for each bit not counting the 0x8 bit, dereference the pointer.
-                    layoutAssociationPtrBits = layoutAssociationPtrBits & 0x7;
-                    var pointer = treeNode.f("_pLayoutAssociation");
-                    while (layoutAssociationPtrBits > 0) {
-                        if (layoutAssociationPtrBits & 1) {
-                            pointer = pointer.deref();
-                        }
-                        layoutAssociationPtrBits = layoutAssociationPtrBits>>1;
-                    }
-
-                    dispNode = pointer.as("Layout::ContainerBox").f("rawDisplayNode");
-                } else {
-                    alert("No box was attached to the tree node.");
-                }
-            } else {
-                dispNode = new DbgObject("mshtml", "Layout::CDispNode", pointer);
-            }
-
-            if (dispNode != null) {
-                DispNodeCache = {};
-                return CreateDispNode(dispNode);
-            }
+            var dispNode = new DbgObject("mshtml", "CDispNode", pointer);
+            DispNodeCache = {};
+            return CreateDispNode(dispNode);
         }
 
         return null;
@@ -59,6 +32,23 @@ var DisplayTree = (function() {
     function renderDisplayTree(renderer, displayTree, container) {
         renderTreeRoot = renderer.BuildTree(container, displayTree);
         return renderTreeRoot;
+    }
+
+    function getRootDispNodes() {
+        try {
+            var roots = MSHTML.GetCDocs()
+                .map(function (doc) { return doc.f("_view._pDispRoot"); })
+                .filter(function (dispRoot) { return !dispRoot.isNull(); })
+                .map(function(dispRoot) { return dispRoot.ptr(); })
+
+            if (roots.length == 0) {
+                throw "";
+            }
+
+            return roots;
+        } catch (ex) {
+            throw "No CDispRoots were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a CDispNode explicitly.";
+        }
     }
 
     function updateTreeRepresentation() {
@@ -169,8 +159,10 @@ var DisplayTree = (function() {
     });
 
     return {
-        CreateFromCTreeNodePointer: function(pointer) { return createDisplayTree(pointer, /*isTreeNode*/true); },
-        CreateFromCDispNodePointer: function(pointer) { return createDisplayTree(pointer, /*isTreeNode*/false); },
-        Render: renderDisplayTree
+        Name: "DisplayTree",
+        BasicType: "CDispNode",
+        Create: function(pointer) { return createDisplayTree(pointer, /*isTreeNode*/false); },
+        Render: renderDisplayTree,
+        Roots: getRootDispNodes
     };
 })();

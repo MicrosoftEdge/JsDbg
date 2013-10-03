@@ -45,7 +45,7 @@
             var ul = document.querySelector("ul");
             var li = document.createElement("li");
             li.className = "loadedExtension";
-            li.innerHTML = "<h3><a href='/" + ext.name + "/'>" + ext.name + "</a> </h3>" + 
+            li.innerHTML = "<h3><a href='/" + ext.name.toLowerCase() + "/' target='" + ext.name.toLowerCase() + "'>" + ext.name + "</a> </h3>" + 
                 (ext.author ? "<p class='author'>" + ext.author + "</p>" : "") +
                 (ext.description ? "<p class='description'>" + ext.description + "</p>" : "");
             var unload = document.createElement("span");

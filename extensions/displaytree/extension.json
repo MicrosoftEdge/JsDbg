@@ -6,6 +6,7 @@
         "dbgobject",
         "field-support",
         "mshtml-helpers",
-        "tree-drawing"
+        "tree-drawing",
+        "tree-inspector"
     ]
 }

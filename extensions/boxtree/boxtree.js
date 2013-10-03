@@ -18,38 +18,11 @@ var BoxTree = (function() {
     var BoxTypes = {};
     var FieldTypeMap = {};
 
-    function createBoxTree(pointer, isTreeNode) {
+    function createBoxTree(pointer) {
         if (pointer) {
-            var box = null;
-            if (isTreeNode) {
-                // Get the box pointer from the tree node.
-                var treeNode = new DbgObject("mshtml", "CTreeNode", pointer);
-                var layoutAssociationPtrBits = treeNode.f("_fHasLayoutAssociationPtr").val();
-                if (layoutAssociationPtrBits & 0x8) {
-                    var bits = 0;
-
-                    // for each bit not counting the 0x8 bit, dereference the pointer.
-                    layoutAssociationPtrBits = layoutAssociationPtrBits & 0x7;
-                    var pointer = treeNode.f("_pLayoutAssociation");
-                    while (layoutAssociationPtrBits > 0) {
-                        if (layoutAssociationPtrBits & 1) {
-                            pointer = pointer.deref();
-                        }
-                        layoutAssociationPtrBits = layoutAssociationPtrBits>>1;
-                    }
-
-                    box = pointer.as("Layout::LayoutBox");
-                } else {
-                    alert("No box was attached to the tree node.");
-                }
-            } else {
-                box = new DbgObject("mshtml", "Layout::LayoutBox", pointer);
-            }
-
-            if (box != null) {
-                BoxCache = {};
-                return CreateBox(box);
-            }
+            var box = new DbgObject("mshtml", "Layout::LayoutBox", pointer);
+            BoxCache = {};
+            return CreateBox(box);
         }
 
         return null;
@@ -59,6 +32,23 @@ var BoxTree = (function() {
     function renderBoxTree(renderer, boxTree, container) {
         renderTreeRoot = renderer.BuildTree(container, boxTree);
         return renderTreeRoot;
+    }
+
+    function getRootLayoutBoxes() {
+        try {
+            var roots = MSHTML.GetRootCTreeNodes()
+                .map(MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode)
+                .filter(function(box) { return !box.isNull(); })
+                .map(function(box) { return box.ptr(); })
+
+            if (roots.length == 0) {
+                throw "";
+            }
+
+            return roots;
+        } catch (ex) {
+            throw "No root CTreeNodes with LayoutBoxes were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The docmode is < 8.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a LayoutBox explicitly.";
+        }
     }
 
     function updateTreeRepresentation() {
@@ -346,8 +336,10 @@ var BoxTree = (function() {
     });
 
     return {
-        CreateFromCTreeNodePointer: function(pointer) { return createBoxTree(pointer, /*isTreeNode*/true); },
-        CreateFromLayoutBoxPointer: function(pointer) { return createBoxTree(pointer, /*isTreeNode*/false); },
-        Render: renderBoxTree
+        Name: "BoxTree",
+        BasicType: "LayoutBox",
+        Create: createBoxTree,
+        Render: renderBoxTree,
+        Roots: getRootLayoutBoxes
     };
 })();

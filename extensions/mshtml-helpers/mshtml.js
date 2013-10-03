@@ -10,22 +10,11 @@ var MSHTML = (function() {
         return docArrayObj.f("_pv").as("CDoc*").array(docArrayObj.f("_c").val());
     }
 
-    function getRootCTreeNodesWithLayoutAssociations() {
-        var roots = [];
-        var docArray = getCDocs();
-        for (var i = 0; i < docArray.length; ++i) {
-            var doc = docArray[i];
-            var primaryWindow = doc.f("_pWindowPrimary");
-            if (!primaryWindow.isNull()) {
-                var markup = primaryWindow.f("_pCWindow._pMarkup");
-                var rootTreeNode = markup.f("_ptpFirst").unembed("CTreeNode", "_tpBegin");
-                if (rootTreeNode.f("_fHasLayoutAssociationPtr").val()) {
-                    roots.push(rootTreeNode.ptr());
-                }
-            }
-        }
-
-        return roots;
+    function getRootCTreeNodes() {
+        return getCDocs()
+            .map(function(doc) { return doc.f("_pWindowPrimary")})
+            .filter(function(pw) { return !pw.isNull(); })
+            .map(function(pw) { return pw.f("_pCWindow._pMarkup._ptpFirst").unembed("CTreeNode", "_tpBegin"); })
     }
 
     function getCTreeNodeFromTreeElement(element) {
@@ -41,9 +30,31 @@ var MSHTML = (function() {
         return treeNode;
     }
 
+    function getFirstAssociatedLayoutBoxFromCTreeNode(treeNode) {
+        var layoutAssociationBits = treeNode.f("_fHasLayoutAssociationPtr").val();
+        if (layoutAssociationBits & 0x8) {
+            var bits = 0;
+
+            // for each bit not counting the 0x8 bit, dereference the pointer.
+            layoutAssociationBits = layoutAssociationBits & 0x7;
+            var pointer = treeNode.f("_pLayoutAssociation");
+            while (layoutAssociationBits > 0) {
+                if (layoutAssociationBits & 1) {
+                    pointer = pointer.deref();
+                }
+                layoutAssociationBits = layoutAssociationBits >>1;
+            }
+
+            return pointer.as("Layout::LayoutBox");
+        } else {
+            return new DbgObject("mshtml", "Layout::LayoutBox", 0x0);
+        }
+    }
+
     return {
         GetCDocs: getCDocs,
-        GetRootCTreeNodesWithLayoutAssociations: getRootCTreeNodesWithLayoutAssociations,
-        GetCTreeNodeFromTreeElement: getCTreeNodeFromTreeElement
+        GetRootCTreeNodes: getRootCTreeNodes,
+        GetCTreeNodeFromTreeElement: getCTreeNodeFromTreeElement,
+        GetFirstAssociatedLayoutBoxFromCTreeNode: getFirstAssociatedLayoutBoxFromCTreeNode,
     }
 })();
