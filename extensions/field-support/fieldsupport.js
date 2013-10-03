@@ -162,8 +162,9 @@ var FieldSupport = (function() {
             var editor = document.createElement("div");
             editor.className = "editor";
 
-            var typeInput = document.createElement("input");
+            var typeInput = document.createElement("select");
             typeInput.className = "edit-type";
+            typeInput.innerHTML = typeSelectInnerHTML;
             typeInput.value = f.type;
             typeInput.addEventListener("change", function() { updateField(f, container); });
             typeInput.setAttribute("type", "text");
@@ -325,6 +326,13 @@ var FieldSupport = (function() {
         }
 
         var storage = Catalog.Load(StoragePrefix + ".UserFields");
+
+        var typeOptions = [];
+        for (var typeString in TypeMap) {
+            typeOptions.push(typeString);
+        }
+        typeOptions.sort();
+        var typeSelectInnerHTML = typeOptions.map(function(type) { return "<option value='" + type + "'>" + type + "</option>"; }).join("");
 
         // Check if there's anything stored in local storage, and if so, upgrade it to the persistent store.
         var resultsToSave = {};
