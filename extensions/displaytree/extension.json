@@ -4,9 +4,7 @@
     "description": "Navigate and inspect a display tree.",
     "dependencies": [
         "dbgobject",
-        "field-support",
         "mshtml-helpers",
-        "tree-drawing",
         "tree-inspector"
     ]
 }

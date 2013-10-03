@@ -3,5 +3,8 @@
     "author": "Peter Salas",
     "description": "UI for the tree inspectors.",
     "headless": true,
-    "dependencies": ["tree-drawing"]
+    "dependencies": [
+        "field-support",
+        "tree-drawing"
+    ]
 }

@@ -28,12 +28,6 @@ var DisplayTree = (function() {
         return null;
     }
 
-    var renderTreeRoot = null;
-    function renderDisplayTree(renderer, displayTree, container) {
-        renderTreeRoot = renderer.BuildTree(container, displayTree);
-        return renderTreeRoot;
-    }
-
     function getRootDispNodes() {
         try {
             var roots = MSHTML.GetCDocs()
@@ -48,12 +42,6 @@ var DisplayTree = (function() {
             return roots;
         } catch (ex) {
             throw "No CDispRoots were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a CDispNode explicitly.";
-        }
-    }
-
-    function updateTreeRepresentation() {
-        if (renderTreeRoot != null) {
-            renderTreeRoot.updateRepresentation();
         }
     }
 
@@ -153,16 +141,58 @@ var DisplayTree = (function() {
     var CDispScroller = CreateDispNodeType("CDispScroller", CDispClipNode);
     var CDispTopLevelScroller = CreateDispNodeType("CDispTopLevelScroller", CDispScroller);
 
-    document.addEventListener("DOMContentLoaded", function() {
-        // Initialize the field support.
-        FieldSupport.Initialize("DisplayTree", DisplayTreeBuiltInFields, "CDispNode", FieldTypeMap, updateTreeRepresentation);
-    });
+    var builtInFields = [
+        {
+            type: "CDispNode",
+            fullname: "Bounds",
+            shortname: "b",
+            html: function() {
+                var rect = this.f("_rctBounds");
+                return ["left", "top", "right", "bottom"].map(function(f) { return rect.f(f).val(); }).join(" ");
+            }
+        },
+        {
+            type: "CDispNode",
+            fullname: "Client",
+            shortname: "c",
+            html: function() {
+                return this.f("_pDispClient").ptr();
+            }
+        },
+        {
+            type: "CDispNode",
+            fullname: "Client Type",
+            shortname: "ct",
+            html: function() {
+                return this.f("_pDispClient").vtable();
+            }
+        },
+        {
+            type: "CDispNode",
+            fullname: "All Flags",
+            shortname: "flags",
+            html: function() {
+                // Run it under a cached world so that we don't repeatedly read the same bytes for different bitfields.
+                return JsDbg.RunWithCachedWorld((function() {
+                    return this.f("_flags").fields()
+                        .map(function(f) {
+                            if (f.name.indexOf("_fUnused") != 0 && f.value.bitcount == 1 && f.value.val()) {
+                                return f.name + " ";
+                            }
+                            return "";
+                        })
+                        .join("");
+                }).bind(this));
+            }
+        }
+    ];
 
     return {
         Name: "DisplayTree",
         BasicType: "CDispNode",
+        BuiltInFields: builtInFields,
+        TypeMap: FieldTypeMap,
         Create: function(pointer) { return createDisplayTree(pointer, /*isTreeNode*/false); },
-        Render: renderDisplayTree,
         Roots: getRootDispNodes
     };
 })();

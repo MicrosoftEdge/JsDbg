@@ -5,6 +5,7 @@ var TreeInspector = (function() {
     var pointerField = null;
     var treeContainer = null;
     var treeRoot = null;
+    var renderTreeRoot = null;
     var lastRenderedPointer = null;
     var treeAlgorithm = TallTree;
     var treeAlgorithms = { };
@@ -16,7 +17,7 @@ var TreeInspector = (function() {
                     // Don't re-render if we've already rendered.
                     lastRenderedPointer = pointerField.value;
                     treeRoot = namespace.Create(parseInt(pointerField.value));
-                    namespace.Render(treeAlgorithm, treeRoot, treeContainer);
+                    renderTreeRoot = treeAlgorithm.BuildTree(treeContainer, treeRoot);
                 }
             }
 
@@ -74,7 +75,7 @@ var TreeInspector = (function() {
                     treeAlgorithm = treeAlgorithms[e.target.id];
 
                     if (treeRoot != null && treeAlgorithm != oldTreeAlgorithm) {
-                        renderTreeFn(treeAlgorithm, treeRoot, treeContainer);
+                        renderTreeRoot = treeAlgorithm.BuildTree(treeContainer, treeRoot);
                     }
                 }
             }
@@ -161,6 +162,18 @@ var TreeInspector = (function() {
             // Load the roots to start, and try to unpack the hash.
             loadRoots(!window.location.hash);
             unpackHash();
+
+            FieldSupport.Initialize(
+                namespace.Name, 
+                namespace.BuiltInFields, 
+                namespace.BasicType, 
+                namespace.TypeMap, 
+                function() {
+                    if (renderTreeRoot != null) {
+                        renderTreeRoot.updateRepresentation();
+                    }
+                }
+            )
         }
     }
 })();

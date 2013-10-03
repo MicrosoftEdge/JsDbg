@@ -9,12 +9,6 @@ var MarkupTree = (function() {
         }
     }
 
-    var renderTreeRoot = null;
-    function renderMarkupTree(renderer, markupTree, container) {
-        renderTreeRoot = renderer.BuildTree(container, markupTree);
-        return renderTreeRoot;
-    }
-
     function getRootCTreeNodes() {
         try {
             var roots = MSHTML.GetRootCTreeNodes();
@@ -28,13 +22,6 @@ var MarkupTree = (function() {
             throw "No root CTreeNodes were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a CTreeNode explicitly.";
         }
     }
-
-    function updateTreeRepresentation() {
-        if (renderTreeRoot != null) {
-            renderTreeRoot.updateRepresentation();
-        }
-    }
-
 
     function CTreeNode(treeNode) {
         this.treeNode = treeNode;
@@ -75,16 +62,67 @@ var MarkupTree = (function() {
         return element;
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
-        // Initialize the field support.
-        FieldSupport.Initialize("MarkupTree", MarkupTreeBuiltInFields, "CTreeNode", {"CTreeNode": CTreeNode}, updateTreeRepresentation);
-    });
+    var builtInFields = [
+        {
+            type: "CTreeNode",
+            fullname: "_iFF",
+            shortname: "_iFF",
+            html: function() {
+                var validityString = "";
+                if (this.f("_fIFFValid").val() != "1")
+                {
+                    validityString = " _fIFFValid:0"
+                }
+                return this.f("_iFF").val() + validityString;
+            }
+        },
+        {
+            type: "CTreeNode",
+            fullname: "_iCF",
+            shortname: "_iCF",
+            html: function() {
+                var validityString = "";
+                if (this.f("_fIPCFValid").val() != "1")
+                {
+                    validityString = " _fIPCFValid:0"
+                }
+                return this.f("_iCF").val() + validityString;
+            }
+        },
+        {
+            type: "CTreeNode",
+            fullname: "_iPF",
+            shortname: "_iPF",
+            html: function() {
+                var validityString = "";
+                if (this.f("_fIPCFValid").val() != "1")
+                {
+                    validityString = " _fIPCFValid:0"
+                }
+                return this.f("_iPF").val() + validityString;
+            }
+        },
+        {
+            type: "CTreeNode",
+            fullname: "_iSF",
+            shortname: "_iSF",
+            html: function() {
+                var validityString = "";
+                if (this.f("_fISFValid").val() != "1")
+                {
+                    validityString = " _fISFValid:0"
+                }
+                return this.f("_iSF").val() + validityString;
+            }
+        }
+    ];
 
     return {
         Name: "MarkupTree",
         BasicType: "CTreeNode",
+        BuiltInFields: builtInFields,
+        TypeMap: { "CTreeNode": CTreeNode },
         Create: createMarkupTree,
-        Render: renderMarkupTree,
         Roots: getRootCTreeNodes
     }
 })();
