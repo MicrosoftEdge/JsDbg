@@ -1,8 +1,0 @@
-- box positions
-- windbg links
-
-- build integration
-
-FEEDBACK
-
-one feedback:  if a node has no box associateed with it, after an alert, maybe also need to clear the box 
