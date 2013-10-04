@@ -6,5 +6,9 @@
     "dependencies": [
         "field-support",
         "tree-drawing"
+    ],
+    "includes": [
+        "tree-inspector.css",
+        "tree-inspector.js"
     ]
 }

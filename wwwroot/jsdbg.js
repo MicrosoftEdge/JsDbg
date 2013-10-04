@@ -252,3 +252,63 @@ var JsDbg = (function() {
         }
     }
 })();
+
+(function() {
+    // Load any dependencies if requested.
+    var scriptTags = document.querySelectorAll("script");
+    var loadDependencies = false;
+    for (var i = 0; i < scriptTags.length; ++i) {
+        var tag = scriptTags[i];
+        if (tag.getAttribute("src").indexOf("/jsdbg.js") != -1) {
+            if (tag.getAttribute("data-include-dependencies") != null) {
+                loadDependencies = true;
+                break;
+            }
+        }
+    }
+
+    if (loadDependencies) {
+        // Include the common css file.
+        document.write("<link rel=\"stylesheet\" type=\"text/css\" href=\"/common.css\">");
+
+        var extensions = JsDbg.SyncGetExtensions().extensions;
+        var nameMap = {};
+        extensions.forEach(function(e) { nameMap[e.name.toLowerCase()] = e; });
+
+        function collectIncludes(lowerExtensionName, collectedIncludes, collectedExtensions) {
+            if (lowerExtensionName in collectedExtensions) {
+                // Already collected includes.
+                return;
+            }
+
+            var extension = nameMap[lowerExtensionName];
+            if (extension.dependencies != null) {
+                extension.dependencies.forEach(function(d) {
+                    collectIncludes(d.toLowerCase(), collectedIncludes, collectedExtensions);
+                });
+            }
+
+            if (extension.includes != null) {
+                extension.includes.forEach(function (include) { collectedIncludes.push(lowerExtensionName + "/" + include); });
+            }
+
+            collectedExtensions[lowerExtensionName] = true;
+        }
+
+        // Find the current extension.
+        var components = window.location.pathname.split('/');
+        if (components.length > 1) {
+            var includes = [];
+            collectIncludes(components[1].toLowerCase(), includes, {});
+            includes.forEach(function(file) {
+                if (file.match(/\.js$/)) {
+                    document.write("<script src=\"/" + file + "\" type=\"text/javascript\"></script>");
+                } else if (file.match(/\.css$/)) {
+                    document.write("<link rel=\"stylesheet\" type=\"text/css\" href=\"/" + file + "\">");
+                } else {
+                    console.log("Unknown dependency type: " + file);
+                }
+            });
+        }
+    }
+})();

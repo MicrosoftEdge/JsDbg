@@ -42,6 +42,12 @@ namespace JsDbg {
             set { this._headless = value; }
         }
 
+        [DataMember(IsRequired = false)]
+        public string[] includes {
+            get { return this._includes; }
+            set { this._includes = value; }
+        }
+
         public string Path {
             get { return this._path; }
             set { this._path = value; }
@@ -51,6 +57,7 @@ namespace JsDbg {
         private string _author;
         private string _description;
         private string[] _dependencies;
+        private string[] _includes;
         private string _path;
         private bool _headless;
     }
@@ -584,7 +591,8 @@ namespace JsDbg {
 
             List<JsDbgExtension> extensionsToLoad = new List<JsDbgExtension>();
             List<string> failedExtensions = new List<string>();
-            if (this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions)) {
+            string name;
+            if (this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions, out name)) {
                 this.loadedExtensions.AddRange(extensionsToLoad);
                 return true;
             } else {
@@ -592,9 +600,10 @@ namespace JsDbg {
             }
         }
 
-        private bool LoadExtensionAndDependencies(string extensionPath, List<JsDbgExtension> extensionsToLoad, List<string> failedExtensions) {
+        private bool LoadExtensionAndDependencies(string extensionPath, List<JsDbgExtension> extensionsToLoad, List<string> failedExtensions, out string extensionName) {
             if (!System.IO.Directory.Exists(extensionPath)) {
                 failedExtensions.Add(extensionPath);
+                extensionName = null;
                 return false;
             }
 
@@ -607,8 +616,11 @@ namespace JsDbg {
                 extension.Path = extensionPath;
             } catch {
                 failedExtensions.Add(extensionPath);
+                extensionName = null;
                 return false;
             }
+
+            extensionName = extension.name;
 
             // Check if the extension has already been loaded.
             foreach (JsDbgExtension existingExtension in this.loadedExtensions) {
@@ -628,16 +640,19 @@ namespace JsDbg {
 
             // Now load any dependencies, bubbling any failures.
             if (extension.dependencies != null) {
-                foreach (string dependencyPath in extension.dependencies) {
+                for (int i = 0; i < extension.dependencies.Length; ++i) {
+                    string dependencyPath = extension.dependencies[i];
                     string rootedDependencyPath = dependencyPath;
                     if (!System.IO.Path.IsPathRooted(rootedDependencyPath)) {
                         rootedDependencyPath = System.IO.Path.Combine(this.defaultExtensionPath, dependencyPath);
                     }
-
-                    if (!this.LoadExtensionAndDependencies(rootedDependencyPath, extensionsToLoad, failedExtensions)) {
+                    string dependencyName;
+                    if (!this.LoadExtensionAndDependencies(rootedDependencyPath, extensionsToLoad, failedExtensions, out dependencyName)) {
                         failedExtensions.Add(extensionPath);
                         return false;
                     }
+
+                    extension.dependencies[i] = dependencyName;
                 }
             }
 
@@ -655,7 +670,8 @@ namespace JsDbg {
 
             List<JsDbgExtension> extensionsToLoad = new List<JsDbgExtension>();
             List<string> failedExtensions = new List<string>();
-            if (!this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions)) {
+            string name;
+            if (!this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions, out name)) {
                 this.ServeUncachedString("{ \"error\": \"Extensions failed to load:" + String.Join(" -> ", failedExtensions).Replace("\\", "\\\\") + "\" }", context);
                 return;
             } else {

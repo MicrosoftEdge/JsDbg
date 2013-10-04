@@ -5,5 +5,11 @@
     "headless": true,
     "dependencies": [
         "timer"
+    ],
+    "includes": [
+        "talltree.css",
+        "talltree.js",
+        "widetree.css",
+        "widetree.js"
     ]
 }

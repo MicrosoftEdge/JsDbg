@@ -5,5 +5,8 @@
     "headless": true,
     "dependencies": [
         "dbgobject"
+    ],
+    "includes": [
+        "mshtml.js"
     ]
 }

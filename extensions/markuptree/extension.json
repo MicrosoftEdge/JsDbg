@@ -6,5 +6,8 @@
         "dbgobject",
         "mshtml-helpers",
         "tree-inspector"
+    ],
+    "includes": [
+        "markuptree.js"
     ]
 }
