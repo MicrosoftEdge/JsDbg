@@ -9,6 +9,7 @@ var JsDbg = (function() {
 
     var responseCache = {};
     var everythingCache = null;
+    var xhrToReuse = null;
 
     function jsonRequest(url, callback, async, cache, method, data) {
         if (cache && url in responseCache) {
@@ -25,7 +26,12 @@ var JsDbg = (function() {
             method = "GET";
         }
 
-        var xhr = new XMLHttpRequest();
+        var xhr;
+        if (xhrToReuse != null) {
+            xhr = xhrToReuse;
+        } else {
+            xhr = new XMLHttpRequest();
+        }
         
         xhr.open(method, url, async);
         xhr.onreadystatechange = function() {
@@ -40,6 +46,10 @@ var JsDbg = (function() {
             }
         };
         xhr.send(data);
+
+        if (!async) {
+            xhrToReuse = xhr;
+        }
     }
 
     function esc(s) { return encodeURIComponent(s); }
@@ -254,6 +264,26 @@ var JsDbg = (function() {
 })();
 
 (function() {
+    function collectIncludes(lowerExtensionName, collectedIncludes, collectedExtensions) {
+        if (lowerExtensionName in collectedExtensions) {
+            // Already collected includes.
+            return;
+        }
+
+        var extension = nameMap[lowerExtensionName];
+        if (extension.dependencies != null) {
+            extension.dependencies.forEach(function(d) {
+                collectIncludes(d.toLowerCase(), collectedIncludes, collectedExtensions);
+            });
+        }
+
+        if (extension.includes != null) {
+            extension.includes.forEach(function (include) { collectedIncludes.push(lowerExtensionName + "/" + include); });
+        }
+
+        collectedExtensions[lowerExtensionName] = true;
+    }
+
     // Load any dependencies if requested.
     var scriptTags = document.querySelectorAll("script");
     var loadDependencies = false;
@@ -275,29 +305,9 @@ var JsDbg = (function() {
         var nameMap = {};
         extensions.forEach(function(e) { nameMap[e.name.toLowerCase()] = e; });
 
-        function collectIncludes(lowerExtensionName, collectedIncludes, collectedExtensions) {
-            if (lowerExtensionName in collectedExtensions) {
-                // Already collected includes.
-                return;
-            }
-
-            var extension = nameMap[lowerExtensionName];
-            if (extension.dependencies != null) {
-                extension.dependencies.forEach(function(d) {
-                    collectIncludes(d.toLowerCase(), collectedIncludes, collectedExtensions);
-                });
-            }
-
-            if (extension.includes != null) {
-                extension.includes.forEach(function (include) { collectedIncludes.push(lowerExtensionName + "/" + include); });
-            }
-
-            collectedExtensions[lowerExtensionName] = true;
-        }
-
         // Find the current extension.
         var components = window.location.pathname.split('/');
-        if (components.length > 1) {
+        if (components.length > 1 && components[1].length > 0) {
             var includes = [];
             collectIncludes(components[1].toLowerCase(), includes, {});
             includes.forEach(function(file) {

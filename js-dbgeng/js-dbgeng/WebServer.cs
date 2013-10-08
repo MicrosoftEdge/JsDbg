@@ -7,6 +7,7 @@ using System.Net;
 using System.Diagnostics;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
+using System.Net.WebSockets;
 
 namespace JsDbg {
     
@@ -88,7 +89,6 @@ namespace JsDbg {
         }
 
         internal async Task Listen() {
-
             bool didTryNetsh = false;
             while (true) {
                 this.CreateHttpListener();
@@ -145,7 +145,7 @@ namespace JsDbg {
                         return;
                     }
 
-                    Task writeTask = Console.Out.WriteLineAsync("request for " + context.Request.RawUrl);
+                    //Task writeTask = Console.Out.WriteLineAsync("request for " + context.Request.RawUrl);
 
                     string[] segments = context.Request.Url.Segments;
                     try {
@@ -199,6 +199,9 @@ namespace JsDbg {
                                 context.Response.OutputStream.Close();
                                 break;
                             }
+                        } else if (context.Request.Headers["Upgrade"] != null && context.Request.Headers["Upgrade"].ToLowerInvariant() == "websocket") {
+                            System.Net.WebSockets.HttpListenerWebSocketContext webSocketContext = await context.AcceptWebSocketAsync(null);
+                            this.HandleWebSocket(webSocketContext.WebSocket);
                         } else {
                             // static file
                             string path = "";
@@ -733,6 +736,22 @@ namespace JsDbg {
                 serializer.WriteObject(memoryStream, users);
                 string result = Encoding.Default.GetString(memoryStream.ToArray());
                 this.ServeUncachedString(String.Format("{{ \"users\": {0} }}", result), context);
+            }
+        }
+
+        private async void HandleWebSocket(WebSocket socket) {
+            byte[] buffer = new byte[2048];
+            using (socket) {
+                while (socket.State == WebSocketState.Open) {
+                    WebSocketReceiveResult result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), System.Threading.CancellationToken.None);
+                    if (result.MessageType == WebSocketMessageType.Text && result.EndOfMessage) {
+                        //Task writeTask = Console.Out.WriteLineAsync("websocket request");
+                        string data = Encoding.Default.GetString(buffer);
+                        int value = await this.debugger.ReadMemory<int>(ulong.Parse(data));
+                        await socket.SendAsync(new ArraySegment<byte>(Encoding.Default.GetBytes(String.Format("{0}", value))), WebSocketMessageType.Text, true, System.Threading.CancellationToken.None);
+                    }
+                }
+                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "normal", System.Threading.CancellationToken.None);
             }
         }
 

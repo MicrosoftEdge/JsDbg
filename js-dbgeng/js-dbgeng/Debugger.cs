@@ -251,28 +251,46 @@ namespace JsDbg {
         }
 
         internal async Task<T> ReadMemory<T>(ulong pointer) where T : struct {
-            await this.WaitForBreakIn();
+            bool retryAfterWaitingForBreak = false;
+            do {
+                try {
+                    T[] result = new T[1];
+                    this.dataSpaces.ReadVirtual<T>(pointer, result);
+                    return result[0];
+                } catch (InvalidOperationException) {
+                    if (!retryAfterWaitingForBreak) {
+                        retryAfterWaitingForBreak = true;
+                    } else {
+                        throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                    }
+                } catch {
+                    throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                }
 
-            T[] result = new T[1];
-            try {
-                this.dataSpaces.ReadVirtual<T>(pointer, result);
-            } catch {
-                throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
-            }
-            return result[0];
+                await this.WaitForBreakIn();
+            } while (true);
         }
 
         internal async Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct {
-            await this.WaitForBreakIn();
+            bool retryAfterWaitingForBreak = false;
+            do {
+                try {
+                    // TODO: can we ever have incomplete reads?
+                    T[] result = new T[size];
+                    this.dataSpaces.ReadVirtual<T>(pointer, result);
+                    return result;
+                } catch (InvalidOperationException) {
+                    if (!retryAfterWaitingForBreak) {
+                        retryAfterWaitingForBreak = true;
+                    } else {
+                        throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                    }
+                } catch {
+                    throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                }
 
-            try {
-                // TODO: can we ever have incomplete reads?
-                T[] result = new T[size];
-                this.dataSpaces.ReadVirtual<T>(pointer, result);
-                return result;
-            } catch {
-                throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
-            }
+                await this.WaitForBreakIn();
+            } while (true);
         }
 
 

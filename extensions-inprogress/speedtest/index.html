@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>JsDbg Speed Test</title>
+    <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
+    <script type="text/javascript">
+        function runtest() {
+            var integer = DbgObject.sym("mshtml!g_pts").as("THREADSTATEUI").f("_paryDoc._c");
+            var timer = Timer.Start();
+            var ops = 0;
+            var duration = 5;
+            function callback(result) {
+                if (timer.Elapsed() < duration) {
+                    ++ops;
+                    JsDbg.ReadNumber(integer.pointer, 4, callback);
+                } else {
+                    alert(ops / duration);
+                }
+            }
+            JsDbg.ReadNumber(integer.pointer, 4, callback);
+        }
+
+        function runWebSocketTest() {
+            var ws = new WebSocket("ws://localhost:50000/");
+            var timer = null;
+            var ops = 0;
+            var duration = 5;
+            var integer = DbgObject.sym("mshtml!g_pts").as("THREADSTATEUI").f("_paryDoc._c");
+
+            ws.onopen = function() {
+                timer = Timer.Start();
+                ws.send(integer.pointer.toString());
+            };
+
+            ws.onmessage = function(result) {
+                if (timer.Elapsed() < duration) {
+                    ++ops;
+                    ws.send(integer.pointer.toString());
+                } else {
+                    ws.close();
+                }
+            };
+
+            ws.onclose = function() {
+                alert(ops / duration);
+            };
+        }
+    </script>
+    <style type="text/css">
+        
+    </style>
+</head>
+<body>
+    <button onclick="runtest()">run xhr test</button>
+    <button onclick="runWebSocketTest()">run websocket test</button>
+</body>
+</html>

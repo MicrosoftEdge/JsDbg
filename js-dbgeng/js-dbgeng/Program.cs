@@ -73,10 +73,14 @@ namespace JsDbg {
             using (WebServer webServer = new WebServer(debugger, persistentStore, webRoot, extensionRoot)) {
                 webServer.LoadExtension("default");
 
+                WebSocketServer webSocketServer = new WebSocketServer();
+
                 SynchronizationContext previousContext = SynchronizationContext.Current;
                 try {
                     SingleThreadSynchronizationContext syncContext = new SingleThreadSynchronizationContext();
                     SynchronizationContext.SetSynchronizationContext(syncContext);
+
+                    Task webSocketTask = webSocketServer.Listen();
 
                     System.Console.TreatControlCAsInput = true;
 
@@ -94,6 +98,7 @@ namespace JsDbg {
                     // The web server ending kills the debugger and completes our SynchronizationContext which allows us to exit.
                     webServer.Listen().ContinueWith(async (Task result) => {
                         await debugger.Shutdown();
+                        webSocketServer.Close();
                         syncContext.Complete();
                     });
 
