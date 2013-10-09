@@ -29,6 +29,7 @@ var JsDbg = (function() {
         var xhr;
         if (xhrToReuse != null) {
             xhr = xhrToReuse;
+            xhrToReuse = null;
         } else {
             xhr = new XMLHttpRequest();
         }
@@ -104,9 +105,7 @@ var JsDbg = (function() {
 
         ReadNumber: function(pointer, size, callback) {
             if (!(size in sizeNames)) {
-                return {
-                    "error": "Invalid number size.",
-                }
+                callback({ "error": "Invalid number size." });
             }
 
             jsonRequest("/jsdbg/memory?type=" + esc(sizeNames[size]) + "&pointer=" + esc(pointer), callback, /*async*/true);
@@ -114,9 +113,7 @@ var JsDbg = (function() {
 
         ReadArray: function(pointer, itemSize, count, callback) {
             if (!(itemSize in sizeNames)) {
-                return {
-                    "error": "Invalid number size.",
-                }
+                callback({ "error": "Invalid number size." });
             }
 
             jsonRequest("/jsdbg/array?type=" + sizeNames[itemSize] + "&pointer=" + esc(pointer) + "&length=" + count, callback, /*async*/true);

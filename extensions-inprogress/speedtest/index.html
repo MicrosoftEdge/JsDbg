@@ -10,41 +10,46 @@
             var timer = Timer.Start();
             var ops = 0;
             var duration = 5;
+
             function callback(result) {
                 if (timer.Elapsed() < duration) {
                     ++ops;
-                    JsDbg.ReadNumber(integer.pointer, 4, callback);
+                    integer.val().then(callback);
                 } else {
                     alert(ops / duration);
                 }
             }
-            JsDbg.ReadNumber(integer.pointer, 4, callback);
+            integer.val().then(callback);
         }
 
         function runWebSocketTest() {
-            var ws = new WebSocket("ws://localhost:50000/");
             var timer = null;
             var ops = 0;
             var duration = 5;
             var integer = DbgObject.sym("mshtml!g_pts").as("THREADSTATEUI").f("_paryDoc._c");
 
-            ws.onopen = function() {
-                timer = Timer.Start();
-                ws.send(integer.pointer.toString());
-            };
+            integer.pointerValue().then(function(pointer) {
+                pointer = pointer.toString();
+                var ws = new WebSocket("ws://localhost:50000/");
 
-            ws.onmessage = function(result) {
-                if (timer.Elapsed() < duration) {
-                    ++ops;
-                    ws.send(integer.pointer.toString());
-                } else {
-                    ws.close();
-                }
-            };
+                ws.onopen = function() {
+                    timer = Timer.Start();
+                    ws.send(pointer);
+                };
 
-            ws.onclose = function() {
-                alert(ops / duration);
-            };
+                ws.onmessage = function(result) {
+                    if (timer.Elapsed() < duration) {
+                        ++ops;
+                        ws.send(pointer);
+                    } else {
+                        ws.close();
+                    }
+                };
+
+                ws.onclose = function() {
+                    alert(ops / duration);
+                };
+            });
         }
     </script>
     <style type="text/css">
