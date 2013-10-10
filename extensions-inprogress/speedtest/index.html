@@ -7,7 +7,7 @@
     <script type="text/javascript">
         function runtest() {
             var integer = DbgObject.sym("mshtml!g_pts").as("THREADSTATEUI").f("_paryDoc._c");
-            var timer = Timer.Start();
+            var timer = null;
             var ops = 0;
             var duration = 5;
 
@@ -19,7 +19,10 @@
                     alert(ops / duration);
                 }
             }
-            integer.val().then(callback);
+            integer.then(function(integer) {
+                timer = Timer.Start();
+                integer.val().then(callback);
+            });
         }
 
         function runWebSocketTest() {
@@ -29,18 +32,19 @@
             var integer = DbgObject.sym("mshtml!g_pts").as("THREADSTATEUI").f("_paryDoc._c");
 
             integer.pointerValue().then(function(pointer) {
+                var request = "A;/jsdbg/memory?type=int&pointer=" + pointer;
                 pointer = pointer.toString();
                 var ws = new WebSocket("ws://localhost:50000/");
 
                 ws.onopen = function() {
                     timer = Timer.Start();
-                    ws.send(pointer);
+                    ws.send(request);
                 };
 
                 ws.onmessage = function(result) {
                     if (timer.Elapsed() < duration) {
                         ++ops;
-                        ws.send(pointer);
+                        ws.send(request);
                     } else {
                         ws.close();
                     }

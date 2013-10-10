@@ -17,7 +17,7 @@ var JsDbg = (function() {
         if (cache && url in responseCache) {
             callback(responseCache[url]);
             return;
-        } else if (cache && url in pendingCachedRequests) {
+        } else if (async && cache && url in pendingCachedRequests) {
             pendingCachedRequests[url].push(callback);
             return;
         } else if (cache) {
