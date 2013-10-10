@@ -203,7 +203,7 @@
 
                             return Promise.join([f1, f2])
                                 .then(function(members) {
-                                    if (!field.value.isPointer()) {
+                                    if (!field.value.isPointer() && !field.value.isArray()) {
                                         clock.Mark("requsting values of " + field.name);
                                         return Promise.join([members[0].val(), members[1].val()])
                                     } else {
