@@ -204,7 +204,7 @@
                             return Promise.join([f1, f2])
                                 .then(function(members) {
                                     if (!field.value.isPointer()) {
-                                        clock.Mark("requsting values of of " + field.name);
+                                        clock.Mark("requsting values of " + field.name);
                                         return Promise.join([members[0].val(), members[1].val()])
                                     } else {
                                         return [members[0].ptr(), members[1].ptr()];
