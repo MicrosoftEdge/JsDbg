@@ -1,7 +1,6 @@
 var Promise = (function() {
     var DEBUG_PROMISES = false;
     var nextPromiseId = 0;
-    var breakOnPromiseId = -1;
     var allPromises = {};
 
     function Promise(doAsynchronousWork) {
@@ -14,10 +13,6 @@ var Promise = (function() {
         if (DEBUG_PROMISES) {
             this.promiseId = nextPromiseId++;
             allPromises[this.promiseId] = this;
-
-            if (this.promiseId == breakOnPromiseId) {
-                debugger;
-            }
 
             this.createError = null;
             try {
@@ -60,44 +55,47 @@ var Promise = (function() {
         );
     }
 
-    if (DEBUG_PROMISES) {
-        Promise.allPromises = allPromises;
-        Promise.findUnfinishedPromises = function() {
-            function debugPromise(promise, seenPromises) {
-                if (promise.isCompleted || promise.isError) {
-                    // Promise has already finished.
-                    return null;
-                }
-
-                if (promise.promiseId in seenPromises) {
-                    console.log("Circular promise dependency detected!");
-                    return promise;
-                }
-
-                seenPromises[promise.promiseId] = true;
-
-                var problematicPromise = null;
-                for (var i = 0; i < promise.parentPromises.length; ++i) {
-                    problematicPromise = debugPromise(promise.parentPromises[i], seenPromises);
-                    if (problematicPromise != null) {
-                        break;
+    Promise.enablePromiseDebugging = function() {
+        if (!DEBUG_PROMISES) {
+            DEBUG_PROMISES = true;
+            Promise.allPromises = allPromises;
+            Promise.findUnfinishedPromises = function() {
+                function debugPromise(promise, seenPromises) {
+                    if (promise.isCompleted || promise.isError) {
+                        // Promise has already finished.
+                        return null;
                     }
+
+                    if (promise.promiseId in seenPromises) {
+                        console.log("Circular promise dependency detected!");
+                        return promise;
+                    }
+
+                    seenPromises[promise.promiseId] = true;
+
+                    var problematicPromise = null;
+                    for (var i = 0; i < promise.parentPromises.length; ++i) {
+                        problematicPromise = debugPromise(promise.parentPromises[i], seenPromises);
+                        if (problematicPromise != null) {
+                            break;
+                        }
+                    }
+
+                    if (problematicPromise == null) {
+                        console.log("Found a promise whose parents are finished but is not finished!");
+                        problematicPromise = promise;
+                    }
+
+                    delete seenPromises[promise.promiseId];
+
+                    return problematicPromise;
                 }
 
-                if (problematicPromise == null) {
-                    console.log("Found a promise whose parents are finished but is not finished!");
-                    problematicPromise = promise;
-                }
-
-                delete seenPromises[promise.promiseId];
-
-                return problematicPromise;
-            }
-
-            for (var id in allPromises) {
-                var promise = debugPromise(allPromises[id], {});
-                if (promise != null) {
-                    return promise;
+                for (var id in allPromises) {
+                    var promise = debugPromise(allPromises[id], {});
+                    if (promise != null) {
+                        return promise;
+                    }
                 }
             }
         }
@@ -190,49 +188,6 @@ var Promise = (function() {
                 }
             });
         })
-    }
-
-    Promise.forEach = function(array, f) {
-        var index = 0;
-        return Promise.while(
-            function promiseForEachCondition() { return index < array.length; },
-            function promiseForEachAction() {
-                var item = array[index];
-                return f(item, index++);
-            }
-        )
-    }
-
-    Promise.while = function(condition, action) {
-        // There are more elegant ways to do this with recursion but they blow up the stack.
-        var conditionResult = Promise.realize(condition());
-
-        function promiseWhileBody() {
-            while (!Promise.isPromise(conditionResult)) {
-                if (!conditionResult) {
-                    return Promise.as(undefined);
-                }
-
-                var actionResult = Promise.realize(action());
-                if (Promise.isPromise(actionResult)) {
-                    // The action is a promise.  We need to resume the while when this promise completes.
-                    return actionResult.then(function promiseWhileResumeAfterAction() {
-                        return Promise.while(condition, action);
-                    });
-                }
-
-                // Otherwise re-check the condition.
-                conditionResult = Promise.realize(condition());
-            }
-
-            // The condition returned a promise.  Wait for that.
-            return conditionResult.then(function whileResumeAfterCondition(result) {
-                conditionResult = result;
-                return promiseWhileBody();
-            });
-        }
-
-        return promiseWhileBody();
     }
 
     Promise.map = function(array, f) {
