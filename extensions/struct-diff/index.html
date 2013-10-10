@@ -5,81 +5,6 @@
     <title>Struct Diff</title>
     <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
     <script type="text/javascript">
-        function generateArray(f, count) {
-            var slots = new Array(count);
-            for (var i = 0; i < count; ++i) {
-                slots[i] = f(i);
-            }
-            return slots;
-        }
-
-        function flattenInto(array, result) {
-            array.forEach(function(item) {
-                if (item.forEach) {
-                    flattenInto(item, result);
-                } else {
-                    result.push(item);
-                }
-            })
-            return result;
-        }
-
-        function flatten(array) {
-            return flattenInto(array, []);
-        }
-
-        function fieldToArrayExpansion(field) {
-            if (field.value.isArray()) {
-                var values = generateArray(field.value.idx.bind(field.value), field.value.arrayLength());
-                return Promise
-                    .join(values)
-                    .then(function(values) {
-                        return values.map(function(value, i) {
-                            return {
-                                "name": field.name + "[" + i + "]",
-                                "offset": field.offset + (parseInt(value.ptr()) - parseInt(field.value.ptr())),
-                                "value": value
-                            };
-                        })
-                    });
-            } else {
-                return [field];
-            }
-        }
-
-        function expandArrays(fields) {
-            return Promise
-                .map(fields, fieldToArrayExpansion)
-                .then(flatten);
-        }
-
-        // returns a promise to a field array with all sub-structures expanded
-        function recursivelyExpandFieldsHelper(field, offset, prefix) {
-            field.offset += offset;
-            field.name = prefix + (prefix.length > 0 ? "." : "") + field.name;
-
-            return field.value.fields()
-                    .then(expandArrays)
-                    .then(function (fields) {
-                        return Promise.map(fields, function(innerField) { return recursivelyExpandFieldsHelper(innerField, field.offset, field.name); })
-                    }, function(error) {
-                        return [field];
-                    })
-                    .then(function (fields) {
-                        if (fields.length == 0) {
-                            return [field];
-                        } else {
-                            return fields;
-                        }
-                    });
-        }
-
-        function recursivelyExpandFields(fields) {
-            return Promise
-                .join(fields.map(function(field) { return recursivelyExpandFieldsHelper(field, 0, ""); }))
-                .then(flatten);
-        }
-
         function init() {
             document.querySelector(".type").value = window.localStorage.getItem("struct-diff.type");
             document.querySelectorAll(".pointer")[0].value = window.sessionStorage.getItem("struct-diff.pointer0");
@@ -131,6 +56,7 @@
                         return Promise.join(object1.as("char").array(structureSize), object2.as("char").array(structureSize));
                     })
                     .then(function(arrays) {
+                        clock.Mark("got arrays");
                         var array1 = arrays[0];
                         var array2 = arrays[1];
 
@@ -140,6 +66,82 @@
                                 differences.push(i);
                             }
                         });
+
+                        function generateArray(f, count) {
+                            var slots = new Array(count);
+                            for (var i = 0; i < count; ++i) {
+                                slots[i] = f(i);
+                            }
+                            return slots;
+                        }
+
+                        function flattenInto(array, result) {
+                            array.forEach(function(item) {
+                                if (item.forEach) {
+                                    flattenInto(item, result);
+                                } else {
+                                    result.push(item);
+                                }
+                            })
+                            return result;
+                        }
+
+                        function flatten(array) {
+                            return flattenInto(array, []);
+                        }
+
+                        function fieldToArrayExpansion(field) {
+                            if (field.value.isArray()) {
+                                var values = generateArray(field.value.idx.bind(field.value), field.value.arrayLength());
+                                return Promise
+                                    .join(values)
+                                    .then(function(values) {
+                                        return values.map(function(value, i) {
+                                            return {
+                                                "name": field.name + "[" + i + "]",
+                                                "offset": field.offset + (parseInt(value.ptr()) - parseInt(field.value.ptr())),
+                                                "value": value
+                                            };
+                                        })
+                                    });
+                            } else {
+                                return [field];
+                            }
+                        }
+
+                        function expandArrays(fields) {
+                            return Promise
+                                .map(fields, fieldToArrayExpansion)
+                                .then(flatten);
+                        }
+
+                        // returns a promise to a field array with all sub-structures expanded
+                        function recursivelyExpandFieldsHelper(field, offset, prefix) {
+                            field.offset += offset;
+                            field.name = prefix + (prefix.length > 0 ? "." : "") + field.name;
+                            clock.Mark("expanding " + field.name);
+
+                            return field.value.fields()
+                                    .then(expandArrays)
+                                    .then(function (fields) {
+                                        return Promise.map(fields, function(innerField) { return recursivelyExpandFieldsHelper(innerField, field.offset, field.name); })
+                                    }, function(error) {
+                                        return [field];
+                                    })
+                                    .then(function (fields) {
+                                        if (fields.length == 0) {
+                                            return [field];
+                                        } else {
+                                            return fields;
+                                        }
+                                    });
+                        }
+
+                        function recursivelyExpandFields(fields) {
+                            return Promise
+                                .join(fields.map(function(field) { return recursivelyExpandFieldsHelper(field, 0, ""); }))
+                                .then(flatten);
+                        }
 
                         // get the fields.
                         if (shouldRecurse) {
@@ -151,16 +153,12 @@
                         }
                     })
                     .then(function (fields) {
+                        clock.Mark("got fields");
                         if (differences.length == 0) {
                             return [];
                         }
 
                         fields.sort(function(a, b) { return a.offset - b.offset; });
-
-                        // Infer the size of each field by subtracting the following offset from it.
-                        fields.forEach(function(f, i) {
-                            
-                        })
 
                         // Filter to just the fields that might differ.
                         var currentDifferenceIndex = 0;
@@ -174,14 +172,22 @@
                                 sizeToUse = fields[i + 1].offset - f.offset;
                             }
 
-                            return differences[currentDifferenceIndex] <= f.offset + sizeToUse;
+                            if (f.value.bitcount > 0) {
+                                return differences[currentDifferenceIndex] <= f.offset + sizeToUse;
+                            } else {
+                                return differences[currentDifferenceIndex] < f.offset + sizeToUse;
+                            }
                         });
+
+                        clock.Mark("got possible different fields");
 
                         // For fields with a bitcount, we want to actually compare the values.
                         return Promise.filter(fields, function(field) {
+                            clock.Mark("checking " + field.name + " for bitcount");
                             if (field.value.bitcount > 0) {
                                 return Promise.join([object1.f(field.name).val(), object2.f(field.name).val()])
                                     .then(function(vals) {
+                                        clock.Mark("filtering bitcount for " + field.name);
                                         return vals[0] != vals[1];
                                     });
                             }
@@ -189,19 +195,24 @@
                         });
                     })
                     .then(function(differentFields) {
+                        clock.Mark("got different fields");
                         return Promise.map(differentFields, function(field) {
+                            clock.Mark("requesting fields of " + field.name);
                             var f1 = object1.f(field.name);
                             var f2 = object2.f(field.name);
 
                             return Promise.join([f1, f2])
                                 .then(function(members) {
                                     if (!field.value.isPointer()) {
+                                        clock.Mark("requsting values of of " + field.name);
                                         return Promise.join([members[0].val(), members[1].val()])
+                                    } else {
+                                        return [members[0].ptr(), members[1].ptr()];
                                     }
-                                    return [members[0].ptr(), members[1].ptr()];
                                 })
-                                .then(function(x) { return x; }, function() {
-                                    return Promise.join([f1.ptr(), f2.ptr()]);
+                                .then(
+                                    function(x) { return x; },
+                                    function() { return Promise.join([f1.ptr(), f2.ptr()]);
                                 })
                                 .then(function(values) {
                                     return [field.name, field.value.typeDescription().replace("<", "&lt;").replace(">", "&gt;"), "0x" + field.offset.toString(16), values[0], values[1]];
@@ -210,6 +221,7 @@
                         });
                     })
                     .then(function(html) {
+                        clock.Mark("got HTML");
                         html = html.map(function(cells) {
                             return "<td>" + cells.join("</td><td>") + "</td>";
                         });
@@ -221,9 +233,7 @@
                         } else {
                             document.getElementById("results").innerHTML = "<h3>No difference!</h3>";
                         }  
-                        alert(clock.Elapsed());
-                    }, function(error) {
-                        debugger;
+                        clock.Mark("done with comparison");
                     });
             });
         }

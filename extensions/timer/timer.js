@@ -10,6 +10,11 @@ var Timer = (function() {
         Start: function() {
             var start = new Date();
             return {
+                Mark: function(msg) {
+                    var elapsed = this.Elapsed();
+                    console.log(this.Elapsed() + ": " + msg + " (" + JsDbg.GetNumberOfRequests() + " reqs)");
+                    return elapsed;
+                },
                 Elapsed: function() {
                     var end = new Date();
                     var result = end - start;

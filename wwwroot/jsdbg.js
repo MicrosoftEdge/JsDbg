@@ -8,19 +8,28 @@
 var JsDbg = (function() {
 
     var responseCache = {};
+    var pendingCachedRequests = {};
     var everythingCache = null;
     var xhrToReuse = null;
+    var requestCounter = 0;
 
     function jsonRequest(url, callback, async, cache, method, data) {
         if (cache && url in responseCache) {
             callback(responseCache[url]);
             return;
+        } else if (cache && url in pendingCachedRequests) {
+            pendingCachedRequests[url].push(callback);
+            return;
+        } else if (cache) {
+            pendingCachedRequests[url] = [];
         }
 
         if (everythingCache != null && url in everythingCache) {
             callback(everythingCache[url]);
             return;
         }
+
+        ++requestCounter;
 
         if (!method) {
             method = "GET";
@@ -38,12 +47,16 @@ var JsDbg = (function() {
         xhr.onreadystatechange = function() {
             if (xhr.readyState == 4 && xhr.status == 200) {
                 var result = JSON.parse(xhr.responseText);
+                var otherCallbacks = [];
                 if (cache) {
+                    otherCallbacks = pendingCachedRequests[url];
+                    delete pendingCachedRequests[url];
                     responseCache[url] = result;
                 } else if (everythingCache != null) {
                     everythingCache[url] = result;
                 }
                 callback(result);
+                otherCallbacks.forEach(function fireBatchedJsDbgCallback(f) { f(result); });
             }
         };
         xhr.send(data);
@@ -63,6 +76,9 @@ var JsDbg = (function() {
     };
 
     return {
+        GetNumberOfRequests: function() {
+            return requestCounter;
+        },
         RunWithCachedWorld: function(action) {
             if (everythingCache == null) {
                 // The world isn't being cached.
