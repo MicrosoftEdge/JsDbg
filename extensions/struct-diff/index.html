@@ -142,7 +142,6 @@
                         });
 
                         // get the fields.
-
                         if (shouldRecurse) {
                             return object1.fields()
                                 .then(expandArrays)
@@ -152,54 +151,42 @@
                         }
                     })
                     .then(function (fields) {
+                        if (differences.length == 0) {
+                            return [];
+                        }
+
                         fields.sort(function(a, b) { return a.offset - b.offset; });
 
-                        // Get the differing fields.
-                        var fieldsAtCurrentOffset = [];
-                        var fieldsAtLastOffset = [];
-
-                        var differentFields = [];
-                        var currentDifferenceIndex = 0;
-
-                        return Promise.forEach(fields, function(field, i) {
-                            if (fieldsAtCurrentOffset.length > 0 && fieldsAtCurrentOffset[0].offset != fields[i].offset) {
-                                fieldsAtLastOffset = fieldsAtCurrentOffset;
-                                fieldsAtCurrentOffset = [];
-                            }
-                            fieldsAtCurrentOffset.push(fields[i]);
-
-                            var didPushField = false;
-
-                            return Promise.while(
-                                function() { return fields[i].offset > differences[currentDifferenceIndex]; },
-                                function() {
-                                    // We just passed the field.
-                                    if (!didPushField) {
-                                        return Promise.forEach(
-                                            fieldsAtLastOffset,
-                                            function(f) {
-                                                if (f.value.bitcount > 0) {
-                                                    return Promise.join([object1.f(f.name).val(), object2.f(f.name).val()])
-                                                        .then(function(vals) {
-                                                            if (vals[0] != vals[1]) {
-                                                                differentFields.push(f);
-                                                            }
-                                                        });
-                                                } else {
-                                                    differentFields.push(f);
-                                                }
-                                            })
-                                            .then(function() { 
-                                                didPushField = true; 
-                                                currentDifferenceIndex++;
-                                            });
-                                    } else {
-                                        currentDifferenceIndex++;
-                                    }
-                                }
-                            );
+                        // Infer the size of each field by subtracting the following offset from it.
+                        fields.forEach(function(f, i) {
+                            
                         })
-                        .then(function() { return differentFields; });
+
+                        // Filter to just the fields that might differ.
+                        var currentDifferenceIndex = 0;
+                        fields = fields.filter(function(f, i) {
+                            while (differences[currentDifferenceIndex] < f.offset) {
+                                currentDifferenceIndex++;
+                            }
+
+                            var sizeToUse = Infinity;
+                            if (i < fields.length - 1) {
+                                sizeToUse = fields[i + 1].offset - f.offset;
+                            }
+
+                            return differences[currentDifferenceIndex] <= f.offset + sizeToUse;
+                        });
+
+                        // For fields with a bitcount, we want to actually compare the values.
+                        return Promise.filter(fields, function(field) {
+                            if (field.value.bitcount > 0) {
+                                return Promise.join([object1.f(field.name).val(), object2.f(field.name).val()])
+                                    .then(function(vals) {
+                                        return vals[0] != vals[1];
+                                    });
+                            }
+                            return true;
+                        });
                     })
                     .then(function(differentFields) {
                         return Promise.map(differentFields, function(field) {

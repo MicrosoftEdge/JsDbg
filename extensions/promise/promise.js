@@ -246,6 +246,15 @@ var Promise = (function() {
         }
     }
 
+    Promise.filter = function(array, f) {
+        return Promise.map(array, f)
+            .then(function promiseFilterer(bools) {
+                return array.filter(function(_, i) {
+                    return bools[i];
+                });
+            });
+    }
+
     Promise._defer = function(work) {
         if (window.setImmediate) {
             return new Promise(function(success) { window.setImmediate(success); })
