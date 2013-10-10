@@ -226,7 +226,7 @@ var JsDbg = (function() {
         },
 
         GetPersistentData: function(user, callback) {
-            jsonRequest("/jsdbg/persistentstorage" + (user ? "?user=" + esc(user) : ""), callback, /*async*/true);
+            jsonRequest("/jsdbg/persistentstorage" + (user ? "?user=" + esc(user) : ""), callback, /*async*/true, /*cache*/false, "GET");
         },
 
         SetPersistentData: function(data, callback) {
