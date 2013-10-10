@@ -93,6 +93,7 @@
             }
 
             document.querySelector("button").addEventListener("click", function() {
+                var clock = Timer.Start();
                 var type = document.querySelector(".type").value;
                 var pointer1 = document.querySelectorAll(".pointer")[0].value;
                 var pointer2 = document.querySelectorAll(".pointer")[1].value;
@@ -233,6 +234,7 @@
                         } else {
                             document.getElementById("results").innerHTML = "<h3>No difference!</h3>";
                         }  
+                        alert(clock.Elapsed());
                     }, function(error) {
                         debugger;
                     });
