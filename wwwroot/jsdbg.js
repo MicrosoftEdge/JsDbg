@@ -12,8 +12,70 @@ var JsDbg = (function() {
     var everythingCache = null;
     var xhrToReuse = null;
     var requestCounter = 0;
+    var browserSupportsWebSockets = (window.WebSocket !== undefined);
+
+    var currentWebSocket = null;
+    var currentWebSocketCallbacks = {};
+
+    function sendWebSocketMessage(requestId, messageToSend, callback) {
+        requestId = requestId.toString();
+        currentWebSocketCallbacks[requestId] = callback;
+
+        if (currentWebSocket == null || (currentWebSocket.readyState > WebSocket.OPEN)) {
+            currentWebSocket = new WebSocket("ws://" + window.location.host);
+            currentWebSocket.addEventListener("message", function jsdbgWebSocketMessageHandler(webSocketMessage) {
+                function splitFirstN(str, sep, limit) {
+                    var stringParts = [];
+                    while (limit > 1) {
+                        var index = str.indexOf(sep);
+                        if (index == -1) {
+                            break;
+                        }
+
+                        stringParts.push(str.substr(0, index));
+                        str = str.substr(index + 1);
+                        --limit;
+                    }
+                    stringParts.push(str);
+                    return stringParts;
+                }
+                
+                var parts = splitFirstN(webSocketMessage.data, ";", 3);
+                if (parts.length != 3) {
+                    throw "Bad JsDbg WebSocket protocol!";
+                }
+                var responseId = parts[0];
+                if (parts[1] != "200") {
+                    throw "Server failed on message id " + responseId;
+                }
+                if (!(responseId in currentWebSocketCallbacks)) {
+                    throw "No registered callback for message id " + responseId;
+                }
+
+                // Fire the callback and remove it from the registry.
+                currentWebSocketCallbacks[responseId](parts[2]);
+                delete currentWebSocketCallbacks[requestId];
+            });
+
+            currentWebSocket.addEventListener("close", function jsdbgWebSocketCloseHandler() {
+                currentWebSocket = null;
+                console.log("JsDbg web socket was closed.");
+            })
+        }
+
+        if (currentWebSocket.readyState < WebSocket.OPEN) {
+            currentWebSocket.addEventListener("open", function retryWebSocketRequest() { sendWebSocketMessage(requestId, messageToSend, callback); });
+        } else if (currentWebSocket.readyState == WebSocket.OPEN) {
+            currentWebSocket.send(requestId + ";" + messageToSend);
+        }
+    }
 
     function jsonRequest(url, callback, async, cache, method, data) {
+        if (everythingCache != null) {
+            // We can't be async and cache everything.  Favor caching.
+            async = false;
+        }
+
         if (cache && url in responseCache) {
             callback(responseCache[url]);
             return;
@@ -31,38 +93,48 @@ var JsDbg = (function() {
 
         ++requestCounter;
 
-        if (!method) {
-            method = "GET";
-        }
-
-        var xhr;
-        if (xhrToReuse != null) {
-            xhr = xhrToReuse;
-            xhrToReuse = null;
-        } else {
-            xhr = new XMLHttpRequest();
-        }
-        
-        xhr.open(method, url, async);
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState == 4 && xhr.status == 200) {
-                var result = JSON.parse(xhr.responseText);
-                var otherCallbacks = [];
-                if (cache) {
-                    otherCallbacks = pendingCachedRequests[url];
-                    delete pendingCachedRequests[url];
-                    responseCache[url] = result;
-                } else if (everythingCache != null) {
-                    everythingCache[url] = result;
-                }
-                callback(result);
-                otherCallbacks.forEach(function fireBatchedJsDbgCallback(f) { f(result); });
+        function handleJsonResponse(jsonText) {
+            var result = JSON.parse(jsonText);
+            var otherCallbacks = [];
+            if (cache) {
+                otherCallbacks = pendingCachedRequests[url];
+                delete pendingCachedRequests[url];
+                responseCache[url] = result;
+            } else if (everythingCache != null) {
+                everythingCache[url] = result;
             }
-        };
-        xhr.send(data);
+            callback(result);
+            otherCallbacks.forEach(function fireBatchedJsDbgCallback(f) { f(result); });
+        }
 
-        if (!async) {
-            xhrToReuse = xhr;
+        if (browserSupportsWebSockets && async && !method && !data) {
+            // Use WebSockets if the request is async, the method is unspecified, and there's no data payload.
+            sendWebSocketMessage(requestCounter, url, handleJsonResponse);
+        } else {
+            // Use XHR.
+            if (!method) {
+                method = "GET";
+            }
+
+            var xhr;
+            if (xhrToReuse != null) {
+                xhr = xhrToReuse;
+                xhrToReuse = null;
+            } else {
+                xhr = new XMLHttpRequest();
+            }
+            
+            xhr.open(method, url, async);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    handleJsonResponse(xhr.responseText);
+                }
+            };
+            xhr.send(data);
+
+            if (!async) {
+                xhrToReuse = xhr;
+            }
         }
     }
 
@@ -122,6 +194,7 @@ var JsDbg = (function() {
         ReadNumber: function(pointer, size, callback) {
             if (!(size in sizeNames)) {
                 callback({ "error": "Invalid number size." });
+                return;
             }
 
             jsonRequest("/jsdbg/memory?type=" + esc(sizeNames[size]) + "&pointer=" + esc(pointer), callback, /*async*/true);
@@ -130,6 +203,7 @@ var JsDbg = (function() {
         ReadArray: function(pointer, itemSize, count, callback) {
             if (!(itemSize in sizeNames)) {
                 callback({ "error": "Invalid number size." });
+                return;
             }
 
             jsonRequest("/jsdbg/array?type=" + sizeNames[itemSize] + "&pointer=" + esc(pointer) + "&length=" + count, callback, /*async*/true);

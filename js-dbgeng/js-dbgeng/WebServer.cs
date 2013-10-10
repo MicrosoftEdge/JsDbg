@@ -771,57 +771,64 @@ namespace JsDbg {
             Uri baseUri = new Uri("http://localhost:" + this.port.ToString());
 
             using (socket) {
-                while (socket.State == WebSocketState.Open) {
-                    StringBuilder messageBuilder = new StringBuilder();
-                    WebSocketReceiveResult result = await socket.ReceiveAsync(segment, this.cancellationSource.Token);
+                try {
+                    while (socket.State == WebSocketState.Open) {
+                        StringBuilder messageBuilder = new StringBuilder();
+                        WebSocketReceiveResult result = await socket.ReceiveAsync(segment, this.cancellationSource.Token);
 
-                    // Make sure we get the whole message.
-                    while (result.MessageType == WebSocketMessageType.Text && !result.EndOfMessage) {
+                        // Make sure we get the whole message.
+                        while (result.MessageType == WebSocketMessageType.Text && !result.EndOfMessage) {
+                            messageBuilder.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+                            result = await socket.ReceiveAsync(segment, this.cancellationSource.Token);
+                        }
+
                         messageBuilder.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
-                        result = await socket.ReceiveAsync(segment, this.cancellationSource.Token);
+
+                        if (result.MessageType == WebSocketMessageType.Text) {
+                            Debug.Assert(result.EndOfMessage);
+
+                            // Request protocol: [identifier];[URL]
+                            // Response protocol: [identifier];[code];[response]
+
+                            string message = messageBuilder.ToString();
+                            string[] messageParts = message.Split(argumentSeparators, 2);
+                            if (messageParts.Length == 2 && Uri.IsWellFormedUriString(messageParts[1], UriKind.Relative)) {
+                                // The request appears valid.  Grab the URL and handle the JsDbgRequest.
+                                Uri request = new Uri(baseUri, messageParts[1]);
+
+                                this.ServeJsDbgRequest(
+                                    request,
+                                    System.Web.HttpUtility.ParseQueryString(request.Query),
+                                    /*context*/null,
+                                    (string response) => {
+                                        // Prepend the identifier and response code.
+                                        response = messageParts[0] + argumentSeperator + "200" + argumentSeperator + response;
+                                        socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(response)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);
+                                    },
+                                    () => {
+                                        // Send the failure.
+                                        string response = messageParts[0] + argumentSeperator + "400" + argumentSeperator + message;
+                                        socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(response)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);
+                                    }
+                                );
+                            } else {
+                                // Send the failure.
+                                string response = messageParts[0] + argumentSeperator + "400" + argumentSeperator + message;
+                                Task ignoredTask = socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(response)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);
+                            }
+                        } else if (result.MessageType == WebSocketMessageType.Close) {
+                            // The client closed the WebSocket.
+                            break;
+                        }
                     }
 
-                    messageBuilder.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
-
-                    if (result.MessageType == WebSocketMessageType.Text) {
-                        Debug.Assert(result.EndOfMessage);
-                        
-                        // Request protocol: [identifier];[URL]
-                        // Response protocol: [identifier];[code];[response]
-
-                        string message = messageBuilder.ToString();
-                        string[] messageParts = message.Split(argumentSeparators, 2);
-                        if (messageParts.Length == 2 && Uri.IsWellFormedUriString(messageParts[1], UriKind.Relative)) {
-                            // The request appears valid.  Grab the URL and handle the JsDbgRequest.
-                            Uri request = new Uri(baseUri, messageParts[1]);
-
-                            this.ServeJsDbgRequest(
-                                request,
-                                System.Web.HttpUtility.ParseQueryString(request.Query),
-                                /*context*/null,
-                                (string response) => {
-                                    // Prepend the identifier and response code.
-                                    response = messageParts[0] + argumentSeperator + "200" + argumentSeperator + response;
-                                    socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(response)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);
-                                },
-                                () => {
-                                    // Send the failure.
-                                    string response = messageParts[0] + argumentSeperator + "400" + argumentSeperator;
-                                    socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(response)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);
-                                }
-                            );
-                        } else {
-                            // Send the failure.
-                            string response = messageParts[0] + argumentSeperator + "400" + argumentSeperator;
-                            Task ignoredTask = socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(response)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);
-                        }
-                    } else if (result.MessageType == WebSocketMessageType.Close) {
-                        // The client closed the WebSocket.
-                        break;
+                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal", System.Threading.CancellationToken.None);
+                } catch {
+                    // If the HTTP listener is no longer listening, ignore the exception.
+                    if (this.httpListener.IsListening) {
+                        throw;
                     }
                 }
-
-                await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal", System.Threading.CancellationToken.None);
             }
         }
 
