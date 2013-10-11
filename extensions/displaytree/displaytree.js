@@ -67,19 +67,6 @@ var DisplayTree = (function() {
             })
     }
 
-    // Extend DbgObject to ease navigation of patchable objects.
-    DbgObject.prototype.latestPatch = function() {
-        var that = this;
-        return this.f("_pNextPatch")
-            .then(function(nextPatch) {
-                if (!nextPatch.isNull()) {
-                    return nextPatch.as(that.typename);
-                } else {
-                    return that;
-                }
-            });
-    }
-
     function MapDispNodeType(typename, type) {
         DispNodeTypes[typename] = type;
     }

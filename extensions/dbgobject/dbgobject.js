@@ -84,6 +84,8 @@ DbgObject.sym = function(symbol) {
     );
 }
 
+DbgObject.NULL = new DbgObject("", "", 0, 0, 0);
+
 DbgObject.prototype._getStructSize = function() {
     if (this._isPointer()) {
         return jsDbgPromise(JsDbg.GetPointerSize).then(function(result) {
@@ -226,25 +228,25 @@ DbgObject.prototype.array = function(count) {
             if (count == undefined && that._isArray) {
                 count = that._arrayLength;
             }
-            return Promise.join(that._getStructSize(), count);
-        })
-        .then(function(structSizeAndCount) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSizeAndCount[0], structSizeAndCount[1]); })
-        .then(function(result) {
-            if (that._isPointer()) {
-                // If the type is a pointer, return an array of DbgObjects.
-                var itemTypename = that._getDereferencedTypeName();
-                return result.array.map(function(x) { return new DbgObject(that.module, itemTypename, x); });
-            } else {
-                // Otherwise, the items are values.
-                return result.array;
-            }
-        }, function(error) {
-            // We weren't able to read the array, so just make an array of idx(i) calls.
-            var array = [];
-            for (var i = 0; i < count; ++i) {
-                array.push(that.idx(i));
-            }
-            return Promise.join(array);
+            return that._getStructSize()
+                .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, count); })
+                .then(function(result) {
+                    if (that._isPointer()) {
+                        // If the type is a pointer, return an array of DbgObjects.
+                        var itemTypename = that._getDereferencedTypeName();
+                        return result.array.map(function(x) { return new DbgObject(that.module, itemTypename, x); });
+                    } else {
+                        // Otherwise, the items are values.
+                        return result.array;
+                    }
+                }, function(error) {
+                    // We weren't able to read the array, so just make an array of idx(i) calls.
+                    var array = [];
+                    for (var i = 0; i < count; ++i) {
+                        array.push(that.idx(i));
+                    }
+                    return Promise.join(array);
+                });
         });
 }
 
@@ -261,8 +263,10 @@ DbgObject.prototype.typeDescription = function() {
 }
 
 DbgObject.prototype.equals = function(other) {
-    return Promise.join(this.ptr(), other.ptr())
-        .then(function(ptrs) { return ptrs[0] == ptrs[1]; });
+    if (this._pointer === undefined || other._pointer === undefined) {
+        throw "The pointer values are undefined.";
+    }
+    return this._pointer == other._pointer;
 }
 
 DbgObject.prototype.vtable = function() {

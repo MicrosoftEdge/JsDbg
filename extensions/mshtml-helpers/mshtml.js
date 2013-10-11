@@ -23,18 +23,19 @@ var MSHTML = (function() {
     }
 
     function getCTreeNodeFromTreeElement(element) {
-        return element.f("placeholder")
+        var promise = element.f("placeholder")
             .then(function() {
                 // We're in chk, offset by the size of a void*.
                 return element.as("void*").idx(1).as("CTreeNode");
             }, function() {
                 // We're in fre, cast to CTreeNode.
-                treeNode = element.as("CTreeNode");
+                return element.as("CTreeNode");
             });
+        return new PromisedDbgObject(promise);
     }
 
     function getFirstAssociatedLayoutBoxFromCTreeNode(treeNode) {
-        return treeNode.f("_fHasLayoutAssociationPtr").val()
+        var promise = treeNode.f("_fHasLayoutAssociationPtr").val()
             .then(function (layoutAssociationBits) {
                 if (layoutAssociationBits & 0x8) {
                     var bits = 0;
@@ -54,7 +55,23 @@ var MSHTML = (function() {
                     return new DbgObject("mshtml", "Layout::LayoutBox", 0x0);
                 }
             });
+        return new PromisedDbgObject(promise);
     }
+
+    // Extend DbgObject to ease navigation of patchable objects.
+    DbgObject.prototype.latestPatch = function() {
+        var that = this;
+        var promise = this.f("_pNextPatch")
+            .then(function(nextPatch) {
+                if (!nextPatch.isNull()) {
+                    return nextPatch.as(that.typename);
+                } else {
+                    return that;
+                }
+            });
+        return new PromisedDbgObject(promise);
+    }
+    PromisedDbgObject.includePromisedMethod("latestPatch");
 
     return {
         GetCDocs: getCDocs,

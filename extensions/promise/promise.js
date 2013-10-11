@@ -264,7 +264,8 @@ var Promise = (function() {
             return this.promise.then.apply(this.promise, arguments);
         };
         var wrappedMethods = {};
-        methods.forEach(function(methodName) {
+
+        promisedType.includePromisedMethod = function(methodName) {
             wrappedMethods[methodName] = true;
             var method = constructor.prototype[methodName];
             if (typeof(method) == typeof(function() {})) {
@@ -275,7 +276,9 @@ var Promise = (function() {
                     }));
                 }
             }
-        });
+        }
+
+        methods.forEach(promisedType.includePromisedMethod);
 
         for (var methodName in constructor.prototype) {
             var method = constructor.prototype[methodName];
@@ -310,6 +313,7 @@ var Promise = (function() {
                     try {
                         var fulfillmentResult = fulfilled(that.result);
                     } catch (fulfillmentError) {
+                        console.log("Got exception during fulfillment: " + fulfillmentError);
                         newPromiseWorkErred(fulfillmentError);
                         return;
                     }
@@ -330,6 +334,7 @@ var Promise = (function() {
                         try {
                             var errorResult = error(that.result);
                         } catch (errorError) {
+                            console.log("Got exception during error handling: " + errorError);
                             newPromiseWorkErred(errorError);
                             return;
                         }

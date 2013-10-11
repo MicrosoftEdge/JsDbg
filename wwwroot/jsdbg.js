@@ -230,6 +230,7 @@ var JsDbg = (function() {
         },
 
         SetPersistentData: function(data, callback) {
+            // XXX/psalas: disabling persistent data saving for now
             callback({success: true});
             return;
             var value = JSON.stringify(data);

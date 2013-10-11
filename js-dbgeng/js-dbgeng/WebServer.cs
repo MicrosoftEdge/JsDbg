@@ -823,11 +823,8 @@ namespace JsDbg {
                     }
 
                     await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal", System.Threading.CancellationToken.None);
-                } catch {
-                    // If the HTTP listener is no longer listening, ignore the exception.
-                    if (this.httpListener.IsListening) {
-                        throw;
-                    }
+                } catch (WebSocketException socketException) {
+                    Console.Out.WriteLine("Closing WebSocket due to WebSocketException: {0}", socketException.Message);
                 }
             }
         }
