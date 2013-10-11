@@ -279,7 +279,8 @@ var FieldSupport = (function() {
             function handleException(ex) {
                 var errorSpan = document.createElement("span");
                 errorSpan.style.color = "red";
-                errorSpan.innerHTML = "[ERROR:" + ex.toString() + "]";
+                var errorMsg = ex.stack ? ex.toString() : JSON.stringify(ex);
+                errorSpan.innerHTML = "[ERROR:" + errorMsg + "]";
                 return errorSpan;
             }
 
