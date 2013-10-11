@@ -212,7 +212,7 @@ var FieldSupport = (function() {
             codeDescription.className = "code-description";
             var lines = [
                 "<em>this</em> = DbgObject that represents the item; <em>e</em> = dom element",
-                "return an html string or dom element to be displayed, or just modify <em>e.</em>"
+                "return an html string or dom element to be displayed, or just modify <em>e.</em>, or return a promise for one of those things."
             ]
             codeDescription.innerHTML = lines.join("<br />");
 
@@ -276,11 +276,19 @@ var FieldSupport = (function() {
         }
 
         function codeStringToFunction(codeString) {
+            function handleException(ex) {
+                var errorSpan = document.createElement("span");
+                errorSpan.style.color = "red";
+                errorSpan.innerHTML = "[ERROR:" + ex.toString() + "]";
+                return errorSpan;
+            }
+
             return function(e) { 
                 try {
-                    return this.InjectedFieldEvaluate("(function() { " + codeString + "\n/**/}).call(this, e)", e);
+                    return Promise.as(this.InjectedFieldEvaluate("(function() { " + codeString + "\n/**/}).call(this, e)", e))
+                        .then(function(x) { return x; }, handleException);
                 } catch (ex) {
-                    return "<span style='color:red' title='" + ex + "'>[ERROR]</span>";
+                    return handleException(ex);
                 }
             };
         }
@@ -477,23 +485,33 @@ var FieldSupport = (function() {
             injectedObject.collectUserFields(fields);
         }
 
-        for (var i = 0; i < fields.length; i++) {
-            var field = fields[i];
-            var html = field.html.call(dbgObject, representation);
-            if (html !== undefined) {
-                var p = document.createElement("p");
-                if (field.shortname.length > 0) {
-                    p.innerHTML = field.shortname + ":";
-                }
-                try {
-                    p.appendChild(html);
-                } catch (ex) {
-                    p.innerHTML += html;
-                }
-                representation.appendChild(p);
-                representation.appendChild(document.createTextNode(" "));
-            }
-        };
+        return Promise
+            // Create the representations.
+            .join(fields.map(function(field) { return field.html.call(dbgObject, representation); }))
+
+            // Then apply the representations to the container.
+            .then(function(fieldRepresentations) {
+                fieldRepresentations.forEach(function(html, i) {
+                    if (html !== undefined) {
+                        var field = fields[i];
+                        var p = document.createElement("p");
+                        if (field.shortname.length > 0) {
+                            p.innerHTML = field.shortname + ":";
+                        }
+                        if (typeof(html) == typeof("") || typeof(html) == typeof(1)) {
+                            p.innerHTML += html;
+                        } else {
+                            try {
+                                p.appendChild(html);
+                            } catch (ex) {
+                                p.innerHTML += html;
+                            }
+                        }
+                        representation.appendChild(p);
+                        representation.appendChild(document.createTextNode(" "));
+                    }
+                });
+            });
     }
 
     return {

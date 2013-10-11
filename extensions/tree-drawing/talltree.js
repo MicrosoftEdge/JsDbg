@@ -16,49 +16,72 @@ var TallTree = (function() {
 
     function DrawingTreeNode(node, parent) {
         this.innerNode = node;
-        this.nodeChildren = node.getChildren();
         this.parent = parent;
         this.children = [];
         this.representation = null;
         this.childContainer = null;
-        this.isExpanded = this.nodeChildren.length == 0;
-        this.createRepresentation();
-        if (this.innerNode.drawingTreeNodeIsExpanded) {
-            this.expand();
-        }
+    }
+
+    DrawingTreeNode.instantiate = function(node, parent) {
+        var drawingNode = new DrawingTreeNode(node, parent);
+        return drawingNode.realize()
+            .then(function() { return drawingNode; });
+
+    }
+
+    DrawingTreeNode.prototype.realize = function() {
+        var that = this;
+        return that.innerNode.getChildren()
+            .then(function gotChildren(children) {
+                that.nodeChildren = children;
+                that.isExpanded = that.nodeChildren.length == 0;
+
+                return that.createRepresentation();
+            })
+            .then(function representationCreated() {
+                if (that.innerNode.drawingTreeNodeIsExpanded) {
+                    return that.expand(false);
+                }
+            });
     }
 
     DrawingTreeNode.prototype.createRepresentation = function() {
-        this.representation = this.innerNode.createRepresentation();
-
-        var childrenCount = document.createElement("div");
-        childrenCount.className = "children";
-        childrenCount.innerHTML = this.nodeChildren.length;
-        if (this.representation.firstChild != null) {
-            this.representation.insertBefore(document.createTextNode(" "), this.representation.firstChild);
-            this.representation.insertBefore(childrenCount, this.representation.firstChild);
-        } else {
-            this.representation.appendChild(childrenCount);
-        }
-
         var that = this;
-        this.representation.addEventListener("click", function(e) {
-            if (!that.isExpanded) {
-                var clock = Timer.Start();
-                that.expand(e.ctrlKey);
-                console.log("Expansion took " + clock.Elapsed() + "s");
-                that.redraw();
-                console.log("Full Redraw took " + clock.Elapsed() + "s");
-            } else if (e.ctrlKey) {
-                that.collapse(false);
-                that.redraw();
-            }
-        });
-        this.representation.addEventListener("mousedown", function(e) {
-            if (e.ctrlKey) {
-                e.preventDefault();
-            }
-        });
+        return this.innerNode.createRepresentation()
+            .then(function(innerRepresentation) {
+                that.representation = innerRepresentation;
+
+                var childrenCount = document.createElement("div");
+                childrenCount.className = "children";
+                childrenCount.innerHTML = that.nodeChildren.length;
+                if (that.representation.firstChild != null) {
+                    that.representation.insertBefore(document.createTextNode(" "), that.representation.firstChild);
+                    that.representation.insertBefore(childrenCount, that.representation.firstChild);
+                } else {
+                    that.representation.appendChild(childrenCount);
+                }
+
+                that.representation.addEventListener("click", function(e) {
+                    if (!that.isExpanded) {
+                        var clock = Timer.Start();
+                        that.expand(e.ctrlKey)
+                            .then(function expanded() {
+                                console.log("Expansion took " + clock.Elapsed() + "s");
+                                that.redraw();
+                                console.log("Full Redraw took " + clock.Elapsed() + "s");
+                            });
+                    } else if (e.ctrlKey) {
+                        that.collapse(false);
+                        that.redraw();
+                    }
+                });
+
+                that.representation.addEventListener("mousedown", function(e) {
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                    }
+                });
+            });
     }
 
     DrawingTreeNode.prototype.getChildContainer = function() {
@@ -80,34 +103,47 @@ var TallTree = (function() {
 
             this.representation = null;
 
-            this.createRepresentation();
+            var that = this;
+            return this.createRepresentation()
+                .then(function recreatedRepresentation() {
+                    parent.insertBefore(that.representation, oldChild);
+                    parent.removeChild(oldChild);
+                    that.representation.className = styles[0];
 
-            parent.insertBefore(this.representation, oldChild);
-            parent.removeChild(oldChild);
-
-            this.representation.className = styles[0];
-        }
-
-        var that = this;
-        var work = function() { that.children.forEach(function(x) { x.updateRepresentation(); }); };
-        if (window.setImmediate) {
-            window.setImmediate(work);
+                    // Update the children as well.
+                    return Promise.map(that.children, function(child) { return child.updateRepresentation(); })
+                        // Undefine the result.
+                        .then(function() {});
+                });
         } else {
-            window.setTimeout(work, 0);
+            // Update the children.
+            return Promise.map(that.children, function(child) { return child.updateRepresentation(); });
         }
     }
 
     DrawingTreeNode.prototype.expand = function(recurse) {
         var that = this;
-        this.children = this.nodeChildren.map(function(x) { 
-            var node = new DrawingTreeNode(x, that);
-            if (recurse) {
-                node.expand(true);
-            }
-            return node;
-        });
-        this.isExpanded = true;
-        this.innerNode.drawingTreeNodeIsExpanded = true;
+
+        // Construct the children.
+        this.children = this.nodeChildren.map(function(x) {
+            return new DrawingTreeNode(x, that);
+        })
+
+        // Realize them and expand them as needed...
+        return Promise
+            .join(this.children.map(function(child) { 
+                return child.realize()
+                    .then(function() {
+                        if (recurse) {
+                            return child.expand(true);
+                        }
+                    })
+            }))
+            // And mark ourself as expanded.
+            .then(function() {
+                that.isExpanded = true;
+                that.innerNode.drawingTreeNodeIsExpanded = true;
+            })
     }
 
     DrawingTreeNode.prototype.collapse = function(removeSelf) {
@@ -157,16 +193,13 @@ var TallTree = (function() {
 
     return {
         BuildTree: function(container, root) {
-            container.innerHTML = "";
-            container.className = "tall-node-container";
-            var drawingRoot = new DrawingTreeNode(root)
-            drawingRoot.draw(container);
-
-            return {
-                updateRepresentation: function() {
-                    drawingRoot.updateRepresentation();
-                }
-            }
+            return DrawingTreeNode.instantiate(root, container)
+                .then(function(drawingRoot) {
+                    container.innerHTML = "";
+                    container.className = "tall-node-container";
+                    drawingRoot.draw(container);
+                    return drawingRoot;
+                });
         }
     }
 })();

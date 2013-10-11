@@ -13,7 +13,7 @@ var MSHTML = (function() {
     function getRootCTreeNodes() {
         return getCDocs()
             .then(function (docs) {
-                Promise.join(docs.map(function (doc) { return doc.f("_pWindowPrimary"); }));
+                return Promise.join(docs.map(function (doc) { return doc.f("_pWindowPrimary"); }));
             })
             .then(function (windows) {
                 return windows

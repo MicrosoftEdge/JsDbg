@@ -5,7 +5,8 @@
     "headless": true,
     "dependencies": [
         "field-support",
-        "tree-drawing"
+        "tree-drawing",
+        "promise"
     ],
     "includes": [
         "tree-inspector.css",

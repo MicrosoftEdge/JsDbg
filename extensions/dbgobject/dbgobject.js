@@ -24,7 +24,7 @@
 // bitcount and bitoffset are optional.
 function DbgObject(module, type, pointer, bitcount, bitoffset) {
     this.module = module;
-    this.pointer = pointer;
+    this._pointer = pointer;
     this.bitcount = bitcount;
     this.bitoffset = bitoffset;
 
@@ -105,13 +105,13 @@ DbgObject.prototype._getDereferencedTypeName = function() {
 }
 
 DbgObject.prototype._off = function(offset) {
-    return new DbgObject(this.module, this.typename, this.pointer + offset);
+    return new DbgObject(this.module, this.typename, this._pointer + offset);
 }
 
 DbgObject.prototype.deref = function() {
     var that = this;
     return new PromisedDbgObject(
-        jsDbgPromise(JsDbg.ReadPointer, that.pointer).then(function(result) {
+        jsDbgPromise(JsDbg.ReadPointer, that._pointer).then(function(result) {
             return new DbgObject(that.module, that._getDereferencedTypeName(), result.value);
         })
     );
@@ -138,7 +138,7 @@ DbgObject.prototype.f = function(field) {
 
     if (this._isPointer()) {
         return Promise.fail("You cannot do a field lookup on a pointer.");
-    } else if (this.pointer == 0) {
+    } else if (this._pointer == 0) {
         return Promise.fail("You cannot get a field from a null pointer.");
     } else if (this._isArray) {
         return Promise.fail("You cannot get a field from an array.");
@@ -148,7 +148,7 @@ DbgObject.prototype.f = function(field) {
     return new PromisedDbgObject(
         jsDbgPromise(JsDbg.LookupFieldOffset, that.module, that.typename, [field])
             .then(function(result) {
-                var target = new DbgObject(that.module, result.type, that.pointer + result.offset, result.bitcount, result.bitoffset);
+                var target = new DbgObject(that.module, result.type, that._pointer + result.offset, result.bitcount, result.bitoffset);
 
                 if (indexMatches) {
                     // We want to do an index on top of this; this will make "target" a promised DbgObject.
@@ -171,13 +171,13 @@ DbgObject.prototype.unembed = function(type, field) {
     return new PromisedDbgObject(
         jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, [field])
             .then(function(result) { 
-                return new DbgObject(that.module, type, that.pointer - result.offset); 
+                return new DbgObject(that.module, type, that._pointer - result.offset); 
             })
     );
 }
 
 DbgObject.prototype.as = function(type) {
-    return new DbgObject(this.module, type, this.pointer, this.bitcount, this.bitoffset);
+    return new DbgObject(this.module, type, this._pointer, this.bitcount, this.bitoffset);
 }
 
 DbgObject.prototype.idx = function(index) {
@@ -191,7 +191,7 @@ DbgObject.prototype.idx = function(index) {
 
 DbgObject.prototype.val = function() {
     if (this.typename == "void") {
-        return Promise.as(this.pointer);
+        return Promise.as(this._pointer);
     }
 
     if (this._isArray) {
@@ -201,7 +201,7 @@ DbgObject.prototype.val = function() {
     var that = this;
     return this._getStructSize()
         .then(function(structSize) {
-            return jsDbgPromise(JsDbg.ReadNumber, that.pointer, structSize);
+            return jsDbgPromise(JsDbg.ReadNumber, that._pointer, structSize);
         })
         .then(function(result) {
             var value = result.value;
@@ -226,10 +226,9 @@ DbgObject.prototype.array = function(count) {
             if (count == undefined && that._isArray) {
                 count = that._arrayLength;
             }
-            return count;
+            return Promise.join(that._getStructSize(), count);
         })
-        .then(function(count) { return Promise.join(that._getStructSize(), count); })
-        .then(function(structSizeAndCount) { return jsDbgPromise(JsDbg.ReadArray, that.pointer, structSizeAndCount[0], structSizeAndCount[1]); })
+        .then(function(structSizeAndCount) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSizeAndCount[0], structSizeAndCount[1]); })
         .then(function(result) {
             if (that._isPointer()) {
                 // If the type is a pointer, return an array of DbgObjects.
@@ -250,11 +249,11 @@ DbgObject.prototype.array = function(count) {
 }
 
 DbgObject.prototype.ptr = function() {
-    return this.pointer == 0 ? "NULL" : "0x" + this.pointer.toString(16);
+    return this._pointer == 0 ? "NULL" : "0x" + this._pointer.toString(16);
 }
 
 DbgObject.prototype.pointerValue = function() {
-    return this.pointer;
+    return this._pointer;
 }
 
 DbgObject.prototype.typeDescription = function() {
@@ -267,7 +266,7 @@ DbgObject.prototype.equals = function(other) {
 }
 
 DbgObject.prototype.vtable = function() {
-    var pointer = this.pointer;
+    var pointer = this._pointer;
     return jsDbgPromise(JsDbg.ReadPointer, pointer)
         .then(function(result) { 
             return jsDbgPromise(JsDbg.LookupSymbolName(result.value));
@@ -284,7 +283,7 @@ DbgObject.prototype.vcast = function() {
             return jsDbgPromise(JsDbg.LookupBaseTypeOffset, that.module, vtableType, that.typename);
         })
         .then(function(result) {
-            return new DbgObject(that.module, vtableType, that.pointer - result.offset);            
+            return new DbgObject(that.module, vtableType, that._pointer - result.offset);            
         });
 }
 
@@ -301,7 +300,7 @@ DbgObject.prototype.fields = function() {
                 return {
                     name: field.name,
                     offset: field.offset,
-                    value: new DbgObject(that.module, field.type, that.pointer + field.offset, field.bitcount, field.bitoffset)
+                    value: new DbgObject(that.module, field.type, that._pointer + field.offset, field.bitcount, field.bitoffset)
                 };
             });
         });
@@ -316,7 +315,7 @@ DbgObject.prototype.isArray = function() {
 }
 
 DbgObject.prototype.isNull = function() {
-    return this.pointer == 0;
+    return this._pointer == 0;
 }
 
 DbgObject.prototype._isPointer = function() {

@@ -46,6 +46,10 @@ var Promise = (function() {
                 that.isError = true;
                 that.result = errorResult;
 
+                if (DEBUG_PROMISES) {
+                    console.log("Promise #" + that.promiseId + " failed: " + JSON.stringify(errorResult));
+                }
+
                 // Fire all the callbacks.
                 for (var i = 0; i < that.callbacks.length; ++i) {
                     that.callbacks[i]();
@@ -210,6 +214,34 @@ var Promise = (function() {
             });
     }
 
+    Promise.sort = function(promisedArray, keyGenerator, keyComparer) {
+        if (!keyComparer) {
+            // Default comparer compares numbers.
+            keyComparer = function(a, b) { return a - b; };
+        }
+
+        return Promise.as(promisedArray)
+            .then(function (array) {
+                return Promise.map(array, keyGenerator)
+                    // Get the array of keys.
+                    .then(function(keys) {
+                        // Create the compound array.
+                        var keysAndValues = keys.map(function(key, i) {
+                            return {
+                                key:key,
+                                value:array[i]
+                            };
+                        });
+
+                        // Sort the compound array by key.
+                        keysAndValues.sort(function(a, b) { return keyComparer(a.key, b.key); });
+
+                        // Map the compound array back to the values.
+                        return keysAndValues.map(function(keyAndValue) { return keyAndValue.value; });
+                    });
+            })
+    }
+
     Promise._defer = function(work) {
         if (window.setImmediate) {
             return new Promise(function(success) { window.setImmediate(success); })
@@ -272,7 +304,13 @@ var Promise = (function() {
         var result = new Promise(function thenPromiseWork(newPromiseWorkFinished, newPromiseWorkErred, newPromise) {
             that._addCallback(function thenCallback() {
                 if (that.isCompleted) {
-                    var fulfillmentResult = fulfilled(that.result);
+                    try {
+                        var fulfillmentResult = fulfilled(that.result);
+                    } catch (fulfillmentError) {
+                        newPromiseWorkErred(error);
+                        return;
+                    }
+
                     if (Promise.isPromise(fulfillmentResult)) {
                         // The fulfillment method returned another promise.  Tie this promise to that one.
                         if (DEBUG_PROMISES) {
@@ -286,7 +324,12 @@ var Promise = (function() {
                 } else if (that.isError) {
                     if (error) {
                         // Handle the error.
-                        var errorResult = error(that.result);
+                        try {
+                            var errorResult = error(that.result);
+                        } catch (errorError) {
+                            newPromiseWorkErred(errorError);
+                            return;
+                        }
                         if (Promise.isPromise(errorResult)) {
                             if (DEBUG_PROMISES) {
                                 newPromise.parentPromises.push(fulfillmentResult);

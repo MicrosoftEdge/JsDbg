@@ -230,6 +230,8 @@ var JsDbg = (function() {
         },
 
         SetPersistentData: function(data, callback) {
+            callback({success: true});
+            return;
             var value = JSON.stringify(data);
             jsonRequest("/jsdbg/persistentstorage", callback, /*async*/true, /*cache*/false, "PUT", value);
         },
@@ -336,6 +338,7 @@ var JsDbg = (function() {
         },
 
         SyncSetPersistentData: function(data) {
+            return;
             var value = JSON.stringify(data);
             var retval = null;
             jsonRequest("/jsdbg/persistentstorage", function(x) { retval = x; }, /*async*/false, /*cache*/false, "PUT", value);

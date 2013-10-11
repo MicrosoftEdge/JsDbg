@@ -4,7 +4,8 @@
     "description": "A tree drawing library.",
     "headless": true,
     "dependencies": [
-        "timer"
+        "timer",
+        "promise"
     ],
     "includes": [
         "talltree.css",

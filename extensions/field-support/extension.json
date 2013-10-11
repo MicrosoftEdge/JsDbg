@@ -6,7 +6,8 @@
     "dependencies": [
         "dbgobject",
         "catalog",
-        "catalog-viewer"
+        "catalog-viewer",
+        "promise"
     ],
     "includes": [
         "fieldsupport.css",
