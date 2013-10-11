@@ -71,8 +71,28 @@ function jsDbgPromise(method) {
     });
 }
 
+function promiseResult(promise) {
+    if (JsDbg.IsRunningSynchronously() && Promise.isPromise(promise)) {
+        var retval = undefined;
+        var didError = false;
+        promise.then(function(result) {
+            retval = result;
+        }, function(error) {
+            didError = true;
+            retval = error;
+        });
+
+        if (didError) {
+            throw retval;
+        }
+        return retval;
+    } else {
+        return promise;
+    }
+}
+
 DbgObject.sym = function(symbol) {
-    return new PromisedDbgObject(
+    return promiseResult(new PromisedDbgObject(
         jsDbgPromise(JsDbg.LookupSymbol, symbol).then(function(result) {
             var typedNull = new DbgObject(result.module, result.type, 0);
             if (typedNull._isPointer()) {
@@ -81,7 +101,7 @@ DbgObject.sym = function(symbol) {
                 return new DbgObject(result.module, "void", result.value);
             }
         })
-    );
+    ));
 }
 
 DbgObject.NULL = new DbgObject("", "", 0, 0, 0);
@@ -112,11 +132,11 @@ DbgObject.prototype._off = function(offset) {
 
 DbgObject.prototype.deref = function() {
     var that = this;
-    return new PromisedDbgObject(
+    return promiseResult(new PromisedDbgObject(
         jsDbgPromise(JsDbg.ReadPointer, that._pointer).then(function(result) {
             return new DbgObject(that.module, that._getDereferencedTypeName(), result.value);
         })
-    );
+    ));
 }
 
 DbgObject.prototype.f = function(field) {
@@ -147,7 +167,7 @@ DbgObject.prototype.f = function(field) {
     }
 
     var that = this;
-    return new PromisedDbgObject(
+    return promiseResult(new PromisedDbgObject(
         jsDbgPromise(JsDbg.LookupFieldOffset, that.module, that.typename, [field])
             .then(function(result) {
                 var target = new DbgObject(that.module, result.type, that._pointer + result.offset, result.bitcount, result.bitoffset);
@@ -165,17 +185,17 @@ DbgObject.prototype.f = function(field) {
                     return target;
                 }
             })
-    );
+    ));
 }
 
 DbgObject.prototype.unembed = function(type, field) {
     var that = this;
-    return new PromisedDbgObject(
+    return promiseResult(new PromisedDbgObject(
         jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, [field])
             .then(function(result) { 
                 return new DbgObject(that.module, type, that._pointer - result.offset); 
             })
-    );
+    ));
 }
 
 DbgObject.prototype.as = function(type) {
@@ -184,24 +204,24 @@ DbgObject.prototype.as = function(type) {
 
 DbgObject.prototype.idx = function(index) {
     var that = this;
-    return new PromisedDbgObject(
+    return promiseResult(new PromisedDbgObject(
         Promise.as(index)
             .then(function(index) { return Promise.join(that._getStructSize(), index); })
             .then(function(args) { return that._off(args[0] * args[1]); })
-    );
+    ));
 }
 
 DbgObject.prototype.val = function() {
     if (this.typename == "void") {
-        return Promise.as(this._pointer);
+        return promiseResult(Promise.as(this._pointer));
     }
 
     if (this._isArray) {
-        return Promise.fail("You cannot get a value of an array.");
+        return promiseResult(Promise.fail("You cannot get a value of an array."));
     }
 
     var that = this;
-    return this._getStructSize()
+    return promiseResult(this._getStructSize()
         .then(function(structSize) {
             return jsDbgPromise(JsDbg.ReadNumber, that._pointer, structSize);
         })
@@ -211,19 +231,19 @@ DbgObject.prototype.val = function() {
                 value = (value >> that.bitoffset) & ((1 << that.bitcount) - 1);
             }
             return value;
-        });
+        }));
 }
 
 DbgObject.prototype.constant = function() {
     var that = this;
-    return this.val()
+    return promiseResult(this.val()
         .then(function(value) { return jsDbgPromise(JsDbg.LookupConstantName, that.module, that.typename, value); })
-        .then(function(result) { return result.name; });
+        .then(function(result) { return result.name; }));
 }
 
 DbgObject.prototype.array = function(count) {
     var that = this;
-    return Promise.as(count)
+    return promiseResult(Promise.as(count)
         .then(function(count) {
             if (count == undefined && that._isArray) {
                 count = that._arrayLength;
@@ -247,7 +267,7 @@ DbgObject.prototype.array = function(count) {
                     }
                     return Promise.join(array);
                 });
-        });
+        }));
 }
 
 DbgObject.prototype.ptr = function() {
@@ -271,33 +291,33 @@ DbgObject.prototype.equals = function(other) {
 
 DbgObject.prototype.vtable = function() {
     var pointer = this._pointer;
-    return jsDbgPromise(JsDbg.ReadPointer, pointer)
+    return promiseResult(jsDbgPromise(JsDbg.ReadPointer, pointer)
         .then(function(result) { 
             return jsDbgPromise(JsDbg.LookupSymbolName, result.value);
         })
         .then(function(result) {
             return result.symbolName.substring(result.symbolName.indexOf("!") + 1, result.symbolName.indexOf("::`vftable'"));
-        });
+        }));
 }
 
 DbgObject.prototype.vcast = function() {
     var that = this;
-    return this.vtable()
+    return promiseResult(this.vtable()
         .then(function(vtableType) {
             return jsDbgPromise(JsDbg.LookupBaseTypeOffset, that.module, vtableType, that.typename);
         })
         .then(function(result) {
             return new DbgObject(that.module, vtableType, that._pointer - result.offset);            
-        });
+        }));
 }
 
 DbgObject.prototype.fields = function() {
     if (this._isPointer()) {
-        return Promise.fail("You cannot lookup fields on a pointer.");
+        return promiseResult(Promise.fail("You cannot lookup fields on a pointer."));
     }
 
     var that = this;
-    return jsDbgPromise(JsDbg.LookupFields, this.module, this.typename)
+    return promiseResult(jsDbgPromise(JsDbg.LookupFields, this.module, this.typename)
         .then(function(result) {
             result.fields.sort(function(a, b) { return a.offset - b.offset; });
             return result.fields.map(function(field) {
@@ -307,7 +327,7 @@ DbgObject.prototype.fields = function() {
                     value: new DbgObject(that.module, field.type, that._pointer + field.offset, field.bitcount, field.bitoffset)
                 };
             });
-        });
+        }));
 }
 
 DbgObject.prototype.arrayLength = function() {

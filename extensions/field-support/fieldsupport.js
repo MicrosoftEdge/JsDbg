@@ -49,7 +49,9 @@ var FieldSupport = (function() {
 
         // Extend DbgObject with the capability to eval a string against itself.
         DbgObject.prototype.InjectedFieldEvaluate = function(string, e) {
-            return eval(string);
+            return JsDbg.RunSynchronously((function() {
+                return eval(string);
+            }).bind(this));
         }
 
         function refreshTreeUIAfterFieldChange() {

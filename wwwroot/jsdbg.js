@@ -14,6 +14,9 @@ var JsDbg = (function() {
     var requestCounter = 0;
     var browserSupportsWebSockets = (window.WebSocket !== undefined);
 
+
+    var everythingIsSynchronous = false;
+
     var currentWebSocket = null;
     var currentWebSocketCallbacks = {};
 
@@ -71,7 +74,7 @@ var JsDbg = (function() {
     }
 
     function jsonRequest(url, callback, async, cache, method, data) {
-        if (everythingCache != null) {
+        if (everythingIsSynchronous || everythingCache != null) {
             // We can't be async and cache everything.  Favor caching.
             async = false;
         }
@@ -96,7 +99,7 @@ var JsDbg = (function() {
         function handleJsonResponse(jsonText) {
             var result = JSON.parse(jsonText);
             var otherCallbacks = [];
-            if (cache) {
+            if (cache && async) {
                 otherCallbacks = pendingCachedRequests[url];
                 delete pendingCachedRequests[url];
                 responseCache[url] = result;
@@ -151,6 +154,27 @@ var JsDbg = (function() {
         GetNumberOfRequests: function() {
             return requestCounter;
         },
+
+        IsRunningSynchronously: function() {
+            return everythingIsSynchronous;
+        },
+
+        RunSynchronously: function(action) {
+            if (everythingIsSynchronous) {
+                return action();
+            } else {
+                everythingIsSynchronous = true;
+                try {
+                    var result = action();
+                    everythingIsSynchronous = false;
+                } catch (exception) {
+                    everythingIsSynchronous = false;
+                    throw exception;
+                }
+                return result;
+            }
+        },
+
         RunWithCachedWorld: function(action) {
             if (everythingCache == null) {
                 // The world isn't being cached.
