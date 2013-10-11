@@ -193,7 +193,7 @@ var TallTree = (function() {
 
     return {
         BuildTree: function(container, root) {
-            return DrawingTreeNode.instantiate(root, container)
+            return DrawingTreeNode.instantiate(root)
                 .then(function(drawingRoot) {
                     container.innerHTML = "";
                     container.className = "tall-node-container";
