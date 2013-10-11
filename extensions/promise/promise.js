@@ -205,12 +205,15 @@ var Promise = (function() {
         }
     }
 
-    Promise.filter = function(array, f) {
-        return Promise.map(array, f)
-            .then(function promiseFilterer(bools) {
-                return array.filter(function(_, i) {
-                    return bools[i];
-                });
+    Promise.filter = function(promisedArray, f) {
+        return Promise.as(promisedArray)
+            .then(function (array) {
+                return Promise.map(array, f)
+                    .then(function promiseFilterer(bools) {
+                        return array.filter(function(_, i) {
+                            return bools[i];
+                        });
+                    });
             });
     }
 
@@ -307,7 +310,7 @@ var Promise = (function() {
                     try {
                         var fulfillmentResult = fulfilled(that.result);
                     } catch (fulfillmentError) {
-                        newPromiseWorkErred(error);
+                        newPromiseWorkErred(fulfillmentError);
                         return;
                     }
 

@@ -269,7 +269,7 @@ DbgObject.prototype.vtable = function() {
     var pointer = this._pointer;
     return jsDbgPromise(JsDbg.ReadPointer, pointer)
         .then(function(result) { 
-            return jsDbgPromise(JsDbg.LookupSymbolName(result.value));
+            return jsDbgPromise(JsDbg.LookupSymbolName, result.value);
         })
         .then(function(result) {
             return result.symbolName.substring(result.symbolName.indexOf("!") + 1, result.symbolName.indexOf("::`vftable'"));

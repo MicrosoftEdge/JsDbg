@@ -86,15 +86,12 @@ var MarkupTree = (function() {
         // Get the tag...
         return this.treeNode.f("_etag").as("ELEMENT_TAG").constant()
 
-            // Create the representation with fields...
+            // And create the representation with fields.
             .then(function(constant) {
                 var tag = constant.substr("ETAG_".length);
                 element.innerHTML = "<p>" + tag + "</p> <p>" + that.treeNode.ptr() + "</p> ";
                 return FieldSupport.RenderFields(that, that.treeNode, element);
             })
-
-            // And provide the element.
-            .then(function() { return element; })
     }
 
     var builtInFields = [

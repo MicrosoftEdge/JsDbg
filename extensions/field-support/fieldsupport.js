@@ -486,10 +486,10 @@ var FieldSupport = (function() {
         }
 
         return Promise
-            // Create the representations.
+            // Create the representations...
             .join(fields.map(function(field) { return field.html.call(dbgObject, representation); }))
 
-            // Then apply the representations to the container.
+            // Apply the representations to the container...
             .then(function(fieldRepresentations) {
                 fieldRepresentations.forEach(function(html, i) {
                     if (html !== undefined) {
@@ -511,7 +511,10 @@ var FieldSupport = (function() {
                         representation.appendChild(document.createTextNode(" "));
                     }
                 });
-            });
+            })
+
+            // And return the container.
+            .then(function() { return representation; });
     }
 
     return {

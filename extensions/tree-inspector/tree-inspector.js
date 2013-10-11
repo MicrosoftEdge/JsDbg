@@ -16,8 +16,11 @@ var TreeInspector = (function() {
                 if (lastRenderedPointer != pointerField.value) {
                     // Don't re-render if we've already rendered.
                     lastRenderedPointer = pointerField.value;
-                    treeRoot = namespace.Create(parseInt(pointerField.value));
-                    render();
+                    Promise.as(namespace.Create(parseInt(pointerField.value)))
+                        .then(function(createdRoot) {
+                            treeRoot = createdRoot;
+                            return render();
+                        })
                 }
             }
 
