@@ -175,7 +175,22 @@ var DisplayTree = (function() {
             shortname: "c",
             async:true,
             html: function() {
-                return this.f("_pDispClient").ptr();
+                // Get the latest patch...
+                return this.latestPatch()
+
+                // Check if it has advanced display...
+                .then(function(node) {
+                    return node.f("_flags._fAdvanced").val()
+
+                    // And get the disp client.
+                    .then(function(hasAdvanced) {
+                        if (hasAdvanced) {
+                            return node.f("_pAdvancedDisplay._pDispClient").ptr();
+                        } else {
+                            return node.f("_pDispClient").ptr();
+                        }
+                    });
+                });
             }
         },
         {
@@ -184,7 +199,27 @@ var DisplayTree = (function() {
             shortname: "ct",
             async:true,
             html: function() {
-                return this.f("_pDispClient").vtable();
+                // Get the latest patch...
+                return this.latestPatch()
+
+                // Check if it has advanced display...
+                .then(function(node) {
+                    return node.f("_flags._fAdvanced").val()
+
+                    // And get the disp client.
+                    .then(function(hasAdvanced) {
+                        if (hasAdvanced) {
+                            return node.f("_pAdvancedDisplay._pDispClient");
+                        } else {
+                            return node.f("_pDispClient");
+                        }
+                    });
+                })
+
+                // And get the vtable symbol.
+                .then(function(dispClient) {
+                    return dispClient.vtable();
+                });
             }
         },
         {
