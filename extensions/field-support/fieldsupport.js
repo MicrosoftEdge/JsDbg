@@ -49,9 +49,7 @@ var FieldSupport = (function() {
 
         // Extend DbgObject with the capability to eval a string against itself.
         DbgObject.prototype.InjectedFieldEvaluate = function(string, e) {
-            return JsDbg.RunSynchronously((function() {
-                return eval(string);
-            }).bind(this));
+            return eval(string);
         }
 
         function refreshTreeUIAfterFieldChange() {
@@ -490,7 +488,13 @@ var FieldSupport = (function() {
 
         return Promise
             // Create the representations...
-            .join(fields.map(function(field) { return field.html.call(dbgObject, representation); }))
+            .join(fields.map(function(field) { 
+                if (field.async) {
+                    return field.html.call(dbgObject, representation);
+                } else {
+                    return JsDbg.RunSynchronously(field.html.bind(dbgObject, representation));
+                }
+            }))
 
             // Apply the representations to the container...
             .then(function(fieldRepresentations) {

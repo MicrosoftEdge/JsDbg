@@ -463,6 +463,7 @@ var BoxTree = (function() {
             type: "ContainerBox",
             fullname: "CTreeNode",
             shortname: "tn",
+            async:true,
             html: function() {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("element.m_pT")).ptr()
                     .then(function(ptr) {
@@ -475,6 +476,7 @@ var BoxTree = (function() {
             type: "ContainerBox",
             fullname: "Tag",
             shortname: "tag",
+            async:true,
             html: function() {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("element.m_pT"))
                     .f("_etag")
@@ -487,6 +489,7 @@ var BoxTree = (function() {
             type: "ContainerBox",
             fullname: "ContentBoxWidth",
             shortname: "w",
+            async:true,
             html: function() {
                 return this.f("contentBoxWidth").val()
                     .then(function(width) { return width / 100 + "px"; });
@@ -497,6 +500,7 @@ var BoxTree = (function() {
             type: "ContainerBox",
             fullname: "ContentBoxHeight",
             shortname: "h",
+            async:true,
             html: function() {
                 return this.f("contentBoxHeight").val()
                     .then(function(height) { return height / 100 + "px"; });
@@ -507,6 +511,7 @@ var BoxTree = (function() {
             type: "ContainerBox",
             fullname: "LayoutPlacement",
             shortname: "lp",
+            async:true,
             html: function() {
                 return this.f("sourceStyle.fancyFormat._layoutPlacement")
                           .as("Tree::LayoutPlacementEnum")
@@ -519,6 +524,7 @@ var BoxTree = (function() {
             type: "ContainerBox",
             fullname: "DisplayNode",
             shortname: "d",
+            async:true,
             html: function() {
                 // Check if it's been extracted...
                 var that = this;
@@ -541,6 +547,7 @@ var BoxTree = (function() {
             type: "ContainerBox",
             fullname: "Validity",
             shortname: "validity",
+            async:true,
             html: function(e) {
                 return Promise.join([this.f("isLayoutInvalid").val(), this.f("isDisplayInvalid").val()])
                     .then(function(invalidBits) {
@@ -562,6 +569,7 @@ var BoxTree = (function() {
             type: "LineBox",
             fullname: "Text",
             shortname: "text",
+            async:true,
             html: function() {
                 return Promise
                     .join([

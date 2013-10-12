@@ -162,6 +162,7 @@ var DisplayTree = (function() {
             type: "CDispNode",
             fullname: "Bounds",
             shortname: "b",
+            async:true,
             html: function() {
                 var rect = this.f("_rctBounds");
                 return Promise.map(["left", "top", "right", "bottom"], function(f) { return rect.f(f).val(); })
@@ -172,6 +173,7 @@ var DisplayTree = (function() {
             type: "CDispNode",
             fullname: "Client",
             shortname: "c",
+            async:true,
             html: function() {
                 return this.f("_pDispClient").ptr();
             }
@@ -180,6 +182,7 @@ var DisplayTree = (function() {
             type: "CDispNode",
             fullname: "Client Type",
             shortname: "ct",
+            async:true,
             html: function() {
                 return this.f("_pDispClient").vtable();
             }
@@ -188,6 +191,7 @@ var DisplayTree = (function() {
             type: "CDispNode",
             fullname: "All Flags",
             shortname: "flags",
+            async:true,
             html: function() {
                 return Promise
                     .filter(this.f("_flags").fields(), function(f) {

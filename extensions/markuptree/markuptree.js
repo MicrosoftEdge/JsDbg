@@ -99,6 +99,7 @@ var MarkupTree = (function() {
             type: "CTreeNode",
             fullname: "_iFF",
             shortname: "_iFF",
+            async:true,
             html: function() {                
                 var that = this;
                 return Promise
@@ -112,6 +113,7 @@ var MarkupTree = (function() {
             type: "CTreeNode",
             fullname: "_iCF",
             shortname: "_iCF",
+            async:true,
             html: function() {
                 var that = this;
                 return Promise
@@ -125,6 +127,7 @@ var MarkupTree = (function() {
             type: "CTreeNode",
             fullname: "_iPF",
             shortname: "_iPF",
+            async:true,
             html: function() {
                 var that = this;
                 return Promise
@@ -138,6 +141,7 @@ var MarkupTree = (function() {
             type: "CTreeNode",
             fullname: "_iSF",
             shortname: "_iSF",
+            async:true,
             html: function() {
                 var that = this;
                 return Promise
