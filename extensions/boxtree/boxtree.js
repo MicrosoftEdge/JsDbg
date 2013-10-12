@@ -630,7 +630,7 @@ var BoxTree = (function() {
                             // Get an array of HTML fragments...
                             .then(function (runArray) {
                                 // Only consider runs within the scope of the line.
-                                runArray = runArray.slice(runIndexAtStartOfLine, runIndexAfterLine < 0 ? undefined : runIndexAfterLine);
+                                runArray = runArray.slice(runIndexAtStartOfLine, runIndexAfterLine < 0 ? undefined : runIndexAfterLine + 1);
 
                                 // Map each run to a string.
                                 return Promise.map(
@@ -660,7 +660,7 @@ var BoxTree = (function() {
 
                             // Join the fragments together.
                             .then(function(htmlFragments) {
-                                return htmlFragments.join("");
+                                return "<em>" + htmlFragments.join("") + "</em>";
                             })
                         } else {
                             return "";
