@@ -21,333 +21,392 @@
 //   - isNull() -> bool                     [indicates if the object is null]
 //   - isPointer() -> bool                  [indicates if the object is a pointer]
 
-// bitcount and bitoffset are optional.
-function DbgObject(module, type, pointer, bitcount, bitoffset) {
-    this.module = module;
-    this._pointer = pointer;
-    this.bitcount = bitcount;
-    this.bitoffset = bitoffset;
+var DbgObject = (function() {
+    // bitcount and bitoffset are optional.
+    function DbgObject(module, type, pointer, bitcount, bitoffset) {
+        this.module = module;
+        this._pointer = pointer;
+        this.bitcount = bitcount;
+        this.bitoffset = bitoffset;
 
-    // Cleanup type name:
-    //  - remove whitespace from the beginning and end
-    this.typename = type
-        .replace(/\s+$/g, '')
-        .replace(/^\s+/g, '');
+        // Cleanup type name:
+        //  - remove whitespace from the beginning and end
+        this.typename = type
+            .replace(/\s+$/g, '')
+            .replace(/^\s+/g, '');
 
-    // Get the array size.
-    var arrayRegex = /\[[0-9]+\]/g;
-    var matches = this.typename.match(arrayRegex);
-    if (matches) {
-        this._isArray = true;
-        // might be a multi-dimensional array
-        this._arrayLength = 1;
-        for (var i = 0; i < matches.length; ++i) {
-            this._arrayLength *= parseInt(matches[i].substr(1, matches[i].length - 2));
-        }
-        this.typename = this.typename.replace(arrayRegex, '');
-    } else {
-        this._isArray = false;
-        this._arrayLength = 0;
-    }
-}
-
-function jsDbgPromise(method) {
-    if (typeof(method) != typeof(function() {})) {
-        return Promise.fail("Invalid method.");
-    }
-    var methodArguments = [];
-    for (var i = 1; i < arguments.length; ++i) {
-        methodArguments.push(arguments[i]);
-    };
-    return new Promise(function(success, error) {
-        methodArguments.push(function(result) {
-            if (result.error) {
-                error(result.error);
-            } else {
-                success(result);
+        // Get the array size.
+        var arrayRegex = /\[[0-9]+\]/g;
+        var matches = this.typename.match(arrayRegex);
+        if (matches) {
+            this._isArray = true;
+            // might be a multi-dimensional array
+            this._arrayLength = 1;
+            for (var i = 0; i < matches.length; ++i) {
+                this._arrayLength *= parseInt(matches[i].substr(1, matches[i].length - 2));
             }
-        });
-        method.apply(JsDbg, methodArguments)
-    });
-}
-
-function promiseResult(promise) {
-    if (JsDbg.IsRunningSynchronously() && Promise.isPromise(promise)) {
-        var retval = undefined;
-        var didError = false;
-        promise.then(function(result) {
-            retval = result;
-        }, function(error) {
-            didError = true;
-            retval = error;
-        });
-
-        if (didError) {
-            throw retval;
+            this.typename = this.typename.replace(arrayRegex, '');
+        } else {
+            this._isArray = false;
+            this._arrayLength = 0;
         }
-        return retval;
-    } else {
-        return promise;
     }
-}
 
-DbgObject.sym = function(symbol) {
-    return promiseResult(new PromisedDbgObject(
-        jsDbgPromise(JsDbg.LookupSymbol, symbol).then(function(result) {
-            var typedNull = new DbgObject(result.module, result.type, 0);
-            if (typedNull._isPointer()) {
-                return new DbgObject(result.module, typedNull._getDereferencedTypeName(), result.value);
-            } else {
-                return new DbgObject(result.module, "void", result.value);
-            }
-        })
-    ));
-}
-
-DbgObject.NULL = new DbgObject("", "", 0, 0, 0);
-
-DbgObject.prototype._getStructSize = function() {
-    if (this._isPointer()) {
-        return jsDbgPromise(JsDbg.GetPointerSize).then(function(result) {
-            return result.pointerSize;
-        });
-    } else {
-        return jsDbgPromise(JsDbg.LookupFieldOffset, this.module, this.typename, []).then(function(result) {
-            return result.size;
-        });
-    }
-}
-
-DbgObject.prototype._getDereferencedTypeName = function() {
-    if (this._isPointer()) {
-        return this.typename.substring(0, this.typename.length - 1);
-    } else {
-        return "void";
-    }
-}
-
-DbgObject.prototype._off = function(offset) {
-    return new DbgObject(this.module, this.typename, this._pointer + offset);
-}
-
-DbgObject.prototype.deref = function() {
-    var that = this;
-    return promiseResult(new PromisedDbgObject(
-        jsDbgPromise(JsDbg.ReadPointer, that._pointer).then(function(result) {
-            return new DbgObject(that.module, that._getDereferencedTypeName(), result.value);
-        })
-    ));
-}
-
-DbgObject.prototype.f = function(field) {
-    var parts = field.split(".");
-    if (parts.length > 1) {
-        // multiple fields were specified
-        var current = this;
-        for (var i = 0; i < parts.length; ++i) {
-            current = current.f(parts[i]);
+    function jsDbgPromise(method) {
+        if (typeof(method) != typeof(function() {})) {
+            return Promise.fail("Invalid method.");
         }
-        return current;
-    }
-
-    var arrayIndexRegex = /\[[0-9]+\]$/;
-    var indexMatches = field.match(arrayIndexRegex);
-    var index = 0;
-    if (indexMatches) {
-        index = parseInt(indexMatches[0].substr(1, indexMatches[0].length - 2));
-    }
-    field = field.replace(arrayIndexRegex, '');
-
-    if (this._isPointer()) {
-        return Promise.fail("You cannot do a field lookup on a pointer.");
-    } else if (this._pointer == 0) {
-        return Promise.fail("You cannot get a field from a null pointer.");
-    } else if (this._isArray) {
-        return Promise.fail("You cannot get a field from an array.");
-    }
-
-    var that = this;
-    return promiseResult(new PromisedDbgObject(
-        jsDbgPromise(JsDbg.LookupFieldOffset, that.module, that.typename, [field])
-            .then(function(result) {
-                var target = new DbgObject(that.module, result.type, that._pointer + result.offset, result.bitcount, result.bitoffset);
-
-                if (indexMatches) {
-                    // We want to do an index on top of this; this will make "target" a promised DbgObject.
-                    target = target.idx(index);
-                }
-                return target;
-            })
-            .then(function(target) {
-                if (target._isPointer()) {
-                    return target.deref();
+        var methodArguments = [];
+        for (var i = 1; i < arguments.length; ++i) {
+            methodArguments.push(arguments[i]);
+        };
+        return new Promise(function(success, error) {
+            methodArguments.push(function(result) {
+                if (result.error) {
+                    error(result.error);
                 } else {
-                    return target;
+                    success(result);
+                }
+            });
+            method.apply(JsDbg, methodArguments)
+        });
+    }
+
+    function checkSync(promise) {
+        if (JsDbg.IsRunningSynchronously() && Promise.isPromise(promise)) {
+            var retval = undefined;
+            var didError = false;
+            promise.then(function(result) {
+                retval = result;
+            }, function(error) {
+                didError = true;
+                retval = error;
+            });
+
+            if (didError) {
+                throw retval;
+            }
+            return retval;
+        } else {
+            return promise;
+        }
+    }
+
+    function checkSyncDbgObject(promise) {
+        promise = checkSync(promise);
+        if (Promise.isPromise(promise)) {
+            return new PromisedDbgObject(promise);
+        } else {
+            return promise;
+        }
+    }
+
+    DbgObject.forcePromiseIfSync = checkSync;
+
+    DbgObject.sym = function(symbol) {
+        return checkSyncDbgObject(
+            jsDbgPromise(JsDbg.LookupSymbol, symbol).then(function(result) {
+                var typedNull = new DbgObject(result.module, result.type, 0);
+                if (typedNull._isPointer()) {
+                    return new DbgObject(result.module, typedNull._getDereferencedTypeName(), result.value);
+                } else {
+                    return new DbgObject(result.module, "void", result.value);
                 }
             })
-    ));
-}
-
-DbgObject.prototype.unembed = function(type, field) {
-    var that = this;
-    return promiseResult(new PromisedDbgObject(
-        jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, [field])
-            .then(function(result) { 
-                return new DbgObject(that.module, type, that._pointer - result.offset); 
-            })
-    ));
-}
-
-DbgObject.prototype.as = function(type) {
-    return new DbgObject(this.module, type, this._pointer, this.bitcount, this.bitoffset);
-}
-
-DbgObject.prototype.idx = function(index) {
-    var that = this;
-    return promiseResult(new PromisedDbgObject(
-        Promise.as(index)
-            .then(function(index) { return Promise.join(that._getStructSize(), index); })
-            .then(function(args) { return that._off(args[0] * args[1]); })
-    ));
-}
-
-DbgObject.prototype.val = function() {
-    if (this.typename == "void") {
-        return promiseResult(Promise.as(this._pointer));
+        );
     }
 
-    if (this._isArray) {
-        return promiseResult(Promise.fail("You cannot get a value of an array."));
-    }
+    DbgObject.NULL = new DbgObject("", "", 0, 0, 0);
 
-    var that = this;
-    return promiseResult(this._getStructSize()
-        .then(function(structSize) {
-            return jsDbgPromise(JsDbg.ReadNumber, that._pointer, structSize);
-        })
-        .then(function(result) {
-            var value = result.value;
-            if (that.bitcount && that.bitoffset !== undefined) {
-                value = (value >> that.bitoffset) & ((1 << that.bitcount) - 1);
-            }
-            return value;
-        }));
-}
-
-DbgObject.prototype.constant = function() {
-    var that = this;
-    return promiseResult(this.val()
-        .then(function(value) { return jsDbgPromise(JsDbg.LookupConstantName, that.module, that.typename, value); })
-        .then(function(result) { return result.name; }));
-}
-
-DbgObject.prototype.array = function(count) {
-    var that = this;
-    return promiseResult(Promise.as(count)
-        .then(function(count) {
-            if (count == undefined && that._isArray) {
-                count = that._arrayLength;
-            }
-            return that._getStructSize()
-                .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, count); })
-                .then(function(result) {
-                    if (that._isPointer()) {
-                        // If the type is a pointer, return an array of DbgObjects.
-                        var itemTypename = that._getDereferencedTypeName();
-                        return result.array.map(function(x) { return new DbgObject(that.module, itemTypename, x); });
-                    } else {
-                        // Otherwise, the items are values.
-                        return result.array;
-                    }
-                }, function(error) {
-                    // We weren't able to read the array, so just make an array of idx(i) calls.
-                    var array = [];
-                    for (var i = 0; i < count; ++i) {
-                        array.push(that.idx(i));
-                    }
-                    return Promise.join(array);
-                });
-        }));
-}
-
-DbgObject.prototype.ptr = function() {
-    return this._pointer == 0 ? "NULL" : "0x" + this._pointer.toString(16);
-}
-
-DbgObject.prototype.pointerValue = function() {
-    return this._pointer;
-}
-
-DbgObject.prototype.typeDescription = function() {
-    return this.typename + (this._isArray ? "[" + this._arrayLength + "]" : "");
-}
-
-DbgObject.prototype.equals = function(other) {
-    if (this._pointer === undefined || other._pointer === undefined) {
-        throw "The pointer values are undefined.";
-    }
-    return this._pointer == other._pointer;
-}
-
-DbgObject.prototype.vtable = function() {
-    var pointer = this._pointer;
-    return promiseResult(jsDbgPromise(JsDbg.ReadPointer, pointer)
-        .then(function(result) { 
-            return jsDbgPromise(JsDbg.LookupSymbolName, result.value);
-        })
-        .then(function(result) {
-            return result.symbolName.substring(result.symbolName.indexOf("!") + 1, result.symbolName.indexOf("::`vftable'"));
-        }));
-}
-
-DbgObject.prototype.vcast = function() {
-    var that = this;
-    return promiseResult(this.vtable()
-        .then(function(vtableType) {
-            return jsDbgPromise(JsDbg.LookupBaseTypeOffset, that.module, vtableType, that.typename);
-        })
-        .then(function(result) {
-            return new DbgObject(that.module, vtableType, that._pointer - result.offset);            
-        }));
-}
-
-DbgObject.prototype.fields = function() {
-    if (this._isPointer()) {
-        return promiseResult(Promise.fail("You cannot lookup fields on a pointer."));
-    }
-
-    var that = this;
-    return promiseResult(jsDbgPromise(JsDbg.LookupFields, this.module, this.typename)
-        .then(function(result) {
-            result.fields.sort(function(a, b) { return a.offset - b.offset; });
-            return result.fields.map(function(field) {
-                return {
-                    name: field.name,
-                    offset: field.offset,
-                    value: new DbgObject(that.module, field.type, that._pointer + field.offset, field.bitcount, field.bitoffset)
-                };
+    DbgObject.prototype._getStructSize = function() {
+        if (this._isPointer()) {
+            return jsDbgPromise(JsDbg.GetPointerSize).then(function(result) {
+                return result.pointerSize;
             });
-        }));
-}
+        } else {
+            return jsDbgPromise(JsDbg.LookupFieldOffset, this.module, this.typename, []).then(function(result) {
+                return result.size;
+            });
+        }
+    }
 
-DbgObject.prototype.arrayLength = function() {
-    return this._arrayLength;
-}
+    DbgObject.prototype._getDereferencedTypeName = function() {
+        if (this._isPointer()) {
+            return this.typename.substring(0, this.typename.length - 1);
+        } else {
+            return "void";
+        }
+    }
 
-DbgObject.prototype.isArray = function() {
-    return this._isArray;
-}
+    DbgObject.prototype._off = function(offset) {
+        return new DbgObject(this.module, this.typename, this._pointer + offset);
+    }
 
-DbgObject.prototype.isNull = function() {
-    return this._pointer == 0;
-}
+    DbgObject.prototype.deref = function() {
+        var that = this;
+        return checkSyncDbgObject(
+            jsDbgPromise(JsDbg.ReadPointer, that._pointer).then(function(result) {
+                return new DbgObject(that.module, that._getDereferencedTypeName(), result.value);
+            })
+        );
+    }
 
-DbgObject.prototype._isPointer = function() {
-    return this.typename[this.typename.length - 1] == "*";
-}
+    DbgObject.prototype.f = function(field) {
+        var parts = field.split(".");
+        if (parts.length > 1) {
+            // multiple fields were specified
+            var current = this;
+            for (var i = 0; i < parts.length; ++i) {
+                current = current.f(parts[i]);
+            }
+            return current;
+        }
 
-DbgObject.prototype.isPointer = function() {
-    return this._isPointer();
-}
+        var arrayIndexRegex = /\[[0-9]+\]$/;
+        var indexMatches = field.match(arrayIndexRegex);
+        var index = 0;
+        if (indexMatches) {
+            index = parseInt(indexMatches[0].substr(1, indexMatches[0].length - 2));
+        }
+        field = field.replace(arrayIndexRegex, '');
+
+        if (this._isPointer()) {
+            return checkSync(Promise.fail("You cannot do a field lookup on a pointer."));
+        } else if (this._pointer == 0) {
+            return checkSync(Promise.fail("You cannot get a field from a null pointer."));
+        } else if (this._isArray) {
+            return checkSync(Promise.fail("You cannot get a field from an array."));
+        }
+
+        var that = this;
+        return checkSyncDbgObject(
+            jsDbgPromise(JsDbg.LookupFieldOffset, that.module, that.typename, [field])
+                .then(function(result) {
+                    var target = new DbgObject(that.module, result.type, that._pointer + result.offset, result.bitcount, result.bitoffset);
+
+                    if (indexMatches) {
+                        // We want to do an index on top of this; this will make "target" a promised DbgObject.
+                        target = target.idx(index);
+                    }
+                    return target;
+                })
+                .then(function(target) {
+                    if (target._isPointer()) {
+                        return target.deref();
+                    } else {
+                        return target;
+                    }
+                })
+        );
+    }
+
+    DbgObject.prototype.unembed = function(type, field) {
+        var that = this;
+        return checkSyncDbgObject(
+            jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, [field])
+                .then(function(result) { 
+                    return new DbgObject(that.module, type, that._pointer - result.offset); 
+                })
+        );
+    }
+
+    DbgObject.prototype.as = function(type) {
+        return new DbgObject(this.module, type, this._pointer, this.bitcount, this.bitoffset);
+    }
+
+    DbgObject.prototype.idx = function(index) {
+        var that = this;
+        return checkSyncDbgObject(
+            // index might be a promise...
+            Promise.as(index)
+                // Get the struct size...
+                .then(function(index) { return Promise.join(that._getStructSize(), index); })
+                // And offset the struct.
+                .then(function(args) { return that._off(args[0] * args[1]); })
+        );
+    }
+
+    DbgObject.prototype.val = function() {
+        if (this.typename == "void") {
+            return checkSync(Promise.as(this._pointer));
+        }
+
+        if (this._isArray) {
+            return checkSync(Promise.fail("You cannot get a value of an array."));
+        }
+
+        var that = this;
+        return checkSync(
+            // Lookup the structure size...
+            this._getStructSize()
+
+            // Read the value...
+            .then(function(structSize) {
+                return jsDbgPromise(JsDbg.ReadNumber, that._pointer, structSize);
+            })
+
+            // If we're a bit field, extract the bits.
+            .then(function(result) {
+                var value = result.value;
+                if (that.bitcount && that.bitoffset !== undefined) {
+                    value = (value >> that.bitoffset) & ((1 << that.bitcount) - 1);
+                }
+                return value;
+            })
+        );
+    }
+
+    DbgObject.prototype.constant = function() {
+        var that = this;
+        return checkSync(
+            // Read the value (coerce to promise in case we're running synchronously)...
+            Promise.as(this.val())
+
+            // Lookup the constant name...
+            .then(function(value) { return jsDbgPromise(JsDbg.LookupConstantName, that.module, that.typename, value); })
+
+            // And return it.
+            .then(function(result) { return result.name; })
+        );
+    }
+
+    DbgObject.prototype.array = function(count) {
+        var that = this;
+        return checkSync(
+            // "count" might be a promise...
+            Promise.as(count)
+
+            // Once we have the real count we can get the array.
+            .then(function(count) {
+                if (count == undefined && that._isArray) {
+                    count = that._arrayLength;
+                }
+                // Get the struct size...
+                return that._getStructSize()
+                    // Read the array...
+                    .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, count); })
+
+                    // Process the array into DbgObjects if necessary.
+                    .then(function(result) {
+                        if (that._isPointer()) {
+                            // If the type is a pointer, return an array of DbgObjects.
+                            var itemTypename = that._getDereferencedTypeName();
+                            return result.array.map(function(x) { return new DbgObject(that.module, itemTypename, x); });
+                        } else {
+                            // Otherwise, the items are values.
+                            return result.array;
+                        }
+                    }, function(error) {
+                        // We weren't able to read the array, so just make an array of idx(i) calls.
+                        var array = [];
+                        for (var i = 0; i < count; ++i) {
+                            array.push(that.idx(i));
+                        }
+                        return Promise.join(array);
+                    });
+            })
+        );
+    }
+
+    DbgObject.prototype.ptr = function() {
+        return this._pointer == 0 ? "NULL" : "0x" + this._pointer.toString(16);
+    }
+
+    DbgObject.prototype.pointerValue = function() {
+        return this._pointer;
+    }
+
+    DbgObject.prototype.typeDescription = function() {
+        return this.typename + (this._isArray ? "[" + this._arrayLength + "]" : "");
+    }
+
+    DbgObject.prototype.equals = function(other) {
+        if (this._pointer === undefined || other._pointer === undefined) {
+            throw "The pointer values are undefined.";
+        }
+        return this._pointer == other._pointer;
+    }
+
+    DbgObject.prototype.vtable = function() {
+        var pointer = this._pointer;
+        return checkSync(
+            // Read the value at the this pointer...
+            jsDbgPromise(JsDbg.ReadPointer, pointer)
+
+            // Lookup the symbol at that value...
+            .then(function(result) { 
+                return jsDbgPromise(JsDbg.LookupSymbolName, result.value);
+            })
+
+            // And strip away the vftable suffix..
+            .then(function(result) {
+                return result.symbolName.substring(result.symbolName.indexOf("!") + 1, result.symbolName.indexOf("::`vftable'"));
+            })
+        );
+    }
+
+    DbgObject.prototype.vcast = function() {
+        var that = this;
+        return checkSync(
+            // Lookup the vtable type (coerce to promise in case we're running synchronously)...
+            Promise.as(this.vtable())
+            .then(function(vtableType) {
+                // Lookup the base class offset...
+                return jsDbgPromise(JsDbg.LookupBaseTypeOffset, that.module, vtableType, that.typename)
+
+                // And shift/cast.
+                .then(function(result) {
+                    return new DbgObject(that.module, vtableType, that._pointer - result.offset);            
+                });
+            })
+        );
+    }
+
+    DbgObject.prototype.fields = function() {
+        if (this._isPointer()) {
+            return checkSync(Promise.fail("You cannot lookup fields on a pointer."));
+        }
+
+        var that = this;
+        return checkSync(
+            // Lookup the fields...
+            jsDbgPromise(JsDbg.LookupFields, this.module, this.typename)
+
+            // Sort them by offset and massage the output.
+            .then(function(result) {
+                result.fields.sort(function(a, b) { return a.offset - b.offset; });
+                return result.fields.map(function(field) {
+                    return {
+                        name: field.name,
+                        offset: field.offset,
+                        value: new DbgObject(that.module, field.type, that._pointer + field.offset, field.bitcount, field.bitoffset)
+                    };
+                });
+            })
+        );
+    }
+
+    DbgObject.prototype.arrayLength = function() {
+        return this._arrayLength;
+    }
+
+    DbgObject.prototype.isArray = function() {
+        return this._isArray;
+    }
+
+    DbgObject.prototype.isNull = function() {
+        return this._pointer == 0;
+    }
+
+    DbgObject.prototype._isPointer = function() {
+        return this.typename[this.typename.length - 1] == "*";
+    }
+
+    DbgObject.prototype.isPointer = function() {
+        return this._isPointer();
+    }
+
+    return DbgObject;
+})();
 
 var PromisedDbgObject = Promise.promisedType(DbgObject, ["f", "as", "deref", "idx", "unembed", "vcast"]);

@@ -82,11 +82,13 @@ var JsDbg = (function() {
         if (cache && url in responseCache) {
             callback(responseCache[url]);
             return;
-        } else if (async && cache && url in pendingCachedRequests) {
-            pendingCachedRequests[url].push(callback);
-            return;
-        } else if (cache) {
-            pendingCachedRequests[url] = [];
+        } else if (async && cache) {
+            if (url in pendingCachedRequests) {
+                pendingCachedRequests[url].push(callback);
+                return;
+            } else {
+                pendingCachedRequests[url] = [];
+            }
         }
 
         if (everythingCache != null && url in everythingCache) {

@@ -11,7 +11,7 @@ var MSHTML = (function() {
     }
 
     function getRootCTreeNodes() {
-        return getCDocs()
+        var promise = Promise.as(getCDocs())
             .then(function (docs) {
                 return Promise.join(docs.map(function (doc) { return doc.f("_pWindowPrimary"); }));
             })
@@ -20,10 +20,14 @@ var MSHTML = (function() {
                     .filter(function(w) { return !w.isNull(); })
                     .map(function(pw) { return pw.f("_pCWindow._pMarkup._ptpFirst").unembed("CTreeNode", "_tpBegin"); });
             });
+        return DbgObject.forcePromiseIfSync(promise);
     }
 
     function getCTreeNodeFromTreeElement(element) {
-        var promise = element.f("placeholder")
+        var promise = Promise.as(element)
+            .then(function(element) {
+                return element.f("placeholder");
+            })
             .then(function() {
                 // We're in chk, offset by the size of a void*.
                 return element.as("void*").idx(1).as("CTreeNode");
@@ -31,11 +35,11 @@ var MSHTML = (function() {
                 // We're in fre, cast to CTreeNode.
                 return element.as("CTreeNode");
             });
-        return new PromisedDbgObject(promise);
+        return DbgObject.forcePromiseIfSync(new PromisedDbgObject(promise));
     }
 
     function getFirstAssociatedLayoutBoxFromCTreeNode(treeNode) {
-        var promise = treeNode.f("_fHasLayoutAssociationPtr").val()
+        var promise = Promise.as(treeNode.f("_fHasLayoutAssociationPtr").val())
             .then(function (layoutAssociationBits) {
                 if (layoutAssociationBits & 0x8) {
                     var bits = 0;
@@ -55,13 +59,13 @@ var MSHTML = (function() {
                     return new DbgObject("mshtml", "Layout::LayoutBox", 0x0);
                 }
             });
-        return new PromisedDbgObject(promise);
+        return DbgObject.forcePromiseIfSync(new PromisedDbgObject(promise));
     }
 
     // Extend DbgObject to ease navigation of patchable objects.
     DbgObject.prototype.latestPatch = function() {
         var that = this;
-        var promise = this.f("_pNextPatch")
+        var promise = Promise.as(this.f("_pNextPatch"))
             .then(function(nextPatch) {
                 if (!nextPatch.isNull()) {
                     return nextPatch.as(that.typename);
@@ -69,7 +73,7 @@ var MSHTML = (function() {
                     return that;
                 }
             });
-        return new PromisedDbgObject(promise);
+        return DbgObject.forcePromiseIfSync(new PromisedDbgObject(promise));
     }
     PromisedDbgObject.includePromisedMethod("latestPatch");
 

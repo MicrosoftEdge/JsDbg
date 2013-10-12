@@ -85,6 +85,7 @@ var WideTree = (function() {
     }
 
     DrawingTreeNode.prototype.updateRepresentation = function() {
+        var that = this;
         if (this.representation != null && this.representation.parentNode) {
             var parent = this.representation.parentNode;
             var styles = [
@@ -95,7 +96,6 @@ var WideTree = (function() {
             var oldRepresentation = this.representation;
             this.representation = null;
 
-            var that = this;
             this.createRepresentation()
                 .then(function recreatedRepresentation() {
                     oldRepresentation.parentNode.removeChild(oldRepresentation);

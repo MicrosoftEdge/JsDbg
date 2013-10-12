@@ -93,6 +93,7 @@ var TallTree = (function() {
     }
 
     DrawingTreeNode.prototype.updateRepresentation = function() {
+        var that = this;
         if (this.representation != null && this.representation.parentNode) {
             var parent = this.representation.parentNode;
             var styles = [
@@ -103,7 +104,6 @@ var TallTree = (function() {
 
             this.representation = null;
 
-            var that = this;
             return this.createRepresentation()
                 .then(function recreatedRepresentation() {
                     parent.insertBefore(that.representation, oldChild);

@@ -114,7 +114,14 @@ var Promise = (function() {
             return value;
         } else {
             return { 
-                then: function simpleThen(f) { return Promise.as(f(value)); },
+                then: function simpleThen(f) {
+                    try {
+                        var result = f(value);
+                        return Promise.as(result);
+                    } catch (ex) {
+                        return Promise.fail(ex);
+                    }
+                },
                 getPromisedValue: function getPromisedValue() { return value; }
             };
         }
