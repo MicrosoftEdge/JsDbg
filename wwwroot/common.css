@@ -2,3 +2,16 @@ body {
     font-family:Segoe UI;
     font-size:10pt;
 }
+
+#jsdbg-loading-indicator {
+    position:fixed;
+    bottom:0;
+    right:0;
+    text-align: center;
+    z-index:200;
+    visibility: hidden;
+}
+
+#jsdbg-loading-indicator > progress {
+    color:gray;
+}
