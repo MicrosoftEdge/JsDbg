@@ -37,7 +37,6 @@ namespace JsDbg {
 
         internal void DumpTypeOutputHandler(object sender, DebugOutputEventArgs e) {
             this.buffer.Append(e.Output);
-            Console.Out.Write('.');
         }
 
         internal void Parse() {

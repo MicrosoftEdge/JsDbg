@@ -338,8 +338,10 @@ namespace JsDbg {
             System.Diagnostics.Debug.WriteLine(String.Format("Executing command: {0}", command));
             DumpTypeParser parser = new DumpTypeParser();
             client.DebugOutput += parser.DumpTypeOutputHandler;
+            client.DebugOutput += PrintDotOnDebugOutput;
             control.Execute(OutputControl.ToThisClient, command, ExecuteOptions.NotLogged);
             client.FlushCallbacks();
+            client.DebugOutput -= PrintDotOnDebugOutput;
             client.DebugOutput -= parser.DumpTypeOutputHandler;
             System.Diagnostics.Debug.WriteLine(String.Format("Done executing.", command));
             Console.Out.WriteLine();
@@ -387,6 +389,10 @@ namespace JsDbg {
             Type type = new Type(module, typename, typeSize, fields, null, baseTypeNames);
             this.types.Add(TypeKey(module, typename), type);
             return type;
+        }
+
+        void PrintDotOnDebugOutput(object sender, DebugOutputEventArgs e) {
+            Console.Out.Write('.');
         }
 
         // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
