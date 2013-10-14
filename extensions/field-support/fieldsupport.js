@@ -190,6 +190,27 @@ var FieldSupport = (function() {
             var shortNameLabel = document.createElement("label");
             shortNameLabel.innerHTML = "Short Name: ";
 
+            var asyncLabel = document.createElement("label");
+            asyncLabel.innerHTML = "Async: ";
+
+            var asyncInputContainer = document.createElement("div");
+            var asyncInput = document.createElement("input");
+            asyncInput.className = "edit-async";
+            asyncInput.setAttribute("type", "checkbox");
+            asyncInput.checked = f.async ? true : false;
+            asyncInput.addEventListener("change", function() { updateField(f, container); });
+            asyncInputContainer.appendChild(asyncInput);
+
+            var asyncDescription = document.createElement("ul");
+            asyncDescription.className = "code-description";
+            asyncInputContainer.appendChild(asyncDescription);
+            var asyncDescriptionLines = [
+                "Asynchronous fields are significantly faster (~6x), but somewhat less convenient to write.",
+                "When async, nearly all DbgObject methods except <em>.as</em> and <em>.ptr</em> return promises to their results.",
+                "Promises to DbgObjects can be treated as DbgObjects where <em>every</em> method returns a promise."
+            ];
+            asyncDescription.innerHTML = asyncDescriptionLines.map(function(s) { return "<li>" + s + "</li>"; }).join("");
+
             var codeInput = document.createElement("textarea");
             codeInput.className = "edit-code";
             codeInput.setAttribute("spellcheck", "false");
@@ -212,7 +233,7 @@ var FieldSupport = (function() {
             codeDescription.className = "code-description";
             var lines = [
                 "<em>this</em> = DbgObject that represents the item; <em>e</em> = dom element",
-                "return an html string or dom element to be displayed, or just modify <em>e.</em>, or return a promise for one of those things."
+                "return an html string, dom element, modify <em>e</em>, or return a promise."
             ]
             codeDescription.innerHTML = lines.join("<br />");
 
@@ -220,6 +241,7 @@ var FieldSupport = (function() {
                 [typeLabel, typeInput],
                 [nameLabel, nameInput],
                 [shortNameLabel, shortNameInput],
+                [asyncLabel, asyncInputContainer],
                 [codeLabel, codeDescription],
                 [null, codeInput]
             ]));
@@ -266,6 +288,7 @@ var FieldSupport = (function() {
                     type: typeString,
                     name: nameString,
                     shortName: shortNameString,
+                    async: f.async ? true : false,
                     codeString: codeString
                 });
             }
@@ -299,7 +322,7 @@ var FieldSupport = (function() {
             var nameString = container.querySelector(".edit-name").value;
             var shortNameString = container.querySelector(".edit-shortName").value;
             var codeString = container.querySelector(".edit-code").value;
-
+            var isAsync = container.querySelector(".edit-async").checked;
 
             if (typeString in TypeMap) {
                 f.type = typeString;
@@ -309,6 +332,7 @@ var FieldSupport = (function() {
             }
             f.fullname = nameString;
             f.shortname = shortNameString;
+            f.async = isAsync;
             f.html = codeStringToFunction(codeString);
             f.htmlString = codeString;
 
@@ -422,6 +446,7 @@ var FieldSupport = (function() {
                     type: DefaultTypeName,
                     enabled:true,
                     id: ++uniqueId,
+                    async: true,
                     fullname: "Custom" + (++addedFieldCounter),
                     localstorageid: (new Date() - 0) + "-" + Math.round(Math.random() * 1000000),
                     shortname: "f" + addedFieldCounter,
