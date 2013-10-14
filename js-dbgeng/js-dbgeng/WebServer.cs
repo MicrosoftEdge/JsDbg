@@ -148,7 +148,7 @@ namespace JsDbg {
                         return;
                     }
 
-                    //Task writeTask = Console.Out.WriteLineAsync("request for " + context.Request.RawUrl);
+                    this.NoteRequest(context.Request.Url);
 
                     string[] segments = context.Request.Url.Segments;
                     try {
@@ -194,6 +194,13 @@ namespace JsDbg {
             context.Response.ContentLength64 = buffer.Length;
             context.Response.OutputStream.Write(buffer, 0, buffer.Length);
             context.Response.OutputStream.Close();
+        }
+
+        private void NoteRequest(Uri url) {
+            ++this.requestCounter;
+#if DEBUG
+            Console.Out.WriteLineAsync(url.PathAndQuery);
+#endif
         }
 
         private string GetFilePath(string serviceDirectory, string extensionName, string filename) {
@@ -795,6 +802,7 @@ namespace JsDbg {
                             if (messageParts.Length == 2 && Uri.IsWellFormedUriString(messageParts[1], UriKind.Relative)) {
                                 // The request appears valid.  Grab the URL and handle the JsDbgRequest.
                                 Uri request = new Uri(baseUri, messageParts[1]);
+                                this.NoteRequest(request);
 
                                 this.ServeJsDbgRequest(
                                     request,
@@ -824,7 +832,9 @@ namespace JsDbg {
 
                     await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal", System.Threading.CancellationToken.None);
                 } catch (WebSocketException socketException) {
-                    Console.Out.WriteLine("Closing WebSocket due to WebSocketException: {0}", socketException.Message);
+                    if (this.httpListener.IsListening) {
+                        Console.Out.WriteLine("Closing WebSocket due to WebSocketException: {0}", socketException.Message);
+                    }
                 }
             }
         }
@@ -852,5 +862,6 @@ namespace JsDbg {
         private string path;
         private string defaultExtensionPath;
         private int port;
+        private ulong requestCounter;
     }
 }
