@@ -11,14 +11,16 @@ using System.Text.RegularExpressions;
 
 namespace JsDbg {
     struct SField {
-        internal SField(uint offset, string typename, byte bitOffset, byte bitCount) {
+        internal SField(uint offset, uint size, string typename, byte bitOffset, byte bitCount) {
             this.Offset = offset;
+            this.Size = size;
             this.TypeName = typename;
             this.BitOffset = bitOffset;
             this.BitCount = bitCount;
         }
 
         internal readonly uint Offset;
+        internal readonly uint Size;
         internal readonly string TypeName;
         internal readonly byte BitOffset;
         internal readonly byte BitCount;
@@ -88,7 +90,7 @@ namespace JsDbg {
                     // Check the base types.
                     foreach (SBaseType baseType in this.baseTypes) {
                         if (baseType.Type.GetField(name, out field)) {
-                            field = new SField((uint)(field.Offset + baseType.Offset), field.TypeName, field.BitOffset, field.BitCount);
+                            field = new SField((uint)(field.Offset + baseType.Offset), field.Size, field.TypeName, field.BitOffset, field.BitCount);
                             return true;
                         }
                     }
@@ -147,9 +149,9 @@ namespace JsDbg {
                         field.FieldName = fieldName;
                         field.TypeName = innerField.TypeName;
                         field.Offset = innerField.Offset;
+                        field.Size = innerField.Size;
                         field.BitCount = innerField.BitCount;
                         field.BitOffset = innerField.BitOffset;
-                        field.Size = 0;
                         yield return field;
                     }
                 }
@@ -234,9 +236,9 @@ namespace JsDbg {
                             if (location == DiaHelpers.LocationType.LocIsBitField) {
                                 byte bitOffset = (byte)dataSymbol.bitPosition;
                                 byte bitCount = (byte)dataSymbol.length;
-                                fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, DiaHelpers.GetTypeName(dataSymbol.type), bitOffset, bitCount));
+                                fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), bitOffset, bitCount));
                             } else if (location == DiaHelpers.LocationType.LocIsThisRel) {
-                                fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, DiaHelpers.GetTypeName(dataSymbol.type), 0, 0));
+                                fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), 0, 0));
                             }
                         }
 
@@ -346,7 +348,9 @@ namespace JsDbg {
             Dictionary<string, SField> fields = new Dictionary<string, SField>();
             foreach (DumpTypeParser.SField parsedField in parser.ParsedFields) {
                 string resolvedTypeName = parsedField.TypeName;
-                if (resolvedTypeName == null) {
+                uint resolvedTypeSize = parsedField.Size;
+
+                if (resolvedTypeName == null || resolvedTypeSize == uint.MaxValue) {
                     // We weren't able to parse the type name.  Retrieve it manually.
                     SymbolCache.SFieldTypeAndOffset fieldTypeAndOffset;
                     try {
@@ -358,12 +362,15 @@ namespace JsDbg {
                         }
 
                         resolvedTypeName = symbolCache.GetTypeName(moduleBase, fieldTypeAndOffset.FieldTypeId);
+                        if (!BuiltInTypes.TryGetValue(resolvedTypeName, out resolvedTypeSize)) {
+                            resolvedTypeSize = symbolCache.GetTypeSize(moduleBase, typeId);
+                        }
                     } catch {
                         throw new Debugger.DebuggerException(String.Format("Internal Exception: Inconsistent field name \"{0}\" when parsing type {1}!{2}", parsedField.FieldName, module, typename));
                     }
                 }
 
-                SField field = new SField(parsedField.Offset, resolvedTypeName, parsedField.BitField.BitOffset, parsedField.BitField.BitLength);
+                SField field = new SField(parsedField.Offset, resolvedTypeSize, resolvedTypeName, parsedField.BitField.BitOffset, parsedField.BitField.BitLength);
                 fields.Add(parsedField.FieldName, field);
             }
 

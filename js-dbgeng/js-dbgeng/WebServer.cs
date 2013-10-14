@@ -600,6 +600,7 @@ namespace JsDbg {
                     builder.Append("{");
                     builder.AppendFormat("\"name\": \"{0}\",", field.FieldName);
                     builder.AppendFormat("\"offset\": {0},", field.Offset);
+                    builder.AppendFormat("\"size\": {0},", field.Size);
                     builder.AppendFormat("\"type\": \"{0}\"", field.TypeName);
                     if (field.IsBitField) {
                         builder.AppendFormat(",\"bitcount\": {0},", field.BitCount);

@@ -167,16 +167,7 @@
                                 currentDifferenceIndex++;
                             }
 
-                            var sizeToUse = Infinity;
-                            if (i < fields.length - 1) {
-                                sizeToUse = fields[i + 1].offset - f.offset;
-                            }
-
-                            if (f.value.bitcount > 0) {
-                                return differences[currentDifferenceIndex] <= f.offset + sizeToUse;
-                            } else {
-                                return differences[currentDifferenceIndex] < f.offset + sizeToUse;
-                            }
+                            return differences[currentDifferenceIndex] < f.offset + f.size;
                         });
 
                         clock.Mark("got possible different fields");
@@ -204,7 +195,7 @@
                             return Promise.join([f1, f2])
                                 .then(function(members) {
                                     if (!field.value.isPointer() && !field.value.isArray()) {
-                                        clock.Mark("requsting values of " + field.name);
+                                        clock.Mark("requesting values of " + field.name);
                                         return Promise.join([members[0].val(), members[1].val()])
                                     } else {
                                         return [members[0].ptr(), members[1].ptr()];

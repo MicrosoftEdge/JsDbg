@@ -9,6 +9,7 @@ namespace JsDbg {
     internal class DumpTypeParser {
         internal struct SField {
             internal uint Offset;
+            internal uint Size;
             internal string FieldName;
             internal string TypeName;
             internal SBitFieldDescription BitField;
@@ -58,7 +59,7 @@ namespace JsDbg {
                         default:  {
                             // A field.
                             SField field = new SField() { Offset = offset, FieldName = parts[1] };
-                            if (parts.Length > 3 && ParseType(ArraySlice(parts, 3), out field.TypeName, out field.BitField)) {
+                            if (parts.Length > 3 && ParseType(ArraySlice(parts, 3), out field.Size, out field.TypeName, out field.BitField)) {
                                 this.ParsedFields.Add(field);
                             } else {
                                 System.Diagnostics.Debug.WriteLine(String.Format("Unable to parse type entry: {0}", line));
@@ -79,31 +80,41 @@ namespace JsDbg {
         }
 
 
-        private static Dictionary<string, string> TypeMap = new Dictionary<string, string>() {
-                {"void", "void"},
-                {"bool", "char"},
-                {"char", "char"},
-                {"wchar", "short"},
-                {"int1b", "char"},
-                {"int2b", "short"},
-                {"int4b", "int"},
-                {"int8b", "long long"},
-                {"uchar", "unsigned char"},
-                {"uint1b", "unsigned char"},
-                {"uint2b", "unsigned short"},
-                {"uint4b", "unsigned int"},
-                {"uint8b", "unsigned long long"},
-                {"float", null}
+        private struct SBuiltInTypeNameAndSize {
+            internal SBuiltInTypeNameAndSize(string name, uint size) {
+                this.Name = name;
+                this.Size = size;
+            }
+            internal string Name;
+            internal uint Size;
+        }
+        private static Dictionary<string, SBuiltInTypeNameAndSize> TypeMap = new Dictionary<string, SBuiltInTypeNameAndSize>() {
+                {"void", new SBuiltInTypeNameAndSize("void", 0)},
+                {"bool", new SBuiltInTypeNameAndSize("char", 1)},
+                {"char", new SBuiltInTypeNameAndSize("char", 1)},
+                {"wchar", new SBuiltInTypeNameAndSize("short", 2)},
+                {"int1b", new SBuiltInTypeNameAndSize("char", 1)},
+                {"int2b", new SBuiltInTypeNameAndSize("short", 2)},
+                {"int4b", new SBuiltInTypeNameAndSize("int", 4)},
+                {"int8b", new SBuiltInTypeNameAndSize("long long", 8)},
+                {"uchar", new SBuiltInTypeNameAndSize("unsigned char", 1)},
+                {"uint1b", new SBuiltInTypeNameAndSize("unsigned char", 1)},
+                {"uint2b", new SBuiltInTypeNameAndSize("unsigned short", 2)},
+                {"uint4b", new SBuiltInTypeNameAndSize("unsigned int", 4)},
+                {"uint8b", new SBuiltInTypeNameAndSize("unsigned long long", 8)},
+                {"float", new SBuiltInTypeNameAndSize(null, 0)}
             };
 
-        private bool ParseType(string[] tokens, out string typename, out SBitFieldDescription bitField) {
+        private bool ParseType(string[] tokens, out uint size, out string typename, out SBitFieldDescription bitField) {
             typename = null;
             bitField = new SBitFieldDescription();
+            size = uint.MaxValue;
 
             string normalizedDescription = tokens[0].ToLower();
             if (TypeMap.ContainsKey(normalizedDescription)) {
                 // Simple type.
-                typename = TypeMap[normalizedDescription];
+                typename = TypeMap[normalizedDescription].Name;
+                size = TypeMap[normalizedDescription].Size;
                 bitField = new SBitFieldDescription();
                 return true;
             }
@@ -113,10 +124,18 @@ namespace JsDbg {
                     // Pointer type.  Recursively discover the type.
 
                     // We should never have a pointer to a bit field.
-                    if (ParseType(ArraySlice(tokens, 2), out typename, out bitField) && !bitField.IsBitField) {
+                    if (ParseType(ArraySlice(tokens, 2), out size, out typename, out bitField) && !bitField.IsBitField) {
                         // If we could determine the type name, add a * for the pointer-ness.
                         if (typename != null) {
                             typename += "*";
+                        }
+
+                        if (normalizedDescription == "ptr32") {
+                            size = 4;
+                        } else if (normalizedDescription == "ptr64") {
+                            size = 8;
+                        } else {
+                            return false;
                         }
                         return true;
                     }
@@ -127,15 +146,16 @@ namespace JsDbg {
 
             if (tokens.Length > 1 && normalizedDescription.StartsWith("[") && normalizedDescription.EndsWith("]")) {
                 // It's an array.  Recursively discover the type.
-                int arrayLength = 0;
-                Int32.TryParse(normalizedDescription.Substring(1, normalizedDescription.Length - 2), out arrayLength);
+                uint arrayLength = 0;
+                uint.TryParse(normalizedDescription.Substring(1, normalizedDescription.Length - 2), out arrayLength);
 
                 // We should never have an array of bit fields.
-                if (ParseType(ArraySlice(tokens, 1), out typename, out bitField) && !bitField.IsBitField) {
+                if (ParseType(ArraySlice(tokens, 1), out size, out typename, out bitField) && !bitField.IsBitField) {
                     // If we could determine the type name, add a [] for the array-ness.
                     if (typename != null) {
                         typename += "[" + arrayLength.ToString() + "]";
                     }
+                    size *= arrayLength;
                     return true;
                 }
             }
@@ -144,6 +164,10 @@ namespace JsDbg {
                 // The next token is a proper typename.
                 typename = tokens[1].TrimEnd(',');
                 bitField = new SBitFieldDescription();
+
+                if (tokens.Length > 5 && tokens[5] == "bytes") {
+                    size = uint.Parse(tokens[4].Substring(2), System.Globalization.NumberStyles.HexNumber);
+                }
                 return true;
             }
 
@@ -153,13 +177,17 @@ namespace JsDbg {
                 if (byte.TryParse(tokens[2].TrimEnd(','), out bitField.BitOffset) && byte.TryParse(tokens[3], out bitField.BitLength)) {
                     int bitCount = bitField.BitOffset + bitField.BitLength;
                     if (bitCount <= 8) {
-                        typename = "char";
+                        typename = "unsigned char";
+                        size = 1;
                     } else if (bitCount <= 16) {
-                        typename = "short";
+                        typename = "unsigned short";
+                        size = 2;
                     } else if (bitCount <= 32) {
-                        typename = "int";
+                        typename = "unsigned int";
+                        size = 4;
                     } else if (bitCount <= 64) {
-                        typename =  "long long";
+                        typename = "unsigned long long";
+                        size = 8;
                     } else {
                         return false;
                     }
