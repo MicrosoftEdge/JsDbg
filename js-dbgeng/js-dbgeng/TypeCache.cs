@@ -342,6 +342,7 @@ namespace JsDbg {
             client.FlushCallbacks();
             client.DebugOutput -= parser.DumpTypeOutputHandler;
             System.Diagnostics.Debug.WriteLine(String.Format("Done executing.", command));
+            Console.Out.WriteLine();
             parser.Parse();
 
             // Construct the type and add it to the cache.
@@ -350,7 +351,7 @@ namespace JsDbg {
                 string resolvedTypeName = parsedField.TypeName;
                 uint resolvedTypeSize = parsedField.Size;
 
-                if (resolvedTypeName == null || resolvedTypeSize == uint.MaxValue) {
+                if (resolvedTypeName == null) {
                     // We weren't able to parse the type name.  Retrieve it manually.
                     SymbolCache.SFieldTypeAndOffset fieldTypeAndOffset;
                     try {
@@ -362,11 +363,14 @@ namespace JsDbg {
                         }
 
                         resolvedTypeName = symbolCache.GetTypeName(moduleBase, fieldTypeAndOffset.FieldTypeId);
-                        if (!BuiltInTypes.TryGetValue(resolvedTypeName, out resolvedTypeSize)) {
-                            resolvedTypeSize = symbolCache.GetTypeSize(moduleBase, typeId);
-                        }
                     } catch {
                         throw new Debugger.DebuggerException(String.Format("Internal Exception: Inconsistent field name \"{0}\" when parsing type {1}!{2}", parsedField.FieldName, module, typename));
+                    }
+                }
+
+                if (resolvedTypeSize == uint.MaxValue) {
+                    if (!BuiltInTypes.TryGetValue(resolvedTypeName, out resolvedTypeSize)) {
+                        resolvedTypeSize = symbolCache.GetTypeSize(moduleBase, typeId);
                     }
                 }
 

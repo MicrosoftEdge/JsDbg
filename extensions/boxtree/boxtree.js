@@ -134,7 +134,7 @@ var BoxTree = (function() {
                             // If its a PositionedBoxItem, collect it and advance to the next...
                             .then(function(vtable) {
                                 if (vtable == "Layout::PositionedBoxItem") {
-                                    var childBox = item.as("Layout::PositionedBoxItem").f("flowItem").latestPatch().f(".data.boxReference.m_pT");
+                                    var childBox = item.as("Layout::PositionedBoxItem").f("flowItem").latestPatch().f("data.boxReference.m_pT");
                                     children.push(childBox);
                                 }
 
@@ -204,7 +204,7 @@ var BoxTree = (function() {
             // Add the floaters and return the children.
             .then(function(floaters) {
                 floaters.forEach(function(floater) {
-                    var box = floater.f("floaterBoxReference.m_pT").latestPatch().f(".data.BoxReference.m_pT");
+                    var box = floater.f("floaterBoxReference.m_pT").latestPatch().f("data.BoxReference.m_pT");
                     children.push(box);
                 });
 

@@ -95,26 +95,27 @@ namespace JsDbg {
             }
         }
 
-        internal async Task<SFieldResult> LookupField(string module, string typename, IList<string> fields) {
+        internal async Task<uint> LookupTypeSize(string module, string typename) {
+            await this.WaitForBreakIn();
+            return this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename).Size;
+        }
+
+        internal async Task<SFieldResult> LookupField(string module, string typename, string fieldName) {
             await this.WaitForBreakIn();
 
             SFieldResult result = new SFieldResult();
             
             Type type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename);
-            foreach (string fieldname in fields) {
-                SField field;
-                if (type.GetField(fieldname, out field)) {
-                    result.Offset += field.Offset;
-                    result.BitCount = field.BitCount;
-                    result.BitOffset = field.BitOffset;
-                    type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, field.TypeName);
-                } else {
-                    throw new DebuggerException(String.Format("Invalid field name: {0}", fieldname));
-                }
+            SField field;
+            if (type.GetField(fieldName, out field)) {
+                result.Offset += field.Offset;
+                result.BitCount = field.BitCount;
+                result.BitOffset = field.BitOffset;
+                result.TypeName = field.TypeName;
+                result.Size = field.Size;
+            } else {
+                throw new DebuggerException(String.Format("Invalid field name: {0}", fieldName));
             }
-
-            result.TypeName = type.Name;
-            result.Size = type.Size;
 
             return result;
         }

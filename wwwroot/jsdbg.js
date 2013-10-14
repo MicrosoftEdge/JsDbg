@@ -201,8 +201,12 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/extensions", callback);
         },
 
-        LookupFieldOffset: function(module, type, fields, callback) {
-            jsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&fields=" + esc(fields.join(",")), callback, /*cache*/true);
+        LookupTypeSize: function(module, type, callback) {
+            jsonRequest("/jsdbg/typesize?module=" + esc(module) + "&type=" + esc(type), callback, /*cache*/true);
+        },
+
+        LookupFieldOffset: function(module, type, field, callback) {
+            jsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&field=" + esc(field), callback, /*cache*/true);
         },
 
         LookupFields: function(module, type, callback) {

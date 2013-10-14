@@ -29,7 +29,7 @@ var Promise = (function() {
         doAsynchronousWork(
             function workCompleted(completedResult) {
                 if (that.isError || that.isCompleted) {
-                    throw "You cannot complete a promise that has already been completed.";
+                    throw new Error("You cannot complete a promise that has already been completed.");
                 }
                 that.isCompleted = true;
                 that.result = completedResult;
@@ -41,7 +41,7 @@ var Promise = (function() {
                 }
             }, function workFailed(errorResult) {
                 if (that.isError || that.isCompleted) {
-                    throw "You cannot trigger an error on a promise that has already been completed.";
+                    throw new Error("You cannot trigger an error on a promise that has already been completed.");
                 }
                 that.isError = true;
                 that.result = errorResult;

@@ -121,6 +121,10 @@
                             field.name = prefix + (prefix.length > 0 ? "." : "") + field.name;
                             clock.Mark("expanding " + field.name);
 
+                            if (field.value.isPointer()) {
+                                return [field];
+                            }
+                            
                             return field.value.fields()
                                     .then(expandArrays)
                                     .then(function (fields) {

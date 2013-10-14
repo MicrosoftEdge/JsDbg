@@ -269,6 +269,9 @@ namespace JsDbg {
             }
 
             switch (segments[2].TrimEnd('/')) {
+            case "typesize":
+                this.ServeTypeSize(query, respond, fail);
+                break;
             case "fieldoffset":
                 this.ServeFieldOffset(query, respond, fail);
                 break;
@@ -322,24 +325,39 @@ namespace JsDbg {
             }
         }
 
-        private async void ServeFieldOffset(NameValueCollection query, Action<string> respond, Action fail) {
+        private async void ServeTypeSize(NameValueCollection query, Action<string> respond, Action fail) {
             string module = query["module"];
-            string baseType = query["type"];
-            string fieldsString = query["fields"];
-            if (module == null || baseType == null || fieldsString == null) {
+            string type = query["type"];
+            if (module == null || type == null) {
                 fail();
                 return;
-            }
-
-            string[] fields = { };
-            if (fieldsString != "") {
-                fields = fieldsString.Split(',');
             }
 
             string responseString;
 
             try {
-                Debugger.SFieldResult result = await this.debugger.LookupField(module, baseType, fields);
+                uint typeSize = await this.debugger.LookupTypeSize(module, type);
+                responseString = String.Format("{{ \"size\": {0} }}", typeSize);
+            } catch (Debugger.DebuggerException ex) {
+                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+            }
+
+            respond(responseString);
+        }
+
+        private async void ServeFieldOffset(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
+            string baseType = query["type"];
+            string field = query["field"];
+            if (module == null || baseType == null || field == null) {
+                fail();
+                return;
+            }
+
+            string responseString;
+
+            try {
+                Debugger.SFieldResult result = await this.debugger.LookupField(module, baseType, field);
 
                 // Construct the response.
                 if (result.IsBitField) {

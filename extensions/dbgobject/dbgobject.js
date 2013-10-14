@@ -54,7 +54,7 @@ var DbgObject = (function() {
 
     function jsDbgPromise(method) {
         if (typeof(method) != typeof(function() {})) {
-            return Promise.fail("Invalid method.");
+            throw new Error("Invalid method.");
         }
         var methodArguments = [];
         for (var i = 1; i < arguments.length; ++i) {
@@ -62,13 +62,15 @@ var DbgObject = (function() {
         };
         return new Promise(function(success, error) {
             methodArguments.push(function(result) {
-                if (result.error) {
-                    error(result.error);
-                } else {
-                    success(result);
-                }
+                success(result);
             });
             method.apply(JsDbg, methodArguments)
+        })
+        .then(function (result) { 
+            if (result.error) {
+                throw new Error(result.error);
+            }
+            return result; 
         });
     }
 
@@ -124,7 +126,7 @@ var DbgObject = (function() {
                 return result.pointerSize;
             });
         } else {
-            return jsDbgPromise(JsDbg.LookupFieldOffset, this.module, this.typename, []).then(function(result) {
+            return jsDbgPromise(JsDbg.LookupTypeSize, this.module, this.typename).then(function(result) {
                 return result.size;
             });
         }
@@ -171,16 +173,16 @@ var DbgObject = (function() {
         field = field.replace(arrayIndexRegex, '');
 
         if (this._isPointer()) {
-            return checkSync(Promise.fail("You cannot do a field lookup on a pointer."));
+            throw new Error("You cannot do a field lookup on a pointer.");
         } else if (this._pointer == 0) {
-            return checkSync(Promise.fail("You cannot get a field from a null pointer."));
+            throw new Error("You cannot get a field from a null pointer.");
         } else if (this._isArray) {
-            return checkSync(Promise.fail("You cannot get a field from an array."));
+            throw new Error("You cannot get a field from an array.");
         }
 
         var that = this;
         return checkSyncDbgObject(
-            jsDbgPromise(JsDbg.LookupFieldOffset, that.module, that.typename, [field])
+            jsDbgPromise(JsDbg.LookupFieldOffset, that.module, that.typename, field)
                 .then(function(result) {
                     var target = new DbgObject(that.module, result.type, that._pointer + result.offset, result.bitcount, result.bitoffset);
 
@@ -203,7 +205,7 @@ var DbgObject = (function() {
     DbgObject.prototype.unembed = function(type, field) {
         var that = this;
         return checkSyncDbgObject(
-            jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, [field])
+            jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, field)
                 .then(function(result) { 
                     return new DbgObject(that.module, type, that._pointer - result.offset); 
                 })
@@ -232,7 +234,7 @@ var DbgObject = (function() {
         }
 
         if (this._isArray) {
-            return checkSync(Promise.fail("You cannot get a value of an array."));
+            throw new Error("You cannot get a value of an array.");
         }
 
         var that = this;
@@ -364,7 +366,7 @@ var DbgObject = (function() {
 
     DbgObject.prototype.fields = function() {
         if (this._isPointer()) {
-            return checkSync(Promise.fail("You cannot lookup fields on a pointer."));
+            throw new Error("You cannot lookup fields on a pointer.");
         }
 
         var that = this;

@@ -21,11 +21,16 @@ var TreeInspector = (function() {
                             treeRoot = createdRoot;
                             return render();
                         })
+                        .then(function() {}, function(error) {
+                            // Some JS error occurred.
+                            console.log("An error occurred: " + error);
+                        });
                 }
             }
 
             function render() {
                 renderTreeRootPromise = treeAlgorithm.BuildTree(treeContainer, treeRoot);
+                return renderTreeRootPromise;
             }
 
             function loadRoots(useDefault) {
