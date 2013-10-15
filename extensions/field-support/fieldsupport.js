@@ -417,6 +417,7 @@ var FieldSupport = (function() {
                     type: savedField.type,
                     enabled: false,
                     fullname: savedField.name,
+                    async: savedField.async,
                     localstorageid: key,
                     shortname: savedField.shortName,
                     html: codeStringToFunction(savedField.codeString),
