@@ -2,5 +2,8 @@
     "name": "Timer", 
     "author": "Peter Salas",
     "description": "A simple wall clock timer.",
-    "headless": true
+    "headless": true,
+    "includes": [
+        "timer.js"
+    ]
 }

@@ -7,6 +7,9 @@ using System.Net;
 using System.Diagnostics;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
+using System.Net.WebSockets;
+using System.Collections.Specialized;
+using System.Threading;
 
 namespace JsDbg {
     
@@ -42,6 +45,12 @@ namespace JsDbg {
             set { this._headless = value; }
         }
 
+        [DataMember(IsRequired = false)]
+        public string[] includes {
+            get { return this._includes; }
+            set { this._includes = value; }
+        }
+
         public string Path {
             get { return this._path; }
             set { this._path = value; }
@@ -51,6 +60,7 @@ namespace JsDbg {
         private string _author;
         private string _description;
         private string[] _dependencies;
+        private string[] _includes;
         private string _path;
         private bool _headless;
     }
@@ -67,6 +77,7 @@ namespace JsDbg {
             this.defaultExtensionPath = defaultExtensionPath;
             this.port = StartPortNumber;
             this.loadedExtensions = new List<JsDbgExtension>();
+            this.cancellationSource = new CancellationTokenSource();
         }
 
         private void CreateHttpListener() {
@@ -81,7 +92,6 @@ namespace JsDbg {
         }
 
         internal async Task Listen() {
-
             bool didTryNetsh = false;
             while (true) {
                 this.CreateHttpListener();
@@ -138,60 +148,22 @@ namespace JsDbg {
                         return;
                     }
 
-                    Task writeTask = Console.Out.WriteLineAsync("request for " + context.Request.RawUrl);
+                    this.NoteRequest(context.Request.Url);
 
                     string[] segments = context.Request.Url.Segments;
                     try {
                         if (segments.Length > 2 && segments[1].TrimEnd('/') == "jsdbg") {
                             // jsdbg request
-                            switch (segments[2].TrimEnd('/')) {
-                            case "fieldoffset":
-                                this.ServeFieldOffset(segments, context);
-                                break;
-                            case "memory":
-                                this.ServeMemory(segments, context);
-                                break;
-                            case "array":
-                                this.ServeArray(segments, context);
-                                break;
-                            case "symbolname":
-                                this.ServeSymbolName(segments, context);
-                                break;
-                            case "symbol":
-                                this.ServeSymbol(segments, context);
-                                break;
-                            case "pointersize":
-                                this.ServePointerSize(segments, context);
-                                break;
-                            case "constantname":
-                                this.ServeConstantName(segments, context);
-                                break;
-                            case "basetypeoffset":
-                                this.ServeBaseTypeOffset(segments, context);
-                                break;
-                            case "typefields":
-                                this.ServeTypeFields(segments, context);
-                                break;
-                            case "loadextension":
-                                this.LoadExtension(segments, context);
-                                break;
-                            case "unloadextension":
-                                this.UnloadExtension(segments, context);
-                                break;
-                            case "extensions":
-                                this.ServeExtensions(segments, context);
-                                break;
-                            case "persistentstorage":
-                                this.ServePersistentStorage(segments, context);
-                                break;
-                            case "persistentstorageusers":
-                                this.ServePersistentStorageUsers(segments, context);
-                                break;
-                            default:
-                                context.Response.Redirect("/");
-                                context.Response.OutputStream.Close();
-                                break;
-                            }
+                            this.ServeJsDbgRequest(
+                                context.Request.Url, 
+                                context.Request.QueryString, 
+                                context, 
+                                (string response) => { this.ServeUncachedString(response, context); }, 
+                                () => { this.ServeFailure(context); }
+                            );
+                        } else if (context.Request.Headers["Upgrade"] != null && context.Request.Headers["Upgrade"].ToLowerInvariant() == "websocket") {
+                            System.Net.WebSockets.HttpListenerWebSocketContext webSocketContext = await context.AcceptWebSocketAsync(null);
+                            this.HandleWebSocket(webSocketContext.WebSocket);
                         } else {
                             // static file
                             string path = "";
@@ -222,6 +194,13 @@ namespace JsDbg {
             context.Response.ContentLength64 = buffer.Length;
             context.Response.OutputStream.Write(buffer, 0, buffer.Length);
             context.Response.OutputStream.Close();
+        }
+
+        private void NoteRequest(Uri url) {
+            ++this.requestCounter;
+#if DEBUG
+            Console.Out.WriteLineAsync(url.PathAndQuery);
+#endif
         }
 
         private string GetFilePath(string serviceDirectory, string extensionName, string filename) {
@@ -281,24 +260,104 @@ namespace JsDbg {
             }
         }
 
-        private async void ServeFieldOffset(string[] segments, HttpListenerContext context) {
-            string module = context.Request.QueryString["module"];
-            string baseType = context.Request.QueryString["type"];
-            string fieldsString = context.Request.QueryString["fields"];
-            if (module == null || baseType == null || fieldsString == null) {
-                this.ServeFailure(context);
+        private void ServeJsDbgRequest(Uri url, NameValueCollection query, HttpListenerContext context, Action<string> respond, Action fail) {
+            string[] segments = url.Segments;
+            if (segments.Length <= 2 || segments[1].TrimEnd('/') != "jsdbg") {
+                // This request is not a proper JsDbg request.
+                fail();
                 return;
             }
 
-            string[] fields = { };
-            if (fieldsString != "") {
-                fields = fieldsString.Split(',');
+            switch (segments[2].TrimEnd('/')) {
+            case "typesize":
+                this.ServeTypeSize(query, respond, fail);
+                break;
+            case "fieldoffset":
+                this.ServeFieldOffset(query, respond, fail);
+                break;
+            case "memory":
+                this.ServeMemory(query, respond, fail);
+                break;
+            case "array":
+                this.ServeArray(query, respond, fail);
+                break;
+            case "symbolname":
+                this.ServeSymbolName(query, respond, fail);
+                break;
+            case "symbol":
+                this.ServeSymbol(query, respond, fail);
+                break;
+            case "pointersize":
+                this.ServePointerSize(query, respond, fail);
+                break;
+            case "constantname":
+                this.ServeConstantName(query, respond, fail);
+                break;
+            case "basetypeoffset":
+                this.ServeBaseTypeOffset(query, respond, fail);
+                break;
+            case "typefields":
+                this.ServeTypeFields(query, respond, fail);
+                break;
+            case "loadextension":
+                this.LoadExtension(query, respond, fail);
+                break;
+            case "unloadextension":
+                this.UnloadExtension(query, respond, fail);
+                break;
+            case "extensions":
+                this.ServeExtensions(query, respond, fail);
+                break;
+            case "persistentstorage":
+                // Persistent Storage requests require an HttpContext.
+                if (context == null) {
+                    goto default;
+                } else {
+                    this.ServePersistentStorage(segments, context);
+                    break;
+                }
+            case "persistentstorageusers":
+                this.ServePersistentStorageUsers(query, respond, fail);
+                break;
+            default:
+                fail();
+                break;
+            }
+        }
+
+        private async void ServeTypeSize(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
+            string type = query["type"];
+            if (module == null || type == null) {
+                fail();
+                return;
             }
 
             string responseString;
 
             try {
-                Debugger.SFieldResult result = await this.debugger.LookupField(module, baseType, fields);
+                uint typeSize = await this.debugger.LookupTypeSize(module, type);
+                responseString = String.Format("{{ \"size\": {0} }}", typeSize);
+            } catch (Debugger.DebuggerException ex) {
+                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+            }
+
+            respond(responseString);
+        }
+
+        private async void ServeFieldOffset(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
+            string baseType = query["type"];
+            string field = query["field"];
+            if (module == null || baseType == null || field == null) {
+                fail();
+                return;
+            }
+
+            string responseString;
+
+            try {
+                Debugger.SFieldResult result = await this.debugger.LookupField(module, baseType, field);
 
                 // Construct the response.
                 if (result.IsBitField) {
@@ -310,16 +369,16 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            this.ServeUncachedString(responseString, context);
+            respond(responseString);
         }
 
-        private async void ServeBaseTypeOffset(string[] segments, HttpListenerContext context) {
-            string module = context.Request.QueryString["module"];
-            string type = context.Request.QueryString["type"];
-            string baseType = context.Request.QueryString["basetype"];
+        private async void ServeBaseTypeOffset(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
+            string type = query["type"];
+            string baseType = query["basetype"];
 
             if (module == null || baseType == null || type == null) {
-                this.ServeFailure(context);
+                fail();
                 return;
             }
 
@@ -332,16 +391,16 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            this.ServeUncachedString(responseString, context);
+            respond(responseString);
         }
 
-        private async void ServeMemory(string[] segments, HttpListenerContext context) {
-            string type = context.Request.QueryString["type"];
-            string pointerString = context.Request.QueryString["pointer"];
+        private async void ServeMemory(NameValueCollection query, Action<string> respond, Action fail) {
+            string type = query["type"];
+            string pointerString = query["pointer"];
             ulong pointer;
 
             if (type == null || pointerString == null || !UInt64.TryParse(pointerString, out pointer)) {
-                this.ServeFailure(context);
+                fail();
                 return;
             }
             
@@ -384,7 +443,7 @@ namespace JsDbg {
                         value = await this.debugger.ReadMemory<double>(pointer);
                         break;
                     default:
-                        this.ServeFailure(context);
+                        fail();
                         return;
                 }
 
@@ -393,18 +452,18 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            this.ServeUncachedString(responseString, context);
+            respond(responseString);
         }
 
-        private async void ServeArray(string[] segments, HttpListenerContext context) {
-            string type = context.Request.QueryString["type"];
-            string pointerString = context.Request.QueryString["pointer"];
-            string lengthString = context.Request.QueryString["length"];
+        private async void ServeArray(NameValueCollection query, Action<string> respond, Action fail) {
+            string type = query["type"];
+            string pointerString = query["pointer"];
+            string lengthString = query["length"];
             ulong pointer;
             ulong length;
 
             if (type == null || pointerString == null || !UInt64.TryParse(pointerString, out pointer) || !UInt64.TryParse(lengthString, out length)) {
-                this.ServeFailure(context);
+                fail();
                 return;
             }
 
@@ -441,7 +500,7 @@ namespace JsDbg {
                     arrayString = await ReadJsonArray<ulong>(pointer, length);
                     break;
                 default:
-                    this.ServeFailure(context);
+                    fail();
                     return;
                 }
 
@@ -450,7 +509,7 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            this.ServeUncachedString(responseString, context);
+            respond(responseString);
         }
 
         private async Task<string> ReadJsonArray<T>(ulong pointer, ulong length) where T : struct {
@@ -473,12 +532,12 @@ namespace JsDbg {
             return builder.ToString();
         }
 
-        private async void ServeSymbolName(string[] segments, HttpListenerContext context) {
-            string pointerString = context.Request.QueryString["pointer"];
+        private async void ServeSymbolName(NameValueCollection query, Action<string> respond, Action fail) {
+            string pointerString = query["pointer"];
             
             ulong pointer;
             if (pointerString == null || !UInt64.TryParse(pointerString, out pointer)) {
-                this.ServeFailure(context);
+                fail();
                 return;
             }
 
@@ -490,14 +549,14 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            this.ServeUncachedString(responseString, context);
+            respond(responseString);
         }
 
-        private async void ServeSymbol(string[] segments, HttpListenerContext context) {
-            string symbol = context.Request.QueryString["symbol"];
+        private async void ServeSymbol(NameValueCollection query, Action<string> respond, Action fail) {
+            string symbol = query["symbol"];
 
             if (symbol == null) {
-                this.ServeFailure(context);
+                fail();
                 return;
             }
 
@@ -509,20 +568,20 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            this.ServeUncachedString(responseString, context);
+            respond(responseString);
         }
 
-        private void ServePointerSize(string[] segments, HttpListenerContext context) {
-            this.ServeUncachedString(String.Format("{{ \"pointerSize\": \"{0}\" }}", (this.debugger.IsPointer64Bit ? 8 : 4)), context);
+        private void ServePointerSize(NameValueCollection query, Action<string> respond, Action fail) {
+            respond(String.Format("{{ \"pointerSize\": \"{0}\" }}", (this.debugger.IsPointer64Bit ? 8 : 4)));
         }
 
-        private async void ServeConstantName(string[] segments, HttpListenerContext context) {
-            string module = context.Request.QueryString["module"];
-            string type = context.Request.QueryString["type"];
-            string constantString = context.Request.QueryString["constant"];
+        private async void ServeConstantName(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
+            string type = query["type"];
+            string constantString = query["constant"];
             ulong constant;
             if (module == null || type == null || constantString == null || !UInt64.TryParse(constantString, out constant)) {
-                this.ServeFailure(context);
+                fail();
                 return;
             }
 
@@ -534,15 +593,15 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            this.ServeUncachedString(responseString, context);
+            respond(responseString);
         }
 
-        private async void ServeTypeFields(string[] segments, HttpListenerContext context) {
-            string module = context.Request.QueryString["module"];
-            string type = context.Request.QueryString["type"];
+        private async void ServeTypeFields(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
+            string type = query["type"];
 
             if (module == null || type == null) {
-                this.ServeFailure(context);
+                fail();
                 return;
             }
 
@@ -559,6 +618,7 @@ namespace JsDbg {
                     builder.Append("{");
                     builder.AppendFormat("\"name\": \"{0}\",", field.FieldName);
                     builder.AppendFormat("\"offset\": {0},", field.Offset);
+                    builder.AppendFormat("\"size\": {0},", field.Size);
                     builder.AppendFormat("\"type\": \"{0}\"", field.TypeName);
                     if (field.IsBitField) {
                         builder.AppendFormat(",\"bitcount\": {0},", field.BitCount);
@@ -572,7 +632,7 @@ namespace JsDbg {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
-            this.ServeUncachedString(responseString, context);
+            respond(responseString);
         }
 
         private static DataContractJsonSerializer ExtensionSerializer = new DataContractJsonSerializer(typeof(JsDbgExtension));
@@ -584,7 +644,8 @@ namespace JsDbg {
 
             List<JsDbgExtension> extensionsToLoad = new List<JsDbgExtension>();
             List<string> failedExtensions = new List<string>();
-            if (this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions)) {
+            string name;
+            if (this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions, out name)) {
                 this.loadedExtensions.AddRange(extensionsToLoad);
                 return true;
             } else {
@@ -592,9 +653,10 @@ namespace JsDbg {
             }
         }
 
-        private bool LoadExtensionAndDependencies(string extensionPath, List<JsDbgExtension> extensionsToLoad, List<string> failedExtensions) {
+        private bool LoadExtensionAndDependencies(string extensionPath, List<JsDbgExtension> extensionsToLoad, List<string> failedExtensions, out string extensionName) {
             if (!System.IO.Directory.Exists(extensionPath)) {
                 failedExtensions.Add(extensionPath);
+                extensionName = null;
                 return false;
             }
 
@@ -607,8 +669,11 @@ namespace JsDbg {
                 extension.Path = extensionPath;
             } catch {
                 failedExtensions.Add(extensionPath);
+                extensionName = null;
                 return false;
             }
+
+            extensionName = extension.name;
 
             // Check if the extension has already been loaded.
             foreach (JsDbgExtension existingExtension in this.loadedExtensions) {
@@ -628,16 +693,19 @@ namespace JsDbg {
 
             // Now load any dependencies, bubbling any failures.
             if (extension.dependencies != null) {
-                foreach (string dependencyPath in extension.dependencies) {
+                for (int i = 0; i < extension.dependencies.Length; ++i) {
+                    string dependencyPath = extension.dependencies[i];
                     string rootedDependencyPath = dependencyPath;
                     if (!System.IO.Path.IsPathRooted(rootedDependencyPath)) {
                         rootedDependencyPath = System.IO.Path.Combine(this.defaultExtensionPath, dependencyPath);
                     }
-
-                    if (!this.LoadExtensionAndDependencies(rootedDependencyPath, extensionsToLoad, failedExtensions)) {
+                    string dependencyName;
+                    if (!this.LoadExtensionAndDependencies(rootedDependencyPath, extensionsToLoad, failedExtensions, out dependencyName)) {
                         failedExtensions.Add(extensionPath);
                         return false;
                     }
+
+                    extension.dependencies[i] = dependencyName;
                 }
             }
 
@@ -645,45 +713,46 @@ namespace JsDbg {
             return true;
         }
 
-        private void LoadExtension(string[] segments, HttpListenerContext context) {
-            string extensionPath = context.Request.QueryString["path"];
+        private void LoadExtension(NameValueCollection query, Action<string> respond, Action fail) {
+            string extensionPath = query["path"];
 
             if (extensionPath == null) {
-                this.ServeFailure(context);
+                fail();
                 return;
             }
 
             List<JsDbgExtension> extensionsToLoad = new List<JsDbgExtension>();
             List<string> failedExtensions = new List<string>();
-            if (!this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions)) {
-                this.ServeUncachedString("{ \"error\": \"Extensions failed to load:" + String.Join(" -> ", failedExtensions).Replace("\\", "\\\\") + "\" }", context);
+            string name;
+            if (!this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions, out name)) {
+                respond("{ \"error\": \"Extensions failed to load:" + String.Join(" -> ", failedExtensions).Replace("\\", "\\\\") + "\" }");
                 return;
             } else {
                 this.loadedExtensions.AddRange(extensionsToLoad);
-                this.ServeUncachedString("{ \"success\": true }", context);
+                respond("{ \"success\": true }");
             }
         }
 
-        private void UnloadExtension(string[] segments, HttpListenerContext context) {
-            string extensionName = context.Request.QueryString["name"];
+        private void UnloadExtension(NameValueCollection query, Action<string> respond, Action fail) {
+            string extensionName = query["name"];
 
             if (extensionName == null) {
-                this.ServeFailure(context);
+                fail();
                 return;
             }
 
             for (int i = 0; i < this.loadedExtensions.Count; ++i) {
                 if (this.loadedExtensions[i].name == extensionName) {
                     this.loadedExtensions.RemoveAt(i);
-                    this.ServeUncachedString("{ \"success\": true }", context);
+                    respond("{ \"success\": true }");
                     return;
                 }
             }
 
-            this.ServeUncachedString("{ \"error\": \"Unknown extension.\" }", context);
+            respond("{ \"error\": \"Unknown extension.\" }");
         }
 
-        private void ServeExtensions(string[] segments, HttpListenerContext context) {
+        private void ServeExtensions(NameValueCollection query, Action<string> respond, Action fail) {
             List<string> jsonExtensions = new List<string>();
             foreach (JsDbgExtension extension in this.loadedExtensions) {
                 using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
@@ -692,7 +761,7 @@ namespace JsDbg {
                 }
             }
 
-            this.ServeUncachedString(String.Format("{{ \"extensions\": [{0}] }}", String.Join(",", jsonExtensions)), context);
+            respond(String.Format("{{ \"extensions\": [{0}] }}", String.Join(",", jsonExtensions)));
         }
 
         private void ServePersistentStorage(string[] segments, HttpListenerContext context) {
@@ -709,14 +778,83 @@ namespace JsDbg {
             }
         }
 
-        private void ServePersistentStorageUsers(string[] segments, HttpListenerContext context) {
+        private void ServePersistentStorageUsers(NameValueCollection query, Action<string> respond, Action fail) {
             string[] users = this.persistentStore.GetUsers();
 
             DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(string[]));
             using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
                 serializer.WriteObject(memoryStream, users);
                 string result = Encoding.Default.GetString(memoryStream.ToArray());
-                this.ServeUncachedString(String.Format("{{ \"users\": {0} }}", result), context);
+                respond(String.Format("{{ \"users\": {0} }}", result));
+            }
+        }
+
+        private async void HandleWebSocket(WebSocket socket) {
+            byte[] buffer = new byte[2048];
+            ArraySegment<byte> segment = new ArraySegment<byte>(buffer);
+            char argumentSeperator = ';';
+            char[] argumentSeparators = {argumentSeperator};
+            Uri baseUri = new Uri("http://localhost:" + this.port.ToString());
+
+            using (socket) {
+                try {
+                    while (socket.State == WebSocketState.Open) {
+                        StringBuilder messageBuilder = new StringBuilder();
+                        WebSocketReceiveResult result = await socket.ReceiveAsync(segment, this.cancellationSource.Token);
+
+                        // Make sure we get the whole message.
+                        while (result.MessageType == WebSocketMessageType.Text && !result.EndOfMessage) {
+                            messageBuilder.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+                            result = await socket.ReceiveAsync(segment, this.cancellationSource.Token);
+                        }
+
+                        messageBuilder.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+
+                        if (result.MessageType == WebSocketMessageType.Text) {
+                            Debug.Assert(result.EndOfMessage);
+
+                            // Request protocol: [identifier];[URL]
+                            // Response protocol: [identifier];[code];[response]
+
+                            string message = messageBuilder.ToString();
+                            string[] messageParts = message.Split(argumentSeparators, 2);
+                            if (messageParts.Length == 2 && Uri.IsWellFormedUriString(messageParts[1], UriKind.Relative)) {
+                                // The request appears valid.  Grab the URL and handle the JsDbgRequest.
+                                Uri request = new Uri(baseUri, messageParts[1]);
+                                this.NoteRequest(request);
+
+                                this.ServeJsDbgRequest(
+                                    request,
+                                    System.Web.HttpUtility.ParseQueryString(request.Query),
+                                    /*context*/null,
+                                    (string response) => {
+                                        // Prepend the identifier and response code.
+                                        response = messageParts[0] + argumentSeperator + "200" + argumentSeperator + response;
+                                        socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(response)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);
+                                    },
+                                    () => {
+                                        // Send the failure.
+                                        string response = messageParts[0] + argumentSeperator + "400" + argumentSeperator + message;
+                                        socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(response)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);
+                                    }
+                                );
+                            } else {
+                                // Send the failure.
+                                string response = messageParts[0] + argumentSeperator + "400" + argumentSeperator + message;
+                                Task ignoredTask = socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(response)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);
+                            }
+                        } else if (result.MessageType == WebSocketMessageType.Close) {
+                            // The client closed the WebSocket.
+                            break;
+                        }
+                    }
+
+                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal", System.Threading.CancellationToken.None);
+                } catch (WebSocketException socketException) {
+                    if (this.httpListener.IsListening) {
+                        Console.Out.WriteLine("Closing WebSocket due to WebSocketException: {0}", socketException.Message);
+                    }
+                }
             }
         }
 
@@ -736,11 +874,13 @@ namespace JsDbg {
         #endregion
 
         private HttpListener httpListener;
+        private CancellationTokenSource cancellationSource;
         private Debugger debugger;
         private PersistentStore persistentStore;
         private List<JsDbgExtension> loadedExtensions;
         private string path;
         private string defaultExtensionPath;
         private int port;
+        private ulong requestCounter;
     }
 }

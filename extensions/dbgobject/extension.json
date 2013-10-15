@@ -2,5 +2,9 @@
     "name": "DbgObject",
     "author": "Peter Salas",
     "description": "Convenience library for navigating objects in memory.",
-    "headless": true
+    "headless": true,
+    "dependencies": ["promise"],
+    "includes": [
+        "dbgobject.js"
+    ]
 }

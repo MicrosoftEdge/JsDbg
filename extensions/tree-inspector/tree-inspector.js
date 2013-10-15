@@ -5,7 +5,7 @@ var TreeInspector = (function() {
     var pointerField = null;
     var treeContainer = null;
     var treeRoot = null;
-    var renderTreeRoot = null;
+    var renderTreeRootPromise = null;
     var lastRenderedPointer = null;
     var treeAlgorithm = TallTree;
     var treeAlgorithms = { };
@@ -16,45 +16,57 @@ var TreeInspector = (function() {
                 if (lastRenderedPointer != pointerField.value) {
                     // Don't re-render if we've already rendered.
                     lastRenderedPointer = pointerField.value;
-                    treeRoot = namespace.Create(parseInt(pointerField.value));
-                    renderTreeRoot = treeAlgorithm.BuildTree(treeContainer, treeRoot);
+                    Promise.as(namespace.Create(parseInt(pointerField.value)))
+                        .then(function(createdRoot) {
+                            treeRoot = createdRoot;
+                            return render();
+                        })
+                        .then(function() {}, function(error) {
+                            // Some JS error occurred.
+                            console.log("An error occurred: " + error);
+                        });
                 }
             }
 
-            function loadRoots(useDefault) {
-                try {
-                    var roots = namespace.Roots();
-                } catch (ex) {
-                    rootsElement.className = "roots error";
-                    rootsElement.innerHTML = ex;
-                    return;
-                }
+            function render() {
+                renderTreeRootPromise = treeAlgorithm.BuildTree(treeContainer, treeRoot);
+                return renderTreeRootPromise;
+            }
 
+            function loadRoots(useDefault) {
                 rootsElement.className = "roots success";
                 rootsElement.innerHTML = namespace.BasicType + " Roots: ";
 
-                if (roots.length == 0) {
-                    rootsElement.innerHTML += "(none)";
-                }
+                return namespace.Roots()
+                    .then(function(roots) {
+                        if (roots.length == 0) {
+                            rootsElement.innerHTML += "(none)";
+                        }
 
-                roots.forEach(function(root) {
-                    var link = document.createElement("a");
-                    link.setAttribute("href", "#");
-                    link.addEventListener("click", function(e) {
-                        e.preventDefault();
-                        pointerField.value = root;
-                        saveHash();
-                        createAndRender();
+                        roots.forEach(function(root) {
+                            var link = document.createElement("a");
+                            link.setAttribute("href", "#");
+                            link.addEventListener("click", function(e) {
+                                e.preventDefault();
+                                pointerField.value = root;
+                                saveHash();
+                                createAndRender();
+                            });
+                            link.innerHTML = root;
+                            rootsElement.appendChild(link);
+                            rootsElement.appendChild(document.createTextNode(" "));
+                        });
+
+                        if (useDefault && roots.length > 0) {
+                            pointerField.value = roots[0];
+                            createAndRender();
+                        }
+                    }, function (ex) {
+                        rootsElement.className = "roots error";
+                        rootsElement.innerHTML = ex;
                     });
-                    link.innerHTML = root;
-                    rootsElement.appendChild(link);
-                    rootsElement.appendChild(document.createTextNode(" "));
-                });
 
-                if (useDefault && roots.length > 0) {
-                    pointerField.value = roots[0];
-                    createAndRender();
-                }
+                
             }
 
             function unpackHash() {
@@ -75,7 +87,7 @@ var TreeInspector = (function() {
                     treeAlgorithm = treeAlgorithms[e.target.id];
 
                     if (treeRoot != null && treeAlgorithm != oldTreeAlgorithm) {
-                        renderTreeRoot = treeAlgorithm.BuildTree(treeContainer, treeRoot);
+                        render();
                     }
                 }
             }
@@ -169,8 +181,11 @@ var TreeInspector = (function() {
                 namespace.BasicType, 
                 namespace.TypeMap, 
                 function() {
-                    if (renderTreeRoot != null) {
-                        renderTreeRoot.updateRepresentation();
+                    if (renderTreeRootPromise != null) {
+                        return renderTreeRootPromise
+                            .then(function updateRenderTree(renderTreeRoot) {
+                                return renderTreeRoot.updateRepresentation();
+                            });
                     }
                 }
             )

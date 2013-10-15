@@ -3,9 +3,7 @@
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <title>Struct Diff</title>
-    <link rel="stylesheet" type="text/css" href="/common.css">
-    <script src="/jsdbg.js" type="text/javascript"></script>
-    <script src="/dbgobject/dbgobject.js" type="text/javascript"></script>
+    <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
     <script type="text/javascript">
         function init() {
             document.querySelector(".type").value = window.localStorage.getItem("struct-diff.type");
@@ -20,6 +18,7 @@
             }
 
             document.querySelector("button").addEventListener("click", function() {
+                var clock = Timer.Start();
                 var type = document.querySelector(".type").value;
                 var pointer1 = document.querySelectorAll(".pointer")[0].value;
                 var pointer2 = document.querySelectorAll(".pointer")[1].value;
@@ -46,136 +45,191 @@
                 var object1 = new DbgObject(module, typename, parseInt(pointer1, 16));
                 var object2 = new DbgObject(module, typename, parseInt(pointer2, 16));
 
-                // get the structure size in a cheesy way off of DbgObject
-                var structureSize = parseInt(object1.idx(1).ptr()) - parseInt(object1.ptr());
-
-                // get some byte arrays.
-                var array1 = object1.as("char").array(structureSize);
-                var array2 = object2.as("char").array(structureSize);
-
-                // find the differences
                 var differences = [];
-                array1.forEach(function(v, i) {
-                    if (v != array2[i]) {
-                        differences.push(i);
-                    }
-                });
 
-                function expandArrays(fields) {
-                    var result = [];
-                    fields.forEach(function (field) {
-                        if (field.value.isArray) {
-                            for (var i = 0; i < field.value.arrayLength; ++i) {
-                                var value = field.value.idx(i);
-                                result.push({
-                                    "name": field.name + "[" + i + "]",
-                                    "offset": field.offset + (parseInt(value.ptr()) - parseInt(field.value.ptr())),
-                                    "value": value
-                                });
+                // get the structure size in a cheesy way off of DbgObject
+                object1.idx(1)
+                    .then(function(shiftedObject) {
+                        var structureSize = parseInt(shiftedObject.ptr()) - parseInt(object1.ptr());
+
+                        // get some byte arrays.
+                        return Promise.join(object1.as("char").array(structureSize), object2.as("char").array(structureSize));
+                    })
+                    .then(function(arrays) {
+                        clock.Mark("got arrays");
+                        var array1 = arrays[0];
+                        var array2 = arrays[1];
+
+                        // find the differences
+                        array1.forEach(function(v, i) {
+                            if (v != array2[i]) {
+                                differences.push(i);
                             }
-                        } else {
-                            result.push(field);
+                        });
+
+                        function generateArray(f, count) {
+                            var slots = new Array(count);
+                            for (var i = 0; i < count; ++i) {
+                                slots[i] = f(i);
+                            }
+                            return slots;
                         }
-                    });
 
-                    return result;
-                }
-
-                function recursivelyGetFields(array, field, offset, prefix) {
-                    field.offset += offset;
-                    field.name = prefix + (prefix.length > 0 ? "." : "") + field.name;
-
-                    var includeField = false;
-                    try {
-                        var recursiveFields = expandArrays(field.value.fields());
-                        if (recursiveFields.length == 0) {
-                            includeField = true;
-                        } else {
-                            recursiveFields.forEach(function(innerField) {
-                                recursivelyGetFields(array, innerField, field.offset, field.name);
-                            });
-                        }
-                    } catch (ex) { 
-                        includeField = true;
-                    }
-
-                    if (includeField) {
-                        array.push(field);
-                    }
-                }
-
-                // get the fields.
-                if (shouldRecurse) {
-                    var fields = [];
-                    expandArrays(object1.fields()).forEach(function(f) {
-                        recursivelyGetFields(fields, f, 0, "");
-                    });
-                } else {
-                    var fields = object1.fields();
-                }
-
-                fields.sort(function(a, b) { return a.offset - b.offset; });
-
-                var fieldsAtCurrentOffset = [];
-                var fieldsAtLastOffset = [];
-
-                var differentFields = [];
-                var currentDifferenceIndex = 0;
-
-                for (var i = 0; i < fields.length; ++i) {
-                    if (fieldsAtCurrentOffset.length > 0 && fieldsAtCurrentOffset[0].offset != fields[i].offset) {
-                        fieldsAtLastOffset = fieldsAtCurrentOffset;
-                        fieldsAtCurrentOffset = [];
-                    }
-                    fieldsAtCurrentOffset.push(fields[i]);
-
-                    var didPushField = false;
-                    while (fields[i].offset > differences[currentDifferenceIndex]) {
-                        // We just passed the field.
-                        if (!didPushField) {
-                            fieldsAtLastOffset.forEach(function (f) {
-                                if (f.value.bitcount > 0) {
-                                    if (object1.f(f.name).val() != object2.f(f.name).val()) {
-                                        differentFields.push(f);
-                                    }
+                        function flattenInto(array, result) {
+                            array.forEach(function(item) {
+                                if (item.forEach) {
+                                    flattenInto(item, result);
                                 } else {
-                                    differentFields.push(f);
+                                    result.push(item);
                                 }
-                            });
-                            didPushField = true;
+                            })
+                            return result;
                         }
-                        currentDifferenceIndex++;
-                    }
-                }
 
-                var html = differentFields.map(function(field) {
-                    var f1 = object1.f(field.name);
-                    var f2 = object2.f(field.name);
+                        function flatten(array) {
+                            return flattenInto(array, []);
+                        }
 
-                    var val1 = f1.ptr();
-                    var val2 = f2.ptr();
+                        function fieldToArrayExpansion(field) {
+                            if (field.value.isArray()) {
+                                var values = generateArray(field.value.idx.bind(field.value), field.value.arrayLength());
+                                return Promise
+                                    .join(values)
+                                    .then(function(values) {
+                                        return values.map(function(value, i) {
+                                            return {
+                                                "name": field.name + "[" + i + "]",
+                                                "offset": field.offset + (parseInt(value.ptr()) - parseInt(field.value.ptr())),
+                                                "value": value
+                                            };
+                                        })
+                                    });
+                            } else {
+                                return [field];
+                            }
+                        }
 
-                    if (!field.value.isPointer()) {
-                        try {
-                            val1 = f1.val();
-                            val2 = f2.val();
-                        } catch (ex) { }
-                    }
+                        function expandArrays(fields) {
+                            return Promise
+                                .map(fields, fieldToArrayExpansion)
+                                .then(flatten);
+                        }
 
-                    return [field.name, field.value.typeDescription().replace("<", "&lt;").replace(">", "&gt;"), "0x" + field.offset.toString(16), val1, val2];
-                });
+                        // returns a promise to a field array with all sub-structures expanded
+                        function recursivelyExpandFieldsHelper(field, offset, prefix) {
+                            field.offset += offset;
+                            field.name = prefix + (prefix.length > 0 ? "." : "") + field.name;
+                            clock.Mark("expanding " + field.name);
 
-                html = html.map(function(cells) {
-                    return "<td>" + cells.join("</td><td>") + "</td>";
-                });
+                            if (field.value.isPointer()) {
+                                return [field];
+                            }
+                            
+                            return field.value.fields()
+                                    .then(expandArrays)
+                                    .then(function (fields) {
+                                        return Promise.map(fields, function(innerField) { return recursivelyExpandFieldsHelper(innerField, field.offset, field.name); })
+                                    }, function(error) {
+                                        return [field];
+                                    })
+                                    .then(function (fields) {
+                                        if (fields.length == 0) {
+                                            return [field];
+                                        } else {
+                                            return fields;
+                                        }
+                                    });
+                        }
 
-                if (html.length > 0) {
-                    document.getElementById("results").innerHTML = 
-                        "<table><tr><th>Field</th><th>Type</th><th>Offset</th><th>" + object1.ptr() + "</th><th>" + object2.ptr() + "</th></tr>" +
-                        "<tr>" + html.join("</tr><tr>") + "</tr></table>";
-                } else {
-                    document.getElementById("results").innerHTML = "<h3>No difference!</h3>";
-                }
+                        function recursivelyExpandFields(fields) {
+                            return Promise
+                                .join(fields.map(function(field) { return recursivelyExpandFieldsHelper(field, 0, ""); }))
+                                .then(flatten);
+                        }
+
+                        // get the fields.
+                        if (shouldRecurse) {
+                            return object1.fields()
+                                .then(expandArrays)
+                                .then(recursivelyExpandFields);
+                        } else {
+                            return object1.fields();
+                        }
+                    })
+                    .then(function (fields) {
+                        clock.Mark("got fields");
+                        if (differences.length == 0) {
+                            return [];
+                        }
+
+                        fields.sort(function(a, b) { return a.offset - b.offset; });
+
+                        // Filter to just the fields that might differ.
+                        var currentDifferenceIndex = 0;
+                        fields = fields.filter(function(f, i) {
+                            while (differences[currentDifferenceIndex] < f.offset) {
+                                currentDifferenceIndex++;
+                            }
+
+                            return differences[currentDifferenceIndex] < f.offset + f.size;
+                        });
+
+                        clock.Mark("got possible different fields");
+
+                        // For fields with a bitcount, we want to actually compare the values.
+                        return Promise.filter(fields, function(field) {
+                            clock.Mark("checking " + field.name + " for bitcount");
+                            if (field.value.bitcount > 0) {
+                                return Promise.join([object1.f(field.name).val(), object2.f(field.name).val()])
+                                    .then(function(vals) {
+                                        clock.Mark("filtering bitcount for " + field.name);
+                                        return vals[0] != vals[1];
+                                    });
+                            }
+                            return true;
+                        });
+                    })
+                    .then(function(differentFields) {
+                        clock.Mark("got different fields");
+                        return Promise.map(differentFields, function(field) {
+                            clock.Mark("requesting fields of " + field.name);
+                            var f1 = object1.f(field.name);
+                            var f2 = object2.f(field.name);
+
+                            return Promise.join([f1, f2])
+                                .then(function(members) {
+                                    if (!field.value.isPointer() && !field.value.isArray()) {
+                                        clock.Mark("requesting values of " + field.name);
+                                        return Promise.join([members[0].val(), members[1].val()])
+                                    } else {
+                                        return [members[0].ptr(), members[1].ptr()];
+                                    }
+                                })
+                                .then(
+                                    function(x) { return x; },
+                                    function() { return Promise.join([f1.ptr(), f2.ptr()]);
+                                })
+                                .then(function(values) {
+                                    return [field.name, field.value.typeDescription().replace("<", "&lt;").replace(">", "&gt;"), "0x" + field.offset.toString(16), values[0], values[1]];
+                                })
+
+                        });
+                    })
+                    .then(function(html) {
+                        clock.Mark("got HTML");
+                        html = html.map(function(cells) {
+                            return "<td>" + cells.join("</td><td>") + "</td>";
+                        });
+
+                        if (html.length > 0) {
+                            document.getElementById("results").innerHTML = 
+                                "<table><tr><th>Field</th><th>Type</th><th>Offset</th><th>" + object1.ptr() + "</th><th>" + object2.ptr() + "</th></tr>" +
+                                "<tr>" + html.join("</tr><tr>") + "</tr></table>";
+                        } else {
+                            document.getElementById("results").innerHTML = "<h3>No difference!</h3>";
+                        }  
+                        clock.Mark("done with comparison");
+                    });
             });
         }
 

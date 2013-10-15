@@ -1,0 +1,7 @@
+{
+    "name": "promise",
+    "author": "Peter Salas",
+    "description": "A promise library to make asynchronous requests easier.",
+    "headless": true,
+    "includes": ["promise.js"]
+}

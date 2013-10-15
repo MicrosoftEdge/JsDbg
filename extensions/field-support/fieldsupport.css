@@ -56,6 +56,11 @@
     font-size:8pt;
 }
 
+.field-selection .editor ul.code-description {
+    margin:0;
+    padding-left:0em;
+}
+
 .field-selection .editor textarea {
     font-family:Consolas;
     font-size:8pt;

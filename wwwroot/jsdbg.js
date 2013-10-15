@@ -7,39 +7,151 @@
 
 var JsDbg = (function() {
 
+    // Certain types of requests are cacheable -- this maintains that cache.
     var responseCache = {};
-    var everythingCache = null;
 
-    function jsonRequest(url, callback, async, cache, method, data) {
+    // If we make a cacheable request and there are already outstanding requests for that resource,
+    // piggyback onto the existing request.  This maintains a list of piggybacked requests.
+    var pendingCachedRequests = {};
+
+    // A counter of the total number of requests made to the server.
+    var requestCounter = 0;
+
+    // Big hammer - makes every request synchronous.
+    var everythingIsSynchronous = false;
+
+    // WebSocket support.
+    var browserSupportsWebSockets = (window.WebSocket !== undefined);
+    var currentWebSocket = null;
+    var currentWebSocketCallbacks = {};
+
+    // Progress indicator support.
+    var loadingIndicator = null;
+    var pendingAsynchronousRequests = 0;
+
+    function initializeProgressIndicator() {
+        loadingIndicator = document.createElement("div")
+        loadingIndicator.setAttribute("id", "jsdbg-loading-indicator");
+        var progress = document.createElement("progress");
+        progress.indeterminate = true;
+        loadingIndicator.appendChild(progress);
+        document.addEventListener("DOMContentLoaded", function() {
+            document.body.appendChild(loadingIndicator);
+        });
+    }
+
+    function requestStarted() {
+        ++pendingAsynchronousRequests;
+        loadingIndicator.style.visibility = "visible";
+    }
+
+    function requestEnded() {
+        if (--pendingAsynchronousRequests == 0) {
+            loadingIndicator.style.visibility = "hidden";
+        }
+    }
+
+    function sendWebSocketMessage(requestId, messageToSend, callback) {
+        requestId = requestId.toString();
+        currentWebSocketCallbacks[requestId] = callback;
+
+        if (currentWebSocket == null || (currentWebSocket.readyState > WebSocket.OPEN)) {
+            currentWebSocket = new WebSocket("ws://" + window.location.host);
+            currentWebSocket.addEventListener("message", function jsdbgWebSocketMessageHandler(webSocketMessage) {
+                function splitFirstN(str, sep, limit) {
+                    var stringParts = [];
+                    while (limit > 1) {
+                        var index = str.indexOf(sep);
+                        if (index == -1) {
+                            break;
+                        }
+
+                        stringParts.push(str.substr(0, index));
+                        str = str.substr(index + 1);
+                        --limit;
+                    }
+                    stringParts.push(str);
+                    return stringParts;
+                }
+                
+                var parts = splitFirstN(webSocketMessage.data, ";", 3);
+                if (parts.length != 3) {
+                    throw "Bad JsDbg WebSocket protocol!";
+                }
+                var responseId = parts[0];
+                if (parts[1] != "200") {
+                    throw "Server failed on message id " + responseId;
+                }
+                if (!(responseId in currentWebSocketCallbacks)) {
+                    throw "No registered callback for message id " + responseId;
+                }
+
+                // Fire the callback and remove it from the registry.
+                currentWebSocketCallbacks[responseId](parts[2]);
+                delete currentWebSocketCallbacks[requestId];
+            });
+
+            currentWebSocket.addEventListener("close", function jsdbgWebSocketCloseHandler() {
+                currentWebSocket = null;
+                console.log("JsDbg web socket was closed.");
+            })
+        }
+
+        if (currentWebSocket.readyState < WebSocket.OPEN) {
+            currentWebSocket.addEventListener("open", function retryWebSocketRequest() { sendWebSocketMessage(requestId, messageToSend, callback); });
+        } else if (currentWebSocket.readyState == WebSocket.OPEN) {
+            currentWebSocket.send(requestId + ";" + messageToSend);
+        }
+    }
+
+    function jsonRequest(url, callback, cache, method, data) {
         if (cache && url in responseCache) {
             callback(responseCache[url]);
             return;
-        }
-
-        if (everythingCache != null && url in everythingCache) {
-            callback(everythingCache[url]);
-            return;
-        }
-
-        if (!method) {
-            method = "GET";
-        }
-
-        var xhr = new XMLHttpRequest();
-        
-        xhr.open(method, url, async);
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState == 4 && xhr.status == 200) {
-                var result = JSON.parse(xhr.responseText);
-                if (cache) {
-                    responseCache[url] = result;
-                } else if (everythingCache != null) {
-                    everythingCache[url] = result;
-                }
-                callback(result);
+        } else if (!everythingIsSynchronous && cache) {
+            if (url in pendingCachedRequests) {
+                pendingCachedRequests[url].push(callback);
+                return;
+            } else {
+                pendingCachedRequests[url] = [];
             }
-        };
-        xhr.send(data);
+        }
+
+        ++requestCounter;
+
+        requestStarted();
+
+        function handleJsonResponse(jsonText) {
+            var result = JSON.parse(jsonText);
+            var otherCallbacks = [];
+            if (cache && !everythingIsSynchronous) {
+                otherCallbacks = pendingCachedRequests[url];
+                delete pendingCachedRequests[url];
+                responseCache[url] = result;
+            }
+            callback(result);
+            otherCallbacks.forEach(function fireBatchedJsDbgCallback(f) { f(result); });
+            requestEnded();
+        }
+
+        if (browserSupportsWebSockets && !everythingIsSynchronous && !method && !data) {
+            // Use WebSockets if the request is async, the method is unspecified, and there's no data payload.
+            sendWebSocketMessage(requestCounter, url, handleJsonResponse);
+        } else {
+            // Use XHR.
+            if (!method) {
+                method = "GET";
+            }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open(method, url, !everythingIsSynchronous);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    handleJsonResponse(xhr.responseText);
+                }
+            };
+            xhr.send(data);
+        }
     }
 
     function esc(s) { return encodeURIComponent(s); }
@@ -51,204 +163,174 @@ var JsDbg = (function() {
         8 : "long"
     };
 
+    initializeProgressIndicator();
+
     return {
-        RunWithCachedWorld: function(action) {
-            if (everythingCache == null) {
-                // The world isn't being cached.
-                everythingCache = {};
-                var result = action();
-                everythingCache = null;
-                return result;
-            } else {
-                // The world is already cached.
+        GetNumberOfRequests: function() {
+            return requestCounter;
+        },
+
+        IsRunningSynchronously: function() {
+            return everythingIsSynchronous;
+        },
+
+        RunSynchronously: function(action) {
+            if (everythingIsSynchronous) {
                 return action();
+            } else {
+                everythingIsSynchronous = true;
+                try {
+                    var result = action();
+                    everythingIsSynchronous = false;
+                } catch (exception) {
+                    everythingIsSynchronous = false;
+                    throw exception;
+                }
+                return result;
             }
         },
 
         // Asynchronous methods.
         LoadExtension: function(path, callback) {
-            jsonRequest("/jsdbg/loadextension?path=" + esc(path), callback, /*async*/true);
+            jsonRequest("/jsdbg/loadextension?path=" + esc(path), callback);
         },
         UnloadExtension: function(name, callback) {
-            jsonRequest("/jsdbg/unloadextension?name=" + esc(name), callback, /*async*/true);
+            jsonRequest("/jsdbg/unloadextension?name=" + esc(name), callback);
         },
         GetExtensions: function(callback) {
-            jsonRequest("/jsdbg/extensions", callback, /*async*/true);
+            jsonRequest("/jsdbg/extensions", callback);
         },
 
-        LookupFieldOffset: function(module, type, fields, callback) {
-            jsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&fields=" + esc(fields.join(",")), callback, /*async*/true, /*cache*/true);
+        LookupTypeSize: function(module, type, callback) {
+            jsonRequest("/jsdbg/typesize?module=" + esc(module) + "&type=" + esc(type), callback, /*cache*/true);
+        },
+
+        LookupFieldOffset: function(module, type, field, callback) {
+            jsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&field=" + esc(field), callback, /*cache*/true);
         },
 
         LookupFields: function(module, type, callback) {
-            jsonRequest("/jsdbg/typefields?module=" + esc(module) + "&type=" + esc(type), callback, /*async*/false, /*cache*/true);
+            jsonRequest("/jsdbg/typefields?module=" + esc(module) + "&type=" + esc(type), callback, /*cache*/true);
         },
 
         LookupBaseTypeOffset: function(module, type, baseType, callback) {
-            jsonRequest("/jsdbg/basetypeoffset?module=" + esc(module) + "&type=" + esc(type) + "&basetype=" + esc(baseType), callback, /*async*/true, /*cache*/true);
+            jsonRequest("/jsdbg/basetypeoffset?module=" + esc(module) + "&type=" + esc(type) + "&basetype=" + esc(baseType), callback, /*cache*/true);
         },
 
         ReadPointer: function(pointer, callback) {
-            jsonRequest("/jsdbg/memory?type=pointer&pointer=" + esc(pointer), callback, /*async*/true);
+            jsonRequest("/jsdbg/memory?type=pointer&pointer=" + esc(pointer), callback);
         },
 
         ReadNumber: function(pointer, size, callback) {
             if (!(size in sizeNames)) {
-                return {
-                    "error": "Invalid number size.",
-                }
+                callback({ "error": "Invalid number size." });
+                return;
             }
 
-            jsonRequest("/jsdbg/memory?type=" + esc(sizeNames[size]) + "&pointer=" + esc(pointer), callback, /*async*/true);
+            jsonRequest("/jsdbg/memory?type=" + esc(sizeNames[size]) + "&pointer=" + esc(pointer), callback);
         },
 
         ReadArray: function(pointer, itemSize, count, callback) {
             if (!(itemSize in sizeNames)) {
-                return {
-                    "error": "Invalid number size.",
-                }
+                callback({ "error": "Invalid number size." });
+                return;
             }
 
-            jsonRequest("/jsdbg/array?type=" + sizeNames[itemSize] + "&pointer=" + esc(pointer) + "&length=" + count, callback, /*async*/true);
+            jsonRequest("/jsdbg/array?type=" + sizeNames[itemSize] + "&pointer=" + esc(pointer) + "&length=" + count, callback);
         },
 
         LookupSymbolName: function(pointer, callback) {
-            jsonRequest("/jsdbg/symbolname?pointer=" + esc(pointer), callback, /*async*/true);
+            jsonRequest("/jsdbg/symbolname?pointer=" + esc(pointer), callback);
         },
 
         LookupConstantName: function(module, type, constant, callback) {
-            jsonRequest("/jsdbg/constantname?module=" + esc(module) + "&type=" + esc(type) + "&constant=" + esc(constant), callback, /*async*/true, /*cache*/true);
+            jsonRequest("/jsdbg/constantname?module=" + esc(module) + "&type=" + esc(type) + "&constant=" + esc(constant), callback, /*cache*/true);
         },
 
         GetPointerSize: function(callback) {
-            jsonRequest("/jsdbg/pointersize", callback, /*async*/true, /*cache*/true);
+            jsonRequest("/jsdbg/pointersize", callback, /*cache*/true);
         },
 
         LookupSymbol: function(symbol, callback) {
-            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol), callback, /*async*/true);
+            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol), callback);
         },
 
         GetPersistentData: function(user, callback) {
-            jsonRequest("/jsdbg/persistentstorage" + (user ? "?user=" + esc(user) : ""), callback, /*async*/true);
+            jsonRequest("/jsdbg/persistentstorage" + (user ? "?user=" + esc(user) : ""), callback, /*cache*/false, "GET");
         },
 
         SetPersistentData: function(data, callback) {
             var value = JSON.stringify(data);
-            jsonRequest("/jsdbg/persistentstorage", callback, /*async*/true, /*cache*/false, "PUT", value);
+            jsonRequest("/jsdbg/persistentstorage", callback, /*cache*/false, "PUT", value);
         },
 
         GetPersistentDataUsers: function(callback) {
-            jsonRequest("/jsdbg/persistentstorageusers", callback, /*async*/true);
-        },
-
-        // Synchronous methods.
-        SyncLoadExtension: function(path) {
-            var retval = null;
-            jsonRequest("/jsdbg/loadextension?path=" + esc(path), function(x) { retval = x; }, /*async*/false);
-            return retval;
-        },
-
-        SyncUnloadExtension: function(name) {
-            var retval = null;
-            jsonRequest("/jsdbg/unloadextension?name=" + esc(name), function(x) { retval = x; }, /*async*/false);
-            return retval;
-        },
-
-        SyncGetExtensions: function() {
-            var retval = null;
-            jsonRequest("/jsdbg/extensions", function(x) { retval = x; }, /*async*/false);
-            return retval;
-        },
-
-        SyncLookupFieldOffset: function(module, type, fields) {
-            var retval = null;
-            jsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&fields=" + esc(fields.join(",")), function(x) { retval = x; }, /*async*/false, /*cache*/true);
-            return retval;
-        },
-
-        SyncLookupFields: function(module, type) {
-            var retval = null;
-            jsonRequest("/jsdbg/typefields?module=" + esc(module) + "&type=" + esc(type), function(x) { retval = x; }, /*async*/false, /*cache*/true);
-            return retval;
-        },
-
-        SyncLookupBaseTypeOffset: function(module, type, baseType) {
-            var retval = null;
-            jsonRequest("/jsdbg/basetypeoffset?module=" + esc(module) + "&type=" + esc(type) + "&basetype=" + esc(baseType), function(x) { retval = x; }, /*async*/false, /*cache*/true);
-            return retval;
-        },
-
-        SyncReadPointer: function(pointer) {
-            var retval = null;
-            jsonRequest("/jsdbg/memory?type=pointer&pointer=" + esc(pointer), function(x) { retval = x; }, /*async*/false);
-            return retval;
-        },
-
-        SyncReadNumber: function(pointer, size) {
-            if (!(size in sizeNames)) {
-                return {
-                    "error": "Invalid number size.",
-                }
-            }
-
-            var retval = null;
-            jsonRequest("/jsdbg/memory?type=" + esc(sizeNames[size]) + "&pointer=" + esc(pointer), function(x) { retval = x; }, /*async*/false);
-            return retval;
-        },
-
-        SyncReadArray: function(pointer, itemSize, count) {
-            if (!(itemSize in sizeNames)) {
-                return {
-                    "error": "Invalid number size.",
-                }
-            }
-
-            var retval = null;
-            jsonRequest("/jsdbg/array?type=" + esc(sizeNames[itemSize]) + "&pointer=" + esc(pointer) + "&length=" + count, function(x) { retval = x; }, /*async*/false);
-            return retval;
-        },
-
-        SyncLookupSymbolName: function(pointer) {
-            var retval = null;
-            jsonRequest("/jsdbg/symbolname?pointer=" + esc(pointer), function(x) { retval = x; }, /*async*/false);
-            return retval;
-        },
-
-        SyncLookupConstantName: function(module, type, constant) {
-            var retval = null;
-            jsonRequest("/jsdbg/constantname?module=" + esc(module) + "&type=" + esc(type) + "&constant=" + esc(constant), function(x) { retval = x; }, /*async*/false, /*cache*/true);
-            return retval;
-        },
-
-        SyncGetPointerSize: function() {
-            var retval = null;
-            jsonRequest("/jsdbg/pointersize", function(x) { retval = x; }, /*async*/false, /*cache*/true);
-            return retval;
-        },
-
-        SyncLookupSymbol: function(symbol) {
-            var retval = null;
-            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol), function(x) { retval = x; }, /*async*/false);
-            return retval;
-        },
-
-        SyncGetPersistentData: function(user) {
-            var retval = null;
-            jsonRequest("/jsdbg/persistentstorage" + (user ? "?user=" + esc(user) : ""), function(x) { retval = x; }, /*async*/false);
-            return retval;
-        },
-
-        SyncSetPersistentData: function(data) {
-            var value = JSON.stringify(data);
-            var retval = null;
-            jsonRequest("/jsdbg/persistentstorage", function(x) { retval = x; }, /*async*/false, /*cache*/false, "PUT", value);
-            return retval;
-        },
-
-        SyncGetPersistentDataUsers: function() {
-            var retval = null;
-            jsonRequest("/jsdbg/persistentstorageusers", function(x) { retval = x; }, /*async*/false);
-            return retval;
+            jsonRequest("/jsdbg/persistentstorageusers", callback);
         }
+    }
+})();
+
+(function() {
+    function collectIncludes(lowerExtensionName, collectedIncludes, collectedExtensions, nameMap) {
+        if (lowerExtensionName in collectedExtensions) {
+            // Already collected includes.
+            return;
+        }
+
+        var extension = nameMap[lowerExtensionName];
+        if (extension.dependencies != null) {
+            extension.dependencies.forEach(function(d) {
+                collectIncludes(d.toLowerCase(), collectedIncludes, collectedExtensions, nameMap);
+            });
+        }
+
+        if (extension.includes != null) {
+            extension.includes.forEach(function (include) { collectedIncludes.push(lowerExtensionName + "/" + include); });
+        }
+
+        collectedExtensions[lowerExtensionName] = true;
+    }
+
+    // Load any dependencies if requested.
+    var scriptTags = document.querySelectorAll("script");
+    var loadDependencies = false;
+    for (var i = 0; i < scriptTags.length; ++i) {
+        var tag = scriptTags[i];
+        if (tag.getAttribute("src").indexOf("/jsdbg.js") != -1) {
+            if (tag.getAttribute("data-include-dependencies") != null) {
+                loadDependencies = true;
+                break;
+            }
+        }
+    }
+
+    if (loadDependencies) {
+        // Include the common css file.
+        document.write("<link rel=\"stylesheet\" type=\"text/css\" href=\"/common.css\">");
+
+        JsDbg.RunSynchronously(function() {
+            JsDbg.GetExtensions(function(result) { 
+                var extensions = result.extensions; 
+
+                var nameMap = {};
+                extensions.forEach(function(e) { nameMap[e.name.toLowerCase()] = e; });
+
+                // Find the current extension.
+                var components = window.location.pathname.split('/');
+                if (components.length > 1 && components[1].length > 0) {
+                    var includes = [];
+                    collectIncludes(components[1].toLowerCase(), includes, {}, nameMap);
+                    includes.forEach(function(file) {
+                        if (file.match(/\.js$/)) {
+                            document.write("<script src=\"/" + file + "\" type=\"text/javascript\"></script>");
+                        } else if (file.match(/\.css$/)) {
+                            document.write("<link rel=\"stylesheet\" type=\"text/css\" href=\"/" + file + "\">");
+                        } else {
+                            console.log("Unknown dependency type: " + file);
+                        }
+                    });
+                }
+            });
+        });
     }
 })();

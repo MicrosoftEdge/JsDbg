@@ -95,26 +95,27 @@ namespace JsDbg {
             }
         }
 
-        internal async Task<SFieldResult> LookupField(string module, string typename, IList<string> fields) {
+        internal async Task<uint> LookupTypeSize(string module, string typename) {
+            await this.WaitForBreakIn();
+            return this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename).Size;
+        }
+
+        internal async Task<SFieldResult> LookupField(string module, string typename, string fieldName) {
             await this.WaitForBreakIn();
 
             SFieldResult result = new SFieldResult();
             
             Type type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename);
-            foreach (string fieldname in fields) {
-                SField field;
-                if (type.GetField(fieldname, out field)) {
-                    result.Offset += field.Offset;
-                    result.BitCount = field.BitCount;
-                    result.BitOffset = field.BitOffset;
-                    type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, field.TypeName);
-                } else {
-                    throw new DebuggerException(String.Format("Invalid field name: {0}", fieldname));
-                }
+            SField field;
+            if (type.GetField(fieldName, out field)) {
+                result.Offset += field.Offset;
+                result.BitCount = field.BitCount;
+                result.BitOffset = field.BitOffset;
+                result.TypeName = field.TypeName;
+                result.Size = field.Size;
+            } else {
+                throw new DebuggerException(String.Format("Invalid field name: {0}", fieldName));
             }
-
-            result.TypeName = type.Name;
-            result.Size = type.Size;
 
             return result;
         }
@@ -251,28 +252,46 @@ namespace JsDbg {
         }
 
         internal async Task<T> ReadMemory<T>(ulong pointer) where T : struct {
-            await this.WaitForBreakIn();
+            bool retryAfterWaitingForBreak = false;
+            do {
+                try {
+                    T[] result = new T[1];
+                    this.dataSpaces.ReadVirtual<T>(pointer, result);
+                    return result[0];
+                } catch (InvalidOperationException) {
+                    if (!retryAfterWaitingForBreak) {
+                        retryAfterWaitingForBreak = true;
+                    } else {
+                        throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                    }
+                } catch {
+                    throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                }
 
-            T[] result = new T[1];
-            try {
-                this.dataSpaces.ReadVirtual<T>(pointer, result);
-            } catch {
-                throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
-            }
-            return result[0];
+                await this.WaitForBreakIn();
+            } while (true);
         }
 
         internal async Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct {
-            await this.WaitForBreakIn();
+            bool retryAfterWaitingForBreak = false;
+            do {
+                try {
+                    // TODO: can we ever have incomplete reads?
+                    T[] result = new T[size];
+                    this.dataSpaces.ReadVirtual<T>(pointer, result);
+                    return result;
+                } catch (InvalidOperationException) {
+                    if (!retryAfterWaitingForBreak) {
+                        retryAfterWaitingForBreak = true;
+                    } else {
+                        throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                    }
+                } catch {
+                    throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                }
 
-            try {
-                // TODO: can we ever have incomplete reads?
-                T[] result = new T[size];
-                this.dataSpaces.ReadVirtual<T>(pointer, result);
-                return result;
-            } catch {
-                throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
-            }
+                await this.WaitForBreakIn();
+            } while (true);
         }
 
 

@@ -12,7 +12,6 @@
 // These types also act as backing nodes drawn by widetree/talltree.js, which means that CDispNode implements
 //  - getChildren -> array of backing nodes
 //  - createRepresentation -> dom element
-
 var DisplayTree = (function() {
     var DispNodeCache = {};
     var DispNodeTypes = {};
@@ -29,20 +28,25 @@ var DisplayTree = (function() {
     }
 
     function getRootDispNodes() {
-        try {
-            var roots = MSHTML.GetCDocs()
-                .map(function (doc) { return doc.f("_view._pDispRoot"); })
-                .filter(function (dispRoot) { return !dispRoot.isNull(); })
-                .map(function(dispRoot) { return dispRoot.ptr(); })
-
-            if (roots.length == 0) {
-                throw "";
-            }
-
-            return roots;
-        } catch (ex) {
-            throw "No CDispRoots were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a CDispNode explicitly.";
-        }
+        return MSHTML.GetCDocs()
+            .then(function(docs) {
+                return Promise.map(docs, function(doc) { return doc.f("_view._pDispRoot"); });
+            })
+            .then(function(dispRoots) {
+                return Promise.filter(Promise.join(dispRoots), function(dispRoot) { return !dispRoot.isNull(); })
+            })
+            .then(function(nonNullDispRoots) {
+                if (nonNullDispRoots.length == 0) {
+                    return Promise.fail();
+                }
+                return nonNullDispRoots.map(function(root) { return root.ptr(); });
+            })
+            .then(
+                function(roots) { return roots; },
+                function(error) {
+                    return Promise.fail("No CDispRoots were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a CDispNode explicitly.");
+                }
+            );
     }
 
     function CreateDispNode(obj) {
@@ -50,25 +54,17 @@ var DisplayTree = (function() {
             return DispNodeCache[obj.ptr()];
         }
 
-        var type = obj.vtable();
-        if (type in DispNodeTypes) {
-            var result = new DispNodeTypes[type](obj);
-        } else {
-            var result = new CDispNode(obj);
-        }
+        return obj.vtable()
+            .then(function(type) {
+                if (type in DispNodeTypes) {
+                    var result = new DispNodeTypes[type](obj);
+                } else {
+                    var result = new CDispNode(obj);
+                }
 
-        DispNodeCache[obj.ptr()] = result;
-        return result;
-    }
-
-    // Extend DbgObject to ease navigation of patchable objects.
-    DbgObject.prototype.latestPatch = function() {
-        var nextPatch = this.f("_pNextPatch");
-        if (!nextPatch.isNull()) {
-            return nextPatch.as(this.typename);
-        } else {
-            return this;
-        }
+                DispNodeCache[obj.ptr()] = result;
+                return result;
+            })
     }
 
     function MapDispNodeType(typename, type) {
@@ -79,8 +75,8 @@ var DisplayTree = (function() {
         var name = typename.substr("CDisp".length);
         var fieldName = typename;
 
-        var newType = function(dispNode) {
-            superType.call(this, dispNode);
+        var newType = function(dispNode, vtableType) {
+            superType.call(this, dispNode, vtableType);
             this.dispNode = this.dispNode.as(typename);
         }
         newType.prototype = Object.create(superType.prototype);
@@ -93,28 +89,27 @@ var DisplayTree = (function() {
         return newType;
     }
 
-    function CDispNode(dispNode) {
+    function CDispNode(dispNode, vtableType) {
         this.dispNode = dispNode;
-        this.cachedChildren = null;
+        this.childrenPromise = null;
+        this.vtableType = vtableType;
     }
     FieldTypeMap["CDispNode"] = CDispNode;
 
-    CDispNode.prototype.typename = function() { return this.dispNode.vtable(); }
-    CDispNode.prototype.collectChildren = function(children) { }
+    CDispNode.prototype.typename = function() { return this.vtableType; }
+    CDispNode.prototype.collectChildren = function(children) { return Promise.as(children); }
 
     CDispNode.prototype.createRepresentation = function() {
         var element = document.createElement("div");
         element.innerHTML = "<p>" + this.typename() + "</p> <p>" + this.dispNode.ptr() + "</p> ";
-        FieldSupport.RenderFields(this, this.dispNode, element);
-        return element;
+        return FieldSupport.RenderFields(this, this.dispNode, element);
     }
     CDispNode.prototype.getChildren = function() {
-        if (this.cachedChildren == null) {
+        if (this.childrenPromise == null) {
             var children = [];
-            this.collectChildren(children);
-            this.cachedChildren = children.map(CreateDispNode);
+            this.childrenPromise = Promise.map(this.collectChildren(children), CreateDispNode);
         }
-        return this.cachedChildren;
+        return this.childrenPromise;
     }
     var CDispLeafNode = CreateDispNodeType("CDispLeafNode", CDispNode);
     var CDispSVGLeafNode = CreateDispNodeType("CDispSVGLeafNode", CDispNode);
@@ -122,14 +117,35 @@ var DisplayTree = (function() {
 
     var CDispParentNode = CreateDispNodeType("CDispParentNode", CDispNode);
     CDispParentNode.prototype.collectChildren = function(children) {
-        CDispParentNode.super.prototype.collectChildren.call(this, children);
+        // Get any children from the super class...
+        var that = this;
+        return CDispParentNode.super.prototype.collectChildren.call(this, children)
 
-        var child = this.dispNode.f("_pFirstChild");
-        while (!child.isNull()) {
-            child = child.latestPatch();
-            children.push(child);
-            child = child.f("_pNext");
-        }
+            // And get my own children.
+            .then(function() {
+                function collectChildAndRemainingSiblings(currentChild) {
+                    if (!currentChild.isNull()) {
+                        // Get the latest version of the child...
+                        return currentChild.latestPatch()
+
+                            // Store the latest version in the child array and move to the next one...
+                            .then(function (latestPatch) {
+                                children.push(latestPatch);
+                                return latestPatch.f("_pNext");
+                            })
+
+                            // And collect the rest.
+                            .then(collectChildAndRemainingSiblings);
+                    } else {
+                        return children;
+                    }
+                }
+                
+                // Get the first child...
+                return that.dispNode.f("_pFirstChild")
+                    // And collect it and its siblings. 
+                    .then(collectChildAndRemainingSiblings);
+            })
     }
 
     var CDispStructureNode = CreateDispNodeType("CDispStructureNode", CDispParentNode);
@@ -146,43 +162,85 @@ var DisplayTree = (function() {
             type: "CDispNode",
             fullname: "Bounds",
             shortname: "b",
+            async:true,
             html: function() {
                 var rect = this.f("_rctBounds");
-                return ["left", "top", "right", "bottom"].map(function(f) { return rect.f(f).val(); }).join(" ");
+                return Promise.map(["left", "top", "right", "bottom"], function(f) { return rect.f(f).val(); })
+                    .then(function(values) { return values.join(" "); });
             }
         },
         {
             type: "CDispNode",
             fullname: "Client",
             shortname: "c",
+            async:true,
             html: function() {
-                return this.f("_pDispClient").ptr();
+                // Get the latest patch...
+                return this.latestPatch()
+
+                // Check if it has advanced display...
+                .then(function(node) {
+                    return node.f("_flags._fAdvanced").val()
+
+                    // And get the disp client.
+                    .then(function(hasAdvanced) {
+                        if (hasAdvanced) {
+                            return node.f("_pAdvancedDisplay._pDispClient").ptr();
+                        } else {
+                            return node.f("_pDispClient").ptr();
+                        }
+                    });
+                });
             }
         },
         {
             type: "CDispNode",
             fullname: "Client Type",
             shortname: "ct",
+            async:true,
             html: function() {
-                return this.f("_pDispClient").vtable();
+                // Get the latest patch...
+                return this.latestPatch()
+
+                // Check if it has advanced display...
+                .then(function(node) {
+                    return node.f("_flags._fAdvanced").val()
+
+                    // And get the disp client.
+                    .then(function(hasAdvanced) {
+                        if (hasAdvanced) {
+                            return node.f("_pAdvancedDisplay._pDispClient");
+                        } else {
+                            return node.f("_pDispClient");
+                        }
+                    });
+                })
+
+                // And get the vtable symbol.
+                .then(function(dispClient) {
+                    return dispClient.vtable();
+                });
             }
         },
         {
             type: "CDispNode",
             fullname: "All Flags",
             shortname: "flags",
+            async:true,
             html: function() {
-                // Run it under a cached world so that we don't repeatedly read the same bytes for different bitfields.
-                return JsDbg.RunWithCachedWorld((function() {
-                    return this.f("_flags").fields()
-                        .map(function(f) {
-                            if (f.name.indexOf("_fUnused") != 0 && f.value.bitcount == 1 && f.value.val()) {
-                                return f.name + " ";
-                            }
-                            return "";
-                        })
-                        .join("");
-                }).bind(this));
+                return Promise
+                    .filter(this.f("_flags").fields(), function(f) {
+                        if (f.name.indexOf("_fUnused") != 0 && f.value.bitcount == 1) {
+                            return f.value.val();
+                        } else {
+                            return false;
+                        }
+                    })
+                    .then(function(flags) {
+                        return flags
+                            .map(function(flag) { return flag.name; })
+                            .join(" ");
+                    });
             }
         }
     ];
@@ -192,7 +250,7 @@ var DisplayTree = (function() {
         BasicType: "CDispNode",
         BuiltInFields: builtInFields,
         TypeMap: FieldTypeMap,
-        Create: function(pointer) { return createDisplayTree(pointer, /*isTreeNode*/false); },
+        Create: createDisplayTree,
         Roots: getRootDispNodes
     };
 })();

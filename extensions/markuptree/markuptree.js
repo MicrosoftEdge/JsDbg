@@ -10,56 +10,88 @@ var MarkupTree = (function() {
     }
 
     function getRootCTreeNodes() {
-        try {
-            var roots = MSHTML.GetRootCTreeNodes();
-            if (roots.length == 0) {
-                throw "";
-            }
-
-            roots.sort(function(a, b) { return b.f("_fHasLayoutAssociationPtr").val() - a.f("_fHasLayoutAssociationPtr").val(); })
-            return roots.map(function(tn) { return tn.ptr(); });
-        } catch (ex) {
-            throw "No root CTreeNodes were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a CTreeNode explicitly.";
-        }
+        return MSHTML.GetRootCTreeNodes()
+            .then(function(promisedRoots) {
+                if (promisedRoots.length == 0) {
+                    return Promise.fail();
+                }
+                // Sort the roots to favor the ones that have layout.
+                return Promise.sort(Promise.join(promisedRoots), function(root) { return root.f("_fHasLayoutAssociationPtr").val(); }, function(a, b) { return b - a; });
+            })
+            .then(
+                function(sortedValues) { return sortedValues.map(function(root) { return root.ptr(); }); },
+                function() {
+                    return Promise.fail("No root CTreeNodes were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a CTreeNode explicitly.");
+                }
+            );
     }
 
     function CTreeNode(treeNode) {
         this.treeNode = treeNode;
-        this.cachedChildren = null;
+        this.childrenPromise = null;
     }
 
     CTreeNode.prototype.getChildren = function() {
-        if (this.cachedChildren == null)
+        if (this.childrenPromise == null)
         {
-            var treePosBegin = this.treeNode.f("_tpBegin");
-            var treePosEnd = this.treeNode.f("_tpEnd");
-            this.cachedChildren = [];
+            var lastTreePos = this.treeNode.f("_tpEnd");
+            var childTreeNodes = [];
 
-            var treePosNext = treePosBegin.f("_ptpThreadRight");
-            while(treePosNext.pointer != treePosEnd.pointer)
-            {
-                var treePosFlags = treePosNext.f("_cElemLeftAndFlags").val();
-                if (treePosFlags & 0x01)
-                {
-                    // We are at a node begin;
-                    var childTreeNode = treePosNext.unembed("CTreeNode", "_tpBegin");
-                    this.cachedChildren.push(new CTreeNode(childTreeNode));
+            var collectRemainingChildren = function(firstTreePosToConsider) {
+                return Promise
+                    // In order to compare the first tree pos and the last tree pos, get the pointers...
+                    .join([firstTreePosToConsider.pointerValue(), lastTreePos.pointerValue()])
+                    .then(function (pointers) {
+                        if (pointers[0] != pointers[1]) {
+                            // We haven't reached the end.  Check the flags to see if its a node begin and keep going...
+                            return firstTreePosToConsider.f("_cElemLeftAndFlags").val()
 
-                    // jump to the end of the node
-                    treePosNext = childTreeNode.f("_tpEnd");
-                }
-                treePosNext = treePosNext.f("_ptpThreadRight");
+                                // If this TreePos is a node begin, note it and skip its children.
+                                .then(function (treePosFlags) {
+                                    if (treePosFlags & 0x01) {
+                                        // We are at a node begin.  Note the child and skip to the end of it.
+                                        var childTreeNode = firstTreePosToConsider.unembed("CTreeNode", "_tpBegin");
+                                        childTreeNodes.push(childTreeNode);
+                                        firstTreePosToConsider = childTreeNode.f("_tpEnd");
+                                    }
+                                })
+
+                                // Advance to the next one...
+                                .then(function() { return firstTreePosToConsider.f("_ptpThreadRight"); })
+                                
+                                // And collect the remaining children.
+                                .then(collectRemainingChildren);
+                        }
+                    });
             }
+
+            var that = this;
+
+            // Collect all the children as promised DbgObjects...
+            this.childrenPromise = collectRemainingChildren(that.treeNode.f("_tpBegin").f("_ptpThreadRight"))
+
+                // And map them to our JS CTreeNode representation...
+                .then(function() {
+                    return Promise.map(Promise.join(childTreeNodes), function createCTreeNode(tn) { return new CTreeNode(tn); })
+                })
         }
-        return this.cachedChildren;
+
+        return this.childrenPromise;
     }
 
     CTreeNode.prototype.createRepresentation = function() {
         var element = document.createElement("div");
-        var tag = this.treeNode.f("_etag").as("ELEMENT_TAG").constant().substr("ETAG_".length);
-        element.innerHTML = "<p>" + tag + "</p> <p>" + this.treeNode.ptr() + "</p> ";
-        FieldSupport.RenderFields(this, this.treeNode, element);
-        return element;
+        var that = this;
+        
+        // Get the tag...
+        return this.treeNode.f("_etag").as("ELEMENT_TAG").constant()
+
+            // And create the representation with fields.
+            .then(function(constant) {
+                var tag = constant.substr("ETAG_".length);
+                element.innerHTML = "<p>" + tag + "</p> <p>" + that.treeNode.ptr() + "</p> ";
+                return FieldSupport.RenderFields(that, that.treeNode, element);
+            })
     }
 
     var builtInFields = [
@@ -67,52 +99,56 @@ var MarkupTree = (function() {
             type: "CTreeNode",
             fullname: "_iFF",
             shortname: "_iFF",
-            html: function() {
-                var validityString = "";
-                if (this.f("_fIFFValid").val() != "1")
-                {
-                    validityString = " _fIFFValid:0"
-                }
-                return this.f("_iFF").val() + validityString;
+            async:true,
+            html: function() {                
+                var that = this;
+                return Promise
+                    .join([this.f("_iFF").val(), this.f("_fIFFValid").val()])
+                    .then(function (valueAndValidity) {
+                        return valueAndValidity[0] + (!valueAndValidity[1] ? " _fIFFValid:0" : "");
+                    })
             }
         },
         {
             type: "CTreeNode",
             fullname: "_iCF",
             shortname: "_iCF",
+            async:true,
             html: function() {
-                var validityString = "";
-                if (this.f("_fIPCFValid").val() != "1")
-                {
-                    validityString = " _fIPCFValid:0"
-                }
-                return this.f("_iCF").val() + validityString;
+                var that = this;
+                return Promise
+                    .join([this.f("_iCF").val(), this.f("_fIPCFValid").val()])
+                    .then(function (valueAndValidity) {
+                        return valueAndValidity[0] + (!valueAndValidity[1] ? " _fIPCFValid:0" : "");
+                    })
             }
         },
         {
             type: "CTreeNode",
             fullname: "_iPF",
             shortname: "_iPF",
+            async:true,
             html: function() {
-                var validityString = "";
-                if (this.f("_fIPCFValid").val() != "1")
-                {
-                    validityString = " _fIPCFValid:0"
-                }
-                return this.f("_iPF").val() + validityString;
+                var that = this;
+                return Promise
+                    .join([this.f("_iPF").val(), this.f("_fIPCFValid").val()])
+                    .then(function (valueAndValidity) {
+                        return valueAndValidity[0] + (!valueAndValidity[1] ? " _fIPCFValid:0" : "");
+                    })
             }
         },
         {
             type: "CTreeNode",
             fullname: "_iSF",
             shortname: "_iSF",
+            async:true,
             html: function() {
-                var validityString = "";
-                if (this.f("_fISFValid").val() != "1")
-                {
-                    validityString = " _fISFValid:0"
-                }
-                return this.f("_iSF").val() + validityString;
+                var that = this;
+                return Promise
+                    .join([this.f("_iSF").val(), this.f("_fISFValid").val()])
+                    .then(function (valueAndValidity) {
+                        return valueAndValidity[0] + (!valueAndValidity[1] ? " _fISFValid:0" : "");
+                    })
             }
         }
     ];
