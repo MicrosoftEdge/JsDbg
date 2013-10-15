@@ -127,29 +127,29 @@ var BoxTree = (function() {
                 return that.box.f("PositionedItems.firstItem.m_pT");
             })
             .then(function(firstItem) {
+                function collectItemAndAdvance(item) {
+                    // Check the vtable...
+                    return item.vtable()
+                        // If its a PositionedBoxItem, collect it and advance to the next...
+                        .then(function(vtable) {
+                            if (vtable == "Layout::PositionedBoxItem") {
+                                var childBox = item.as("Layout::PositionedBoxItem").f("flowItem").latestPatch().f("data.boxReference.m_pT");
+                                children.push(childBox);
+                            }
+
+                            return item.f("next.m_pT");                                
+                        })
+                        // If we're back at the first item, we're done.  Otherwise collect the rest.
+                        .then(function(nextItem) {
+                            if (!nextItem.equals(firstItem)) {
+                                return collectItemAndAdvance(nextItem);
+                            } else {
+                                return children;
+                            }
+                        })
+                }
+
                 if (!firstItem.isNull()) {
-                    function collectItemAndAdvance(item) {
-                        // Check the vtable...
-                        return item.vtable()
-                            // If its a PositionedBoxItem, collect it and advance to the next...
-                            .then(function(vtable) {
-                                if (vtable == "Layout::PositionedBoxItem") {
-                                    var childBox = item.as("Layout::PositionedBoxItem").f("flowItem").latestPatch().f("data.boxReference.m_pT");
-                                    children.push(childBox);
-                                }
-
-                                return item.f("next.m_pT");                                
-                            })
-                            // If we're back at the first item, we're done.  Otherwise collect the rest.
-                            .then(function(nextItem) {
-                                if (!nextItem.equals(firstItem)) {
-                                    return collectItemAndAdvance(nextItem);
-                                } else {
-                                    return children;
-                                }
-                            })
-                    }
-
                     return collectItemAndAdvance(firstItem);
                 } else {
                     return children;
@@ -161,20 +161,20 @@ var BoxTree = (function() {
     FlowBox.collectChildrenInFlow = function(flow, children) {
         return Promise.as(flow)
             .then(function(initialFlowItem) {
+                function collectFlowItemAndAdvance(flowItem) {
+                    flowItem = flowItem.latestPatch();
+                    children.push(flowItem.f("data.boxReference.m_pT"));
+                    return flowItem.f("data.next")
+                        .then(function(nextFlowItem) {
+                            if (!nextFlowItem.equals(initialFlowItem)) {
+                                return collectFlowItemAndAdvance(nextFlowItem);
+                            } else {
+                                return children;
+                            }
+                        });
+                }
+                
                 if (!initialFlowItem.isNull()) {
-                    function collectFlowItemAndAdvance(flowItem) {
-                        flowItem = flowItem.latestPatch();
-                        children.push(flowItem.f("data.boxReference.m_pT"));
-                        return flowItem.f("data.next")
-                            .then(function(nextFlowItem) {
-                                if (!nextFlowItem.equals(initialFlowItem)) {
-                                    return collectFlowItemAndAdvance(nextFlowItem);
-                                } else {
-                                    return children;
-                                }
-                            });
-                    }
-
                     return collectFlowItemAndAdvance(initialFlowItem);
                 } else {
                     return children;

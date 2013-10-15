@@ -37,7 +37,7 @@ var MarkupTree = (function() {
             var lastTreePos = this.treeNode.f("_tpEnd");
             var childTreeNodes = [];
 
-            function collectRemainingChildren(firstTreePosToConsider) {
+            var collectRemainingChildren = function(firstTreePosToConsider) {
                 return Promise
                     // In order to compare the first tree pos and the last tree pos, get the pointers...
                     .join([firstTreePosToConsider.pointerValue(), lastTreePos.pointerValue()])

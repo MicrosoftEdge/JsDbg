@@ -349,7 +349,7 @@ var DbgObject = (function() {
 
     DbgObject.prototype.vcast = function() {
         var that = this;
-        return checkSync(
+        return checkSyncDbgObject(
             // Lookup the vtable type (coerce to promise in case we're running synchronously)...
             Promise.as(this.vtable())
             .then(function(vtableType) {
