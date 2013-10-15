@@ -77,6 +77,132 @@ var MSHTML = (function() {
     }
     PromisedDbgObject.includePromisedMethod("latestPatch");
 
+    // Provide additional type info on some fields.
+    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_layoutPlacement", "Tree::LayoutPlacementEnum");
+    DbgObject.AddTypeOverride("mshtml", "CTreeNode", "_etag", "ELEMENT_TAG");
+
+
+    // Provide some type descriptions.
+    DbgObject.AddTypeDescription("mshtml", "ELEMENT_TAG", function(tagObj) {
+        return Promise.as(tagObj.constant()).then(function(k) { return k.substr("ETAG_".length); });
+    });
+
+    var enumRegex = /^(Tree|Layout)::(.*Enum)$/;
+    DbgObject.AddTypeDescription("mshtml", function (type) { return type.match(enumRegex); }, function (enumObj) {
+        var enumString = enumObj.typeDescription().replace(enumRegex, "$2_");
+        return Promise.as(enumObj.constant())
+            .then(
+                function(k) { return k.substr(enumString.length); },
+                function(err) { return "???"; }
+            );
+    });
+
+    DbgObject.AddTypeDescription("mshtml", "CUnitValue", function(unitval) {
+        var SCALEMULT_NULLVALUE        = 0;
+        var SCALEMULT_POINT            = 1000;
+        var SCALEMULT_PICA             = 100;
+        var SCALEMULT_INCH             = 1000;
+        var SCALEMULT_CM               = 1000;
+        var SCALEMULT_MM               = 100;
+        var SCALEMULT_EM               = 100;
+        var SCALEMULT_EX               = 100;
+        var SCALEMULT_LAYOUTPIXELS     = 1;
+        var SCALEMULT_DOCPIXELS        = 100;
+        var SCALEMULT_PERCENT          = 100;
+        var SCALEMULT_TIMESRELATIVE    = 100;
+        var SCALEMULT_FLOAT            = 10000;
+        var SCALEMULT_INTEGER          = 1;
+        var SCALEMULT_RELATIVE         = 1;
+        var SCALEMULT_ENUM             = 1;
+        var SCALEMULT_VH               = 100;
+        var SCALEMULT_VW               = 100;
+        var SCALEMULT_VMIN             = 100;
+        var SCALEMULT_CH               = 100;
+        var SCALEMULT_REM              = 100;
+        var SCALEMULT_FRACTION         = 10000;
+
+        var typedUnits = {
+            "UNIT_POINT": {scale: SCALEMULT_POINT, suffix:"pt"},
+            "UNIT_PICA": {scale: SCALEMULT_PICA, suffix:"pc"},
+            "UNIT_INCH": {scale: SCALEMULT_INCH, suffix:"in"},
+            "UNIT_CM": {scale: SCALEMULT_CM, suffix:"cm"},
+            "UNIT_MM": {scale: SCALEMULT_MM, suffix:"mm"},
+            "UNIT_EM": {scale: SCALEMULT_EM, suffix:"em"},
+            "UNIT_EX": {scale: SCALEMULT_EX, suffix:"ex"},
+            "UNIT_LAYOUTPIXELS": {scale: SCALEMULT_LAYOUTPIXELS, suffix:"Lpx"},
+            "UNIT_DOCPIXELS": {scale: SCALEMULT_DOCPIXELS, suffix:"px"},
+            "UNIT_PERCENT": {scale: SCALEMULT_PERCENT, suffix:"%"},
+            "UNIT_TIMESRELATIVE": {scale: SCALEMULT_TIMESRELATIVE, suffix:"*"},
+            "UNIT_FLOAT": {scale: SCALEMULT_FLOAT, suffix:"float"},
+            "UNIT_INTEGER": {scale: SCALEMULT_INTEGER, suffix:""},
+            "UNIT_RELATIVE": {scale: SCALEMULT_RELATIVE, suffix:""},
+            // ENUM is handled elsewhere.
+            "UNIT_VH": {scale: SCALEMULT_VH, suffix:"vh"},
+            "UNIT_VW": {scale: SCALEMULT_VW, suffix:"vw"},
+            "UNIT_VMIN": {scale: SCALEMULT_VMIN, suffix:"vmin"},
+            "UNIT_CH": {scale: SCALEMULT_CH, suffix:"ch"},
+            "UNIT_REM": {scale: SCALEMULT_REM, suffix:"rem"},
+            "UNIT_FRACTION": {scale: SCALEMULT_FRACTION, suffix:"fr"}
+        };
+
+        var type = unitval.f("_byteType").as("CUnitValue::UNITVALUETYPE").constant();
+        var storageType = unitval.f("_storageType").as("CTypedValue::PRECISION_TYPE").constant();
+
+        return Promise.join([type, storageType])
+        .then(function(typeAndStorageType) {
+            var type = typeAndStorageType[0];
+            var storageType = typeAndStorageType[1];
+            var storageField = storageType == "PRECISION_FLOAT" ? "_flValue" : "_lValue";
+
+            if (type in typedUnits) {
+                var unit = typedUnits[type];
+                return unitval.f(storageField).val()
+                .then(function(value) {
+                    return value / unit.scale + unit.suffix;
+                });
+            } else if (type == "UNIT_NULLVALUE") {
+                return "_";
+            } else {
+                return unitval.f(storageField).val()
+                .then(function(value) {
+                    return type + " " + value;
+                })
+            }
+        });
+    });
+
+    DbgObject.AddTypeDescription("mshtml", "Tree::SComputedValue", function(computedValue) {
+        return Promise.as(computedValue.as("CUnitValue").desc())
+        .then(function(unitvalueDesc) {
+            if (unitvalueDesc == "_") {
+                return "auto";
+            } else {
+                return unitvalueDesc;
+            }
+        })
+    });
+
+    DbgObject.AddTypeDescription("mshtml", "Math::SLayoutMeasure", function(layoutMeasure) {
+        return Promise.as(layoutMeasure.val())
+            .then(function(val) { return val / 100 + "px"; });
+    });
+
+    DbgObject.AddTypeDescription("mshtml", "Layout::SBoxFrame", function(rect) {
+        var sideNames = ["top", "right", "bottom", "left"];
+        return Promise.join(sideNames.map(function(side) { return rect.f(side).desc(); }))
+        .then(function (sides) {
+            return sides.join(" ");
+        });
+    });
+
+    DbgObject.AddTypeDescription("mshtml", "Math::SPoint", function(point) {
+       var fieldNames = ["x", "y"];
+        return Promise.join(fieldNames.map(function(side) { return point.f(side).desc(); }))
+        .then(function (values) {
+            return "(" + values[0] + ", " + values[1] + ")";
+        }); 
+    });
+
     return {
         GetCDocs: getCDocs,
         GetRootCTreeNodes: getRootCTreeNodes,

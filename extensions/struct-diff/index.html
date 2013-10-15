@@ -193,22 +193,7 @@
                         clock.Mark("got different fields");
                         return Promise.map(differentFields, function(field) {
                             clock.Mark("requesting fields of " + field.name);
-                            var f1 = object1.f(field.name);
-                            var f2 = object2.f(field.name);
-
-                            return Promise.join([f1, f2])
-                                .then(function(members) {
-                                    if (!field.value.isPointer() && !field.value.isArray()) {
-                                        clock.Mark("requesting values of " + field.name);
-                                        return Promise.join([members[0].val(), members[1].val()])
-                                    } else {
-                                        return [members[0].ptr(), members[1].ptr()];
-                                    }
-                                })
-                                .then(
-                                    function(x) { return x; },
-                                    function() { return Promise.join([f1.ptr(), f2.ptr()]);
-                                })
+                            return Promise.join([object1.f(field.name).desc(), object2.f(field.name).desc()])
                                 .then(function(values) {
                                     return [field.name, field.value.typeDescription().replace("<", "&lt;").replace(">", "&gt;"), "0x" + field.offset.toString(16), values[0], values[1]];
                                 })
