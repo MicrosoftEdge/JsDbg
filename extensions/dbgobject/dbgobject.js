@@ -144,6 +144,14 @@ var DbgObject = (function() {
         return new DbgObject(this.module, this.typename, this._pointer + offset);
     }
 
+    DbgObject.prototype._isPointer = function() {
+        return this.typename[this.typename.length - 1] == "*";
+    }
+
+    DbgObject.prototype._isFloat = function() {
+        return this.typename == "float" || this.typename == "double";
+    }
+
     DbgObject.prototype.deref = function() {
         var that = this;
         return checkSyncDbgObject(
@@ -244,7 +252,7 @@ var DbgObject = (function() {
 
             // Read the value...
             .then(function(structSize) {
-                return jsDbgPromise(JsDbg.ReadNumber, that._pointer, structSize);
+                return jsDbgPromise(JsDbg.ReadNumber, that._pointer, structSize, that._isFloat());
             })
 
             // If we're a bit field, extract the bits.
@@ -286,7 +294,7 @@ var DbgObject = (function() {
                 // Get the struct size...
                 return that._getStructSize()
                     // Read the array...
-                    .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, count); })
+                    .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, that._isFloat(), count); })
 
                     // Process the array into DbgObjects if necessary.
                     .then(function(result) {
@@ -399,10 +407,6 @@ var DbgObject = (function() {
 
     DbgObject.prototype.isNull = function() {
         return this._pointer == 0;
-    }
-
-    DbgObject.prototype._isPointer = function() {
-        return this.typename[this.typename.length - 1] == "*";
     }
 
     DbgObject.prototype.isPointer = function() {

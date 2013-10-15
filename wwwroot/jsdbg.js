@@ -162,6 +162,32 @@ var JsDbg = (function() {
         4 : "int",
         8 : "long"
     };
+    var floatSizeNames = {
+        4 : "float",
+        8 : "double"
+    };
+
+    function getSizeName(size, isFloat) {
+        var sizeIndex = isFloat ? floatSizeNames : sizeNames;
+        if (size in sizeIndex) {
+            return sizeIndex[size];
+        } else {
+            return null;
+        }
+    }
+
+    function readJsonFloat(val) {
+        console.log(val);
+        if (val === "Infinity") {
+            return Infinity;
+        } else if (val === "-Infinity") {
+            return -Infinity;
+        } else if (val === "NaN") {
+            return NaN;
+        } else {
+            return val;
+        }
+    }
 
     initializeProgressIndicator();
 
@@ -221,22 +247,40 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/memory?type=pointer&pointer=" + esc(pointer), callback);
         },
 
-        ReadNumber: function(pointer, size, callback) {
-            if (!(size in sizeNames)) {
+        ReadNumber: function(pointer, size, isFloat, callback) {
+            var sizeName = getSizeName(size, isFloat);
+            if (sizeName == null) {
                 callback({ "error": "Invalid number size." });
                 return;
             }
 
-            jsonRequest("/jsdbg/memory?type=" + esc(sizeNames[size]) + "&pointer=" + esc(pointer), callback);
+            if (isFloat) {
+                var originalCallback = callback;
+                callback = function(result) {
+                    result.value = readJsonFloat(result.value);
+                    originalCallback(result);
+                }
+            }
+
+            jsonRequest("/jsdbg/memory?type=" + esc(sizeName) + "&pointer=" + esc(pointer), callback);
         },
 
-        ReadArray: function(pointer, itemSize, count, callback) {
-            if (!(itemSize in sizeNames)) {
+        ReadArray: function(pointer, itemSize, isFloat, count, callback) {
+            var sizeName = getSizeName(itemSize, isFloat);
+            if (sizeName == null) {
                 callback({ "error": "Invalid number size." });
                 return;
             }
 
-            jsonRequest("/jsdbg/array?type=" + sizeNames[itemSize] + "&pointer=" + esc(pointer) + "&length=" + count, callback);
+            if (isFloat) {
+                var originalCallback = callback;
+                callback = function(result) {
+                    result.array = result.array.map(readJsonFloat);
+                    originalCallback(result);
+                }
+            }
+
+            jsonRequest("/jsdbg/array?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&length=" + count, callback);
         },
 
         LookupSymbolName: function(pointer, callback) {
