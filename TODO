@@ -1,6 +1,8 @@
 - box positions
 - windbg links
 
+gets very slow...why?  appears to be an issue in the client -- maybe IE websocket bug?
+
 - build integration
 
 FEEDBACK
