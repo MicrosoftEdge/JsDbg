@@ -2,3 +2,5 @@ js-dbgeng/js-dbgeng/obj/*
 js-dbgeng/js-dbgeng/bin/*
 *.user
 *.suo
+extensions-inprogress/*
+TODO
