@@ -363,7 +363,20 @@ var JsDbg = (function() {
                 var components = window.location.pathname.split('/');
                 if (components.length > 1 && components[1].length > 0) {
                     var includes = [];
-                    collectIncludes(components[1].toLowerCase(), includes, {}, nameMap);
+                    var collectedExtensions = {};
+                    collectIncludes(components[1].toLowerCase(), includes, collectedExtensions, nameMap);
+
+                    // Find any extensions that augment any loaded extensions.
+                    extensions.forEach(function(e) {
+                        if (e.augments && e.augments.length > 0) {
+                            for (var i = 0; i < e.augments.length; ++i) {
+                                if (e.augments[i].toLowerCase() in collectedExtensions) {
+                                    collectIncludes(e.name.toLowerCase(), includes, collectedExtensions, nameMap);
+                                }
+                            }
+                        }
+                    });
+
                     includes.forEach(function(file) {
                         if (file.match(/\.js$/)) {
                             document.write("<script src=\"/" + file + "\" type=\"text/javascript\"></script>");

@@ -490,7 +490,14 @@ var DbgObject = (function() {
                         name: field.name,
                         offset: field.offset,
                         size: field.size,
-                        value: new DbgObject(that.module, field.type, that._pointer + field.offset, field.bitcount, field.bitoffset, field.size)
+                        value: new DbgObject(
+                            that.module, 
+                            getFieldType(that.module, that.typename, field.name, field.type), 
+                            that._pointer + field.offset, 
+                            field.bitcount, 
+                            field.bitoffset, 
+                            field.size
+                        )
                     };
                 });
             })

@@ -79,6 +79,10 @@ var MSHTML = (function() {
 
     // Provide additional type info on some fields.
     DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_layoutPlacement", "Tree::LayoutPlacementEnum");
+    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_layoutType", "Tree::LayoutTypeEnum");
+    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedStyleFloat", "Tree::CssFloatEnum");
+    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedOverflowX", "Tree::CssOverflowEnum");
+    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedOverflowY", "Tree::CssOverflowEnum");
     DbgObject.AddTypeOverride("mshtml", "CTreeNode", "_etag", "ELEMENT_TAG");
 
 
@@ -87,9 +91,9 @@ var MSHTML = (function() {
         return Promise.as(tagObj.constant()).then(function(k) { return k.substr("ETAG_".length); });
     });
 
-    var enumRegex = /^(Tree|Layout)::(.*Enum)$/;
-    DbgObject.AddTypeDescription("mshtml", function (type) { return type.match(enumRegex); }, function (enumObj) {
-        var enumString = enumObj.typeDescription().replace(enumRegex, "$2_");
+    var treeLayoutEnumRegex = /^(Tree|Layout)::(.*Enum)$/;
+    DbgObject.AddTypeDescription("mshtml", function (type) { return type.match(treeLayoutEnumRegex); }, function (enumObj) {
+        var enumString = enumObj.typeDescription().replace(treeLayoutEnumRegex, "$2_");
         return Promise.as(enumObj.constant())
             .then(
                 function(k) { return k.substr(enumString.length); },

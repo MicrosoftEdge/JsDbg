@@ -3,6 +3,8 @@
 
 gets very slow...why?  appears to be an issue in the client -- maybe IE websocket bug?
 
+why doesn't "styleDisplay" work when looking up constant names?
+
 - build integration
 
 FEEDBACK

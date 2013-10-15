@@ -51,6 +51,12 @@ namespace JsDbg {
             set { this._includes = value; }
         }
 
+        [DataMember(IsRequired = false)]
+        public string[] augments {
+            get { return this._augments; }
+            set { this._augments = value; }
+        }
+
         public string Path {
             get { return this._path; }
             set { this._path = value; }
@@ -61,6 +67,7 @@ namespace JsDbg {
         private string _description;
         private string[] _dependencies;
         private string[] _includes;
+        private string[] _augments;
         private string _path;
         private bool _headless;
     }
