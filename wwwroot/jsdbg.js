@@ -42,12 +42,12 @@ var JsDbg = (function() {
 
     function requestStarted() {
         ++pendingAsynchronousRequests;
-        loadingIndicator.style.visibility = "visible";
+        loadingIndicator.style.display = "block";
     }
 
     function requestEnded() {
         if (--pendingAsynchronousRequests == 0) {
-            loadingIndicator.style.visibility = "hidden";
+            loadingIndicator.style.display = "none";
         }
     }
 

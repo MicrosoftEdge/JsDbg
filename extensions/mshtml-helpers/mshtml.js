@@ -6,8 +6,21 @@
 
 var MSHTML = (function() {
     function getCDocs() {
-        var docArrayObj = DbgObject.sym("mshtml!g_pts").as("THREADSTATEUI").f("_paryDoc");
-        return docArrayObj.f("_pv").as("CDoc*").array(docArrayObj.f("_c").val());
+        var collectedDocs = [];
+        function collectRemainingDocs(threadstate) {
+            if (threadstate.isNull()) {
+                return collectedDocs;
+            }
+            
+            var docArrayObj = threadstate.as("THREADSTATEUI").f("_paryDoc");
+            return docArrayObj.f("_pv").as("CDoc*").array(docArrayObj.f("_c").val())
+            .then(function(docs) {
+                collectedDocs = collectedDocs.concat(docs);
+                return threadstate.f("ptsNext").then(collectRemainingDocs);
+            })
+        }
+
+        return DbgObject.sym("mshtml!g_pts").then(collectRemainingDocs);
     }
 
     function getRootCTreeNodes() {
