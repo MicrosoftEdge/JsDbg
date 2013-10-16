@@ -491,8 +491,7 @@ var BoxTree = (function() {
             shortname: "w",
             async:true,
             html: function() {
-                return this.f("contentBoxWidth").val()
-                    .then(function(width) { return width / 100 + "px"; });
+                return this.f("contentBoxWidth").desc();
             }
         },
 
@@ -502,8 +501,7 @@ var BoxTree = (function() {
             shortname: "h",
             async:true,
             html: function() {
-                return this.f("contentBoxHeight").val()
-                    .then(function(height) { return height / 100 + "px"; });
+                return this.f("contentBoxHeight").desc();
             }
         },
 
@@ -513,10 +511,7 @@ var BoxTree = (function() {
             shortname: "lp",
             async:true,
             html: function() {
-                return this.f("sourceStyle.fancyFormat._layoutPlacement")
-                          .as("Tree::LayoutPlacementEnum")
-                          .constant()
-                          .then(function(lp) { return lp.substr("LayoutPlacementEnum_".length); });
+                return this.f("sourceStyle.fancyFormat._layoutPlacement").desc();
             }
         },
 

@@ -42,12 +42,12 @@ var JsDbg = (function() {
 
     function requestStarted() {
         ++pendingAsynchronousRequests;
-        loadingIndicator.style.visibility = "visible";
+        loadingIndicator.style.display = "block";
     }
 
     function requestEnded() {
         if (--pendingAsynchronousRequests == 0) {
-            loadingIndicator.style.visibility = "hidden";
+            loadingIndicator.style.display = "none";
         }
     }
 
@@ -162,6 +162,31 @@ var JsDbg = (function() {
         4 : "int",
         8 : "long"
     };
+    var floatSizeNames = {
+        4 : "float",
+        8 : "double"
+    };
+
+    function getSizeName(size, isFloat) {
+        var sizeIndex = isFloat ? floatSizeNames : sizeNames;
+        if (size in sizeIndex) {
+            return sizeIndex[size];
+        } else {
+            return null;
+        }
+    }
+
+    function readJsonFloat(val) {
+        if (val === "Infinity") {
+            return Infinity;
+        } else if (val === "-Infinity") {
+            return -Infinity;
+        } else if (val === "NaN") {
+            return NaN;
+        } else {
+            return val;
+        }
+    }
 
     initializeProgressIndicator();
 
@@ -221,22 +246,40 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/memory?type=pointer&pointer=" + esc(pointer), callback);
         },
 
-        ReadNumber: function(pointer, size, callback) {
-            if (!(size in sizeNames)) {
+        ReadNumber: function(pointer, size, isFloat, callback) {
+            var sizeName = getSizeName(size, isFloat);
+            if (sizeName == null) {
                 callback({ "error": "Invalid number size." });
                 return;
             }
 
-            jsonRequest("/jsdbg/memory?type=" + esc(sizeNames[size]) + "&pointer=" + esc(pointer), callback);
+            if (isFloat) {
+                var originalCallback = callback;
+                callback = function(result) {
+                    result.value = readJsonFloat(result.value);
+                    originalCallback(result);
+                }
+            }
+
+            jsonRequest("/jsdbg/memory?type=" + esc(sizeName) + "&pointer=" + esc(pointer), callback);
         },
 
-        ReadArray: function(pointer, itemSize, count, callback) {
-            if (!(itemSize in sizeNames)) {
+        ReadArray: function(pointer, itemSize, isFloat, count, callback) {
+            var sizeName = getSizeName(itemSize, isFloat);
+            if (sizeName == null) {
                 callback({ "error": "Invalid number size." });
                 return;
             }
 
-            jsonRequest("/jsdbg/array?type=" + sizeNames[itemSize] + "&pointer=" + esc(pointer) + "&length=" + count, callback);
+            if (isFloat) {
+                var originalCallback = callback;
+                callback = function(result) {
+                    result.array = result.array.map(readJsonFloat);
+                    originalCallback(result);
+                }
+            }
+
+            jsonRequest("/jsdbg/array?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&length=" + count, callback);
         },
 
         LookupSymbolName: function(pointer, callback) {
@@ -251,8 +294,8 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/pointersize", callback, /*cache*/true);
         },
 
-        LookupSymbol: function(symbol, callback) {
-            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol), callback);
+        LookupSymbol: function(symbol, isGlobal, callback) {
+            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol) + "&isGlobal=" + esc(isGlobal), callback, /*cache*/isGlobal);
         },
 
         GetPersistentData: function(user, callback) {
@@ -319,7 +362,20 @@ var JsDbg = (function() {
                 var components = window.location.pathname.split('/');
                 if (components.length > 1 && components[1].length > 0) {
                     var includes = [];
-                    collectIncludes(components[1].toLowerCase(), includes, {}, nameMap);
+                    var collectedExtensions = {};
+                    collectIncludes(components[1].toLowerCase(), includes, collectedExtensions, nameMap);
+
+                    // Find any extensions that augment any loaded extensions.
+                    extensions.forEach(function(e) {
+                        if (e.augments && e.augments.length > 0) {
+                            for (var i = 0; i < e.augments.length; ++i) {
+                                if (e.augments[i].toLowerCase() in collectedExtensions) {
+                                    collectIncludes(e.name.toLowerCase(), includes, collectedExtensions, nameMap);
+                                }
+                            }
+                        }
+                    });
+
                     includes.forEach(function(file) {
                         if (file.match(/\.js$/)) {
                             document.write("<script src=\"/" + file + "\" type=\"text/javascript\"></script>");

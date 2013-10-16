@@ -51,6 +51,12 @@ namespace JsDbg {
             set { this._includes = value; }
         }
 
+        [DataMember(IsRequired = false)]
+        public string[] augments {
+            get { return this._augments; }
+            set { this._augments = value; }
+        }
+
         public string Path {
             get { return this._path; }
             set { this._path = value; }
@@ -61,6 +67,7 @@ namespace JsDbg {
         private string _description;
         private string[] _dependencies;
         private string[] _includes;
+        private string[] _augments;
         private string _path;
         private bool _headless;
     }
@@ -437,10 +444,10 @@ namespace JsDbg {
                         value = await this.debugger.ReadMemory<ulong>(pointer);
                         break;
                     case "float":
-                        value = await this.debugger.ReadMemory<float>(pointer);
+                        value = ToJsonNumber(await this.debugger.ReadMemory<float>(pointer));
                         break;
                     case "double":
-                        value = await this.debugger.ReadMemory<double>(pointer);
+                        value = ToJsonNumber(await this.debugger.ReadMemory<double>(pointer));
                         break;
                     default:
                         fail();
@@ -499,6 +506,12 @@ namespace JsDbg {
                 case "ulong":
                     arrayString = await ReadJsonArray<ulong>(pointer, length);
                     break;
+                case "float":
+                    arrayString = await ReadJsonArray<float>(pointer, length);
+                    break;
+                case "double":
+                    arrayString = await ReadJsonArray<double>(pointer, length);
+                    break;
                 default:
                     fail();
                     return;
@@ -516,6 +529,15 @@ namespace JsDbg {
             return ToJsonArray(await this.debugger.ReadArray<T>(pointer, length));
         }
 
+        private static string ToJsonNumber(object value) {
+            string resultString = value.ToString();
+            // JSON doesn't allow NaN and Infinity, so quote them.
+            if (resultString == "NaN" || resultString == "Infinity" || resultString == "-Infinity") {
+                resultString = "\"" + resultString + "\"";
+            }
+            return resultString;
+        }
+
         private string ToJsonArray(System.Collections.IEnumerable enumerable) {
             StringBuilder builder = new StringBuilder();
             builder.Append("[");
@@ -526,7 +548,8 @@ namespace JsDbg {
                 } else {
                     isFirst = false;
                 }
-                builder.AppendFormat("{0}", item);
+                
+                builder.AppendFormat("{0}", ToJsonNumber(item));
             }
             builder.Append("]");
             return builder.ToString();
@@ -554,16 +577,17 @@ namespace JsDbg {
 
         private async void ServeSymbol(NameValueCollection query, Action<string> respond, Action fail) {
             string symbol = query["symbol"];
+            string isGlobalString = query["isGlobal"];
 
-            if (symbol == null) {
+            bool isGlobal;
+            if (symbol == null || isGlobalString == null || !bool.TryParse(isGlobalString, out isGlobal)) {
                 fail();
                 return;
             }
-
             string responseString;
             try {
-                Debugger.SSymbolResult result = await this.debugger.LookupSymbol(symbol);
-                responseString = String.Format("{{ \"value\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Value, result.Module, result.Type);
+                Debugger.SSymbolResult result = await this.debugger.LookupSymbol(symbol, isGlobal);
+                responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
             } catch (Debugger.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }

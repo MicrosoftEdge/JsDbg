@@ -272,7 +272,7 @@ var Promise = (function() {
         };
         var wrappedMethods = {};
 
-        promisedType.includePromisedMethod = function(methodName) {
+        promisedType.IncludePromisedMethod = function(methodName) {
             wrappedMethods[methodName] = true;
             var method = constructor.prototype[methodName];
             if (typeof(method) == typeof(function() {})) {
@@ -285,7 +285,7 @@ var Promise = (function() {
             }
         }
 
-        methods.forEach(promisedType.includePromisedMethod);
+        methods.forEach(promisedType.IncludePromisedMethod);
 
         for (var methodName in constructor.prototype) {
             var method = constructor.prototype[methodName];

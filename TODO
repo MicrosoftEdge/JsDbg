@@ -1,0 +1,10 @@
+- box positions
+- windbg links
+
+gets very slow...why?  appears to be an issue in the client -- maybe IE websocket bug?
+
+- build integration
+
+FEEDBACK
+
+one feedback:  if a node has no box associateed with it, after an alert, maybe also need to clear the box 

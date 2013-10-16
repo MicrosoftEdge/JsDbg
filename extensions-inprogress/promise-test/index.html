@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>Promise Test</title>
+    <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
+    <script type="text/javascript">
+        function timeoutPromise(time) {
+            return new Promise(function(success) {
+                window.setTimeout(function() {
+                    success();
+                }, time);
+            });
+        }
+
+        function immediatePromise() {
+            return new Promise(function(success) {
+                success(Math.random());
+            });
+        }
+
+        function errorPromise() {
+            return new Promise(function(success, error) {
+                error("this promise failed");
+            });
+        }
+
+        function throwFn() {
+            throw "We shouldn't get here!";
+        }
+
+        function init() {
+            var p = timeoutPromise(1000);
+            p.then(function() {
+                console.log("timeout");
+            }).then(function() {
+                return timeoutPromise(1000);
+            }).then(function() {
+                console.log("timeout again");
+                return 2;
+            }).then(function(x) {
+                console.log(x);
+            });
+            p.then(function() {
+                console.log("timeout x2")
+            })
+
+            immediatePromise().then(function(x) {
+                console.log(x);
+                return x;
+            }).then(function(x) {
+                console.log(x);
+                return x;
+            })
+
+            errorPromise()
+                .then(
+                    throwFn, 
+                    function(error) {
+                        console.log("error handled successfully");
+                    }
+                )
+                .then(throwFn, throwFn)
+                .then(throwFn, throwFn)
+                .then(throwFn, throwFn);
+
+            errorPromise()
+                .then(throwFn)
+                .then(throwFn)
+                .then(throwFn)
+                .then(throwFn, function(error) {
+                    console.log("error handled successfully");
+                });
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+    <style type="text/css">
+        
+    </style>
+</head>
+<body>
+
+</body>
+</html>

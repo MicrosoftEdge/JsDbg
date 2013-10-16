@@ -218,7 +218,11 @@ var DisplayTree = (function() {
 
                 // And get the vtable symbol.
                 .then(function(dispClient) {
-                    return dispClient.vtable();
+                    if (!dispClient.isNull()) {
+                        return dispClient.vtable();
+                    } else {
+                        return "N/A";
+                    }
                 });
             }
         },

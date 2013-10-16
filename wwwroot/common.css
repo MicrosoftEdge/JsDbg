@@ -9,7 +9,7 @@ body {
     right:0;
     text-align: center;
     z-index:200;
-    visibility: hidden;
+    display:none;
 }
 
 #jsdbg-loading-indicator > progress {

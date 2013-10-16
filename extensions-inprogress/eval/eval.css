@@ -1,0 +1,11 @@
+
+ul {
+    margin:0;
+    list-style-type:none;
+}
+
+li:before {
+    content:"-";
+    position:relative;
+    left:-0.5em;
+}
