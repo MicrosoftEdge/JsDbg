@@ -110,7 +110,7 @@ var DbgObject = (function() {
         }
     }
 
-    DbgObject.forcePromiseIfSync = checkSync;
+    DbgObject.ForcePromiseIfSync = checkSync;
 
     var typeOverrides = {};
     DbgObject.AddTypeOverride = function(module, type, field, overriddenType) {

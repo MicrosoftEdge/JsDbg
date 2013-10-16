@@ -21,7 +21,7 @@ var MSHTML = (function() {
         }
 
         var promise = Promise.as(DbgObject.sym("mshtml!g_pts")).then(collectRemainingDocs);
-        return DbgObject.forcePromiseIfSync(promise);
+        return DbgObject.ForcePromiseIfSync(promise);
     }
 
     function getRootCTreeNodes() {
@@ -34,7 +34,7 @@ var MSHTML = (function() {
                     .filter(function(w) { return !w.isNull(); })
                     .map(function(pw) { return pw.f("_pCWindow._pMarkup._ptpFirst").unembed("CTreeNode", "_tpBegin"); });
             });
-        return DbgObject.forcePromiseIfSync(promise);
+        return DbgObject.ForcePromiseIfSync(promise);
     }
 
     function getCTreeNodeFromTreeElement(element) {
@@ -49,7 +49,7 @@ var MSHTML = (function() {
                 // We're in fre, cast to CTreeNode.
                 return element.as("CTreeNode");
             });
-        return DbgObject.forcePromiseIfSync(new PromisedDbgObject(promise));
+        return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
     }
 
     function getFirstAssociatedLayoutBoxFromCTreeNode(treeNode) {
@@ -73,7 +73,7 @@ var MSHTML = (function() {
                     return new DbgObject("mshtml", "Layout::LayoutBox", 0x0);
                 }
             });
-        return DbgObject.forcePromiseIfSync(new PromisedDbgObject(promise));
+        return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
     }
 
     // Extend DbgObject to ease navigation of patchable objects.
@@ -87,9 +87,9 @@ var MSHTML = (function() {
                     return that;
                 }
             });
-        return DbgObject.forcePromiseIfSync(new PromisedDbgObject(promise));
+        return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
     }
-    PromisedDbgObject.includePromisedMethod("latestPatch");
+    PromisedDbgObject.IncludePromisedMethod("latestPatch");
 
     // Provide additional type info on some fields.
     DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_layoutPlacement", "Tree::LayoutPlacementEnum");
