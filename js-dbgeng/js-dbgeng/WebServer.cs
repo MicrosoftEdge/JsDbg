@@ -577,16 +577,17 @@ namespace JsDbg {
 
         private async void ServeSymbol(NameValueCollection query, Action<string> respond, Action fail) {
             string symbol = query["symbol"];
+            string isGlobalString = query["isGlobal"];
 
-            if (symbol == null) {
+            bool isGlobal;
+            if (symbol == null || isGlobalString == null || !bool.TryParse(isGlobalString, out isGlobal)) {
                 fail();
                 return;
             }
-
             string responseString;
             try {
-                Debugger.SSymbolResult result = await this.debugger.LookupSymbol(symbol);
-                responseString = String.Format("{{ \"value\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Value, result.Module, result.Type);
+                Debugger.SSymbolResult result = await this.debugger.LookupSymbol(symbol, isGlobal);
+                responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
             } catch (Debugger.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }

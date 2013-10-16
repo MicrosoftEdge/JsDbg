@@ -177,7 +177,6 @@ var JsDbg = (function() {
     }
 
     function readJsonFloat(val) {
-        console.log(val);
         if (val === "Infinity") {
             return Infinity;
         } else if (val === "-Infinity") {
@@ -295,8 +294,8 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/pointersize", callback, /*cache*/true);
         },
 
-        LookupSymbol: function(symbol, callback) {
-            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol), callback);
+        LookupSymbol: function(symbol, isGlobal, callback) {
+            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol) + "&isGlobal=" + esc(isGlobal), callback, /*cache*/isGlobal);
         },
 
         GetPersistentData: function(user, callback) {

@@ -187,40 +187,40 @@ namespace JsDbg {
         }
 
         internal struct SSymbolResult {
-            internal ulong Value;
+            internal ulong Pointer;
             internal string Type;
             internal string Module;
         }
 
-        internal async Task<SSymbolResult> LookupSymbol(string symbol) {
+        internal async Task<SSymbolResult> LookupSymbol(string symbol, bool isGlobal) {
             await this.WaitForBreakIn();
             
             SSymbolResult result = new SSymbolResult();
 
             uint typeId = 0;
             ulong module = 0;
-            bool needsDereference = true;
-            bool needsPointerAppend = false;
+            bool isPointerToType = true;
             try {
-                DebugSymbolGroup group = this.symbols.GetScopeSymbolGroup(GroupScope.All);
                 bool foundSymbolInScope = false;
-                for (uint i = 0; i < group.NumberSymbols; ++i) {
-                    if (symbol == group.GetSymbolName(i)) {
-                        DebugSymbolEntry entry = group.GetSymbolEntryInformation(i);
-                        typeId = entry.TypeId;
-                        module = entry.ModuleBase;
-                        result.Value = entry.Offset;
-                        foundSymbolInScope = (entry.Offset != 0);
+                if (!isGlobal) {
+                    DebugSymbolGroup group = this.symbols.GetScopeSymbolGroup(GroupScope.All);
+                    for (uint i = 0; i < group.NumberSymbols; ++i) {
+                        if (symbol == group.GetSymbolName(i)) {
+                            DebugSymbolEntry entry = group.GetSymbolEntryInformation(i);
+                            typeId = entry.TypeId;
+                            module = entry.ModuleBase;
+                            result.Pointer = entry.Offset;
+                            foundSymbolInScope = (entry.Offset != 0);
 
-                        needsPointerAppend = (Dia2Lib.SymTagEnum)entry.Tag != Dia2Lib.SymTagEnum.SymTagPointerType;
-                        needsDereference = foundSymbolInScope && (Dia2Lib.SymTagEnum)entry.Tag == Dia2Lib.SymTagEnum.SymTagPointerType;
-                        break;
+                            isPointerToType = foundSymbolInScope && (Dia2Lib.SymTagEnum)entry.Tag == Dia2Lib.SymTagEnum.SymTagPointerType;
+                            break;
+                        }
                     }
                 }
 
                 if (!foundSymbolInScope) {
                     this.symbols.GetSymbolTypeId(symbol, out typeId, out module);
-                    this.symbols.GetOffsetByName(symbol, out result.Value);
+                    this.symbols.GetOffsetByName(symbol, out result.Pointer);
                 }
             } catch {
                 throw new DebuggerException(String.Format("Invalid symbol: {0}", symbol));
@@ -229,21 +229,14 @@ namespace JsDbg {
             // Now that we have type ids and an offset, we can resolve the names.
             try {
                 result.Type = this.symbolCache.GetTypeName(module, typeId);
-                if (needsPointerAppend) {
-                    result.Type += "*";
+                if (!isPointerToType && result.Type.EndsWith("*")) {
+                    // Trim off the last * because the offset we were given is the value itself (i.e. it is the pointer, not the pointer
+                    // to the pointer).
+                    result.Type = result.Type.Substring(0, result.Type.Length - 1);
                 }
 
                 string imageName, loadedImageName;
                 this.symbols.GetModuleNamesByBaseAddress(module, out imageName, out result.Module, out loadedImageName);
-
-                if (needsDereference && result.Value != 0) {
-                    // The value is actually a pointer to the value.  We want to dereference it.
-                    if (this.IsPointer64Bit) {
-                        result.Value = await this.ReadMemory<ulong>(result.Value);
-                    } else {
-                        result.Value = await this.ReadMemory<uint>(result.Value);
-                    }
-                }
             } catch {
                 throw new DebuggerException(String.Format("Internal error with symbol: {0}", symbol));
             }

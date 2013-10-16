@@ -162,18 +162,26 @@ var DbgObject = (function() {
     }
 
     function getTypeDescription(dbgObject) {
-        var description = getTypeDescriptionFunction(dbgObject.module, dbgObject.typename);
-        if (description == null) {
-            description = function(obj) {
-                // Default description: first try to get val(), then just provide the pointer with the type.
-                return Promise.as(obj.val())
-                .then(
-                    function(x) { return x;},
-                    function(err) {
+        var customDescription = getTypeDescriptionFunction(dbgObject.module, dbgObject.typename);
+        var hasCustomDescription = customDescription != null;
+        if (!hasCustomDescription) {
+            customDescription = function(x) { return x.val(); };
+        }
+        var description = function(obj) {
+            // Default description: first try to get val(), then just provide the pointer with the type.
+            return Promise.as(obj)
+            .then(customDescription)
+            .then(
+                function(x) { return x;},
+                function(err) {
+                    if (hasCustomDescription) {
+                        // The custom description provider had an error.
+                        return obj.typename + "???";
+                    } else {
                         return obj.typename + " " + obj.ptr();
                     }
-                ); 
-            }
+                }
+            ); 
         }
 
         if (dbgObject.isArray()) {
@@ -192,15 +200,18 @@ var DbgObject = (function() {
         }
     }
 
+    DbgObject.global = function(symbol) {
+        return checkSyncDbgObject(
+            jsDbgPromise(JsDbg.LookupSymbol, symbol, true).then(function(result) {
+                return new DbgObject(result.module, result.type, result.pointer);
+            })
+        );
+    }
+
     DbgObject.sym = function(symbol) {
         return checkSyncDbgObject(
-            jsDbgPromise(JsDbg.LookupSymbol, symbol).then(function(result) {
-                var typedNull = new DbgObject(result.module, result.type, 0);
-                if (typedNull._isPointer()) {
-                    return new DbgObject(result.module, typedNull._getDereferencedTypeName(), result.value);
-                } else {
-                    return new DbgObject(result.module, "void", result.value);
-                }
+            jsDbgPromise(JsDbg.LookupSymbol, symbol, false).then(function(result) {
+                return new DbgObject(result.module, result.type, result.pointer);
             })
         );
     }
@@ -374,6 +385,10 @@ var DbgObject = (function() {
             // And return it.
             .then(function(result) { return result.name; })
         );
+    }
+
+    DbgObject.prototype.hasDesc = function() {
+        return hasTypeDescription(this);
     }
 
     DbgObject.prototype.desc = function() {
