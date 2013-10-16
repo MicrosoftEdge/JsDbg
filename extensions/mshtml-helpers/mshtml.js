@@ -5,7 +5,7 @@
 // Some mshtml-specific helpers.
 
 var MSHTML = (function() {
-    function getCDocs() {
+    function GetCDocs() {
         var collectedDocs = [];
         function collectRemainingDocs(threadstate) {
             if (threadstate.isNull()) {
@@ -24,8 +24,8 @@ var MSHTML = (function() {
         return DbgObject.ForcePromiseIfSync(promise);
     }
 
-    function getRootCTreeNodes() {
-        var promise = Promise.as(getCDocs())
+    function GetRootCTreeNodes() {
+        var promise = Promise.as(GetCDocs())
             .then(function (docs) {
                 return Promise.join(docs.map(function (doc) { return doc.f("_pWindowPrimary"); }));
             })
@@ -37,7 +37,7 @@ var MSHTML = (function() {
         return DbgObject.ForcePromiseIfSync(promise);
     }
 
-    function getCTreeNodeFromTreeElement(element) {
+    function GetCTreeNodeFromTreeElement(element) {
         var promise = Promise.as(element)
             .then(function(element) {
                 return element.f("placeholder");
@@ -52,7 +52,7 @@ var MSHTML = (function() {
         return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
     }
 
-    function getFirstAssociatedLayoutBoxFromCTreeNode(treeNode) {
+    function GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode) {
         var promise = Promise.as(treeNode.f("_fHasLayoutAssociationPtr").val())
             .then(function (layoutAssociationBits) {
                 if (layoutAssociationBits & 0x8) {
@@ -222,9 +222,9 @@ var MSHTML = (function() {
     });
 
     return {
-        GetCDocs: getCDocs,
-        GetRootCTreeNodes: getRootCTreeNodes,
-        GetCTreeNodeFromTreeElement: getCTreeNodeFromTreeElement,
-        GetFirstAssociatedLayoutBoxFromCTreeNode: getFirstAssociatedLayoutBoxFromCTreeNode,
+        GetCDocs: GetCDocs,
+        GetRootCTreeNodes: GetRootCTreeNodes,
+        GetCTreeNodeFromTreeElement: GetCTreeNodeFromTreeElement,
+        GetFirstAssociatedLayoutBoxFromCTreeNode: GetFirstAssociatedLayoutBoxFromCTreeNode,
     }
 })();
