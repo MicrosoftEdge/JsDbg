@@ -11,16 +11,17 @@ var MSHTML = (function() {
             if (threadstate.isNull()) {
                 return collectedDocs;
             }
-            
+
             var docArrayObj = threadstate.as("THREADSTATEUI").f("_paryDoc");
-            return docArrayObj.f("_pv").as("CDoc*").array(docArrayObj.f("_c").val())
+            return Promise.as(docArrayObj.f("_pv").as("CDoc*").array(docArrayObj.f("_c").val()))
             .then(function(docs) {
                 collectedDocs = collectedDocs.concat(docs);
-                return threadstate.f("ptsNext").then(collectRemainingDocs);
+                return Promise.as(threadstate.f("ptsNext")).then(collectRemainingDocs);
             })
         }
 
-        return DbgObject.sym("mshtml!g_pts").then(collectRemainingDocs);
+        var promise = Promise.as(DbgObject.sym("mshtml!g_pts")).then(collectRemainingDocs);
+        return DbgObject.forcePromiseIfSync(promise);
     }
 
     function getRootCTreeNodes() {
