@@ -138,6 +138,14 @@ var TreeInspector = (function() {
             container.appendChild(createElement("button", "Load", null, {
                 "click": function() { saveHash(); createAndRender(); }
             }));
+            container.appendChild(ws());
+            container.appendChild(createElement("button", "Save", null, {
+                "click": function() {
+                    if (treeRoot != null) {
+                        TreeSaver.Save(treeRoot);
+                    }
+                }
+            }))
 
             treeAlgorithms[id("TallTree")] = TallTree;
             treeAlgorithms[id("WideTree")] = WideTree;
