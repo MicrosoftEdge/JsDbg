@@ -6,10 +6,15 @@
     <title></title>
     <script type="text/javascript">
         window.addEventListener("message", function(e) {
-            if (e.origin === window.location.protocol + "//" + window.location.host) {
+            if (e.origin === window.location.protocol + "//" + window.location.host && e.source == window.opener) {
                 document.write(e.data);
             }
         });
+
+        // Send a message to the opener to say we're ready to receive data.
+        if (window.opener) {
+            window.opener.postMessage("READY", window.location.protocol + "//" + window.location.host);
+        }
     </script>
     <style type="text/css">
         

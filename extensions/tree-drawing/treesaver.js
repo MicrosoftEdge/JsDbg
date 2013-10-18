@@ -35,8 +35,16 @@ div.children {\
             var postamble =
 "</body>\
 </html>";
-            var child = window.open("/tree-drawing/savedtree.html", "_blank");
-            child.postMessage(preamble + nodeHtml + postamble, window.location.protocol + "//" + window.location.host);
+            var childWindow = null;
+            function receiveMessage(e) {
+                if (e.source == childWindow && e.data == "READY") {
+                    // The child window is ready to get the data.  Send it over.
+                    childWindow.postMessage(preamble + nodeHtml + postamble, window.location.protocol + "//" + window.location.host);
+                    window.removeEventListener("message", receiveMessage);
+                }
+            }
+            window.addEventListener("message", receiveMessage);
+            var childWindow = window.open("/tree-drawing/savedtree.html", "_blank");
         })
     }
 

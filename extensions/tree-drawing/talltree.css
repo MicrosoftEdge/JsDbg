@@ -1,6 +1,6 @@
 .tall-node-container {
     font-family:Consolas;
-    font-size:10pt;
+    font-size:9pt;
     margin-top:1em;
     float:left;
     min-width:100%;
@@ -8,7 +8,8 @@
 
 .tall-node-container .node {
     position:relative;
-    min-height:18px;
+    xmin-height:18px;
+    padding:0.2em 0;
     border-bottom:thin solid #eee;
     white-space:nowrap;
 }
