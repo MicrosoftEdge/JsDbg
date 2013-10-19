@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title></title>
+    <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
+    <script type="text/javascript">
+        function combine(arrayOfUsedBytesObjects) {
+            var result = {};
+            arrayOfUsedBytesObjects.forEach(function(usedBytes) {
+                for (var innerOffset in usedBytes) {
+                    if (!(innerOffset in result)) {
+                        result[innerOffset] = [];
+                    }
+                    result[innerOffset] = result[innerOffset].concat(usedBytes[innerOffset]);
+                }
+            });
+            return result;
+        }
+
+        function getUsedBytes(dbgObject, prefix) {
+            if (dbgObject.isArray()) {
+                // Fan out the array.
+                var innerResults = []
+                for (var i = 0; i < dbgObject.arrayLength(); ++i) {
+                    innerResults.push(dbgObject.idx(i));
+                }
+                return Promise.map(Promise.join(innerResults), function(item, idx) {
+                    return getUsedBytes(item, prefix + "[" + idx + "]");
+                })
+                .then(combine);
+            }
+            
+            var fields = dbgObject.isPointer() ? Promise.fail() : dbgObject.fields();
+
+            return fields
+            .then(function(fields) {
+                if (fields.length == 0) {
+                    return Promise.fail();
+                }
+                var innerUsedBytes = fields.map(function(field) { return getUsedBytes(field.value, prefix + "." + field.name); });
+                return Promise.join(innerUsedBytes);
+            })
+            .then(
+                combine,
+                function(error) {
+                // The object has no fields.  Treat it as if it is all in use.
+                return dbgObject.size()
+                .then(function(size) {
+                    var result = {};
+                    for (var i = 0; i < size; ++i) {
+                        result[dbgObject.pointerValue() + i] = [prefix + " (" + dbgObject.typeDescription() + ")"];
+                    }
+                    return result;
+                });
+            });
+        }
+
+        function init() {
+            document.querySelector("button").addEventListener("click", function() {
+                var parts = document.getElementById("type").value.split("!");
+                var module = parts[0];
+                var type = parts[1];
+
+                var dbgObject = new DbgObject(module, type, 0);
+                Promise.join([dbgObject.size(), getUsedBytes(dbgObject, "")])
+                .then(function(sizeAndUsedBytes) {
+                    var size = sizeAndUsedBytes[0];
+                    var usedBytes = sizeAndUsedBytes[1];
+                    var result = [];
+                    for (var i = 0; i < size; ++i) {
+                        var prefix = "0x" + i.toString(16) + " ";
+                        if (i in usedBytes) {
+                            result.push(prefix + usedBytes[i].join(" | "))
+                        } else {
+                            result.push(prefix + "<span style=\"background:red;\">[NO FIELD]</span>");
+                        }
+                    }
+                    document.getElementById("result").innerHTML = result.join("<br />");
+                }, function(err) {
+                    alert(err);
+                })
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+    <style type="text/css">
+        
+    </style>
+</head>
+<body>
+    Type: <input type="text" id="type" value="mshtml!CFancyFormat" style="width:30em;"/> <button>Describe</button>
+    <div id="result" style="font-family:Consolas; font-size:9pt; white-space:nowrap;"></div>
+</body>
+</html>

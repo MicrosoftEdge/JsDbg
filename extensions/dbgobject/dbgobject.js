@@ -252,6 +252,10 @@ var DbgObject = (function() {
         return this.typename == "float" || this.typename == "double";
     }
 
+    DbgObject.prototype.size = function() {
+        return checkSync(this._getStructSize());
+    }
+
     DbgObject.prototype.deref = function() {
         var that = this;
         return checkSyncDbgObject(
