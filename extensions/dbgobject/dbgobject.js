@@ -165,7 +165,13 @@ var DbgObject = (function() {
         var customDescription = getTypeDescriptionFunction(dbgObject.module, dbgObject.typename);
         var hasCustomDescription = customDescription != null;
         if (!hasCustomDescription) {
-            customDescription = function(x) { return x.val(); };
+            customDescription = function(x) { 
+                if (x.isPointer()) {
+                    return x.getTypeDescription() + " " + x.ptr();
+                } else {
+                    return x.val(); 
+                }
+            };
         }
         var description = function(obj) {
             // Default description: first try to get val(), then just provide the pointer with the type.
