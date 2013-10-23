@@ -1,0 +1,6 @@
+{
+    "name": "help-viewer",
+    "author": "Peter Salas",
+    "description": "View documentation about JsDbg and loaded extensions.",
+    "dependencies": ["help"]
+}

@@ -1,0 +1,55 @@
+
+.help-summary > * {
+    display:inline;
+}
+
+.help-summary .name {
+    font-weight:bold;
+}
+
+.help-summary .description {
+    margin-left:1em;
+    font-style:italic;
+}
+
+.help-div .description {
+    font-style:italic;
+}
+
+.help-div .name {
+    font-weight:bold;
+}
+
+.help-div .field {
+    margin:1em;
+    background:#eee;
+    padding:0.5em;
+}
+
+.help-div .field > * {
+    margin-bottom:0.25em;
+}
+
+.help-div ul.arguments {
+    margin-top:0;
+}
+
+.help-div ul.arguments div {
+    display:inline;
+    margin-left:1em;
+}
+
+.help-div ul.arguments div:first-child {
+    margin-left:0;
+}
+
+.help-div ul.arguments .type::before {
+    content:"(";
+}
+.help-div ul.arguments .type::after {
+    content:")";
+}
+
+.help-div .field .returns::before {
+    content: "returns: ";
+}
