@@ -3,7 +3,6 @@
 var Help = (function() {
     var registrations = [];
 
-
     function createElement(tag, innerHTML, attributes, events) {
         var e = document.createElement(tag);
         if (innerHTML) {
@@ -27,7 +26,7 @@ var Help = (function() {
     return {
         _help : {
             name: "Help",
-            description: "The Help namespace allows namespaces, types, and objects to document themselves.",
+            description: "Provides HTML documentation for objects with <code>_help</code> annotations.",
             notes: "<p>To document a field or method named \"MyField\" on an object, include a field named \"_help_MyField\" on the same object.</p>"
         },
 
@@ -44,7 +43,23 @@ var Help = (function() {
             returns: "A list of objects."
         },
         List: function() {
-            return registrations.slice();
+            var result = registrations.slice();
+            result.sort(function(a, b) {
+                if (a._help && b._help) {
+                    if (a._help.name && b._help.name) {
+                        return a._help.name.localeCompare(b._help.name);
+                    } else if (a._help.name) {
+                        return -1;
+                    } else {
+                        return 1;
+                    }
+                } else if (a._help) {
+                    return -1;
+                } else {
+                    return 1;
+                }
+            });
+            return result;
         },
 
         _help_Summarize : {
@@ -87,7 +102,13 @@ var Help = (function() {
             }
 
             function describeField(field) {
-                var fieldDiv = createElement("div", null, {"class": "field"});
+                var fieldDiv = createElement("div", null, {"class": "field"}, {"click": function(e) {
+                    if (fieldDiv.className.indexOf("expanded") == -1) {
+                        fieldDiv.className = "field expanded";
+                    } else {
+                        fieldDiv.className = "field";
+                    }
+                }});
                 var fieldIsFunction = typeof(field.value) == typeof(function() {});
 
                 if (fieldIsFunction) {
@@ -146,23 +167,37 @@ var Help = (function() {
                 if (object._help.notes) {
                     helpDiv.appendChild(createElement("div", object._help.notes, {"class": "notes"}));   
                 }
+
+                if (isType && object._help._help_constructor) {
+                    helpDiv.appendChild(describeField({name: "new " + object._help.name, help:object._help._help_constructor, value:object}));
+                }
+            }
+
+            if (isType && object.prototype) {
+                var prototypeFields = collectFields(object.prototype);
+                if (prototypeFields.length > 0) {
+                    helpDiv.appendChild(createElement("h4", "Prototype Fields/Methods"));
+                    prototypeFields.map(describeField).forEach(function(field) {
+                        helpDiv.appendChild(field);
+                    });
+                }
             }
 
             var fields = collectFields(object);
             if (fields.length > 0) {
                 helpDiv.appendChild(createElement("h4", "Fields/Methods"));
 
-                fields.map(describeField).forEach(function(field) {
-                    helpDiv.appendChild(field);
-                });
-            }
-
-            if (isType && object.prototype) {
-                var prototypeFields = collectFields(object.prototype);
-                helpDiv.appendChild(createElement("h4", "Prototype Fields/Methods"));
-                prototypeFields.map(describeField).forEach(function(field) {
-                    helpDiv.appendChild(field);
-                });
+                fields
+                    .map(function(field) { 
+                        if (object._help && object._help.name) {
+                            field.name = object._help.name + "." + field.name;
+                        }
+                        return field;
+                    })
+                    .map(describeField)
+                    .forEach(function(field) {
+                        helpDiv.appendChild(field);
+                    });
             }
 
             return helpDiv;
@@ -170,5 +205,5 @@ var Help = (function() {
     }
 })();
 
-// The Help type provides its own documentation.
 Help.Register(Help);
+Help.Register(JsDbg);

@@ -51,7 +51,7 @@
                 object1.size()
                     .then(function(structureSize) {
                         // get some byte arrays...
-                        return Promise.join(object1.as("char").array(structureSize), object2.as("char").array(structureSize));
+                        return Promise.join([object1.as("char").array(structureSize), object2.as("char").array(structureSize)]);
                     })
                     .then(function(arrays) {
                         clock.Mark("got arrays");

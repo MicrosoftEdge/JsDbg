@@ -26,6 +26,16 @@ var Catalog = (function() {
         this.user = user;
     };
 
+    Help.Register(Store);
+    Store._help = {
+        name: "Catalog.Store",
+        description: "A data store for a particular user and namespace."
+    }
+
+    Store.prototype._help_all = {
+        description: "Retrieves every key/value pair in the given store.",
+        arguments: [{name:"callback", type:"function(object)", description:"The callback."}]
+    };
     Store.prototype.all = function(callback) {
         var that = this;
 
@@ -41,6 +51,14 @@ var Catalog = (function() {
         }
     };
 
+    Store.prototype._help_set = {
+        description:"Sets a value in the store.",
+        arguments: [
+            {name:"key", type:"string", description:"The key."},
+            {name:"value", type:"object", description:"The value."},
+            {name:"callback", type:"function(object)", description:"(optional) The callback when the operation completes."}
+        ]
+    };
     Store.prototype.set = function(key, value, callback) {
         if (this.user) {
             throw "You cannot set data on a different user.";
@@ -74,6 +92,13 @@ var Catalog = (function() {
         }
     };
 
+    Store.prototype._help_setMultiple = {
+        description:"Sets multiple values in the store.",
+        arguments: [
+            {name:"keysAndValues", type:"object", description:"The keys and values to store."},
+            {name:"callback", type:"function(object)", description:"(optional) The callback when the operation completes."}
+        ]
+    };
     Store.prototype.setMultiple = function(keysAndValues, callback) {
         if (this.user) {
             throw "You cannot set data on a different user.";
@@ -109,6 +134,13 @@ var Catalog = (function() {
         }
     }
 
+    Store.prototype._help_delete = {
+        description:"Deletes a key from the store.",
+        arguments: [
+            {name:"key", type:"string", description:"The keys to remove from the store."},
+            {name:"callback", type:"function(object)", description:"(optional) The callback when the operation completes."}
+        ]
+    };
     Store.prototype.delete = function(key, callback) {
         if (this.user) {
             throw "You cannot delete keys from a different user.";
@@ -141,11 +173,29 @@ var Catalog = (function() {
     };
 
     return {
+        _help: {
+            name:"Catalog",
+            description:"Abstracts JsDbg persistent storage into namespaces."
+        },
+
+        _help_Load: {
+            description:"Loads a data store for a namespace.",
+            arguments: [{name:"namespace", type:"string", description:"The namespace."}],
+            returns: "A Catalog.Store object for the current user.",
+        },
         Load: function(namespace) {
             (new Store(namespace + "-metadata", null)).set("Last Access Date", new Date());
             return new Store(namespace, null);;
         },
 
+        _help_LoadAllUsers: {
+            description:"Loads the every user's data store for a namespace.",
+            arguments: [
+                {name:"namespace", type:"string", description:"The namespace."},
+                {name:"callback", type:"function(array of Catalog.Store objects)", description: "The result callback."}
+            ],
+            notes:"The resulting stores are not writeable; calling <code>set</code> on them will result in an error."
+        },
         LoadAllUsers: function(namespace, callback) {
             JsDbg.GetPersistentDataUsers(function (result) {
                 if (result.error) {
@@ -157,3 +207,5 @@ var Catalog = (function() {
         },
     }
 })();
+
+Help.Register(Catalog);

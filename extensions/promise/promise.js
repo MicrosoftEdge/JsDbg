@@ -58,7 +58,26 @@ var Promise = (function() {
             this
         );
     }
+    Help.Register(Promise);
+    
+    Promise._help = {
+        name: "Promise",
+        description: "Represents a value or error that is retrieved asynchronously.",
+        notes: "<p>Promises are immutable, and Promises may be fulfilled immediately.</p>",
+        _help_constructor: {
+            arguments: [{name: "doAsynchronousWork", type:"function(completed: function(object), failed: function(object))", description: "A function that notifies the promise of success or failure.  The constructor will call this function exactly once."}]
+        }
+    }
 
+    Promise._help_enablePromiseDebugging = {
+        description: "Enables promise debugging at a significant performance expense.",
+        notes:"Once enabled:<ul>\
+        <li>Promises are given a unique identifier, <code>this.promiseId</code>.</li>\
+        <li><code>Promise.allPromises</code> contains a reference to every promise.</li>\
+        <li><code>Promise.findUnfinishedPromises()</code> will attempt to find any promise that did not finish.</li>\
+        <li><code>this.createError.stack</code> will include the stack where a promise was created.</li>\
+        <li>Failed promises will be logged to the console.</li></ul>",
+    }
     Promise.enablePromiseDebugging = function() {
         if (!DEBUG_PROMISES) {
             DEBUG_PROMISES = true;
@@ -105,10 +124,21 @@ var Promise = (function() {
         }
     }
 
+    Promise._help_isPromise = {
+        description: "Indicates if a given object is a promise.",
+        returns: "A bool.",
+        arguments: [{name:"obj", type:"any", description:"The value to test."}]
+    }
     Promise.isPromise = function(obj) {
         return obj && typeof(obj.then) == typeof(function() {});
     }
 
+    Promise._help_as = {
+        description: "Creates a promise that represents the given value.",
+        returns: "A Promise.",
+        arguments: [{name:"value", type:"any", description:"The value to make a promise."}],
+        notes: "If the given value is already a promise, the value is returned as-is."
+    }
     Promise.as = function(value) {
         if (Promise.isPromise(value)) {
             return value;
@@ -135,12 +165,22 @@ var Promise = (function() {
         }
     }
 
+    Promise._help_fail = {
+        description: "Creates a failed promise with the given failure result.",
+        returns: "A Promise.",
+        arguments: [{name:"errorMessage", type:"any", description:"The failure result."}]
+    }
     Promise.fail = function(errorMessage) {
         return new Promise(function promiseFail(success, failure) {
             failure(errorMessage);
         });
     }
 
+    Promise._help_log = {
+        description: "Logs the result of a promise or value and forwards it on.",
+        returns: "A Promise.",
+        arguments: [{name:"promise", type:"any", description:"The promise whose value should be logged."}]
+    }
     Promise.log = function(promise) {
         return Promise.as(promise).then(function promiseLog(value) { 
             console.log(JSON.stringify(value));
@@ -148,6 +188,11 @@ var Promise = (function() {
         });
     }
 
+    Promise._help_debug = {
+        description: "Breaks into the debugger when a given promise is fulfilled.",
+        returns: "A Promise.",
+        arguments: [{name:"promise", type:"any", description:"The promise to break when fulfilled."}]
+    }
     Promise.debug = function(promise) {
         return Promise.as(promise).then(function promiseDebug(value) {
             debugger;
@@ -155,17 +200,13 @@ var Promise = (function() {
         });
     }
 
-    Promise.join = function(promisesArg) {
-        // If we weren't given an array or we were given multiple arguments, join the arguments instead.
-        if (typeof(promisesArg) != typeof([]) || arguments.length > 1) {
-            var promises = [];
-            for (var i = 0; i < arguments.length; ++i) {
-                promises.push(arguments[i]);
-            }
-        } else {
-            var promises = promisesArg;
-        }
-
+    Promise._help_join = {
+        description: "Waits for all promises in an array to complete.",
+        returns: "A Promise to an array of fulfilled results.",
+        arguments: [{name:"promises", type:"array of any", description:"The array of promises/values to wait for."}],
+        notes:"The given array can contain any combination of promises or values."
+    }
+    Promise.join = function(promises) {
         return new Promise(function promiseJoiner(success, error, joinPromise) {
             var results = new Array(promises.length);
             var remaining = promises.length;
@@ -201,6 +242,14 @@ var Promise = (function() {
         })
     }
 
+    Promise._help_map = {
+        description: "Maps every object in an array or promised array and waits for the mapped values to be fulfilled.",
+        returns: "A Promise to an array of fulfilled results.",
+        arguments: [
+            {name:"array", type:"array, or a Promise to an array", description:"The array to map."},
+            {name:"f", type:"f(any) -> any", description:"The function.  If the function returns a promise, the mapped array will include the promised value."}
+        ]
+    }
     Promise.map = function(array, f) {
         array = Promise.realize(array);
         if (!Promise.isPromise(array)) {
@@ -212,6 +261,14 @@ var Promise = (function() {
         }
     }
 
+    Promise._help_filter = {
+        description: "Filters a (promised) array of values based on a predicate that can return promises.",
+        returns: "A promise to a filtered array.",
+        arguments: [
+            {name:"promisedArray", type:"array, or a Promise to an array", description: "The array to filter."},
+            {name:"f", type:"f(any) -> bool or Promise", description:"The predicate to evaluate each item against.  The predicate may return a promise in which case the promised value will be used to filter."}
+        ]
+    }
     Promise.filter = function(promisedArray, f) {
         return Promise.as(promisedArray)
             .then(function (array) {
@@ -224,6 +281,15 @@ var Promise = (function() {
             });
     }
 
+    Promise._help_sort = {
+        description: "Sorts a (promised) array of values based on a key generator that can return promises.",
+        returns: "A promise to a <em>new</em> sorted array.",
+        arguments: [
+            {name:"promisedArray", type:"array, or Promise to an array", description: "The array to sort."},
+            {name:"keyGenerator", type:"f(any) -> any", description:"Maps a value to a (promised) value to use for comparisons."},
+            {name:"keyComparer", type:"f(any, any) -> int", description: "(optional) A comparer to use for the keys returned by keyGenerator."}
+        ]
+    }
     Promise.sort = function(promisedArray, keyGenerator, keyComparer) {
         if (!keyComparer) {
             // Default comparer compares numbers.
@@ -252,19 +318,15 @@ var Promise = (function() {
             })
     }
 
-    Promise._defer = function(work) {
-        if (window.setImmediate) {
-            return new Promise(function(success) { window.setImmediate(success); })
-                .then(work);
-        } else if (window.requestAnimationFrame) {
-            return new Promise(function(success) { window.requestAnimationFrame(success); })
-                .then(work);
-        } else {
-            return new Promise(function(success) { window.setTimeout(success, 0); })
-                .then(work);
-        }
+    Promise._help_promisedType = {
+        description: "Creates a new type that can be treated both as a promise to a type or as such a type where every method returns a promise.",
+        returns: "A type constructor.",
+        arguments: [
+            {name:"constructor", type:"type constructor", description:"A constructor to the promised type."},
+            {name:"methods", type:"array of strings", description:"An array of methods on the promised type that return a value of that type."}
+        ],
+        notes:"On the returned type, the given methods will return an instance of the promised type.  Other methods on the original type will return simple promises."
     }
-
     Promise.promisedType = function(constructor, methods) {
         var promisedType = function(promise) { this.promise = promise; };
         promisedType.prototype.then = function() {
@@ -312,6 +374,21 @@ var Promise = (function() {
         }
     }
 
+    Promise.prototype._help_then = {
+        description: "Provides a callback to handle the fulfilled value of a promise.",
+        returns:"A Promise to the value returned by the fulillment handler.",
+        arguments: [
+            {name:"fulfilled", type:"function(any) -> any", description:"The fulfillment callback."},
+            {name:"error", type:"function(any) -> any", description:"(optional) The error callback."},
+        ],
+        notes: "<p>This method returns a promise to the value returned by the fulfillment handler.\
+        If the fulfillment handler itself returns a promise, then the returned promise will be a promise\
+        to the value of that promise; a fulfillment handler given to <code>then</code> will never be given\
+        a promise.  If this promise has an error, the error handler will be called instead.  If no error\
+        handler is specified, the error will be forwarded to the returned promise.  Finally, if either\
+        the fulfillment or error handlers throw an exception, the returned promise will fail with the\
+        exception.</p>"
+    }
     Promise.prototype.then = function(fulfilled, error) {
         var that = this;
         var result = new Promise(function thenPromiseWork(newPromiseWorkFinished, newPromiseWorkErred, newPromise) {

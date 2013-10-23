@@ -19,6 +19,21 @@ var CatalogViewer = (function() {
     }
 
     return {
+        _help: {
+            name:"CatalogViewer",
+            description:"Creates UI for selecting items from a namespace across all users."
+        },
+
+        _help_Instantiate: {
+            description: "Instantiates the selection UI.",
+            arguments: [
+                {name: "namespace", type:"string", description: "The Catalog namespace to browse."},
+                {name: "prompt", type:"string", description: "The user prompt."},
+                {name: "ui", type:"function({key: string, value:any, user:string}) -> array of HTML fragments", description: "A function to create the table cells associated with a given entity in the namespace."},
+                {name:" selected", type:"function({key: string, value:any, user:string})", description: "A function that is called when the user selects a number of entities."},
+                {name: "sortStringifier", type:"function({key: string, value:any, user:string}) -> string", description:"(optional) A function to create sort keys for the entities."}
+            ]
+        },
         Instantiate: function(namespace, prompt, ui, selected, sortStringifier) {
             // Get all the stores.
             Catalog.LoadAllUsers(namespace, function(stores) {
@@ -113,3 +128,5 @@ var CatalogViewer = (function() {
         }
     }
 })();
+
+Help.Register(CatalogViewer);

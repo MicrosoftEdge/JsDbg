@@ -8,6 +8,6 @@
         "markuptree",
         "displaytree",
         "struct-diff",
-        "help-viewer"
+        "documentation"
     ]
 }

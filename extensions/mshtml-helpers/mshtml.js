@@ -166,7 +166,7 @@ var MSHTML = (function() {
 
     DbgObject.AddTypeDescription("mshtml", "CColorValueNoInit", function(color) { return color.as("CColorValue").desc(); });
     DbgObject.AddTypeDescription("mshtml", "CColorValue", function(color) {
-        return Promise.join(color.f("_ct").as("CColorValue::COLORTYPE").constant(), color.f("_crValue").val(), color.f("_flAlpha").val())
+        return Promise.join([color.f("_ct").as("CColorValue::COLORTYPE").constant(), color.f("_crValue").val(), color.f("_flAlpha").val()])
         .then(function(colorTypeAndRefAndAlpha) {
             var colorType = colorTypeAndRefAndAlpha[0];
             var inlineColorRef = colorTypeAndRefAndAlpha[1] & 0xFFFFFF;

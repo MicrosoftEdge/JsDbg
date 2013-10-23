@@ -3,7 +3,7 @@
     "author": "Peter Salas",
     "description": "Provides a convenient model for persistent data storage.",
     "headless": true,
-    "includes": [
-        "catalog.js"
-    ]
+    "dependencies": ["help"],
+    "includes": ["catalog.js"],
+    "augments": ["documentation"]
 }
