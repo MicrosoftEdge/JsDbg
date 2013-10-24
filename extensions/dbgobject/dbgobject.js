@@ -512,7 +512,17 @@ var DbgObject = (function() {
     DbgObject.prototype._help_desc = {
         description: "Provides a human-readable description of the object.",
         returns: "(A promise to) an HTML fragment.",
-        notes: "<p>Type-specific description generators can be registered with <code>DbgObject.AddTypeDescription</code>.</p>"
+        notes: function() {
+            var html = "<p>Type-specific description generators can be registered with <code>DbgObject.AddTypeDescription</code>.</p>";
+            var loadedDescriptionTypes = [];
+            for (var key in descriptionTypes) {
+                loadedDescriptionTypes.push("<li>" + key + "</li>");
+            }
+            for (var i = 0; i < descriptionFunctions.length; ++i) {
+                loadedDescriptionTypes.push("<li>Predicate: " + descriptionFunctions[i].module + "!(" + descriptionFunctions[i].condition.toString() + ")</li>");
+            }
+            return html + "Currently registered types with descriptions: <ul>" + loadedDescriptionTypes.join("") + "</ul>";
+        }
     }
     DbgObject.prototype.desc = function() {
         return checkSync(getTypeDescription(this));

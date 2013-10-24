@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title></title>
+    <script src="/jsdbg.js" type="text/javascript" data-include-dependencies></script>
+    <script type="text/javascript">
+        document.addEventListener("DOMContentLoaded", function() {
+            // Send a message to the opener to say we're ready to receive the content.
+            if (window.opener) {
+                window.opener.postMessage("READYFORHELP", window.location.protocol + "//" + window.location.host);
+            }
+        });
+    </script>
+</head>
+<body>
+</body>
+</html>

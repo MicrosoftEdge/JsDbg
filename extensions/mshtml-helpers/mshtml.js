@@ -77,6 +77,10 @@ var MSHTML = (function() {
     }
 
     // Extend DbgObject to ease navigation of patchable objects.
+    DbgObject.prototype._help_latestPatch = {
+        description: "(injected by MSHTML) Gets the latest patch from a CPatchableObject, casted back to the original type.",
+        returns: "(A promise to) a DbgObject"
+    },
     DbgObject.prototype.latestPatch = function() {
         var that = this;
         var promise = Promise.as(this.f("_pNextPatch"))
@@ -131,9 +135,8 @@ var MSHTML = (function() {
         return Promise.as(tagObj.constant()).then(function(k) { return k.substr("ETAG_".length); });
     });
 
-    var cssEnumRegex = /^_?(style[A-z0-9]+)$/;
-    DbgObject.AddTypeDescription("mshtml", function (type) { return type.match(cssEnumRegex); }, function(enumObj) {
-        var enumString = enumObj.typeDescription().replace(cssEnumRegex, "$1");
+    DbgObject.AddTypeDescription("mshtml", function (type) { return type.match(/^_?(style[A-z0-9]+)$/); }, function(enumObj) {
+        var enumString = enumObj.typeDescription().replace(/^_?(style[A-z0-9]+)$/, "$1");
         return Promise.as(enumObj.as("_" + enumString).constant())
         .then(
             function(k) { return k.substr(enumString.length); },
@@ -146,9 +149,8 @@ var MSHTML = (function() {
         )
     });
 
-    var treeLayoutEnumRegex = /^(Tree|Layout)::(.*Enum)$/;
-    DbgObject.AddTypeDescription("mshtml", function (type) { return type.match(treeLayoutEnumRegex); }, function (enumObj) {
-        var enumString = enumObj.typeDescription().replace(treeLayoutEnumRegex, "$2_");
+    DbgObject.AddTypeDescription("mshtml", function (type) { return type.match(/^(Tree|Layout)::(.*Enum)$/); }, function (enumObj) {
+        var enumString = enumObj.typeDescription().replace(/^(Tree|Layout)::(.*Enum)$/, "$2_");
         return Promise.as(enumObj.constant())
             .then(
                 function(k) { return k.substr(enumString.length); },
@@ -335,9 +337,37 @@ var MSHTML = (function() {
     });
 
     return {
+        _help : {
+            name: "MSHTML",
+            description: "mshtml.dll-specific functionality."
+        },
+
+        _help_GetCDocs: {
+            description:"Gets all of the CDocs loaded in the process from the threadstate.",
+            returns: "(A promise to) an array of DbgObjects."
+        },
         GetCDocs: GetCDocs,
+
+        _help_GetRootCTreeNodes: {
+            description:"Gets all the root CTreeNodes from the threadstate via the CDocs.",
+            returns: "(A promise to) an array of DbgObjects."
+        },
         GetRootCTreeNodes: GetRootCTreeNodes,
+
+        _help_GetCTreeNodeFromTreeElement: {
+            description:"Gets a CTreeNode from a Tree::ElementNode.",
+            arguments: [{name:"element", type:"(Promise to a) DbgObject", description: "The Tree::ElementNode from which to retrieve a CTreeNode."}],
+            returns: "(A promise to) a DbgObject."
+        },
         GetCTreeNodeFromTreeElement: GetCTreeNodeFromTreeElement,
+
+        _help_GetFirstAssociatedLayoutBoxFromCTreeNode: {
+            description:"Gets the first associated Layout::LayoutBox from a CTreeNode.",
+            arguments: [{name:"element", type:"(Promise to a) DbgObject", description: "The CTreeNode from which to retrieve the first associated LayoutBox."}],
+            returns: "(A promise to) a DbgObject."
+        },
         GetFirstAssociatedLayoutBoxFromCTreeNode: GetFirstAssociatedLayoutBoxFromCTreeNode,
     }
 })();
+
+Help.Register(MSHTML);
