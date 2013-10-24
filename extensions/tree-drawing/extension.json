@@ -11,6 +11,7 @@
         "talltree.css",
         "talltree.js",
         "widetree.css",
-        "widetree.js"
+        "widetree.js",
+        "treesaver.js"
     ]
 }

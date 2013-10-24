@@ -201,16 +201,6 @@ var FieldSupport = (function() {
             asyncInput.addEventListener("change", function() { updateField(f, container); });
             asyncInputContainer.appendChild(asyncInput);
 
-            var asyncDescription = document.createElement("ul");
-            asyncDescription.className = "code-description";
-            asyncInputContainer.appendChild(asyncDescription);
-            var asyncDescriptionLines = [
-                "Asynchronous fields are significantly faster (~6x), but somewhat less convenient to write.",
-                "When async, nearly all DbgObject methods except <em>.as</em> and <em>.ptr</em> return promises to their results.",
-                "Promises to DbgObjects can be treated as DbgObjects where <em>every</em> method returns a promise."
-            ];
-            asyncDescription.innerHTML = asyncDescriptionLines.map(function(s) { return "<li>" + s + "</li>"; }).join("");
-
             var codeInput = document.createElement("textarea");
             codeInput.className = "edit-code";
             codeInput.setAttribute("spellcheck", "false");
@@ -233,9 +223,14 @@ var FieldSupport = (function() {
             codeDescription.className = "code-description";
             var lines = [
                 "<em>this</em> = DbgObject that represents the item; <em>e</em> = dom element",
-                "return an html string, dom element, modify <em>e</em>, or return a promise."
+                "return an html string, dom element, modify <em>e</em>, or return a promise.",
+                "documentation: "
             ]
             codeDescription.innerHTML = lines.join("<br />");
+            
+            Help.List()
+                .map(Help.Link)
+                .forEach(function(e) { codeDescription.appendChild(e); })
 
             editor.appendChild(constructTable([
                 [typeLabel, typeInput],

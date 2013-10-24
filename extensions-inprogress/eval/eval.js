@@ -13,55 +13,11 @@ var Eval = (function() {
     Stack.prototype.push = function(obj) { return new Stack(obj, this); }
     Stack.prototype.pop = function() { return this.next; }
     Stack.prototype.description = function() {
-        function dbgObjectNumber(dbgObject) {
-            function val(obj) { return obj.isNull() ? "NULL" : obj.val(); }
-            function constant(obj) { return obj.constant(); }
-
-            var typenames = {
-                "bool": val,
-                "char": val,
-                "short": val,
-                "int": val,
-                "unsigned bool": val,
-                "unsigned char": val,
-                "unsigned short": val,
-                "unsigned int": val
-            }
-
-            if (dbgObject.typename in typenames) {
-                return typenames[dbgObject.typename](dbgObject);
-            } else if (dbgObject.isPointer()) {
-                return "0x" + dbgObject.val().toString(16);
-            } else {
-                return dbgObject.ptr();
-            }
-        }
-
-        function simpleDbgObjectDescription(dbgObject) {
-            return dbgObject.typename.replace(/</g, "&lt;").replace(/>/g, "&gt;") + " " + dbgObjectNumber(dbgObject);
-        }
-
         if (this.cachedDescription == null) {
             this.cachedDescription = "";
             if (this.object != undefined) {
                 if (this.object.typename && this.object.ptr) {
-                    var description = simpleDbgObjectDescription(this.object) + "<br />";
-                    try {
-                        var fields = this.object.fields();
-                    } catch (ex) {
-                        var fields = [];
-                    }
-                    var fieldHTML = [];
-                    for (var i = 0; i < fields.length; ++i) {
-                        fieldHTML.push("0x" + (fields[i].offset).toString(16) + " " + fields[i].name + " " + simpleDbgObjectDescription(fields[i].value));
-                    }
-                    if (fields.length > 0) {
-                        description += "<ul><li>" + fieldHTML.join("</li><li>") + "</li></ul>";
-                    } else if (!this.object.isPointer()) {
-                       description += " = " + dbgObjectNumber(this.object) + "<br />";
-                    }
-
-                    this.cachedDescription = description;
+                    this.cachedDescription = this.object.desc();
                 } else {
                     this.cachedDescription = this.object + "<br />";
                 }
@@ -290,16 +246,18 @@ var Eval = (function() {
 
     return {
         evaluate: function(input, stage) {
-            var result = executeAll(input.value);
-            var stackToDescribe;
-            if (result.rest.length > 0) {
-                // topmost object is the exception.
-                stackToDescribe = result.stack.pop();
-            } else {
-                stackToDescribe = result.stack;
-            }
+            JsDbg.RunSynchronously(function() {
+                var result = executeAll(input.value);
+                var stackToDescribe;
+                if (result.rest.length > 0) {
+                    // topmost object is the exception.
+                    stackToDescribe = result.stack.pop();
+                } else {
+                    stackToDescribe = result.stack;
+                }
 
-            stage.innerHTML = stackToDescribe.description();
+                stage.innerHTML = stackToDescribe.description();
+            });
         }
     }
 })();

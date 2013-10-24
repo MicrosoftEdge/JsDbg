@@ -15,3 +15,7 @@ body {
 #jsdbg-loading-indicator > progress {
     color:gray;
 }
+
+code {
+    font-family:Consolas;
+}

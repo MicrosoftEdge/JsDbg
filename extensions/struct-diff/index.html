@@ -47,13 +47,11 @@
 
                 var differences = [];
 
-                // get the structure size in a cheesy way off of DbgObject
-                object1.idx(1)
-                    .then(function(shiftedObject) {
-                        var structureSize = parseInt(shiftedObject.ptr()) - parseInt(object1.ptr());
-
-                        // get some byte arrays.
-                        return Promise.join(object1.as("char").array(structureSize), object2.as("char").array(structureSize));
+                // get the structure size...
+                object1.size()
+                    .then(function(structureSize) {
+                        // get some byte arrays...
+                        return Promise.join([object1.as("char").array(structureSize), object2.as("char").array(structureSize)]);
                     })
                     .then(function(arrays) {
                         clock.Mark("got arrays");

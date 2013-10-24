@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>Documentation</title>
+    <script src="/jsdbg.js" data-include-dependencies></script>
+    <script type="text/javascript">
+        function init() {
+            // Build up the help documentation.
+            var objects = Help.List();
+            var available = document.getElementById("available");
+            objects.forEach(function(obj) {
+                var summary = Help.Summarize(obj);
+                available.appendChild(summary);
+                summary.addEventListener("click", function() {
+                    var current = document.getElementById("current");
+                    document.body.className = "displaying";
+                    current.innerHTML = "";
+                    current.appendChild(Help.Describe(obj));
+                })
+            })
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+    <style type="text/css">
+        #available::before {
+            content:"Available Topics";
+            font-size:12pt;
+            display:block;
+            margin-bottom:1em;
+        }
+
+        #available {
+            box-sizing:border-box;
+            padding:1em;
+            overflow:auto;
+        }
+
+        body.displaying #available {
+            height:100vh;
+            position:fixed;
+            z-index:1;
+            left:0px;
+            top:0px;
+            max-width:30%;
+            margin:8px;
+        }
+
+        #available > * {
+            cursor:pointer;
+            margin-bottom:0.5em;
+        }
+
+        #current {
+            display:none;
+            position:absolute;
+            right:0px;
+            width:70%;
+            box-sizing:border-box;
+            padding-left:3em;
+        }
+
+        body.displaying #current {
+            display:block;
+        }
+    </style>
+</head>
+<body>
+    <div id="available"></div>
+    <div id="current"></div>
+</body>
+</html>

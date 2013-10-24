@@ -3,7 +3,7 @@
     "author": "Peter Salas",
     "description": "A simple wall clock timer.",
     "headless": true,
-    "includes": [
-        "timer.js"
-    ]
+    "dependencies": ["help"],
+    "augments": ["documentation"],
+    "includes": ["timer.js"]
 }
