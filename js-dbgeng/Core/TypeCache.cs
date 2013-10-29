@@ -9,9 +9,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace JsDbg {
-    struct SField {
-        internal SField(uint offset, uint size, string typename, byte bitOffset, byte bitCount) {
+namespace JsDbg
+{
+    #region Helper Structs
+    public struct SField {
+        public SField(uint offset, uint size, string typename, byte bitOffset, byte bitCount) {
             this.Offset = offset;
             this.Size = size;
             this.TypeName = typename;
@@ -19,39 +21,39 @@ namespace JsDbg {
             this.BitCount = bitCount;
         }
 
-        internal readonly uint Offset;
-        internal readonly uint Size;
-        internal readonly string TypeName;
-        internal readonly byte BitOffset;
-        internal readonly byte BitCount;
+        public readonly uint Offset;
+        public readonly uint Size;
+        public readonly string TypeName;
+        public readonly byte BitOffset;
+        public readonly byte BitCount;
 
-        internal bool IsBitField {
+        public bool IsBitField {
             get { return this.BitCount > 0; }
         }
     }
 
-    struct SBaseType {
-        internal SBaseType(Type type, int offset) {
+    public struct SBaseType {
+        public SBaseType(Type type, int offset) {
             this.Type = type;
             this.Offset = offset;
         }
 
-        internal readonly Type Type;
-        internal readonly int Offset;
+        public readonly Type Type;
+        public readonly int Offset;
     }
 
-    struct SBaseTypeName {
-        internal SBaseTypeName(string name, int offset) {
+    public struct SBaseTypeName {
+        public SBaseTypeName(string name, int offset) {
             this.Name = name;
             this.Offset = offset;
         }
 
-        internal readonly string Name;
-        internal readonly int Offset;
+        public readonly string Name;
+        public readonly int Offset;
     }
-
-    class Type {
-        internal Type(string module, string name, uint size, Dictionary<string, SField> fields, List<SBaseType> baseTypes, List<SBaseTypeName> baseTypeNames) {
+   
+    public class Type {
+        public Type(string module, string name, uint size, Dictionary<string, SField> fields, List<SBaseType> baseTypes, List<SBaseTypeName> baseTypeNames) {
             this.module = module;
             this.name = name;
             this.size = size;
@@ -66,19 +68,19 @@ namespace JsDbg {
             this.baseTypeNames = baseTypeNames;
         }
 
-        internal string Module {
+        public string Module {
             get { return this.module; }
         }
 
-        internal string Name {
+        public string Name {
             get { return this.name; }
         }
 
-        internal uint Size {
+        public uint Size {
             get { return this.size; }
         }
 
-        internal bool GetField(string name, out SField field) {
+        public bool GetField(string name, out SField field) {
             if (this.fields != null) {
                 if (this.fields.ContainsKey(name)) {
                     field = this.fields[name];
@@ -101,7 +103,7 @@ namespace JsDbg {
             return false;
         }
 
-        internal bool GetBaseTypeOffset(string baseName, out int offset) {
+        public bool GetBaseTypeOffset(string baseName, out int offset) {
             if (this.baseTypes != null) {
                 foreach (SBaseType baseType in this.baseTypes) {
                     if (baseType.Type.Name == baseName) {
@@ -128,14 +130,13 @@ namespace JsDbg {
             offset = 0;
             return false;
         }
-
-
-        internal IEnumerable<Debugger.SFieldResult> Fields {
+        
+        public IEnumerable<SFieldResult> Fields {
             get {
                 if (this.baseTypes != null) {
                     foreach (SBaseType baseType in this.baseTypes) {
-                        foreach (Debugger.SFieldResult innerBaseField in baseType.Type.Fields) {
-                            Debugger.SFieldResult baseField = innerBaseField;
+                        foreach (SFieldResult innerBaseField in baseType.Type.Fields) {
+                            SFieldResult baseField = innerBaseField;
                             baseField.Offset = (uint)(baseField.Offset + baseType.Offset);
                             yield return baseField;
                         }
@@ -145,7 +146,7 @@ namespace JsDbg {
                 if (this.fields != null) {
                     foreach (string fieldName in this.fields.Keys) {
                         SField innerField = this.fields[fieldName];
-                        Debugger.SFieldResult field = new Debugger.SFieldResult();
+                        SFieldResult field = new SFieldResult();
                         field.FieldName = fieldName;
                         field.TypeName = innerField.TypeName;
                         field.Offset = innerField.Offset;
@@ -169,17 +170,20 @@ namespace JsDbg {
         private readonly List<SBaseTypeName> baseTypeNames;
     }
 
-    class TypeCache {
-        internal TypeCache(bool isPointer64Bit) {
+#endregion
+
+    public class TypeCache {
+        public TypeCache(bool isPointer64Bit, GetModuleSymbolPathDelegate getModuleSymbolPath) {
             this.types = new Dictionary<string, Type>();
             this.modules = new Dictionary<string, IDiaSession>();
             this.isPointer64Bit = isPointer64Bit;
             this.didAttemptDIARegistration = false;
             this.isInFallback = false;
+            this.GetModuleSymbolPath = getModuleSymbolPath;
         }
 
         private static Regex ArrayIndexRegex = new Regex(@"\[[0-9]*\]");
-        internal Type GetType(DebugClient client, DebugControl control, SymbolCache symbolCache, string module, string typename) {
+        public Type GetType(string module, string typename) {
             typename = ArrayIndexRegex.Replace(typename, "");
 
             string key = TypeKey(module, typename);
@@ -199,8 +203,10 @@ namespace JsDbg {
             IDiaSession diaSession = null;
             while (!this.isInFallback) {
                 try {
-                    diaSession = this.LoadDiaSession(symbolCache, module);
+                    diaSession = this.LoadDiaSession(module);
                     break;
+                } catch (JsDbg.DebuggerException) {
+                    throw;
                 } catch (System.Runtime.InteropServices.COMException comException) {
                     if ((uint)comException.ErrorCode == 0x80040154 && !this.didAttemptDIARegistration) {
                         // The DLL isn't registered.
@@ -248,7 +254,7 @@ namespace JsDbg {
                         symbol.findChildren(SymTagEnum.SymTagBaseClass, null, 0, out baseClassSymbols);
                         foreach (IDiaSymbol baseClassSymbol in baseClassSymbols) {
                             string baseTypename = DiaHelpers.GetTypeName(baseClassSymbol.type);
-                            Type baseType = this.GetType(client, control, symbolCache, module, baseTypename);
+                            Type baseType = this.GetType(module, baseTypename);
                             if (baseType != null) {
                                 baseTypes.Add(new SBaseType(baseType, baseClassSymbol.offset));
                             } else {
@@ -267,37 +273,35 @@ namespace JsDbg {
 
             // Something prevented us from using DIA for type discovery.  Fall back to getting type info from the debugger session.
             Console.Out.WriteLine("WARNING: Unable to load {0}!{1} from PDBs. Falling back to the debugger, which could be slow...", module, typename);
-            return this.GetTypeFromDebugSession(client, control, symbolCache, module, typename);
+            return null;
         }
 
-        private IDiaSession LoadDiaSession(SymbolCache symbolCache, string module) {
+        private IDiaSession LoadDiaSession(string module) {
             IDiaSession diaSession;
             if (this.modules.ContainsKey(module)) {
                 diaSession = this.modules[module];
             } else {
-                // Get the symbol path.
-                ulong moduleBase = symbolCache.GetModuleBase(module);
-                string symbolPath = symbolCache.GetModuleSymbolPath(moduleBase);
+                // Get the symbol path.                
                 DiaSource source = new DiaSource();
-                source.loadDataFromPdb(symbolPath);
+                source.loadDataFromPdb(this.GetModuleSymbolPath(module));
                 source.openSession(out diaSession);
                 this.modules[module] = diaSession;
             }
 
             return diaSession;
         }
-
+        
         private void AttemptDIARegistration() {
             string dllName = "msdia110.dll";
             Console.WriteLine("Attempting to register {0}.  This will require elevation...", dllName);
 
             // Copy it down to the support directory if needed.
-            string dllPath = Path.Combine(Program.LocalSupportDirectory, dllName);
+            string dllPath = Path.Combine(WebServer.LocalSupportDirectory, dllName);
             if (!File.Exists(dllName)) {
-                if (!Directory.Exists(Program.LocalSupportDirectory)) {
-                    Directory.CreateDirectory(Program.LocalSupportDirectory);
+                if (!Directory.Exists(WebServer.LocalSupportDirectory)) {
+                    Directory.CreateDirectory(WebServer.LocalSupportDirectory);
                 }
-                string remotePath = Path.Combine(Program.SharedSupportDirectory, dllName);
+                string remotePath = Path.Combine(WebServer.SharedSupportDirectory, dllName);
                 File.Copy(remotePath, dllPath);
             }
 
@@ -306,97 +310,14 @@ namespace JsDbg {
             regsvr.Verb = "runas";
 
             Process.Start(regsvr).WaitForExit();
-        }
+        }              
 
-        private Type GetTypeFromDebugSession(DebugClient client, DebugControl control, SymbolCache symbolCache, string module, string typename) {
-            uint typeSize = 0;
-
-            ulong moduleBase;
-            try {
-                moduleBase = symbolCache.GetModuleBase(module);
-            } catch {
-                throw new Debugger.DebuggerException(String.Format("Invalid module name: {0}", module));
-            }
-
-            // Get the type id.
-            uint typeId;
-            try {
-                typeId = symbolCache.GetTypeId(moduleBase, typename);
-            } catch {
-                throw new Debugger.DebuggerException(String.Format("Invalid type name: {0}", typename));
-            }
-
-            // Get the type size.
-            try {
-                typeSize = symbolCache.GetTypeSize(moduleBase, typeId);
-            } catch {
-                throw new Debugger.DebuggerException("Internal Exception: Invalid type id.");
-            }
-
-            // The type is valid so we should be able to dt it without any problems.
-            string command = String.Format("dt -v {0}!{1}", module, typename);
-            System.Diagnostics.Debug.WriteLine(String.Format("Executing command: {0}", command));
-            DumpTypeParser parser = new DumpTypeParser();
-            client.DebugOutput += parser.DumpTypeOutputHandler;
-            client.DebugOutput += PrintDotOnDebugOutput;
-            control.Execute(OutputControl.ToThisClient, command, ExecuteOptions.NotLogged);
-            client.FlushCallbacks();
-            client.DebugOutput -= PrintDotOnDebugOutput;
-            client.DebugOutput -= parser.DumpTypeOutputHandler;
-            System.Diagnostics.Debug.WriteLine(String.Format("Done executing.", command));
-            Console.Out.WriteLine();
-            parser.Parse();
-
-            // Construct the type and add it to the cache.
-            Dictionary<string, SField> fields = new Dictionary<string, SField>();
-            foreach (DumpTypeParser.SField parsedField in parser.ParsedFields) {
-                string resolvedTypeName = parsedField.TypeName;
-                uint resolvedTypeSize = parsedField.Size;
-
-                if (resolvedTypeName == null) {
-                    // We weren't able to parse the type name.  Retrieve it manually.
-                    SymbolCache.SFieldTypeAndOffset fieldTypeAndOffset;
-                    try {
-                        fieldTypeAndOffset = symbolCache.GetFieldTypeAndOffset(moduleBase, typeId, parsedField.FieldName);
-
-                        if (fieldTypeAndOffset.Offset != parsedField.Offset) {
-                            // The offsets don't match...this must be a different field?
-                            throw new Exception();
-                        }
-
-                        resolvedTypeName = symbolCache.GetTypeName(moduleBase, fieldTypeAndOffset.FieldTypeId);
-                    } catch {
-                        throw new Debugger.DebuggerException(String.Format("Internal Exception: Inconsistent field name \"{0}\" when parsing type {1}!{2}", parsedField.FieldName, module, typename));
-                    }
-                }
-
-                if (resolvedTypeSize == uint.MaxValue) {
-                    if (!BuiltInTypes.TryGetValue(resolvedTypeName, out resolvedTypeSize)) {
-                        resolvedTypeSize = symbolCache.GetTypeSize(moduleBase, typeId);
-                    }
-                }
-
-                SField field = new SField(parsedField.Offset, resolvedTypeSize, resolvedTypeName, parsedField.BitField.BitOffset, parsedField.BitField.BitLength);
-                fields.Add(parsedField.FieldName, field);
-            }
-
-            List<SBaseTypeName> baseTypeNames = new List<SBaseTypeName>();
-            foreach (DumpTypeParser.SBaseClass parsedBaseClass in parser.ParsedBaseClasses) {
-                baseTypeNames.Add(new SBaseTypeName(parsedBaseClass.TypeName, (int)parsedBaseClass.Offset));
-            }
-
-            // Construct the type and add it to the cache.  We don't need to fill base types because this approach embeds base type information directly in the Type.
-            Type type = new Type(module, typename, typeSize, fields, null, baseTypeNames);
-            this.types.Add(TypeKey(module, typename), type);
-            return type;
-        }
-
-        void PrintDotOnDebugOutput(object sender, DebugOutputEventArgs e) {
+        public void PrintDotOnDebugOutput(object sender, DebugOutputEventArgs e) {
             Console.Out.Write('.');
         }
 
         // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
-        static Dictionary<string, uint> BuiltInTypes = new Dictionary<string, uint>()
+        protected static Dictionary<string, uint> BuiltInTypes = new Dictionary<string, uint>()
             {
                 {"bool", 1},
                 {"char", 1},
@@ -424,11 +345,14 @@ namespace JsDbg {
             }
         }
 
-        private static string TypeKey(string module, string typename) {
+        protected static string TypeKey(string module, string typename) {
             return String.Format("{0}!{1}", module, typename);
         }
 
-        private Dictionary<string, Type> types;
+        public delegate string GetModuleSymbolPathDelegate(string moduleName);
+        private GetModuleSymbolPathDelegate GetModuleSymbolPath;
+
+        protected Dictionary<string, Type> types;
         private Dictionary<string, IDiaSession> modules;
         private bool isPointer64Bit;
         private bool didAttemptDIARegistration;

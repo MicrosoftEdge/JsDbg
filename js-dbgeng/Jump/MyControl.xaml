@@ -1,0 +1,21 @@
+﻿<UserControl x:Class="Sushraja.Jump.MyControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             Background="{DynamicResource VsBrush.Window}"
+             Foreground="{DynamicResource VsBrush.WindowText}"
+             mc:Ignorable="d"
+             d:DesignHeight="120" d:DesignWidth="300"
+             Name="MyToolWindow" IsVisibleChanged="MyToolWindow_IsVisibleChanged">
+    <Grid>
+        <StackPanel Orientation="Vertical">            
+            <TextBlock Margin="20"><Run Name="ServerStatus">Server not loaded</Run> <Hyperlink Click="ServerURL_Click"><Run Name="ServerURL"></Run></Hyperlink></TextBlock>
+            <WrapPanel HorizontalAlignment="Stretch">
+                <CheckBox Content="Start Server on launch" Margin="20" Name="startServerCheckBox" Checked="startServerCheckBox_Checked"/>
+                <Grid Width="30"></Grid>
+                <Button Content="Start Server" Click="serverControlButtonClick" Height="37" x:Name="serverControlButton" HorizontalAlignment="Right" Padding="10"/>
+            </WrapPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

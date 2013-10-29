@@ -6,26 +6,7 @@ using System.Threading.Tasks;
 using System.IO;
 
 namespace JsDbg {
-    public class Program {
-        private const string Version = "2013-10-16-01";
-
-        static internal string LocalSupportDirectory {
-            get {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support", Version);
-            }
-        }
-
-        static internal string SharedSupportDirectory {
-            get {
-                return Path.Combine(@"\\iefs\users\psalas\jsdbg\support\", Version);
-            }
-        }
-
-        static internal string PersistentStoreDirectory {
-            get {
-                return @"\\iefs\users\psalas\jsdbg\support\persistent";
-            }
-        }
+    public class Program {      
 
         [STAThread]
         static int Main(string[] args) {
@@ -50,7 +31,7 @@ namespace JsDbg {
             if (args.Length > 1) {
                 path = args[1];
             } else {
-                path = Program.SharedSupportDirectory;
+                path = WebServer.SharedSupportDirectory;
             }
 
             Debugger debugger;
@@ -67,7 +48,7 @@ namespace JsDbg {
 
             string webRoot = System.IO.Path.Combine(path, "wwwroot");
             string extensionRoot = System.IO.Path.Combine(path, "extensions");
-            PersistentStore persistentStore = new PersistentStore(Program.PersistentStoreDirectory);
+            PersistentStore persistentStore = new PersistentStore(WebServer.PersistentStoreDirectory);
 
             Console.Out.WriteLine("Serving from {0}", webRoot);
             using (WebServer webServer = new WebServer(debugger, persistentStore, webRoot, extensionRoot)) {
@@ -118,39 +99,5 @@ namespace JsDbg {
                 // Otherwise keep going.
             } while (true);
         }
-
-        // from: http://msdn.microsoft.com/en-us/library/bb762914.aspx
-        private static void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs) {
-            // Get the subdirectories for the specified directory.
-            DirectoryInfo dir = new DirectoryInfo(sourceDirName);
-            DirectoryInfo[] dirs = dir.GetDirectories();
-
-            if (!dir.Exists) {
-                throw new DirectoryNotFoundException(
-                    "Source directory does not exist or could not be found: "
-                    + sourceDirName);
-            }
-
-            // If the destination directory doesn't exist, create it. 
-            if (!Directory.Exists(destDirName)) {
-                Directory.CreateDirectory(destDirName);
-            }
-
-            // Get the files in the directory and copy them to the new location.
-            FileInfo[] files = dir.GetFiles();
-            foreach (FileInfo file in files) {
-                string temppath = Path.Combine(destDirName, file.Name);
-                file.CopyTo(temppath, false);
-            }
-
-            // If copying subdirectories, copy them and their contents to new location. 
-            if (copySubDirs) {
-                foreach (DirectoryInfo subdir in dirs) {
-                    string temppath = Path.Combine(destDirName, subdir.Name);
-                    DirectoryCopy(subdir.FullName, temppath, copySubDirs);
-                }
-            }
-        }
-
     }
 }
