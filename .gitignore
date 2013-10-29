@@ -1,4 +1,4 @@
-js-dbgeng/js-dbgeng/obj/*
-js-dbgeng/js-dbgeng/bin/*
+js-dbgeng/*/obj/*
+js-dbgeng/*/bin/*
 *.user
 *.suo

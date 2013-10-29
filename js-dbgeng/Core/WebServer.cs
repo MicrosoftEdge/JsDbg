@@ -10,6 +10,7 @@ using System.Runtime.Serialization.Json;
 using System.Net.WebSockets;
 using System.Collections.Specialized;
 using System.Threading;
+using System.IO;
 
 namespace JsDbg {
     
@@ -72,12 +73,38 @@ namespace JsDbg {
         private bool _headless;
     }
 
-    class WebServer : IDisposable {
+    public class WebServer : IDisposable {
+
+        private const string Version = "2013-10-16-01";
+
+        static public string LocalSupportDirectory
+        {
+            get
+            {
+                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support", Version);
+            }
+        }
+
+        static public string SharedSupportDirectory
+        {
+            get
+            {
+                return Path.Combine(@"\\iefs\users\psalas\jsdbg\support\", Version);
+            }
+        }
+
+        static public string PersistentStoreDirectory
+        {
+            get
+            {
+                return @"\\iefs\users\psalas\jsdbg\support\persistent";
+            }
+        }
 
         private const int StartPortNumber = 50000;
         private const int EndPortNumber = 50099;
 
-        internal WebServer(Debugger debugger, PersistentStore persistentStore, string path, string defaultExtensionPath) {
+        public WebServer(IDebugger debugger, PersistentStore persistentStore, string path, string defaultExtensionPath) {
             this.debugger = debugger;
             this.persistentStore = persistentStore;
             this.path = path;
@@ -92,13 +119,13 @@ namespace JsDbg {
             this.httpListener.Prefixes.Add(this.Url);
         }
 
-        internal string Url {
+        public string Url {
             get {
                 return String.Format("http://localhost:{0}/", this.port);
             }
         }
 
-        internal async Task Listen() {
+        public async Task Listen(bool shouldLaunchBrowser = true) {
             bool didTryNetsh = false;
             while (true) {
                 this.CreateHttpListener();
@@ -139,7 +166,10 @@ namespace JsDbg {
             Console.Out.WriteLine("Listening on {0}...", this.Url);
 
             // Launch the browser.
-            System.Diagnostics.Process.Start(this.Url);
+            if (shouldLaunchBrowser)
+            {
+                System.Diagnostics.Process.Start(this.Url);
+            }
 
             try {
                 while (true) {
@@ -345,7 +375,7 @@ namespace JsDbg {
             try {
                 uint typeSize = await this.debugger.LookupTypeSize(module, type);
                 responseString = String.Format("{{ \"size\": {0} }}", typeSize);
-            } catch (Debugger.DebuggerException ex) {
+            } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
@@ -364,7 +394,7 @@ namespace JsDbg {
             string responseString;
 
             try {
-                Debugger.SFieldResult result = await this.debugger.LookupField(module, baseType, field);
+                SFieldResult result = await this.debugger.LookupField(module, baseType, field);
 
                 // Construct the response.
                 if (result.IsBitField) {
@@ -372,7 +402,7 @@ namespace JsDbg {
                 } else {
                     responseString = String.Format("{{ \"type\": \"{0}\", \"offset\": {1}, \"size\": {2} }}", result.TypeName, result.Offset, result.Size);
                 }
-            } catch (Debugger.DebuggerException ex) {
+            } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
@@ -394,7 +424,7 @@ namespace JsDbg {
             try {
                 int offset = await this.debugger.GetBaseClassOffset(module, type, baseType);
                 responseString = String.Format("{{ \"offset\": {0} }}", offset);
-            } catch (Debugger.DebuggerException ex) {
+            } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
@@ -455,7 +485,7 @@ namespace JsDbg {
                 }
 
                 responseString = String.Format("{{ \"value\": {0} }}", value);
-            } catch (Debugger.DebuggerException ex) {
+            } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
@@ -518,7 +548,7 @@ namespace JsDbg {
                 }
 
                 responseString = String.Format("{{ \"array\": {0} }}", arrayString);
-            } catch (Debugger.DebuggerException ex) {
+            } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
@@ -568,7 +598,7 @@ namespace JsDbg {
             try {
                 string symbolName = await this.debugger.LookupSymbol(pointer);
                 responseString = String.Format("{{ \"symbolName\": \"{0}\" }}", symbolName);
-            } catch (Debugger.DebuggerException ex) {
+            } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
@@ -586,9 +616,9 @@ namespace JsDbg {
             }
             string responseString;
             try {
-                Debugger.SSymbolResult result = await this.debugger.LookupSymbol(symbol, isGlobal);
+                SSymbolResult result = await this.debugger.LookupSymbol(symbol, isGlobal);
                 responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
-            } catch (Debugger.DebuggerException ex) {
+            } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
@@ -613,7 +643,7 @@ namespace JsDbg {
             try {
                 string constantName = await this.debugger.LookupConstantName(module, type, constant);
                 responseString = String.Format("{{ \"name\": \"{0}\" }}", constantName);
-            } catch (Debugger.DebuggerException ex) {
+            } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
@@ -634,7 +664,7 @@ namespace JsDbg {
                 StringBuilder builder = new StringBuilder();
                 builder.Append("{ \"fields\": [\n");
                 bool isFirst = true;
-                foreach (Debugger.SFieldResult field in await this.debugger.GetAllFields(module, type)) {
+                foreach (SFieldResult field in await this.debugger.GetAllFields(module, type)) {
                     if (!isFirst) {
                         builder.Append(",\n");
                     }
@@ -652,7 +682,7 @@ namespace JsDbg {
                 }
                 builder.Append("\n] }");
                 responseString = builder.ToString();
-            } catch (Debugger.DebuggerException ex) {
+            } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
@@ -882,12 +912,16 @@ namespace JsDbg {
             }
         }
 
-        internal void Abort() {
+        public void Abort() {
             if (this.httpListener.IsListening) {
                 this.httpListener.Abort();
             }
         }
 
+        public bool IsListening
+        {
+            get { return this.httpListener != null && this.httpListener.IsListening; }
+        }
 
         #region IDisposable Members
 
@@ -899,7 +933,7 @@ namespace JsDbg {
 
         private HttpListener httpListener;
         private CancellationTokenSource cancellationSource;
-        private Debugger debugger;
+        private IDebugger debugger;
         private PersistentStore persistentStore;
         private List<JsDbgExtension> loadedExtensions;
         private string path;

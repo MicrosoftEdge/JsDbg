@@ -62,6 +62,11 @@ namespace JsDbg {
         internal string GetModuleSymbolPath(ulong moduleBase) {
             return this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.SymbolFile, moduleBase);
         }
+        
+        internal string GetModuleSymbolPath(string module)
+        {            
+            return this.GetModuleSymbolPath(this.GetModuleBase(module));
+        }
 
         #region IDisposable Members
 

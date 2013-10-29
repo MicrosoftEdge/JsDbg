@@ -6,42 +6,23 @@ using System.Threading.Tasks;
 using Microsoft.Debuggers.DbgEng;
 
 namespace JsDbg {
-    class Debugger : IDisposable {
-        internal class DebuggerException : Exception {
-            internal DebuggerException(string message)
-                : base(message) {
-
-            }
-        }
-
-        internal Debugger(string connectionString) {
+    class Debugger : IDisposable, JsDbg.IDebugger {
+       
+        public Debugger(string connectionString) {
             this.client = new DebugClient(connectionString);
             this.client.OutputMask = OutputModes.Normal;
             this.control = new DebugControl(this.client);
             this.isPointer64Bit = this.control.IsPointer64Bit;
             this.exitDispatchClient = new DebugClient(connectionString);
             this.symbolCache = new SymbolCache(this.client);
-            this.typeCache = new TypeCache(this.isPointer64Bit);
+            this.typeCache = new TypeCacheWithFallback(this.isPointer64Bit, this.symbolCache.GetModuleSymbolPath);
             this.dataSpaces = new DebugDataSpaces(this.client);
             this.symbols = new DebugSymbols(this.client);
             this.isShuttingDown = false;
             this.didShutdown = true;
         }
 
-        internal struct SFieldResult {
-            internal uint Offset;
-            internal uint Size;
-            internal byte BitOffset;
-            internal byte BitCount;
-            internal string FieldName;
-            internal string TypeName;
-
-            internal bool IsBitField {
-                get { return this.BitCount > 0; }
-            }
-        }
-
-        internal async Task Shutdown() {
+        public async Task Shutdown() {
             if (!this.didShutdown) {
                 this.isShuttingDown = true;
 
@@ -52,7 +33,8 @@ namespace JsDbg {
             }
         }
 
-        internal async Task Run() {
+        public async Task Run()
+        {
             this.didShutdown = false;
 
             System.EventHandler<EngineStateChangeEventArgs> engineStateChanged = (object sender, EngineStateChangeEventArgs args) => {
@@ -63,7 +45,7 @@ namespace JsDbg {
                         // Invalidate the type cache.
                         Console.Out.WriteLine("Effective processor changed, so invalidating type cache.  You may need to refresh the browser window.");
                         this.isPointer64Bit = !this.isPointer64Bit;
-                        this.typeCache = new TypeCache(this.isPointer64Bit);
+                        this.typeCache = new TypeCacheWithFallback(this.isPointer64Bit, this.symbolCache.GetModuleSymbolPath);
                     }
                 } else if (args.Change == EngineStateChange.ExecutionStatus) {
                     DebugStatus executionStatus = (DebugStatus)(args.Argument & (~(ulong)DebugStatus.InsideWait));
@@ -95,12 +77,13 @@ namespace JsDbg {
             }
         }
 
-        internal async Task<uint> LookupTypeSize(string module, string typename) {
+        public async Task<uint> LookupTypeSize(string module, string typename) {
             await this.WaitForBreakIn();
             return this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename).Size;
         }
 
-        internal async Task<SFieldResult> LookupField(string module, string typename, string fieldName) {
+        public async Task<SFieldResult> LookupField(string module, string typename, string fieldName)
+        {
             await this.WaitForBreakIn();
 
             SFieldResult result = new SFieldResult();
@@ -121,13 +104,13 @@ namespace JsDbg {
         }
 
 
-        internal async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename) {
+        public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename) {
             await this.WaitForBreakIn();
             Type type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename);
             return type.Fields;
         }
 
-        internal async Task<int> GetBaseClassOffset(string module, string typename, string baseTypename) {
+        public async Task<int> GetBaseClassOffset(string module, string typename, string baseTypename) {
             await this.WaitForBreakIn();
 
             Type type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename);
@@ -139,7 +122,7 @@ namespace JsDbg {
             }
         }
 
-        internal async Task<string> LookupConstantName(string module, string type, ulong constant) {
+        public async Task<string> LookupConstantName(string module, string type, ulong constant) {
             await this.WaitForBreakIn();
 
             // Get the module.
@@ -170,7 +153,7 @@ namespace JsDbg {
             return result;
         }
 
-        internal async Task<string> LookupSymbol(ulong pointer) {
+        public async Task<string> LookupSymbol(ulong pointer) {
             await this.WaitForBreakIn();
 
             string name;
@@ -186,13 +169,7 @@ namespace JsDbg {
             return name;
         }
 
-        internal struct SSymbolResult {
-            internal ulong Pointer;
-            internal string Type;
-            internal string Module;
-        }
-
-        internal async Task<SSymbolResult> LookupSymbol(string symbol, bool isGlobal) {
+        public async Task<SSymbolResult> LookupSymbol(string symbol, bool isGlobal) {
             await this.WaitForBreakIn();
             
             SSymbolResult result = new SSymbolResult();
@@ -238,13 +215,13 @@ namespace JsDbg {
                 string imageName, loadedImageName;
                 this.symbols.GetModuleNamesByBaseAddress(module, out imageName, out result.Module, out loadedImageName);
             } catch {
-                throw new DebuggerException(String.Format("Internal error with symbol: {0}", symbol));
+                throw new DebuggerException(String.Format("public error with symbol: {0}", symbol));
             }
 
             return result;
         }
 
-        internal async Task<T> ReadMemory<T>(ulong pointer) where T : struct {
+        public async Task<T> ReadMemory<T>(ulong pointer) where T : struct {
             bool retryAfterWaitingForBreak = false;
             do {
                 try {
@@ -265,7 +242,7 @@ namespace JsDbg {
             } while (true);
         }
 
-        internal async Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct {
+        public async Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct {
             bool retryAfterWaitingForBreak = false;
             do {
                 try {
@@ -288,7 +265,7 @@ namespace JsDbg {
         }
 
 
-        internal bool IsPointer64Bit {
+        public bool IsPointer64Bit {
             get { return this.isPointer64Bit; }
         }
 
@@ -300,7 +277,7 @@ namespace JsDbg {
                 }
             }
         }
-
+        
         #region IDisposable Members
 
         public void Dispose() {
@@ -320,7 +297,7 @@ namespace JsDbg {
         private Microsoft.Debuggers.DbgEng.DebugDataSpaces dataSpaces;
         private Microsoft.Debuggers.DbgEng.DebugSymbols symbols;
         private SymbolCache symbolCache;
-        private TypeCache typeCache;
+        private TypeCacheWithFallback typeCache;
         private bool isPointer64Bit;
         private bool isShuttingDown;
         private bool didShutdown;

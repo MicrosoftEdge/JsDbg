@@ -7,7 +7,7 @@ using Dia2Lib;
 
 namespace JsDbg {
     static class DiaHelpers {
-        internal enum LocationType {
+        public enum LocationType {
             LocIsNull = 0,
             LocIsStatic = 1,
             LocIsTLS = 2,
@@ -22,7 +22,7 @@ namespace JsDbg {
             LocTypeMax = 10
         }
 
-        internal enum BasicType {
+        public enum BasicType {
             btNoType = 0,
             btVoid = 1,
             btChar = 2,
@@ -43,7 +43,7 @@ namespace JsDbg {
             btHresult = 31
         }
 
-        internal enum NameSearchOptions {
+        public enum NameSearchOptions {
             nsNone = 0,
             nsfCaseSensitive = 0x1,
             nsfCaseInsensitive = 0x2,
@@ -59,7 +59,7 @@ namespace JsDbg {
             nsCaseInRegularExpression = nsfRegularExpression | nsfCaseInsensitive
         }
 
-        internal static string GetBasicTypeName(BasicType type, ulong size) {
+        public static string GetBasicTypeName(BasicType type, ulong size) {
             switch (type) {
             case BasicType.btVoid:
                 return "void";
@@ -106,7 +106,7 @@ namespace JsDbg {
             return "void";
         }
 
-        internal static string GetTypeName(IDiaSymbol typeSymbol) {
+        public static string GetTypeName(IDiaSymbol typeSymbol) {
             switch ((SymTagEnum)typeSymbol.symTag) {
                 case SymTagEnum.SymTagArrayType:
                     return GetTypeName(typeSymbol.type) + "[" + typeSymbol.count + "]";
