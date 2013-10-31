@@ -33,7 +33,7 @@ var DbgObject = (function() {
             }
             this.typename = this.typename.replace(arrayRegex, '');
 
-            if (this._arrayLength == 0) {
+            if (this._arrayLength == 0 || this.structSize === undefined) {
                 this.structSize = undefined;
             } else {
                 this.structSize = this.structSize / this._arrayLength;
@@ -190,15 +190,42 @@ var DbgObject = (function() {
         return getTypeDescriptionFunction(dbgObject.module, dbgObject.typename) != null;
     }
 
+    var scalarTypes = [
+        "bool",
+        "char",
+        "__int8",
+        "short",
+        "__int16",
+        "int",
+        "__int32",
+        "long",
+        "float",
+        "double",
+        "long double",
+        "long long",
+        "__int64"
+    ];
+    scalarTypes = scalarTypes.reduce(function(obj, item) { 
+        obj[item] = true;
+        obj["unsigned " + item] = true;
+        obj["signed " + item] = true;
+        return obj;
+    }, {});
+
     function getTypeDescription(dbgObject) {
         var customDescription = getTypeDescriptionFunction(dbgObject.module, dbgObject.typename);
         var hasCustomDescription = customDescription != null;
         if (!hasCustomDescription) {
             customDescription = function(x) { 
-                if (x.isPointer()) {
-                    return x.getTypeDescription() + " " + x.ptr();
-                } else {
+                if (x.typename in scalarTypes) {
                     return x.val(); 
+                } else if (x.isPointer()) {
+                    return Promise.as(x.deref())
+                    .then(function (dereferenced) {
+                        return dereferenced.htmlTypeDescription() + " " + dereferenced.ptr();
+                    });
+                } else {
+                    return x.htmlTypeDescription() + " " + x.ptr();
                 }
             };
         }
@@ -424,11 +451,15 @@ var DbgObject = (function() {
     DbgObject.prototype._help_as = {
         description: "Casts a given DbgObject to another type.",
         returns: "A DbgObject.",
-        arguments: [{name: "type", type: "string", description: "The type to cast to."}],
-        notes: "The structure size will be preserved if casting to a scalar type."
+        arguments: [
+            {name: "type", type: "string", description: "The type to cast to."},
+            {name: "disregardSize", type:"bool", description: "(optional) Should the current object's size be disregarded?"}
+        ],
+        notes: "The object size will be preserved unless the <code>disregardSize</code> argument is given as true.\
+                If the flag is given, this cast becomes roughly equivalent to <code>*(T*)&value</code>."
     }
-    DbgObject.prototype.as = function(type) {
-        return new DbgObject(this.module, type, this._pointer, this.bitcount, this.bitoffset, this.structSize);
+    DbgObject.prototype.as = function(type, disregardSize) {
+        return new DbgObject(this.module, type, this._pointer, this.bitcount, this.bitoffset, disregardSize ? undefined : this.structSize);
     }
 
     DbgObject.prototype._help_idx = {
@@ -483,7 +514,7 @@ var DbgObject = (function() {
         );
     }
 
-    DbgObject.prototype._help_val = {
+    DbgObject.prototype._help_constant = {
         description: "Retrieves a constant/enum value held by a DbgObject.",
         returns: "(A promise to) a string."
     }
@@ -544,8 +575,11 @@ var DbgObject = (function() {
                 if (count == undefined && that._isArray) {
                     count = that._arrayLength;
                 }
-                // Get the struct size...
-                return that._getStructSize()
+
+                if (that.typename in scalarTypes || that.isPointer()) {
+                    // Get the struct size...
+                    return that._getStructSize()
+
                     // Read the array...
                     .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, that._isFloat(), count); })
 
@@ -559,14 +593,15 @@ var DbgObject = (function() {
                             // Otherwise, the items are values.
                             return result.array;
                         }
-                    }, function(error) {
-                        // We weren't able to read the array, so just make an array of idx(i) calls.
-                        var array = [];
-                        for (var i = 0; i < count; ++i) {
-                            array.push(that.idx(i));
-                        }
-                        return Promise.join(array);
                     });
+                } else {
+                    // The array isn't an array of scalars.  Provide an array of idx calls instead.
+                    var array = [];
+                    for (var i = 0; i < count; ++i) {
+                        array.push(that.idx(i));
+                    }
+                    return Promise.join(array);
+                }
             })
         );
     }
@@ -593,6 +628,14 @@ var DbgObject = (function() {
     }
     DbgObject.prototype.typeDescription = function() {
         return this.typename + (this._isArray ? "[" + this._arrayLength + "]" : "");
+    }
+
+    DbgObject.prototype._help_htmlTypeDescription = {
+        description: "Returns the HTML-escaped type of a DbgObject.",
+        returns: "A string."
+    }
+    DbgObject.prototype.htmlTypeDescription = function() {
+        return this.typeDescription().replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
     DbgObject.prototype._help_equals = {
@@ -710,7 +753,7 @@ var DbgObject = (function() {
         return this._pointer == 0;
     }
 
-    DbgObject.prototype._help_isNull = {
+    DbgObject.prototype._help_isPointer = {
         description: "Indicates if the DbgObject represents a pointer.",
         returns: "A bool."
     }

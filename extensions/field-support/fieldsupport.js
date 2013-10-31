@@ -298,7 +298,7 @@ var FieldSupport = (function() {
                 var errorSpan = document.createElement("span");
                 errorSpan.style.color = "red";
                 var errorMsg = ex.stack ? ex.toString() : JSON.stringify(ex);
-                errorSpan.innerHTML = "[ERROR:" + errorMsg + "]";
+                errorSpan.innerHTML = "(" + errorMsg + ")";
                 return errorSpan;
             }
 
