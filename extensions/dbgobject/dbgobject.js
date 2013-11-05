@@ -342,6 +342,10 @@ var DbgObject = (function() {
         returns: "(A promise to) a DbgObject."
     }
     DbgObject.prototype.deref = function() {
+        if (this.isNull()) {
+            throw new Error("You cannot deref a NULL object.");
+        }
+
         var that = this;
         return checkSyncDbgObject(
             jsDbgPromise(JsDbg.ReadPointer, that._pointer).then(function(result) {
@@ -439,6 +443,10 @@ var DbgObject = (function() {
         ]
     }
     DbgObject.prototype.unembed = function(type, field) {
+        if (this.isNull()) {
+            throw new Error("You cannot unembed a NULL object.");
+        }
+
         var that = this;
         return checkSyncDbgObject(
             jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, field)
@@ -469,6 +477,10 @@ var DbgObject = (function() {
         notes: "<p>Any object can be treated as if it is an array, i.e. <code>obj.idx(a + b)</code> is equivalent to <code>obj.idx(a).idx(b)</code>.</p>"
     }
     DbgObject.prototype.idx = function(index) {
+        if (this.isNull()) {
+            throw new Error("You cannot get an index from a NULL pointer.");
+        }
+
         var that = this;
         return checkSyncDbgObject(
             // index might be a promise...
@@ -485,6 +497,10 @@ var DbgObject = (function() {
         returns: "(A promise to) a number."
     }
     DbgObject.prototype.val = function() {
+        if (this.isNull()) {
+            throw new Error("You cannot get a value from a NULL object.");
+        }
+
         if (this.typename == "void") {
             return checkSync(Promise.as(this._pointer));
         }
@@ -565,6 +581,10 @@ var DbgObject = (function() {
         arguments: [{name:"count", type:"int", description:"The number of items to retrieve.  Optional if the object represents an inline array."}]
     }
     DbgObject.prototype.array = function(count) {
+        if (this.isNull()) {
+            throw new Error("You cannot get an array from a NULL object.");
+        }
+
         var that = this;
         return checkSync(
             // "count" might be a promise...
@@ -654,6 +674,10 @@ var DbgObject = (function() {
         returns: "(A promise to) a string."
     }
     DbgObject.prototype.vtable = function() {
+        if (this.isNull()) {
+            throw new Error("You cannot get a vtable from a NULL object.");
+        }
+
         var pointer = this._pointer;
         return checkSync(
             // Read the value at the this pointer...
@@ -718,7 +742,7 @@ var DbgObject = (function() {
                         value: new DbgObject(
                             that.module, 
                             getFieldType(that.module, that.typename, field.name, field.type), 
-                            that._pointer + field.offset, 
+                            that._pointer == 0 ? 0 : that._pointer + field.offset, 
                             field.bitcount, 
                             field.bitoffset, 
                             field.size

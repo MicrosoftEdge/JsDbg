@@ -476,6 +476,7 @@ var FieldSupport = (function() {
                                 id:++uniqueId,
                                 enabled: true,
                                 external: true,
+                                async: field.async,
                                 fullname: field.name,
                                 shortname: field.shortName,
                                 html: codeStringToFunction(field.codeString),
