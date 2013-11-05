@@ -69,7 +69,8 @@
     font-family:Consolas;
     font-size:8pt;
     min-height:20em;
-    min-width:70em;
+    min-width:78ch;
+    width:100%;
 }
 
 .field-selection .field.editing .editor {

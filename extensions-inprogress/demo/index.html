@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>Dump Type</title>
+    <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
+    <script type="text/javascript">
+        function run() {
+            var args = document.querySelector("input").value.split(" ");
+            var dbgObject = new DbgObject("mshtml", args[0], parseInt(args[1]));
+            dbgObject.fields()
+            .then(function(fields) {
+                return Promise.map(fields, function(field) { return field.value.desc(); })
+                .then(function(descs) {
+                    document.getElementById("results").innerHTML = fields.map(function(x, i) { return x.name + ": " + descs[i]; }).join("<br />");
+                })
+            })
+        }
+    </script>
+    <style type="text/css">
+        body {
+            font:9pt Consolas;
+        }
+
+        input {
+            width:400px;
+        }
+    </style>
+</head>
+<body>
+    <input type="text"> <button onclick="run()">Dump Type</button>
+    <div id="results"></div>
+</body>
+</html>

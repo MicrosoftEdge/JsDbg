@@ -1,9 +1,16 @@
 - box positions
 - windbg links
 
-gets very slow...why?  appears to be an issue in the client -- maybe IE websocket bug?
-
 - build integration
+
+BUGS
+
+- when using dt fallback for nested templates, there can be spaces in the type name
+    - dt mshtml!Layout::TableGridBox
+        ...
+        +0x098 rowLayoutsSortedByElement : SArray<SP<Layout::TableRowLayout> >
+
+- when quickly checking/unchecking fields, order can be lost
 
 FEEDBACK
 

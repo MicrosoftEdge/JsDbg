@@ -1,0 +1,6 @@
+{
+    "name": "demo2",
+    "dependencies": ["dbgobject"],
+    "augments": ["dbgobject"],
+    "includes": ["demo2.js"]
+}

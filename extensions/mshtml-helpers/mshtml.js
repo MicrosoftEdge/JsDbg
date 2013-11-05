@@ -5,7 +5,7 @@
 // Some mshtml-specific helpers.
 
 var MSHTML = (function() {
-    function GetCDocs() {
+    function GetDocsAndThreadstates(){
         var collectedDocs = [];
         function collectRemainingDocs(threadstate) {
             if (threadstate.isNull()) {
@@ -15,12 +15,24 @@ var MSHTML = (function() {
             var docArrayObj = threadstate.as("THREADSTATEUI").f("_paryDoc");
             return Promise.as(docArrayObj.f("_pv").as("CDoc*").array(docArrayObj.f("_c").val()))
             .then(function(docs) {
+                docs = docs.map(function(doc) {
+                    return {
+                        threadstate: threadstate,
+                        doc: doc
+                    };
+                });
+
                 collectedDocs = collectedDocs.concat(docs);
                 return Promise.as(threadstate.f("ptsNext")).then(collectRemainingDocs);
             })
         }
 
         var promise = Promise.as(DbgObject.global("mshtml!g_pts").deref()).then(collectRemainingDocs);
+        return DbgObject.ForcePromiseIfSync(promise);
+    }
+
+    function GetCDocs() {
+        var promise = Promise.map(GetDocsAndThreadstates(), function(obj) { return obj.doc; });
         return DbgObject.ForcePromiseIfSync(promise);
     }
 
@@ -52,14 +64,21 @@ var MSHTML = (function() {
         return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
     }
 
-    function GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode) {
+    function GetLayoutAssociationFromCTreeNode(treeNode, flag) {
+        var type = ({
+            0x1: "Tree::ComputedBlock",
+            0x2: "Tree::TextBlock",
+            0x4: "Tree::SComputedStyle",
+            0x8: "Layout::LayoutBox"
+        })[flag];
+
         var promise = Promise.as(treeNode.f("_fHasLayoutAssociationPtr").val())
             .then(function (layoutAssociationBits) {
-                if (layoutAssociationBits & 0x8) {
+                if (layoutAssociationBits & flag) {
                     var bits = 0;
 
                     // for each bit not counting the 0x8 bit, dereference the pointer.
-                    layoutAssociationBits = layoutAssociationBits & 0x7;
+                    layoutAssociationBits = layoutAssociationBits & (flag - 1);
                     var pointer = treeNode.f("_pLayoutAssociation");
                     while (layoutAssociationBits > 0) {
                         if (layoutAssociationBits & 1) {
@@ -68,12 +87,90 @@ var MSHTML = (function() {
                         layoutAssociationBits = layoutAssociationBits >>1;
                     }
 
-                    return pointer.as("Layout::LayoutBox");
+                    return pointer.as(type);
                 } else {
-                    return new DbgObject("mshtml", "Layout::LayoutBox", 0x0);
+                    return DbgObject.NULL;
                 }
             });
         return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
+    }
+
+    function GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode) {
+        return GetLayoutAssociationFromCTreeNode(treeNode, 0x8);
+    }
+
+    function GetThreadstateFromObject(object) {
+        var promise = Promise.as(object)
+        .then(function(object) {
+            if (object.typeDescription() == "Tree::ElementNode") {
+                return GetThreadstateFromObject(GetCTreeNodeFromTreeElement(object));
+            } else if (object.typeDescription() == "CTreeNode") {
+                return GetThreadstateFromObject(object.f("_pElement"));
+            } else if (object.typeDescription() == "CElement") {
+                return Promise.join([object.f("_fHasLayoutPtr").val(), object.f("_fHasLayoutAry").val(), object.f("_fHasMarkupPtr").val()])
+                .then(function(bits) {
+                    if (bits[0] || bits[1]) {
+                        return GetThreadstateFromObject(object.f("_pLayoutInfo"));
+                    } else if (bits[2]) {
+                        return GetThreadstateFromObject(object.f("_pMarkup"));
+                    }
+                })
+            } else if (object.typeDescription() == "CLayoutInfo") {
+                return Promise.as(object.f("_fHasMarkupPtr").val())
+                .then(function(hasMarkupPtr) {
+                    if (hasMarkupPtr) {
+                        return GetThreadstateFromObject(object.f("_pMarkup"));
+                    } else {
+                        return DbgObject.NULL;
+                    }
+                });
+            } else if (object.typeDescription() == "CMarkup") {
+                return GetThreadstateFromObject(object.f("_pSecCtx"));
+            } else if (object.typeDescription() == "CSecurityContext") {
+                return GetThreadstateFromObject(object.f("_pDoc"));
+            } else if (object.typeDescription() == "CDoc") {
+                // Once we have a Doc, we can walk the threadstate pointers to find the corresponding threadstate.
+                return Promise.as(GetDocsAndThreadstates())
+                .then(function(docsAndThreadstates) {
+                    for (var i = 0; i < docsAndThreadstates.length; ++i) {
+                        if (docsAndThreadstates[i].doc.equals(object)) {
+                            return docsAndThreadstates[i].threadstate;
+                        }
+                    }
+                    return DbgObject.NULL;
+                });
+            }
+        });
+
+        return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
+    }
+
+    function GetObjectFromDataCache(cache, index) {
+        var promise = Promise.join([cache, index])
+        .then(function(cacheAndIndex) {
+            var cache = cacheAndIndex[0];
+            var index = cacheAndIndex[1];
+
+            if (index < 0) {
+                return DbgObject.NULL;
+            }
+            var type = cache.typeDescription();
+            var templateMatches = type.match(/<.*>/);
+            var resultType = "void";
+            if (templateMatches) {
+                resultType = templateMatches[0].substr(1, templateMatches[0].length - 2);
+            }
+
+            var bucketSize = 128;
+            debugger;
+            return cache.f("_paelBuckets").idx(Math.floor(index / bucketSize)).deref().idx(index % bucketSize).f("_pvData").as(resultType);
+        });
+
+        return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
+    }
+
+    function GetObjectFromThreadstateCache(object, cacheType, index) {
+        return GetObjectFromDataCache(GetThreadstateFromObject(object).f("_p" + cacheType + "Cache"), index);
     }
 
     // Extend DbgObject to ease navigation of patchable objects.
@@ -361,12 +458,48 @@ var MSHTML = (function() {
         },
         GetCTreeNodeFromTreeElement: GetCTreeNodeFromTreeElement,
 
+        _help_GetLayoutAssociationFromCTreeNode: {
+            description: "Gets a layout association from a CTreeNode.",
+            arguments: [
+                {name: "treenode", type:"(Promise to a) DbgObject", description: "The CTreeNode from which to retrieve the layout association."},
+                {name: "flag", type:"int", description: "The flag for the layout association."}
+            ],
+            returns: "(A promise to) a DbgObject."
+        },
+        GetLayoutAssociationFromCTreeNode: GetLayoutAssociationFromCTreeNode,
+
         _help_GetFirstAssociatedLayoutBoxFromCTreeNode: {
             description:"Gets the first associated Layout::LayoutBox from a CTreeNode.",
             arguments: [{name:"element", type:"(Promise to a) DbgObject", description: "The CTreeNode from which to retrieve the first associated LayoutBox."}],
             returns: "(A promise to) a DbgObject."
         },
         GetFirstAssociatedLayoutBoxFromCTreeNode: GetFirstAssociatedLayoutBoxFromCTreeNode,
+
+        _help_GetThreadstateFromObject: {
+            description:"Gets the threadstate associated with the given markup object.",
+            arguments: [{name:"object", type:"(Promise to a) DbgObject", description: "The object may be a Tree::ElementNode, CTreeNode, CElement, CMarkup, CLayoutInfo, CSecurityContext, or a CDoc."}],
+            returns: "(A promise to) a DbgObject."
+        },
+        GetThreadstateFromObject: GetThreadstateFromObject,
+
+        _help_GetObjectFromDataCache: {
+            description: "Gets an object from a CDataCache/CFormatCache by index.",
+            arguments: [
+                {name:"cache", type:"(Promise to a) DbgObject.", description: "The DbgObject representing the CDataCache/CFormatCache."},
+                {name:"index", type:"(Promise to an) int.", description: "The index in the cache."}
+            ]
+        },
+        GetObjectFromDataCache: GetObjectFromDataCache,
+
+        _help_GetObjectFromDataGetObjectFromThreadstateCache: {
+            description: "Gets an object from a CDataCache/CFormatCache on the threadstate by index.",
+            arguments: [
+                {name:"object", type:"(Promise to a) DbgObject.", description: "The object whose threadstate will be retrieved."},
+                {name:"cacheType", type:"A string.", description: "The cache to retrieve (e.g. \"FancyFormat\")."},
+                {name:"index", type:"(Promise to an) int.", description: "The index in the cache."}
+            ]
+        },
+        GetObjectFromThreadstateCache: GetObjectFromThreadstateCache
     }
 })();
 

@@ -1,0 +1,6 @@
+{
+    "name": "demo",
+    "description": "This is a demo extension.",
+    "includes": ["demo.js"],
+    "dependencies": ["dbgobject"]
+}
