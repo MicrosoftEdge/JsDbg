@@ -92,7 +92,7 @@ namespace JsDbg {
                 {"void", new SBuiltInTypeNameAndSize("void", 0)},
                 {"bool", new SBuiltInTypeNameAndSize("char", 1)},
                 {"char", new SBuiltInTypeNameAndSize("char", 1)},
-                {"wchar", new SBuiltInTypeNameAndSize("short", 2)},
+                {"wchar", new SBuiltInTypeNameAndSize("unsigned short", 2)},
                 {"int1b", new SBuiltInTypeNameAndSize("char", 1)},
                 {"int2b", new SBuiltInTypeNameAndSize("short", 2)},
                 {"int4b", new SBuiltInTypeNameAndSize("int", 4)},

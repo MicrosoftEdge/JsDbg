@@ -21,6 +21,8 @@ var DbgObject = (function() {
             .replace(/\s+$/g, '')
             .replace(/^\s+/g, '');
 
+        this._isUnsigned = this.typename.indexOf("unsigned ") == 0;
+
         // Get the array size.
         var arrayRegex = /\[[0-9]+\]/g;
         var matches = this.typename.match(arrayRegex);
@@ -541,7 +543,7 @@ var DbgObject = (function() {
 
             // Read the value...
             .then(function(structSize) {
-                return jsDbgPromise(JsDbg.ReadNumber, that._pointer, structSize, that._isFloat());
+                return jsDbgPromise(JsDbg.ReadNumber, that._pointer, structSize, that._isUnsigned, that._isFloat());
             })
 
             // If we're a bit field, extract the bits.
@@ -626,7 +628,7 @@ var DbgObject = (function() {
                     return that._getStructSize()
 
                     // Read the array...
-                    .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, that._isFloat(), count); })
+                    .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, that._isUnsigned, that._isFloat(), count); })
 
                     // Process the array into DbgObjects if necessary.
                     .then(function(result) {

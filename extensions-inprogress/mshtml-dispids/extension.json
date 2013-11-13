@@ -1,0 +1,7 @@
+{
+    "name": "mshtml-dispids",
+    "author": "Peter Salas",
+    "description": "mshtmdid.h adapted for JS.",
+    "includes": ["mshtml-dispids.js"],
+    "augments": ["mshtml-helpers"]
+}
