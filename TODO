@@ -4,7 +4,3 @@
 - build integration
 
 BUGS
-
-- when quickly checking/unchecking fields, order can be lost
-- CTreeNode.parent is horribly broken when clicking
-- LineBox.Text seems to be failing on the reading list repro (bug 520492)

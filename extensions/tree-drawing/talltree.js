@@ -14,6 +14,8 @@
 
 var TallTree = (function() {
 
+    var currentOperation = Promise.as(true);
+
     function DrawingTreeNode(node, parent) {
         this.innerNode = node;
         this.parent = parent;
@@ -22,30 +24,30 @@ var TallTree = (function() {
         this.childContainer = null;
     }
 
-    DrawingTreeNode.instantiate = function(node, parent) {
+    DrawingTreeNode._instantiate = function(node, parent) {
         var drawingNode = new DrawingTreeNode(node, parent);
-        return drawingNode.realize()
+        return drawingNode._realize()
             .then(function() { return drawingNode; });
 
     }
 
-    DrawingTreeNode.prototype.realize = function() {
+    DrawingTreeNode.prototype._realize = function() {
         var that = this;
         return that.innerNode.getChildren()
             .then(function gotChildren(children) {
                 that.nodeChildren = children;
                 that.isExpanded = that.nodeChildren.length == 0;
 
-                return that.createRepresentation();
+                return that._createRepresentation();
             })
             .then(function representationCreated() {
                 if (that.innerNode.drawingTreeNodeIsExpanded) {
-                    return that.expand(false);
+                    return that._expand(false);
                 }
             });
     }
 
-    DrawingTreeNode.prototype.createRepresentation = function() {
+    DrawingTreeNode.prototype._createRepresentation = function() {
         var that = this;
         return this.innerNode.createRepresentation()
             .then(function(innerRepresentation) {
@@ -62,18 +64,23 @@ var TallTree = (function() {
                 }
 
                 that.representation.addEventListener("click", function(e) {
-                    if (!that.isExpanded) {
-                        var clock = Timer.Start();
-                        that.expand(e.ctrlKey)
+                    if (e.target.tagName == "A") {
+                        return;
+                    }
+                    currentOperation = currentOperation.then(function() {
+                        if (!that.isExpanded) {
+                            var clock = Timer.Start();
+                            return that._expand(e.ctrlKey)
                             .then(function expanded() {
                                 console.log("Expansion took " + clock.Elapsed() + "s");
-                                that.redraw();
+                                that._redraw();
                                 console.log("Full Redraw took " + clock.Elapsed() + "s");
                             });
-                    } else if (e.ctrlKey) {
-                        that.collapse(false);
-                        that.redraw();
-                    }
+                        } else if (e.ctrlKey) {
+                            that._collapse(false);
+                            that._redraw();
+                        }
+                    });
                 });
 
                 that.representation.addEventListener("mousedown", function(e) {
@@ -84,7 +91,7 @@ var TallTree = (function() {
             });
     }
 
-    DrawingTreeNode.prototype.getChildContainer = function() {
+    DrawingTreeNode.prototype._getChildContainer = function() {
         if (this.childContainer == null && this.nodeChildren.length > 0) {
             this.childContainer = document.createElement("div");
             this.childContainer.className = "child-container";
@@ -93,6 +100,14 @@ var TallTree = (function() {
     }
 
     DrawingTreeNode.prototype.updateRepresentation = function() {
+        var that = this;
+        currentOperation = currentOperation.then(function() {
+            return that._updateRepresentation();
+        })
+        return currentOperation;
+    }
+
+    DrawingTreeNode.prototype._updateRepresentation = function() {
         var that = this;
         if (this.representation != null && this.representation.parentNode) {
             var parent = this.representation.parentNode;
@@ -104,24 +119,24 @@ var TallTree = (function() {
 
             this.representation = null;
 
-            return this.createRepresentation()
-                .then(function recreatedRepresentation() {
-                    parent.insertBefore(that.representation, oldChild);
-                    parent.removeChild(oldChild);
-                    that.representation.className = styles[0];
+            return this._createRepresentation()
+            .then(function recreatedRepresentation() {
+                parent.insertBefore(that.representation, oldChild);
+                parent.removeChild(oldChild);
+                that.representation.className = styles[0];
 
-                    // Update the children as well.
-                    return Promise.map(that.children, function(child) { return child.updateRepresentation(); })
-                        // Undefine the result.
-                        .then(function() {});
-                });
+                // Update the children as well.
+                return Promise.map(that.children, function(child) { return child._updateRepresentation(); })
+                    // Undefine the result.
+                    .then(function() {});
+            });
         } else {
             // Update the children.
-            return Promise.map(that.children, function(child) { return child.updateRepresentation(); });
+            return Promise.map(that.children, function(child) { return child._updateRepresentation(); });
         }
     }
 
-    DrawingTreeNode.prototype.expand = function(recurse) {
+    DrawingTreeNode.prototype._expand = function(recurse) {
         var that = this;
 
         // Construct the children.
@@ -132,10 +147,10 @@ var TallTree = (function() {
         // Realize them and expand them as needed...
         return Promise
             .join(this.children.map(function(child) { 
-                return child.realize()
+                return child._realize()
                     .then(function() {
                         if (recurse) {
-                            return child.expand(true);
+                            return child._expand(true);
                         }
                     })
             }))
@@ -146,7 +161,7 @@ var TallTree = (function() {
             })
     }
 
-    DrawingTreeNode.prototype.collapse = function(removeSelf) {
+    DrawingTreeNode.prototype._collapse = function(removeSelf) {
         function remove(e) {
             if (e && e.parentNode) {
                 e.parentNode.removeChild(e);
@@ -157,17 +172,17 @@ var TallTree = (function() {
             remove(this.childContainer);
         }
 
-        this.children.map(function(x) { x.collapse(true); });
+        this.children.map(function(x) { x._collapse(true); });
         this.children = [];
         this.isExpanded = this.nodeChildren.length == 0;
         this.innerNode.drawingTreeNodeIsExpanded = this.isExpanded;
     }
 
-    DrawingTreeNode.prototype.redraw = function() {
-        this.draw(this.lastContainer);
+    DrawingTreeNode.prototype._redraw = function() {
+        this._draw(this.lastContainer);
     }
 
-    DrawingTreeNode.prototype.draw = function(container) {
+    DrawingTreeNode.prototype._draw = function(container) {
         this.lastContainer = container;
 
         // create the element for the node itself.
@@ -178,11 +193,11 @@ var TallTree = (function() {
         }
 
         var children = this.children;
-        var childContainer = this.getChildContainer();
+        var childContainer = this._getChildContainer();
         if (children.length > 0) {
             // recurse into each of the children
             for (var i = 0; i < children.length; ++i) {
-                children[i].draw(childContainer);
+                children[i]._draw(childContainer);
             }
         }
 
@@ -193,13 +208,16 @@ var TallTree = (function() {
 
     return {
         BuildTree: function(container, root) {
-            return DrawingTreeNode.instantiate(root)
+            currentOperation = currentOperation.then(function() {
+                return DrawingTreeNode._instantiate(root)
                 .then(function(drawingRoot) {
                     container.innerHTML = "";
                     container.className = "tall-node-container";
-                    drawingRoot.draw(container);
+                    drawingRoot._draw(container);
                     return drawingRoot;
                 });
+            })
+            return currentOperation;
         }
     }
 })();
