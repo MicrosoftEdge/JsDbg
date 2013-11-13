@@ -557,7 +557,11 @@ namespace JsDbg {
         }
 
         private async Task<string> ReadJsonArray<T>(ulong pointer, ulong length) where T : struct {
-            return ToJsonArray(await this.debugger.ReadArray<T>(pointer, length));
+            if (length == 0) {
+                return "[]";
+            } else {
+                return ToJsonArray(await this.debugger.ReadArray<T>(pointer, length));
+            }
         }
 
         private static string ToJsonNumber(object value) {
