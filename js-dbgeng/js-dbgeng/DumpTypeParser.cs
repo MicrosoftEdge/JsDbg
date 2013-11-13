@@ -162,7 +162,16 @@ namespace JsDbg {
 
             if (tokens.Length > 1 && normalizedDescription == "class" || normalizedDescription == "struct" || normalizedDescription == "union" || normalizedDescription == "enum") {
                 // The next token is a proper typename.
-                typename = tokens[1].TrimEnd(',');
+                typename = tokens[1];
+                for (int tokenIndex = 2; tokenIndex < tokens.Length; ++tokenIndex) {
+                    if (tokens[tokenIndex].Length > 0 && tokens[tokenIndex][0] == '>') {
+                        // Continuation of the type name: e.g. SArray<SP<Layout::TableRowLayout> >
+                        typename += " " + tokens[tokenIndex];
+                    } else {
+                        break;
+                    }
+                }
+                typename = typename.TrimEnd(',');
                 bitField = new SBitFieldDescription();
 
                 if (tokens.Length > 5 && tokens[5] == "bytes") {

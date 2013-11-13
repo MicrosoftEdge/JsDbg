@@ -466,6 +466,13 @@ var FieldSupport = (function() {
             browse.addEventListener("click", function() {
                 CatalogViewer.Instantiate(
                     StoragePrefix + ".UserFields", 
+                    function(store, user) {
+                        var results = [];
+                        for (var key in store) {
+                            results.push({key: key, value: store[key], user: user});
+                        }
+                        return results;
+                    },
                     "Select fields to add:",
                     function(obj) { return [obj.user, obj.value.type, obj.value.name] },
                     function(selected) {

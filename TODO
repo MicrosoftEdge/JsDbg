@@ -5,12 +5,10 @@
 
 BUGS
 
-- when using dt fallback for nested templates, there can be spaces in the type name
-    - dt mshtml!Layout::TableGridBox
-        ...
-        +0x098 rowLayoutsSortedByElement : SArray<SP<Layout::TableRowLayout> >
-
 - when quickly checking/unchecking fields, order can be lost
+- no way to get unsigned values
+- CTreeNode.parent is horribly broken when clicking
+- LineBox.Text seems to be failing on the reading list repro (bug 520492)
 
 FEEDBACK
 

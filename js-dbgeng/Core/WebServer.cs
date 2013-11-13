@@ -58,7 +58,8 @@ namespace JsDbg {
             set { this._augments = value; }
         }
 
-        public string Path {
+        [DataMember(IsRequired = false)]
+        public string path {
             get { return this._path; }
             set { this._path = value; }
         }
@@ -270,7 +271,7 @@ namespace JsDbg {
             if (filePath == null) {
                 // Try the extensions.
                 foreach (JsDbgExtension extension in this.loadedExtensions) {
-                    filePath = this.GetFilePath(extension.Path, extension.name, filename);
+                    filePath = this.GetFilePath(extension.path, extension.name, filename);
                     if (filePath != null) {
                         break;
                     }
@@ -720,7 +721,7 @@ namespace JsDbg {
                 using (System.IO.FileStream file = System.IO.File.Open(jsonPath, System.IO.FileMode.Open, System.IO.FileAccess.Read)) {
                     extension = (JsDbgExtension)ExtensionSerializer.ReadObject(file);
                 }
-                extension.Path = extensionPath;
+                extension.path = extensionPath;
             } catch {
                 failedExtensions.Add(extensionPath);
                 extensionName = null;

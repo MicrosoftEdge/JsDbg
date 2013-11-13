@@ -44,17 +44,9 @@
             var ul = document.querySelector("ul");
             var li = document.createElement("li");
             li.className = "loadedExtension";
-            li.innerHTML = "<h3><a href='/" + ext.name.toLowerCase() + "/' target='" + ext.name.toLowerCase() + "'>" + ext.name + "</a> </h3>" + 
+            li.innerHTML = "<h3><a href='/" + ext.name.toLowerCase() + "/'>" + ext.name + "</a> </h3>" + 
                 (ext.author ? "<p class='author'>" + ext.author + "</p>" : "") +
                 (ext.description ? "<p class='description'>" + ext.description + "</p>" : "");
-            var unload = document.createElement("span");
-            unload.className = "unload";
-            unload.addEventListener("click", function() {
-                JsDbg.UnloadExtension(ext.name, function() {
-                    ul.removeChild(li);
-                });
-            });
-            li.querySelector("h3").appendChild(unload);
             ul.appendChild(li);
         }
 
@@ -64,25 +56,32 @@
                 loadedExtensions[i].parentNode.removeChild(loadedExtensions[i]);
             }
 
-            JsDbg.GetExtensions(function(result) { result.extensions.forEach(realizeExtension); });
+            JsDbg.GetExtensions(function(result) { 
+                result.extensions.sort(function(a, b) { return a.name.localeCompare(b.name); });
+                result.extensions.forEach(realizeExtension); 
+            });
         }
 
         document.addEventListener("DOMContentLoaded", function() {
-            reloadExtensions();
+            // Get any startup extensions.
+            JsDbg.GetPersistentData(null, function(data) {
+                if ("_CATALOG-extension-manager" in data) {
+                    var extensions = data["_CATALOG-extension-manager"];
+                    if (extensions.startup && typeof(extensions.startup) == typeof([])) {
+                        JsDbg.RunSynchronously(function() {
+                            extensions.startup.forEach(function (path) {
+                                JsDbg.LoadExtension(path, function() {});
+                            });
+                        })
+                    }
+                }
 
-            document.querySelector("button").addEventListener("click", function() {
-                JsDbg.LoadExtension(document.querySelector("input").value, function(ext) {
-                    document.querySelector("input").value = null;
-                    reloadExtensions();
-                }, function(error) { alert(error); });
+                reloadExtensions();
             });
         });
     </script>
 </head>
 <body>
-    <p>
-        <input type="text" placeholder="Load an extension..."> <button>Load</button>
-    </p>
     <ul>
     </ul>
 </body>
