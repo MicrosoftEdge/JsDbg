@@ -355,7 +355,7 @@ var DbgObject = (function() {
     }
 
     DbgObject.prototype._help_f = {
-        description: "Accesses a field on a DbgObject.  If the field is a pointer, it will be dereferenced.",
+        description: "Accesses a field on a DbgObject.  If the field is a pointer, it will be dereferenced.  If more than one field is given, they will be tried in order until one succeeds.",
         notes: "<p>Examples:\
 <pre><code>\
     struct A {\n\
@@ -374,11 +374,38 @@ var DbgObject = (function() {
 <li><code>a.f(\"c.value\")</code> returns a DbgObject representing an int.</li>\
 <li><code>a.f(\"b\")</code> returns a DbgObject representing an object of type B (<em>not</em> B*).</li>\
 <li><code>a.f(\"b.c.value\")</code> returns a DbgObject representing an int.</li>\
+<li><code>a.f(\"z\", \"b\")</code> returns a DbgObject representing an object of type B.</li>\
 </ul></p>",
         returns: "(A promise to) a DbgObject.",
-        arguments: [{name:"field", type:"string", description:"One or more fields (separated by \".\") to access."}]
+        arguments: [
+            {name:"field", type:"string", description:"One or more fields (separated by \".\") to access."},
+            {name:"...", description:"Fields to use if the prior field lookups failed (e.g. because a field has been renamed)."}
+        ]
     }
     DbgObject.prototype.f = function(field) {
+        if (arguments.length < 0) {
+            throw new Error("You must provide a field.");
+        } else if (arguments.length == 1) {
+            return checkSyncDbgObject(this._fHelper(field));
+        } else {
+            var rest = [];
+            for (var i = 1; i < arguments.length; ++i) {
+                rest.push(arguments[i]);
+            }
+            var that = this;
+            return checkSyncDbgObject(
+                this._fHelper(field)
+                .then(
+                    function(x) { return x; },
+                    function(err) {
+                        return that._fHelper.apply(that, rest);
+                    }
+                )
+            );
+        }
+    }
+
+    DbgObject.prototype._fHelper = function(field) {
         var parts = field.split(".");
         if (parts.length > 1) {
             // multiple fields were specified
@@ -406,32 +433,30 @@ var DbgObject = (function() {
         }
 
         var that = this;
-        return checkSyncDbgObject(
-            jsDbgPromise(JsDbg.LookupFieldOffset, that.module, that.typename, field)
-                .then(function(result) {
-                    var target = new DbgObject(
-                        that.module, 
-                        getFieldType(that.module, that.typename, field, result.type), 
-                        that._pointer + result.offset, 
-                        result.bitcount, 
-                        result.bitoffset, 
-                        result.size
-                    );
+        return jsDbgPromise(JsDbg.LookupFieldOffset, that.module, that.typename, field)
+        .then(function(result) {
+            var target = new DbgObject(
+                that.module, 
+                getFieldType(that.module, that.typename, field, result.type), 
+                that._pointer + result.offset, 
+                result.bitcount, 
+                result.bitoffset, 
+                result.size
+            );
 
-                    if (indexMatches) {
-                        // We want to do an index on top of this; this will make "target" a promised DbgObject.
-                        target = target.idx(index);
-                    }
-                    return target;
-                })
-                .then(function(target) {
-                    if (target._isPointer()) {
-                        return target.deref();
-                    } else {
-                        return target;
-                    }
-                })
-        );
+            if (indexMatches) {
+                // We want to do an index on top of this; this will make "target" a promised DbgObject.
+                target = target.idx(index);
+            }
+            return target;
+        })
+        .then(function(target) {
+            if (target._isPointer()) {
+                return target.deref();
+            } else {
+                return target;
+            }
+        })
     }
 
     DbgObject.prototype._help_unembed = {
