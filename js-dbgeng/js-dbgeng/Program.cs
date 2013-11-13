@@ -75,6 +75,7 @@ namespace JsDbg {
                     // The web server ending kills the debugger and completes our SynchronizationContext which allows us to exit.
                     webServer.Listen().ContinueWith(async (Task result) => {
                         await debugger.Shutdown();
+                        await Task.Yield();
                         syncContext.Complete();
                     });
 

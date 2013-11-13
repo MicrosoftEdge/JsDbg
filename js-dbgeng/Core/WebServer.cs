@@ -183,7 +183,7 @@ namespace JsDbg {
                     });
 
                     if (context == null) {
-                        return;
+                        break;
                     }
 
                     this.NoteRequest(context.Request.Url);
