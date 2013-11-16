@@ -3,5 +3,5 @@
     "author": "Peter Salas",
     "description": "Load new extensions, share extensions with others, and manage loaded extensions.",
     "dependencies": ["catalog", "catalog-viewer"],
-    "includes": ["extension-manager.js"]
+    "includes": ["extension-manager.js", "extension-manager.css"]
 }
