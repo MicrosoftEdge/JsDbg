@@ -1,0 +1,4 @@
+{
+    "name": "urls",
+    "dependencies": ["dbgobject", "mshtml-helpers"]
+}

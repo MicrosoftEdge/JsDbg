@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>Extension Manager</title>
+    <script src="/jsdbg.js" data-include-dependencies></script>
+</head>
+<body>
+    <h3>Extension Manager</h3>
+    <p>Load an extension from a path or from the catalog of published extensions.</p>
+    <p>Any extensions you load will be loaded automatically in the future until you unload them.</p>
+    <div id="loader"><input id="extensionToLoad" type="text" placeholder="Load an extension..." />&nbsp;<button id="loadExtension">Load</button>&nbsp;<button id="loadPublishedExtension">Browse...</button></div>
+    <div id="headers">
+        <h4 class="displayed" data-section="recent">My Extensions</h4>
+        <h4 data-section="published">My Published Extensions</h4>
+        <h4 data-section="loaded">All Loaded Extensions</h4>
+    </div>
+
+    <div id="sections">
+        <div id="published"></div>
+        <div class="displayed" id="recent"></div>    
+        <div id="loaded"></div>
+    </div>
+</body>
+</html>

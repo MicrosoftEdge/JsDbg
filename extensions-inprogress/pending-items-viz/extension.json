@@ -1,0 +1,6 @@
+{
+    "name": "pending-items-viz",
+    "dependencies": ["dbgobject"],
+    "includes": ["pending-items-viz.js"],
+    "augments": ["dbgobject"]
+}

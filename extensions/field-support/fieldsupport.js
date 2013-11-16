@@ -294,21 +294,8 @@ var FieldSupport = (function() {
         }
 
         function codeStringToFunction(codeString) {
-            function handleException(ex) {
-                var errorSpan = document.createElement("span");
-                errorSpan.style.color = "red";
-                var errorMsg = ex.stack ? ex.toString() : JSON.stringify(ex);
-                errorSpan.innerHTML = "(" + errorMsg + ")";
-                return errorSpan;
-            }
-
             return function(e) { 
-                try {
-                    return Promise.as(this.InjectedFieldEvaluate("(function() { " + codeString + "\n/**/}).call(this, e)", e))
-                        .then(function(x) { return x; }, handleException);
-                } catch (ex) {
-                    return handleException(ex);
-                }
+                return this.InjectedFieldEvaluate("(function() { " + codeString + "\n/**/}).call(this, e)", e);
             };
         }
 
@@ -466,6 +453,13 @@ var FieldSupport = (function() {
             browse.addEventListener("click", function() {
                 CatalogViewer.Instantiate(
                     StoragePrefix + ".UserFields", 
+                    function(store, user) {
+                        var results = [];
+                        for (var key in store) {
+                            results.push({key: key, value: store[key], user: user});
+                        }
+                        return results;
+                    },
                     "Select fields to add:",
                     function(obj) { return [obj.user, obj.value.type, obj.value.name] },
                     function(selected) {
@@ -502,6 +496,14 @@ var FieldSupport = (function() {
         });
     }
 
+    function handleFieldException(ex) {
+        var errorSpan = document.createElement("span");
+        errorSpan.style.color = "red";
+        var errorMsg = ex.stack ? ex.toString() : JSON.stringify(ex);
+        errorSpan.innerHTML = "(" + errorMsg + ")";
+        return errorSpan;
+    }
+
     function renderFields(injectedObject, dbgObject, representation) {
         var fields = [];
         if (injectedObject.collectUserFields) {
@@ -511,10 +513,20 @@ var FieldSupport = (function() {
         return Promise
             // Create the representations...
             .join(fields.map(function(field) { 
-                if (field.async) {
-                    return field.html.call(dbgObject, representation);
-                } else {
-                    return JsDbg.RunSynchronously(field.html.bind(dbgObject, representation));
+                try {
+                    var result;
+                    if (field.async) {
+                        result = Promise.as(field.html.call(dbgObject, representation));
+                    } else {
+                        result = Promise.as(JsDbg.RunSynchronously(field.html.bind(dbgObject, representation)));
+                    }
+
+                    return result.then(
+                        function(x) { return x; }, 
+                        function (ex) { return handleFieldException(ex); }
+                    );
+                } catch (ex) {
+                    return handleFieldException(ex);
                 }
             }))
 

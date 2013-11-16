@@ -14,6 +14,8 @@
 
 var WideTree = (function() {
 
+    var currentOperation = Promise.as(true);
+
     var NODE_WIDTH = 75;
     var NODE_MARGIN_X = 10;
     var NODE_HEIGHT = 80;
@@ -28,30 +30,30 @@ var WideTree = (function() {
         this.requiredWidth = -1;
     }
 
-    DrawingTreeNode.instantiate = function(node, parent) {
+    DrawingTreeNode._instantiate = function(node, parent) {
         var drawingNode = new DrawingTreeNode(node, parent);
-        return drawingNode.realize()
+        return drawingNode._realize()
             .then(function() { return drawingNode; });
 
     }
 
-    DrawingTreeNode.prototype.realize = function() {
+    DrawingTreeNode.prototype._realize = function() {
         var that = this;
         return that.innerNode.getChildren()
             .then(function gotChildren(children) {
                 that.nodeChildren = children;
                 that.isExpanded = that.nodeChildren.length == 0;
 
-                return that.createRepresentation();
+                return that._createRepresentation();
             })
             .then(function representationCreated() {
                 if (that.innerNode.drawingTreeNodeIsExpanded) {
-                    return that.expand(false);
+                    return that._expand(false);
                 }
             });
     }
 
-    DrawingTreeNode.prototype.createRepresentation = function() {
+    DrawingTreeNode.prototype._createRepresentation = function() {
         var that = this;
         return this.innerNode.createRepresentation()
             .then(function(innerRepresentation) {
@@ -63,18 +65,24 @@ var WideTree = (function() {
                 that.representation.appendChild(childrenCount);
 
                 that.representation.addEventListener("click", function(e) {
-                    if (!that.isExpanded) {
-                        var clock = Timer.Start();
-                        that.expand(e.ctrlKey)
+                    if (e.target.tagName == "A") {
+                        return;
+                    }
+
+                    currentOperation = currentOperation.then(function() {
+                        if (!that.isExpanded) {
+                            var clock = Timer.Start();
+                            return that._expand(e.ctrlKey)
                             .then(function expanded() {
                                 console.log("Expansion took " + clock.Elapsed() + "s");
-                                that.invalidate();
+                                that._invalidate();
                                 console.log("Full Redraw took " + clock.Elapsed() + "s");
                             });
-                    } else if (e.ctrlKey) {
-                        that.collapse(false);
-                        that.invalidate();
-                    }
+                        } else if (e.ctrlKey) {
+                            that._collapse(false);
+                            that._invalidate();
+                        }
+                    })
                 });
                 that.representation.addEventListener("mousedown", function(e) {
                     if (e.ctrlKey) {
@@ -86,6 +94,12 @@ var WideTree = (function() {
 
     DrawingTreeNode.prototype.updateRepresentation = function() {
         var that = this;
+        currentOperation = currentOperation.then(function() { return that._updateRepresentation(); });
+        return currentOperation;
+    }
+
+    DrawingTreeNode.prototype._updateRepresentation = function() {
+        var that = this;
         if (this.representation != null && this.representation.parentNode) {
             var parent = this.representation.parentNode;
             var styles = [
@@ -96,27 +110,27 @@ var WideTree = (function() {
             var oldRepresentation = this.representation;
             this.representation = null;
 
-            this.createRepresentation()
-                .then(function recreatedRepresentation() {
-                    oldRepresentation.parentNode.removeChild(oldRepresentation);
-                    parent.appendChild(that.representation);
+            return this._createRepresentation()
+            .then(function recreatedRepresentation() {
+                oldRepresentation.parentNode.removeChild(oldRepresentation);
+                parent.appendChild(that.representation);
 
-                    that.representation.className = styles[0];
-                    that.representation.style.left = styles[1];
-                    that.representation.style.top = styles[2];
+                that.representation.className = styles[0];
+                that.representation.style.left = styles[1];
+                that.representation.style.top = styles[2];
 
-                    // Update the children as well.
-                    return Promise.map(that.children, function(child) { return child.updateRepresentation(); })
-                        // Undefine the result.
-                        .then(function() {});
-                });
+                // Update the children as well.
+                return Promise.map(that.children, function(child) { return child._updateRepresentation(); })
+                    // Undefine the result.
+                    .then(function() {});
+            });
         } else {
             // Update the children.
-            return Promise.map(that.children, function(child) { return child.updateRepresentation(); });
+            return Promise.map(that.children, function(child) { return child._updateRepresentation(); });
         }
     }
 
-    DrawingTreeNode.prototype.expand = function(recurse) {
+    DrawingTreeNode.prototype._expand = function(recurse) {
         var that = this;
 
         // Construct the children.
@@ -127,10 +141,10 @@ var WideTree = (function() {
         // Realize them and expand them as needed...
         return Promise
             .join(this.children.map(function(child) { 
-                return child.realize()
+                return child._realize()
                     .then(function() {
                         if (recurse) {
-                            return child.expand(true);
+                            return child._expand(true);
                         }
                     })
             }))
@@ -141,7 +155,7 @@ var WideTree = (function() {
             })
     }
 
-    DrawingTreeNode.prototype.collapse = function(removeSelf) {
+    DrawingTreeNode.prototype._collapse = function(removeSelf) {
         function remove(e) {
             if (e.parentNode) {
                 e.parentNode.removeChild(e);
@@ -149,33 +163,33 @@ var WideTree = (function() {
         }
         if (removeSelf) {
             remove(this.representation);
-            remove(this.getParentBar());
+            remove(this._getParentBar());
         }
-        remove(this.getChildBar());
-        remove(this.getHorizontalBar());
+        remove(this._getChildBar());
+        remove(this._getHorizontalBar());
 
-        this.children.map(function(x) { x.collapse(true); });
+        this.children.map(function(x) { x._collapse(true); });
         this.children = [];
         this.requiredWidth = 0;
         this.isExpanded = this.nodeChildren.length == 0;
         this.innerNode.drawingTreeNodeIsExpanded = this.isExpanded;
     }
 
-    DrawingTreeNode.prototype.invalidate = function() {
+    DrawingTreeNode.prototype._invalidate = function() {
         this.requiredWidth = -1;
         if (this.parent) {
-            this.parent.invalidate();
+            this.parent._invalidate();
         } else {
-            this.redraw();
+            this._redraw();
         }
     }
 
-    DrawingTreeNode.prototype.getRequiredWidth = function() {
+    DrawingTreeNode.prototype._getRequiredWidth = function() {
         if (this.requiredWidth == -1) {
             this.requiredWidth = 0;
 
             for (var i = 0; i < this.children.length; ++i) {
-                this.requiredWidth += this.children[i].getRequiredWidth();
+                this.requiredWidth += this.children[i]._getRequiredWidth();
             }
 
             if (this.children.length > 0) {
@@ -190,11 +204,11 @@ var WideTree = (function() {
         return this.requiredWidth;
     }
 
-    DrawingTreeNode.prototype.redraw = function() {
-        this.draw(this.lastContainer, this.lastViewport);
+    DrawingTreeNode.prototype._redraw = function() {
+        this._draw(this.lastContainer, this.lastViewport);
     }
 
-    DrawingTreeNode.prototype.getChildBar = function() {
+    DrawingTreeNode.prototype._getChildBar = function() {
         if (!this.childBar) {
             this.childBar = document.createElement("div");
             this.childBar.className = "vertical";
@@ -203,7 +217,7 @@ var WideTree = (function() {
         return this.childBar;
     }
 
-    DrawingTreeNode.prototype.getHorizontalBar = function() {
+    DrawingTreeNode.prototype._getHorizontalBar = function() {
         if (!this.horizontalBar) {
             this.horizontalBar = document.createElement("div");
             this.horizontalBar.className = "horizontal";
@@ -212,7 +226,7 @@ var WideTree = (function() {
         return this.horizontalBar;
     }
 
-    DrawingTreeNode.prototype.getParentBar = function() {
+    DrawingTreeNode.prototype._getParentBar = function() {
         if (!this.parentBar) {
             this.parentBar = document.createElement("div");
             this.parentBar.className = "vertical";
@@ -221,7 +235,7 @@ var WideTree = (function() {
         return this.parentBar;
     }
 
-    DrawingTreeNode.prototype.draw = function(container, viewport) {
+    DrawingTreeNode.prototype._draw = function(container, viewport) {
         this.lastContainer = container;
         this.lastViewport = {x:viewport.x, y:viewport.y};
 
@@ -236,12 +250,12 @@ var WideTree = (function() {
 
         var children = this.children;
         if (children.length > 0) {
-            var firstWidth = children[0].getRequiredWidth();
-            var lastWidth = children[children.length - 1].getRequiredWidth();
-            var totalWidth = this.getRequiredWidth();
+            var firstWidth = children[0]._getRequiredWidth();
+            var lastWidth = children[children.length - 1]._getRequiredWidth();
+            var totalWidth = this._getRequiredWidth();
 
             // draw the child bar for this guy.
-            var vertical = this.getChildBar();
+            var vertical = this._getChildBar();
             vertical.style.left = (viewport.x + NODE_WIDTH / 2) + "px";
             vertical.style.top = (viewport.y + NODE_HEIGHT) + "px";
             if (vertical.parentNode != container) {
@@ -250,7 +264,7 @@ var WideTree = (function() {
 
             // draw the horizontal bar. it spans from the middle of the first viewport to the middle of the last viewport.
             var horizontalBarWidth = totalWidth - lastWidth;
-            var horizontal = this.getHorizontalBar();
+            var horizontal = this._getHorizontalBar();
             horizontal.style.width =  horizontalBarWidth + "px";
             horizontal.style.left = (viewport.x + NODE_WIDTH / 2) + "px";
             horizontal.style.top = (viewport.y + NODE_HEIGHT + NODE_MARGIN_Y / 2) + "px";
@@ -262,17 +276,17 @@ var WideTree = (function() {
 
             // recurse into each of the children and draw a vertical.
             for (var i = 0; i < children.length; ++i) {
-                var requiredWidth = children[i].getRequiredWidth();
+                var requiredWidth = children[i]._getRequiredWidth();
 
                 // draw the parent bar for this child.
-                var childVertical = children[i].getParentBar();
+                var childVertical = children[i]._getParentBar();
                 childVertical.style.left = viewport.x + NODE_WIDTH / 2 + "px";
                 childVertical.style.top = (viewport.y - NODE_MARGIN_Y / 2) + "px";
                 if (childVertical.parentNode != container) {
                     container.appendChild(childVertical);
                 }
 
-                children[i].draw(container, {x:viewport.x, y:viewport.y});
+                children[i]._draw(container, {x:viewport.x, y:viewport.y});
                 viewport.x += requiredWidth + NODE_MARGIN_X;
             }
         }
@@ -280,13 +294,16 @@ var WideTree = (function() {
 
     return {
         BuildTree: function(container, root) {
-            return DrawingTreeNode.instantiate(root)
+            currentOperation = currentOperation.then(function() {
+                return DrawingTreeNode._instantiate(root)
                 .then(function(drawingRoot) {
                     container.innerHTML = "";
                     container.className = "node-container";
-                    drawingRoot.draw(container, {x: 0, y:0});
+                    drawingRoot._draw(container, {x: 0, y:0});
                     return drawingRoot;
                 });
+            });
+            return currentOperation;
         }
     }
 })();

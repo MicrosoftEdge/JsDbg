@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title></title>
+    <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
+    <script type="text/javascript">
+        function init() {
+            function getRestOfString(char, prefix) {
+                return char.val()
+                .then(function(v) {
+                    if (v == 0) {
+                        return prefix;
+                    } else {
+                        return getRestOfString(char.idx(1), prefix + String.fromCharCode(v));
+                    }
+                })
+            }
+
+            Promise.map(
+                MSHTML.GetCDocs(),
+                function(doc) {
+                    return doc.f("_pWindowPrimary._pCWindow._pMarkup._pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
+                    .then(
+                        function(str) {
+                            return getRestOfString(str, "");
+                        }, function(err) {
+                            return null;
+                        }
+                    )
+                }
+            )
+            .then(function(urls) {
+                document.body.innerHTML = urls.filter(function(x) { return x != null; }).join("<br>");
+            })
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+    <style type="text/css">
+        
+    </style>
+</head>
+<body>
+</body>
+</html>

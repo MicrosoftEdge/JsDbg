@@ -58,7 +58,8 @@ namespace JsDbg {
             set { this._augments = value; }
         }
 
-        public string Path {
+        [DataMember(IsRequired = false)]
+        public string path {
             get { return this._path; }
             set { this._path = value; }
         }
@@ -75,7 +76,7 @@ namespace JsDbg {
 
     public class WebServer : IDisposable {
 
-        private const string Version = "2013-10-16-01";
+        private const string Version = "2013-11-15-01";
 
         static public string LocalSupportDirectory
         {
@@ -182,7 +183,7 @@ namespace JsDbg {
                     });
 
                     if (context == null) {
-                        return;
+                        break;
                     }
 
                     this.NoteRequest(context.Request.Url);
@@ -270,7 +271,7 @@ namespace JsDbg {
             if (filePath == null) {
                 // Try the extensions.
                 foreach (JsDbgExtension extension in this.loadedExtensions) {
-                    filePath = this.GetFilePath(extension.Path, extension.name, filename);
+                    filePath = this.GetFilePath(extension.path, extension.name, filename);
                     if (filePath != null) {
                         break;
                     }
@@ -556,7 +557,11 @@ namespace JsDbg {
         }
 
         private async Task<string> ReadJsonArray<T>(ulong pointer, ulong length) where T : struct {
-            return ToJsonArray(await this.debugger.ReadArray<T>(pointer, length));
+            if (length == 0) {
+                return "[]";
+            } else {
+                return ToJsonArray(await this.debugger.ReadArray<T>(pointer, length));
+            }
         }
 
         private static string ToJsonNumber(object value) {
@@ -720,7 +725,7 @@ namespace JsDbg {
                 using (System.IO.FileStream file = System.IO.File.Open(jsonPath, System.IO.FileMode.Open, System.IO.FileAccess.Read)) {
                     extension = (JsDbgExtension)ExtensionSerializer.ReadObject(file);
                 }
-                extension.Path = extensionPath;
+                extension.path = extensionPath;
             } catch {
                 failedExtensions.Add(extensionPath);
                 extensionName = null;

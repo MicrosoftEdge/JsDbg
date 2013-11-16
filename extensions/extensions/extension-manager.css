@@ -1,0 +1,70 @@
+
+body {
+    padding:0 2em;
+}
+
+#extensionToLoad {
+    width:30em;
+}
+
+#headers, #loader {
+    white-space: nowrap;
+    margin:1em 0;
+}
+
+#headers > h4 {
+    display:inline;
+    margin-right:2em;
+    cursor:pointer;
+    color:#aaa;
+}
+
+#headers > h4:hover {
+    text-decoration: underline;
+}
+
+#headers > h4.displayed {
+    color:black;
+    text-decoration: none;
+    cursor:default;
+}
+
+#sections {
+    margin:1em;
+}
+
+#sections > div {
+    display:none;
+}
+
+#sections > div.displayed {
+    display:block;
+}
+
+.extension {
+    margin:0.7em;
+    padding:0.3em;
+}
+
+.extension:hover {
+    background:#f0f0f0;
+}
+
+.extension .name {
+    font-weight:600; 
+}
+
+.extension .path, .extension .author, .extension .dependencies, .extension .augments, .extension .headless {
+    display:inline;
+    font-size:0.8em;
+    margin-right:2em;
+}
+
+.extension .path {
+    display:block;
+}
+
+.extension button {
+    float:right;
+    margin:0.5em;
+}

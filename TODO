@@ -4,14 +4,3 @@
 - build integration
 
 BUGS
-
-- when using dt fallback for nested templates, there can be spaces in the type name
-    - dt mshtml!Layout::TableGridBox
-        ...
-        +0x098 rowLayoutsSortedByElement : SArray<SP<Layout::TableRowLayout> >
-
-- when quickly checking/unchecking fields, order can be lost
-
-FEEDBACK
-
-one feedback:  if a node has no box associateed with it, after an alert, maybe also need to clear the box 

@@ -162,13 +162,19 @@ var JsDbg = (function() {
         4 : "int",
         8 : "long"
     };
+    var unsignedNames = {
+        1 : "byte",
+        2 : "ushort",
+        4 : "uint",
+        8 : "ulong"
+    };
     var floatSizeNames = {
         4 : "float",
         8 : "double"
     };
 
-    function getSizeName(size, isFloat) {
-        var sizeIndex = isFloat ? floatSizeNames : sizeNames;
+    function getSizeName(size, isUnsigned, isFloat) {
+        var sizeIndex = isFloat ? floatSizeNames : isUnsigned ? unsignedNames : sizeNames;
         if (size in sizeIndex) {
             return sizeIndex[size];
         } else {
@@ -332,12 +338,13 @@ var JsDbg = (function() {
             arguments: [
                 {name:"pointer", type:"integer", description:"The pointer to the number."},
                 {name:"size", type:"integer", description:"The size of the number."},
+                {name:"isUnsigned", type:"bool", description:"A value that indicates if the number is unsigned."},
                 {name:"isFloat", type:"bool", description:"A value that indicates if the number is a floating point number."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        ReadNumber: function(pointer, size, isFloat, callback) {
-            var sizeName = getSizeName(size, isFloat);
+        ReadNumber: function(pointer, size, isUnsigned, isFloat, callback) {
+            var sizeName = getSizeName(size, isUnsigned, isFloat);
             if (sizeName == null) {
                 callback({ "error": "Invalid number size." });
                 return;
@@ -359,13 +366,14 @@ var JsDbg = (function() {
             arguments: [
                 {name:"pointer", type:"integer", description:"The pointer to the first number."},
                 {name:"size", type:"integer", description:"The size of each number."},
+                {name:"isUnsigned", type:"bool", description:"A value that indicates if the numbers are unsigned."},
                 {name:"isFloat", type:"bool", description:"A value that indicates if the numbers are floating point numbers."},
                 {name:"count", type:"integer", description:"The count of numbers to read."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        ReadArray: function(pointer, itemSize, isFloat, count, callback) {
-            var sizeName = getSizeName(itemSize, isFloat);
+        ReadArray: function(pointer, itemSize, isUnsigned, isFloat, count, callback) {
+            var sizeName = getSizeName(itemSize, isUnsigned, isFloat);
             if (sizeName == null) {
                 callback({ "error": "Invalid number size." });
                 return;

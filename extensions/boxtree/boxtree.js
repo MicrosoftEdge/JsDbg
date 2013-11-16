@@ -467,7 +467,7 @@ var BoxTree = (function() {
             html: function() {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("element.m_pT")).ptr()
                     .then(function(ptr) {
-                        return "<a href='/markuptree/#" + ptr + "' target='markuptree'>" + ptr + "</a>";
+                        return "<a href='/markuptree/#" + ptr + "'>" + ptr + "</a>";
                     })
             }
         },
@@ -530,7 +530,7 @@ var BoxTree = (function() {
                     // and return the HTML.
                     .then(function(dispNode) {
                         if (!dispNode.isNull()) {
-                            return "<a href='/displaytree/#" + dispNode.ptr() + "' target='displaytree'>" + dispNode.ptr() + "</a>" 
+                            return "<a href='/displaytree/#" + dispNode.ptr() + "'>" + dispNode.ptr() + "</a>" 
                         } else {
                             return "null";
                         }

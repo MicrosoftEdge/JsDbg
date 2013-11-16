@@ -92,7 +92,7 @@ namespace JsDbg {
                 {"void", new SBuiltInTypeNameAndSize("void", 0)},
                 {"bool", new SBuiltInTypeNameAndSize("char", 1)},
                 {"char", new SBuiltInTypeNameAndSize("char", 1)},
-                {"wchar", new SBuiltInTypeNameAndSize("short", 2)},
+                {"wchar", new SBuiltInTypeNameAndSize("unsigned short", 2)},
                 {"int1b", new SBuiltInTypeNameAndSize("char", 1)},
                 {"int2b", new SBuiltInTypeNameAndSize("short", 2)},
                 {"int4b", new SBuiltInTypeNameAndSize("int", 4)},
@@ -162,7 +162,16 @@ namespace JsDbg {
 
             if (tokens.Length > 1 && normalizedDescription == "class" || normalizedDescription == "struct" || normalizedDescription == "union" || normalizedDescription == "enum") {
                 // The next token is a proper typename.
-                typename = tokens[1].TrimEnd(',');
+                typename = tokens[1];
+                for (int tokenIndex = 2; tokenIndex < tokens.Length; ++tokenIndex) {
+                    if (tokens[tokenIndex].Length > 0 && tokens[tokenIndex][0] == '>') {
+                        // Continuation of the type name: e.g. SArray<SP<Layout::TableRowLayout> >
+                        typename += " " + tokens[tokenIndex];
+                    } else {
+                        break;
+                    }
+                }
+                typename = typename.TrimEnd(',');
                 bitField = new SBitFieldDescription();
 
                 if (tokens.Length > 5 && tokens[5] == "bytes") {

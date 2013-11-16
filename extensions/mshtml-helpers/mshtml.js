@@ -491,7 +491,7 @@ var MSHTML = (function() {
         },
         GetObjectFromDataCache: GetObjectFromDataCache,
 
-        _help_GetObjectFromDataGetObjectFromThreadstateCache: {
+        _help_GetObjectFromThreadstateCache: {
             description: "Gets an object from a CDataCache/CFormatCache on the threadstate by index.",
             arguments: [
                 {name:"object", type:"(Promise to a) DbgObject.", description: "The object whose threadstate will be retrieved."},

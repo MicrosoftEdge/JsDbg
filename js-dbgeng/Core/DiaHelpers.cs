@@ -63,8 +63,9 @@ namespace JsDbg {
             switch (type) {
             case BasicType.btVoid:
                 return "void";
-            case BasicType.btChar:
             case BasicType.btWChar:
+                return "unsigned short";
+            case BasicType.btChar:
             case BasicType.btLong:
             case BasicType.btInt:
                 if (size <= 1) {
