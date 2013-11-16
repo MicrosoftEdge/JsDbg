@@ -76,7 +76,7 @@ namespace JsDbg {
 
     public class WebServer : IDisposable {
 
-        private const string Version = "2013-10-16-01";
+        private const string Version = "2013-11-15-01";
 
         static public string LocalSupportDirectory
         {
