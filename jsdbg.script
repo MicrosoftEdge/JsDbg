@@ -1,4 +1,4 @@
-.block { as ${/v:JsDbgVersion} 2013-11-15-01}
+.block { as ${/v:JsDbgVersion} 2013-11-20-01}
 .block { as ${/v:JsDbgPath} \\iefs\users\psalas\jsdbg\${JsDbgVersion}\jsdbg.exe}
 .block { as ${/v:JsDbgStrPath} "\\\\iefs\\users\\psalas\\jsdbg\\${JsDbgVersion}\\jsdbg.exe"}
 
