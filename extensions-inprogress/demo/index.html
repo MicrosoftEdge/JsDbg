@@ -3,32 +3,48 @@
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <title>Dump Type</title>
-    <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
+    <script src="/jsdbg.js" data-include-dependencies></script>
     <script type="text/javascript">
-        function run() {
-            var args = document.querySelector("input").value.split(" ");
-            var dbgObject = new DbgObject("mshtml", args[0], parseInt(args[1]));
+        function dumpType() {
+            var input = document.querySelector("input").value;
+            var moduleAndType = input.split(" ")[0];
+            var address = parseInt(input.split(" ")[1]);
+            var module = moduleAndType.split("!")[0];
+            var type = moduleAndType.split("!")[1];
+
+            // Dump the type...
+            var dbgObject = new DbgObject(module, type, address);
             dbgObject.fields()
             .then(function(fields) {
-                return Promise.map(fields, function(field) { return field.value.desc(); })
-                .then(function(descs) {
-                    document.getElementById("results").innerHTML = fields.map(function(x, i) { return x.name + ": " + descs[i]; }).join("<br />");
+                Promise.map(fields, function(f) { return f.value.desc(); })
+                .then(function (descs) {
+                    var html = fields.map(function(f, i) { 
+                        if (f.value.hasDesc()) {
+                            return f.name + " = " + descs[i];
+                        } else {
+                            var newTypeName = f.value.module + "!" + f.value.typeDescription() + " " + f.value.ptr();
+                            return f.name + " = <a href='#' onclick='document.querySelector(\"input\").value = \"" + newTypeName + "\"; dumpType(); e.preventDefault();'>" + descs[i] + "</a>";
+                        }
+                    }).join("<br />");
+                    document.getElementById("results").innerHTML = html;
                 })
+                
             })
         }
     </script>
     <style type="text/css">
         body {
-            font:9pt Consolas;
+            font:10pt Consolas;
         }
 
         input {
-            width:400px;
+            width:500px;
         }
     </style>
 </head>
 <body>
-    <input type="text"> <button onclick="run()">Dump Type</button>
+    <input type="text" placeholder="e.g. mshtml!CFancyFormat 0xabcd1234">
+    <button onclick="dumpType()">Dump Type</button>
     <div id="results"></div>
 </body>
 </html>

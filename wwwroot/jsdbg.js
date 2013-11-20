@@ -272,6 +272,27 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/extensions", callback);
         },
 
+        _help_GetExtensionPath: {
+            description: "Gets the default extension path.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        GetExtensionPath: function(callback) {
+            jsonRequest("/jsdbg/extensionpath", callback, /*cache*/false, "GET");
+        },
+
+        _help_SetExtensionPath: {
+            description: "Sets the default extension path, unloads extensions from the previous path and loads the \"default\" extension from the new path.",
+            arguments: [
+                {name:"path", type:"string", description:"The new extension path."},
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        SetExtensionPath: function(path, callback) {
+            jsonRequest("/jsdbg/extensionpath", callback, /*cache*/false, "PUT", path);
+        },
+
         _help_LookupTypeSize: {
             description: "Looks up the size of the type.",
             arguments: [

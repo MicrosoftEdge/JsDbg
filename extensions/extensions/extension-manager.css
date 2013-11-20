@@ -3,7 +3,17 @@ body {
     padding:0 2em;
 }
 
-#extensionToLoad {
+.instructions {
+    background:#eee;
+    padding:0.7em;
+    margin:0.5em 0;
+}
+
+#path {
+    margin:0.5em 0.3em;
+}
+
+#extensionToLoad, #currentPath {
     width:30em;
 }
 
@@ -42,7 +52,7 @@ body {
 }
 
 .extension {
-    margin:0.7em;
+    margin:0.7em 0;
     padding:0.3em;
 }
 
