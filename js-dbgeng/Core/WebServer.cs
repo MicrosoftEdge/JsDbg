@@ -64,6 +64,11 @@ namespace JsDbg {
             set { this._path = value; }
         }
 
+        public bool WasLoadedRelativeToExtensionRoot {
+            get { return this._wasLoadedRelativeToExtensionRoot; }
+            set { this._wasLoadedRelativeToExtensionRoot = value; }
+        }
+
         private string _name;
         private string _author;
         private string _description;
@@ -72,11 +77,12 @@ namespace JsDbg {
         private string[] _augments;
         private string _path;
         private bool _headless;
+        private bool _wasLoadedRelativeToExtensionRoot;
     }
 
     public class WebServer : IDisposable {
 
-        private const string Version = "2013-11-15-01";
+        private const string Version = "2013-11-20-01";
 
         static public string LocalSupportDirectory
         {
@@ -354,6 +360,13 @@ namespace JsDbg {
                     this.ServePersistentStorage(segments, context);
                     break;
                 }
+            case "extensionpath":
+                if (context == null) {
+                    goto default;
+                } else {
+                    this.ServeDefaultExtensionPath(segments, context);
+                }
+                break;
             case "persistentstorageusers":
                 this.ServePersistentStorageUsers(query, respond, fail);
                 break;
@@ -697,10 +710,6 @@ namespace JsDbg {
         private static DataContractJsonSerializer ExtensionSerializer = new DataContractJsonSerializer(typeof(JsDbgExtension));
 
         public bool LoadExtension(string extensionPath) {
-            if (!System.IO.Path.IsPathRooted(extensionPath)) {
-                extensionPath = System.IO.Path.Combine(this.defaultExtensionPath, extensionPath);
-            }
-
             List<JsDbgExtension> extensionsToLoad = new List<JsDbgExtension>();
             List<string> failedExtensions = new List<string>();
             string name;
@@ -713,6 +722,12 @@ namespace JsDbg {
         }
 
         private bool LoadExtensionAndDependencies(string extensionPath, List<JsDbgExtension> extensionsToLoad, List<string> failedExtensions, out string extensionName) {
+            bool isRelativePath = false;
+            if (!System.IO.Path.IsPathRooted(extensionPath)) {
+                extensionPath = System.IO.Path.Combine(this.defaultExtensionPath, extensionPath);
+                isRelativePath = true;
+            }
+
             if (!System.IO.Directory.Exists(extensionPath)) {
                 failedExtensions.Add(extensionPath);
                 extensionName = null;
@@ -726,6 +741,7 @@ namespace JsDbg {
                     extension = (JsDbgExtension)ExtensionSerializer.ReadObject(file);
                 }
                 extension.path = extensionPath;
+                extension.WasLoadedRelativeToExtensionRoot = isRelativePath;
             } catch {
                 failedExtensions.Add(extensionPath);
                 extensionName = null;
@@ -754,12 +770,8 @@ namespace JsDbg {
             if (extension.dependencies != null) {
                 for (int i = 0; i < extension.dependencies.Length; ++i) {
                     string dependencyPath = extension.dependencies[i];
-                    string rootedDependencyPath = dependencyPath;
-                    if (!System.IO.Path.IsPathRooted(rootedDependencyPath)) {
-                        rootedDependencyPath = System.IO.Path.Combine(this.defaultExtensionPath, dependencyPath);
-                    }
                     string dependencyName;
-                    if (!this.LoadExtensionAndDependencies(rootedDependencyPath, extensionsToLoad, failedExtensions, out dependencyName)) {
+                    if (!this.LoadExtensionAndDependencies(dependencyPath, extensionsToLoad, failedExtensions, out dependencyName)) {
                         failedExtensions.Add(extensionPath);
                         return false;
                     }
@@ -832,6 +844,48 @@ namespace JsDbg {
                 string data = reader.ReadToEnd();
                 this.persistentStore.Set(data);
                 this.ServeUncachedString("{ \"success\": true }", context);
+            } else {
+                this.ServeFailure(context);
+            }
+        }
+
+        private void ServeDefaultExtensionPath(string[] segments, HttpListenerContext context) {
+            if (context.Request.HttpMethod == "GET") {
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(string));
+                using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                    serializer.WriteObject(memoryStream, this.defaultExtensionPath);
+                    string result = Encoding.Default.GetString(memoryStream.ToArray());
+                    this.ServeUncachedString(String.Format("{{ \"path\": {0} }}", result), context);
+                }
+            } else if (context.Request.HttpMethod == "PUT") {
+                System.IO.StreamReader reader = new System.IO.StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
+                string data = reader.ReadToEnd();
+
+                if (!Directory.Exists(data)) {
+                    this.ServeUncachedString("{ \"error\": \"The directory is inaccessible or does not exist.\" }", context);
+                } else {
+                    if (data != this.defaultExtensionPath) {
+                        // Unload every extension that was loaded relative to the extension root.
+                        for (int i = this.loadedExtensions.Count - 1; i >= 0; --i) {
+                            if (this.loadedExtensions[i].WasLoadedRelativeToExtensionRoot) {
+                                this.loadedExtensions.RemoveAt(i);
+                            }
+                        }
+
+                        this.defaultExtensionPath = data;
+
+                        // Reload the default extension if there is one at the new default path.
+                        this.LoadExtension("default");
+                    }
+
+                    // Serve the new extension path.
+                    DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(string));
+                    using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                        serializer.WriteObject(memoryStream, this.defaultExtensionPath);
+                        string result = Encoding.Default.GetString(memoryStream.ToArray());
+                        this.ServeUncachedString(String.Format("{{ \"path\": {0} }}", result), context);
+                    }
+                }
             } else {
                 this.ServeFailure(context);
             }

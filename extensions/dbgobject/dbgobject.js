@@ -524,6 +524,26 @@ var DbgObject = (function() {
         returns: "(A promise to) a number."
     }
     DbgObject.prototype.val = function() {
+        return this._val(this._isUnsigned);
+    }
+
+    DbgObject.prototype._help_uval = {
+        description: "Retrieves an unsigned scalar value held by a DbgObject.",
+        returns: "(A promise to) an unsigned number."
+    }
+    DbgObject.prototype.uval = function() {
+        return this._val(true);
+    }
+
+    DbgObject.prototype._help_sval = {
+        description: "Retrieves a signed scalar value held by a DbgObject.",
+        returns: "(A promise to) a signed number."
+    }
+    DbgObject.prototype.sval = function() {
+        return this._val(false);
+    }
+
+    DbgObject.prototype._val = function(unsigned) {
         if (this.isNull()) {
             throw new Error("You cannot get a value from a NULL object.");
         }

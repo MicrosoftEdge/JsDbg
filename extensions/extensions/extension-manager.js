@@ -93,6 +93,21 @@ function init() {
             reloadPublished();
         });
     });
+
+    JsDbg.GetExtensionPath(function(result) {
+        document.getElementById("currentPath").value = result.path;
+    })
+
+    document.getElementById("changePath").addEventListener("click", function() {
+        var newPath = document.getElementById("currentPath").value;
+        JsDbg.SetExtensionPath(newPath, function(result) {
+            if (result.error) {
+                alert(result.error);
+            } else {
+                reloadLoadedExtensions(reloadRecentlyLoaded);
+            }
+        });
+    });
 }
 
 function pushToCatalog() {
@@ -113,7 +128,7 @@ function pushToCatalog() {
 function reloadLoadedExtensions(callback) {
     // Get the loaded extensions.
     JsDbg.GetExtensions(function (result) {
-        var loadedDiv = document.getElementById("loaded");
+        var loadedDiv = document.getElementById("loadedContent");
         loadedDiv.innerHTML = "";
         result.extensions.sort(function (a, b) { return a.name.localeCompare(b.name); });
         result.extensions
@@ -209,7 +224,7 @@ function reloadRecentlyLoaded() {
     }).forEach(function(e) { recentDiv.appendChild(e); });
 
     if (recentExtensions.length == 0) {
-        recentDiv.innerHTML = "You haven't loaded any extensions.  Load a new extension above.";
+        recentDiv.innerHTML = "<div class=\"instructions\">You haven't loaded any extensions.  Load a new extension above.</div>";
     }
 }
 
@@ -227,7 +242,7 @@ function reloadPublished() {
     }).forEach(function(e) { publishedDiv.appendChild(e); });
 
     if (publishedExtensions.length == 0) {
-        publishedDiv.innerHTML = "You have not published any extensions.  To publish an extension:<ol><li>Put it on a share that other users can access.</li><li>Load the extension from the share (above).</li><li>From \"My Extensions\" select \"Publish\".</li></ol>";
+        publishedDiv.innerHTML = "<div class=\"instructions\">You have not published any extensions.  To publish an extension:<ol><li>Put it on a share that other users can access.</li><li>Load the extension from the share (above).</li><li>From \"My Extensions\" select \"Publish\".</li></ol></div>";
     }
 }
 
