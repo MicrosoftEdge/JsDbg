@@ -628,10 +628,6 @@ var DbgObject = (function() {
         arguments: [{name:"count", type:"int", description:"The number of items to retrieve.  Optional if the object represents an inline array."}]
     }
     DbgObject.prototype.array = function(count) {
-        if (this.isNull()) {
-            throw new Error("You cannot get an array from a NULL object.");
-        }
-
         var that = this;
         return checkSync(
             // "count" might be a promise...
@@ -641,6 +637,14 @@ var DbgObject = (function() {
             .then(function(count) {
                 if (count == undefined && that._isArray) {
                     count = that._arrayLength;
+                }
+
+                if (count == 0) {
+                    return [];
+                }
+
+                if (that.isNull()) {
+                    throw new Error("You cannot get an array from a NULL object.");
                 }
 
                 if (that.typename in scalarTypes || that.isPointer()) {
