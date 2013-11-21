@@ -678,7 +678,7 @@ var DbgObject = (function() {
     }
 
     DbgObject.prototype._help_ptr = {
-        description: "Returns a string representation of a pointer to the object.",
+        description: "Returns the address of the object, as a hexadecimal-formatted string or \"NULL\".",
         returns: "A string."
     }
     DbgObject.prototype.ptr = function() {
@@ -686,7 +686,7 @@ var DbgObject = (function() {
     }
 
     DbgObject.prototype._help_pointerValue = {
-        description: "Returns an integer representation of a pointer to the object.",
+        description: "Returns the address of the object, as an integer.",
         returns: "An integer."
     }
     DbgObject.prototype.pointerValue = function() {
