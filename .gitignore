@@ -2,3 +2,4 @@ js-dbgeng/*/obj/*
 js-dbgeng/*/bin/*
 *.user
 *.suo
+*.sublime-workspace

@@ -1,4 +1,4 @@
-!/extensions-inprogress/ && !/\.awk/ && !/TODO/ && !/\.gitignore/ && !/\.sh/ {
+!/extensions-inprogress/ && !/\.awk/ && !/TODO/ && !/\.gitignore/ && !/\.sh/ && !/\.sublime/ {
     gsub(/\//, "\\", $2)
     if ($1 == "M") {
         print "sd edit " $2;
