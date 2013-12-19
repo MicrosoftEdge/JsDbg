@@ -682,7 +682,18 @@ var DbgObject = (function() {
         returns: "A string."
     }
     DbgObject.prototype.ptr = function() {
-        return this._pointer == 0 ? "NULL" : "0x" + this._pointer.toString(16);
+        if (this._pointer == 0) {
+            return "NULL";
+        } else {
+            var hexString = this._pointer.toString(16);
+            var length = hexString.length;
+            var padding = "";
+            while (length < 8) {
+                padding += "0";
+                ++length;
+            }
+            return "0x" + padding + hexString;
+        }
     }
 
     DbgObject.prototype._help_pointerValue = {

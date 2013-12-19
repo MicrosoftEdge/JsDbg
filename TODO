@@ -3,4 +3,13 @@
 
 - build integration
 
+- Type descriptions should fall back on subclasses when the fully-derived class is unavailable
+- type navigator
+- hook for pointer expansion?
+- auto expansion
+
 BUGS
+
+- copy-paste from IE results in newlines being added - opened BLUE 568186
+- when hovering, also expand horizontally if needed?
+- C# errors should hex format addresses

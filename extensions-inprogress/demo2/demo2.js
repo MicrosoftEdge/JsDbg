@@ -21,3 +21,10 @@ DbgObject.AddTypeDescription("mshtml", function(type) { return type.match(/^SP<(
         return object.htmlTypeDescription() + " -> " + referencedObject.ptr();
     });
 });
+
+DbgObject.AddTypeDescription("mshtml", "Tree::AryTextBlockRuns", function(object) {
+    return object.f("_c").val()
+    .then(function (count) {
+        return object.f("_pv").as("Tree::TextBlockRun*[" + count + "]").desc();
+    })
+});

@@ -33,9 +33,9 @@ var MarkupTree = (function() {
 
     CTreeNode.prototype.getChildren = function() {
         if (this.childrenPromise == null)
-        {
+        {    
             var lastTreePos = this.treeNode.f("_tpEnd");
-            var childTreeNodes = [];
+            var children = [];
 
             var collectRemainingChildren = function(firstTreePosToConsider) {
                 return Promise
@@ -46,21 +46,24 @@ var MarkupTree = (function() {
                             // We haven't reached the end.  Check the flags to see if its a node begin and keep going...
                             return firstTreePosToConsider.f("_cElemLeftAndFlags").val()
 
-                                // If this TreePos is a node begin, note it and skip its children.
-                                .then(function (treePosFlags) {
-                                    if (treePosFlags & 0x01) {
-                                        // We are at a node begin.  Note the child and skip to the end of it.
-                                        var childTreeNode = firstTreePosToConsider.unembed("CTreeNode", "_tpBegin");
-                                        childTreeNodes.push(childTreeNode);
-                                        firstTreePosToConsider = childTreeNode.f("_tpEnd");
-                                    }
-                                })
+                            // If this TreePos is a node begin, note it and skip its children.
+                            .then(function (treePosFlags) {
+                                if (treePosFlags & 0x01) {
+                                    // We are at a node begin.  Note the child and skip to the end of it.
+                                    var childTreeNode = firstTreePosToConsider.unembed("CTreeNode", "_tpBegin");
+                                    children.push(childTreeNode);
+                                    firstTreePosToConsider = childTreeNode.f("_tpEnd");
+                                } else if (treePosFlags & 0x4) {
+                                    // We are at a text node.
+                                    children.push(firstTreePosToConsider.as("CTreeDataPos"));
+                                }
+                            })
 
-                                // Advance to the next one...
-                                .then(function() { return firstTreePosToConsider.f("_ptpThreadRight"); })
-                                
-                                // And collect the remaining children.
-                                .then(collectRemainingChildren);
+                            // Advance to the next one...
+                            .then(function() { return firstTreePosToConsider.f("_ptpThreadRight"); })
+                            
+                            // And collect the remaining children.
+                            .then(collectRemainingChildren);
                         }
                     });
             }
@@ -70,10 +73,16 @@ var MarkupTree = (function() {
             // Collect all the children as promised DbgObjects...
             this.childrenPromise = collectRemainingChildren(that.treeNode.f("_tpBegin").f("_ptpThreadRight"))
 
-                // And map them to our JS CTreeNode representation...
-                .then(function() {
-                    return Promise.map(Promise.join(childTreeNodes), function createCTreeNode(tn) { return new CTreeNode(tn); })
+            // And map them to our JS CTreeNode representation...
+            .then(function() {
+                return Promise.map(Promise.join(children), function (node) {
+                    if (node.typeDescription() == "CTreeNode") {
+                        return new CTreeNode(node); 
+                    } else {
+                        return new TextNode(node);
+                    }
                 })
+            })
         }
 
         return this.childrenPromise;
@@ -86,12 +95,27 @@ var MarkupTree = (function() {
         // Get the tag...
         return this.treeNode.f("_etag").as("ELEMENT_TAG").constant()
 
-            // And create the representation with fields.
-            .then(function(constant) {
-                var tag = constant.substr("ETAG_".length);
-                element.innerHTML = "<p>" + tag + "</p> <p>" + that.treeNode.ptr() + "</p> ";
-                return FieldSupport.RenderFields(that, that.treeNode, element);
-            })
+        // And create the representation with fields.
+        .then(function(constant) {
+            var tag = constant.substr("ETAG_".length);
+            element.innerHTML = "<p>&lt;" + tag + "&gt;</p> <p>" + that.treeNode.ptr() + "</p> ";
+            return FieldSupport.RenderFields(that, that.treeNode, element);
+        })
+    }
+
+    function TextNode(treeDataPos) {
+        this.treeDataPos = treeDataPos;
+    }
+
+    TextNode.prototype.getChildren = function() {
+        return Promise.as([]);
+    }
+
+    TextNode.prototype.createRepresentation = function() {
+        var element = document.createElement("div");
+
+        element.innerHTML = "<p>Text</p> <p>" + this.treeDataPos.ptr() + "</p> ";
+        return Promise.as(FieldSupport.RenderFields(this, this.treeDataPos, element));
     }
 
     var builtInFields = [
@@ -150,6 +174,15 @@ var MarkupTree = (function() {
                         return valueAndValidity[0] + (!valueAndValidity[1] ? " _fISFValid:0" : "");
                     })
             }
+        },
+        {
+            type: "Text",
+            fullname: "TextBlock",
+            shortname: "tb",
+            async:true,
+            html: function() {
+                return this.f("_pTextBlock").ptr();
+            }
         }
     ];
 
@@ -157,7 +190,7 @@ var MarkupTree = (function() {
         Name: "MarkupTree",
         BasicType: "CTreeNode",
         BuiltInFields: builtInFields,
-        TypeMap: { "CTreeNode": CTreeNode },
+        TypeMap: { "CTreeNode": CTreeNode, "Text":TextNode },
         Create: createMarkupTree,
         Roots: getRootCTreeNodes
     }
