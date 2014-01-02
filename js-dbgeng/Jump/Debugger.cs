@@ -185,7 +185,7 @@ namespace Sushraja.Jump
             memoryBytes.ReadAt(memoryContextTarget, (uint)size, memory, out dwRead, ref dwUnReadable);
             if (dwRead != size)
             {
-                throw new DebuggerException(String.Format("ReadArray: Failed read memory {0} - Size {0}", pointer, size));
+                throw new DebuggerException(String.Format("ReadArray: Failed read memory 0x{0:x8} - Size {0}", pointer, size));
             }
             return memory;
         }
@@ -224,7 +224,7 @@ namespace Sushraja.Jump
             memoryBytes.ReadAt(memoryContextTarget, (uint)size, memory, out dwRead, ref dwUnReadable);
             if (dwRead != size)
             {
-                throw new DebuggerException(String.Format("ReadArray: Failed read memory {0} - Size {0}", pointer, size));
+                throw new DebuggerException(String.Format("ReadArray: Failed read memory 0x{0:x8} - Size {0}", pointer, size));
             }
 
             System.Runtime.InteropServices.GCHandle gcHandle = System.Runtime.InteropServices.GCHandle.Alloc(memory, System.Runtime.InteropServices.GCHandleType.Pinned);

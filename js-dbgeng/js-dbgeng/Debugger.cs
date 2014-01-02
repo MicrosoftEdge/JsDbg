@@ -165,7 +165,7 @@ namespace JsDbg {
                     throw new Exception();
                 }
             } catch {
-                throw new DebuggerException(String.Format("Invalid symbol address: {0}", pointer.ToString()));
+                throw new DebuggerException(String.Format("Invalid symbol address: 0x{0:x8}", pointer));
             }
             return name;
         }
@@ -233,10 +233,10 @@ namespace JsDbg {
                     if (!retryAfterWaitingForBreak) {
                         retryAfterWaitingForBreak = true;
                     } else {
-                        throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                        throw new DebuggerException(String.Format("Invalid memory address: 0x{0:x8}", pointer));
                     }
                 } catch {
-                    throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                    throw new DebuggerException(String.Format("Invalid memory address: 0x{0:x8}", pointer));
                 }
 
                 await this.WaitForBreakIn();
@@ -255,10 +255,10 @@ namespace JsDbg {
                     if (!retryAfterWaitingForBreak) {
                         retryAfterWaitingForBreak = true;
                     } else {
-                        throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                        throw new DebuggerException(String.Format("Invalid memory address: 0x{0:x8}", pointer));
                     }
                 } catch {
-                    throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                    throw new DebuggerException(String.Format("Invalid memory address: 0x{0:x8}", pointer));
                 }
 
                 await this.WaitForBreakIn();
