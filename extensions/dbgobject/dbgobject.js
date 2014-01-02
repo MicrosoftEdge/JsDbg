@@ -769,11 +769,17 @@ var DbgObject = (function() {
             Promise.as(this.vtable())
             .then(function(vtableType) {
                 // Lookup the base class offset...
-                return jsDbgPromise(JsDbg.LookupBaseTypeOffset, that.module, vtableType, that.typename)
+                return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, vtableType)
 
                 // And shift/cast.
-                .then(function(result) {
-                    return new DbgObject(that.module, vtableType, that._pointer - result.offset);            
+                .then(function(baseTypes) {
+                    for (var i = 0; i < baseTypes.length; ++i) {
+                        if (baseTypes[i].type == that.typename) {
+                            return new DbgObject(that.module, vtableType, that._pointer - baseTypes[i].offset);
+                        }
+                    }
+
+                    throw new Error(that.typename + " is not a known base type of " + vtableType);
                 });
             })
         );

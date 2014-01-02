@@ -63,20 +63,11 @@ namespace Sushraja.Jump
             return type.Fields;
         }
 
-        public async Task<int> GetBaseClassOffset(string module, string typename, string baseTypename)
+        public async Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typename)
         {
             await this.WaitForBreakIn();
-
             JsDbg.Type type = this.typeCache.GetType(module, typename);
-            int offset;
-            if (type.GetBaseTypeOffset(baseTypename, out offset))
-            {
-                return offset;
-            }
-            else
-            {
-                throw new DebuggerException(String.Format("Invalid base type {0} of type {1}", baseTypename, typename));
-            }
+            return type.BaseTypes;
         }
         #endregion
 

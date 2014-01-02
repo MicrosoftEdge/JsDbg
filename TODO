@@ -1,8 +1,6 @@
 - box positions
 - windbg links
 
-- build integration
-
 - Type descriptions should fall back on subclasses when the fully-derived class is unavailable
 - type navigator
 - hook for pointer expansion?
