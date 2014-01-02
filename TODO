@@ -1,10 +1,10 @@
 - box positions
 - windbg links
 
-- Type descriptions should fall back on subclasses when the fully-derived class is unavailable
 - type navigator
 - hook for pointer expansion?
 - auto expansion
+- more aggressive symbol hunting when remote debugging?
 
 BUGS
 

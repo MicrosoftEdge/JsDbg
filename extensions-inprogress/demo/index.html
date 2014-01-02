@@ -18,13 +18,8 @@
             .then(function(fields) {
                 Promise.map(fields, function(f) { return f.value.desc(); })
                 .then(function (descs) {
-                    var html = fields.map(function(f, i) { 
-                        if (f.value.hasDesc()) {
-                            return f.name + " = " + descs[i];
-                        } else {
-                            var newTypeName = f.value.module + "!" + f.value.typeDescription() + " " + f.value.ptr();
-                            return f.name + " = <a href='#' onclick='document.querySelector(\"input\").value = \"" + newTypeName + "\"; dumpType(); e.preventDefault();'>" + descs[i] + "</a>";
-                        }
+                    var html = fields.map(function(f, i) {
+                        return f.name + " = " + descs[i];
                     }).join("<br />");
                     document.getElementById("results").innerHTML = html;
                 })

@@ -263,7 +263,6 @@ var MSHTML = (function() {
     var colorTypesWithInlineColorRef = {"CT_COLORREF":true, "CT_COLORREFA":true, "CT_POUND1":true, "CT_POUND2":true, "CT_POUND3":true, "CT_POUND4":true, "CT_POUND5":true, "CT_POUND6":true, "CT_RGBSPEC":true, "CT_RGBASPEC":true, "CT_HSLSPEC":true, "CT_HSLASPEC":true};
     var colorTypesWithAlpha = {"CT_COLORREFA": true, "CT_RGBASPEC": true, "CT_HSLASPEC": true};
 
-    DbgObject.AddTypeDescription("mshtml", "CColorValueNoInit", function(color) { return color.as("CColorValue").desc(); });
     DbgObject.AddTypeDescription("mshtml", "CColorValue", function(color) {
         return Promise.join([color.f("_ct").as("CColorValue::COLORTYPE").constant(), color.f("_crValue").val(), color.f("_flAlpha").val()])
         .then(function(colorTypeAndRefAndAlpha) {
@@ -326,7 +325,6 @@ var MSHTML = (function() {
         });
     });
 
-    DbgObject.AddTypeDescription("mshtml", "CUnitValueNoInit", function(color) { return color.as("CUnitValue").desc(); });
     DbgObject.AddTypeDescription("mshtml", "CUnitValue", function(unitval) {
         var SCALEMULT_NULLVALUE        = 0;
         var SCALEMULT_POINT            = 1000;
