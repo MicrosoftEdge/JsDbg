@@ -173,23 +173,39 @@ var DbgObject = (function() {
         }
     }
 
-    function getTypeDescriptionFunction(module, type) {
-        var key = module + "!" + type;
-        if (key in descriptionTypes) {
-            return descriptionTypes[key];
-        } else {
-            // Check the regex array.
-            for (var i = 0; i < descriptionFunctions.length; ++i) {
-                if (descriptionFunctions[i].module == module && descriptionFunctions[i].condition(type)) {
-                    return descriptionFunctions[i].description;
+    function getTypeDescriptionFunctionIncludingBaseTypes(module, type) {
+        function getTypeDescriptionFunction(module, type) {
+            var key = module + "!" + type;
+            if (key in descriptionTypes) {
+                return descriptionTypes[key];
+            } else {
+                // Check the regex array.
+                for (var i = 0; i < descriptionFunctions.length; ++i) {
+                    if (descriptionFunctions[i].module == module && descriptionFunctions[i].condition(type)) {
+                        return descriptionFunctions[i].description;
+                    }
                 }
             }
+
+            return null;
         }
 
-        return null;
-    }
-    function hasTypeDescription(dbgObject) {
-        return getTypeDescriptionFunction(dbgObject.module, dbgObject.typename) != null;
+        var natural = getTypeDescriptionFunction(module, type);
+        if (natural != null) {
+            return Promise.as(natural);
+        }
+
+        return jsDbgPromise(JsDbg.LookupBaseTypes, module, type)
+        .then(function (baseTypes) {
+            for (var i = 0; i < baseTypes.length; ++i) {
+                var desc = getTypeDescriptionFunction(module, baseTypes[i].type);
+                if (desc != null) {
+                    return desc;
+                }
+            }
+
+            return null;
+        });
     }
 
     var scalarTypes = [
@@ -215,53 +231,56 @@ var DbgObject = (function() {
     }, {});
 
     function getTypeDescription(dbgObject) {
-        var customDescription = getTypeDescriptionFunction(dbgObject.module, dbgObject.typename);
-        var hasCustomDescription = customDescription != null;
-        if (!hasCustomDescription) {
-            customDescription = function(x) { 
-                if (x.typename in scalarTypes) {
-                    return x.val(); 
-                } else if (x.isPointer()) {
-                    return Promise.as(x.deref())
-                    .then(function (dereferenced) {
-                        return dereferenced.htmlTypeDescription() + " " + dereferenced.ptr();
-                    });
-                } else {
-                    return x.htmlTypeDescription() + " " + x.ptr();
-                }
-            };
-        }
-        var description = function(obj) {
-            // Default description: first try to get val(), then just provide the pointer with the type.
-            return Promise.as(obj)
-            .then(customDescription)
-            .then(
-                function(x) { return x;},
-                function(err) {
-                    if (hasCustomDescription) {
-                        // The custom description provider had an error.
-                        return obj.typename + "???";
+        return getTypeDescriptionFunctionIncludingBaseTypes(dbgObject.module, dbgObject.typename)
+        .then(function (customDescription) {
+            var hasCustomDescription = customDescription != null;
+            if (!hasCustomDescription) {
+                customDescription = function(x) { 
+                    // Default description: first try to get val(), then just provide the pointer with the type.
+                    if (x.typename in scalarTypes) {
+                        return x.val(); 
+                    } else if (x.isPointer()) {
+                        return Promise.as(x.deref())
+                        .then(function (dereferenced) {
+                            return dereferenced.htmlTypeDescription() + " " + dereferenced.ptr();
+                        });
                     } else {
-                        return obj.typename + " " + obj.ptr();
+                        return x.htmlTypeDescription() + " " + x.ptr();
                     }
-                }
-            ); 
-        }
-
-        if (dbgObject.isArray()) {
-            var length = dbgObject.arrayLength();
-            var elements = [];
-            for (var i = 0; i < length; ++i) {
-                elements.push(dbgObject.idx(i));
+                };
             }
 
-            return Promise.map(Promise.join(elements), description)
-            .then(function(descriptions) {
-                return "[" + descriptions.map(function(d) { return "<div style=\"display:inline-block;\">" + d + "</div>"; }).join(", ") + "]";
-            })
-        } else {
-            return description(dbgObject);
-        }
+            var description = function(obj) {
+                return Promise.as(obj)
+                .then(customDescription)
+                .then(
+                    function(x) { return x;},
+                    function(err) {
+                        if (hasCustomDescription) {
+                            // The custom description provider had an error.
+                            return obj.typename + "???";
+                        } else {
+                            return obj.typename + " " + obj.ptr();
+                        }
+                    }
+                ); 
+            }
+
+            if (dbgObject.isArray()) {
+                var length = dbgObject.arrayLength();
+                var elements = [];
+                for (var i = 0; i < length; ++i) {
+                    elements.push(dbgObject.idx(i));
+                }
+
+                return Promise.map(Promise.join(elements), description)
+                .then(function(descriptions) {
+                    return "[" + descriptions.map(function(d) { return "<div style=\"display:inline-block;\">" + d + "</div>"; }).join(", ") + "]";
+                })
+            } else {
+                return description(dbgObject);
+            }
+        });
     }
 
     DbgObject._help_global = {
@@ -597,10 +616,15 @@ var DbgObject = (function() {
 
     DbgObject.prototype._help_hasDesc = {
         description: "Indicates if the DbgObject has a type-specific <code>desc()</code> representation.",
-        returns: "A bool."
+        returns: "(A promise to a) bool."
     }
     DbgObject.prototype.hasDesc = function() {
-        return hasTypeDescription(this);
+        return checkSync(
+            getTypeDescriptionFunctionIncludingBaseTypes(this.module, this.typename)
+            .then(function (result) {
+                return result != null;
+            })
+        );
     }
 
     DbgObject.prototype._help_desc = {
@@ -678,15 +702,26 @@ var DbgObject = (function() {
     }
 
     DbgObject.prototype._help_ptr = {
-        description: "Returns a string representation of a pointer to the object.",
+        description: "Returns the address of the object, as a hexadecimal-formatted string or \"NULL\".",
         returns: "A string."
     }
     DbgObject.prototype.ptr = function() {
-        return this._pointer == 0 ? "NULL" : "0x" + this._pointer.toString(16);
+        if (this._pointer == 0) {
+            return "NULL";
+        } else {
+            var hexString = this._pointer.toString(16);
+            var length = hexString.length;
+            var padding = "";
+            while (length < 8) {
+                padding += "0";
+                ++length;
+            }
+            return "0x" + padding + hexString;
+        }
     }
 
     DbgObject.prototype._help_pointerValue = {
-        description: "Returns an integer representation of a pointer to the object.",
+        description: "Returns the address of the object, as an integer.",
         returns: "An integer."
     }
     DbgObject.prototype.pointerValue = function() {
@@ -758,11 +793,16 @@ var DbgObject = (function() {
             Promise.as(this.vtable())
             .then(function(vtableType) {
                 // Lookup the base class offset...
-                return jsDbgPromise(JsDbg.LookupBaseTypeOffset, that.module, vtableType, that.typename)
+                return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, vtableType)
 
                 // And shift/cast.
-                .then(function(result) {
-                    return new DbgObject(that.module, vtableType, that._pointer - result.offset);            
+                .then(function(baseTypes) {
+                    for (var i = 0; i < baseTypes.length; ++i) {
+                        if (baseTypes[i].type == that.typename) {
+                            return new DbgObject(that.module, vtableType, that._pointer - baseTypes[i].offset);
+                        }
+                    }
+                    throw new Error(that.typename + " is not a known base type of " + vtableType);
                 });
             })
         );

@@ -89,23 +89,27 @@
                         }
 
                         function fieldToArrayExpansion(field) {
-                            if (!field.value.hasDesc() && field.value.isArray()) {
-                                var values = generateArray(field.value.idx.bind(field.value), field.value.arrayLength());
-                                return Promise
-                                    .join(values)
-                                    .then(function(values) {
-                                        return values.map(function(value, i) {
-                                            return {
-                                                "name": field.name + "[" + i + "]",
-                                                "offset": field.offset + (parseInt(value.ptr()) - parseInt(field.value.ptr())),
-                                                "value": value,
-                                                "size": field.size / field.value.arrayLength()
-                                            };
-                                        })
-                                    });
-                            } else {
-                                return [field];
-                            }
+                            return field.value.hasDesc()
+                            .then(function (hasDescription) {
+                                console.log(field.value.typename + " " + hasDescription);
+                                if (!hasDescription && field.value.isArray()) {
+                                    var values = generateArray(field.value.idx.bind(field.value), field.value.arrayLength());
+                                    return Promise
+                                        .join(values)
+                                        .then(function(values) {
+                                            return values.map(function(value, i) {
+                                                return {
+                                                    "name": field.name + "[" + i + "]",
+                                                    "offset": field.offset + (parseInt(value.ptr()) - parseInt(field.value.ptr())),
+                                                    "value": value,
+                                                    "size": field.size / field.value.arrayLength()
+                                                };
+                                            })
+                                        });
+                                } else {
+                                    return [field];
+                                }
+                            });
                         }
 
                         function expandArrays(fields) {
@@ -120,24 +124,32 @@
                             field.name = prefix + (prefix.length > 0 ? "." : "") + field.name;
                             clock.Mark("expanding " + field.name);
 
-                            if (field.value.isPointer() || field.value.hasDesc()) {
+                            if (field.value.isPointer()) {
                                 return [field];
                             }
-                            
-                            return field.value.fields()
-                                    .then(expandArrays)
-                                    .then(function (fields) {
-                                        return Promise.map(fields, function(innerField) { return recursivelyExpandFieldsHelper(innerField, field.offset, field.name); })
-                                    }, function(error) {
+
+                            return field.value.hasDesc()
+                            .then(function (hasDescription) {
+                                if (hasDescription) {
+                                    // If the type has a type description, don't drill in.
+                                    return [field];
+                                }
+
+                                return field.value.fields()
+                                .then(expandArrays)
+                                .then(function (fields) {
+                                    return Promise.map(fields, function(innerField) { return recursivelyExpandFieldsHelper(innerField, field.offset, field.name); })
+                                }, function(error) {
+                                    return [field];
+                                })
+                                .then(function (fields) {
+                                    if (fields.length == 0) {
                                         return [field];
-                                    })
-                                    .then(function (fields) {
-                                        if (fields.length == 0) {
-                                            return [field];
-                                        } else {
-                                            return fields;
-                                        }
-                                    });
+                                    } else {
+                                        return fields;
+                                    }
+                                });
+                            });
                         }
 
                         function recursivelyExpandFields(fields) {

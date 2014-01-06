@@ -15,16 +15,30 @@ var TreeInspector = (function() {
             function createAndRender() {
                 if (lastRenderedPointer != pointerField.value) {
                     // Don't re-render if we've already rendered.
-                    lastRenderedPointer = pointerField.value;
-                    Promise.as(namespace.Create(parseInt(pointerField.value)))
-                        .then(function(createdRoot) {
-                            treeRoot = createdRoot;
-                            return render();
-                        })
-                        .then(function() {}, function(error) {
-                            // Some JS error occurred.
-                            console.log("An error occurred: " + error);
-                        });
+                    Promise.as(namespace.Create(parseInt(pointerField.value, 16)))
+                    .then(function(createdRoot) {
+                        lastRenderedPointer = pointerField.value;
+                        treeRoot = createdRoot;
+                        return render();
+                    })
+                    .then(function() {}, function(error) {
+                        // Some JS error occurred.
+                        window.location.hash = "";
+                        lastRenderedPointer = null;
+                        treeRoot = null;
+                        treeContainer.className = "invalid-tree";
+                        var errorMessage = "<h3>An error occurred loading the tree.</h3>";
+                        var suggestions = [
+                            "Make sure the " + namespace.BasicType + " address (0x" + parseInt(pointerField.value, 16).toString(16)  + ") is correct.",
+                            "If you're using an iDNA trace, try indexing the trace first.",
+                            "Try refreshing the page.",
+                            "You can also try to debug the exception using the F12 tools.",
+                            "<a href=\"mailto:psalas&subject=JsDbg%20Help\">Need help?</a>"
+                        ]
+                        var errorSuggestions = "<ul>" + suggestions.map(function(x) { return "<li>" + x + "</li>"; }).join("") + "</ul>";
+                        var errorObject = "<code>" + JSON.stringify(error, undefined, 4).replace(/\\n/g, "\n") + "</code>";
+                        treeContainer.innerHTML = [errorMessage, errorSuggestions, errorObject].join("\n");
+                    });
                 }
             }
 
@@ -180,7 +194,7 @@ var TreeInspector = (function() {
             window.addEventListener("hashchange", unpackHash);
 
             // Load the roots to start, and try to unpack the hash.
-            loadRoots(!window.location.hash);
+            loadRoots(!window.location.hash || window.location.hash.length <= 1);
             unpackHash();
 
             FieldSupport.Initialize(

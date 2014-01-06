@@ -14,7 +14,17 @@
 
 var WideTree = (function() {
 
-    var currentOperation = Promise.as(true);
+    var enqueueWork = (function() {
+        var currentOperation = Promise.as(true);
+        return function enqueueWork(work) {
+            var workPromise = currentOperation.then(work);
+            // currentOperation is not allowed to be in a failed state, so trivially handle the error.
+            currentOperation = workPromise.then(function() {}, function(error) {})
+
+            // However, the caller might want to see the error, so hand them a promise that might fail.
+            return workPromise;
+        }
+    })();
 
     var NODE_WIDTH = 75;
     var NODE_MARGIN_X = 10;
@@ -69,7 +79,7 @@ var WideTree = (function() {
                         return;
                     }
 
-                    currentOperation = currentOperation.then(function() {
+                    enqueueWork(function() {
                         if (!that.isExpanded) {
                             var clock = Timer.Start();
                             return that._expand(e.ctrlKey)
@@ -94,8 +104,7 @@ var WideTree = (function() {
 
     DrawingTreeNode.prototype.updateRepresentation = function() {
         var that = this;
-        currentOperation = currentOperation.then(function() { return that._updateRepresentation(); });
-        return currentOperation;
+        return enqueueWork(function() { return that._updateRepresentation(); });
     }
 
     DrawingTreeNode.prototype._updateRepresentation = function() {
@@ -294,7 +303,7 @@ var WideTree = (function() {
 
     return {
         BuildTree: function(container, root) {
-            currentOperation = currentOperation.then(function() {
+            return enqueueWork(function() {
                 return DrawingTreeNode._instantiate(root)
                 .then(function(drawingRoot) {
                     container.innerHTML = "";
@@ -303,7 +312,6 @@ var WideTree = (function() {
                     return drawingRoot;
                 });
             });
-            return currentOperation;
         }
     }
 })();

@@ -63,20 +63,11 @@ namespace Sushraja.Jump
             return type.Fields;
         }
 
-        public async Task<int> GetBaseClassOffset(string module, string typename, string baseTypename)
+        public async Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typename)
         {
             await this.WaitForBreakIn();
-
             JsDbg.Type type = this.typeCache.GetType(module, typename);
-            int offset;
-            if (type.GetBaseTypeOffset(baseTypename, out offset))
-            {
-                return offset;
-            }
-            else
-            {
-                throw new DebuggerException(String.Format("Invalid base type {0} of type {1}", baseTypename, typename));
-            }
+            return type.BaseTypes;
         }
         #endregion
 
@@ -194,7 +185,7 @@ namespace Sushraja.Jump
             memoryBytes.ReadAt(memoryContextTarget, (uint)size, memory, out dwRead, ref dwUnReadable);
             if (dwRead != size)
             {
-                throw new DebuggerException(String.Format("ReadArray: Failed read memory {0} - Size {0}", pointer, size));
+                throw new DebuggerException(String.Format("ReadArray: Failed read memory 0x{0:x8} - Size {0}", pointer, size));
             }
             return memory;
         }
@@ -233,7 +224,7 @@ namespace Sushraja.Jump
             memoryBytes.ReadAt(memoryContextTarget, (uint)size, memory, out dwRead, ref dwUnReadable);
             if (dwRead != size)
             {
-                throw new DebuggerException(String.Format("ReadArray: Failed read memory {0} - Size {0}", pointer, size));
+                throw new DebuggerException(String.Format("ReadArray: Failed read memory 0x{0:x8} - Size {0}", pointer, size));
             }
 
             System.Runtime.InteropServices.GCHandle gcHandle = System.Runtime.InteropServices.GCHandle.Alloc(memory, System.Runtime.InteropServices.GCHandleType.Pinned);

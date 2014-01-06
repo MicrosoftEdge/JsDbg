@@ -373,13 +373,19 @@ var FieldSupport = (function() {
         var container = document.createElement("div");
         container.className = "field-selection";
 
+        if (window.sessionStorage.getItem(StoragePrefix + ".UserFieldsCollapsed") == "true") {
+            container.className = container.className + " collapsed";
+        }
+
         var showHide = document.createElement("div");
         showHide.className = "show-hide button";
         var isCollapsed = false;
         showHide.addEventListener("click", function() {
             if (isCollapsed) {
+                window.sessionStorage.setItem(StoragePrefix + ".UserFieldsCollapsed", "false");
                 container.className = "field-selection";
             } else {
+                window.sessionStorage.setItem(StoragePrefix + ".UserFieldsCollapsed", "true");
                 container.className = "field-selection collapsed";
             }
             isCollapsed = !isCollapsed;
@@ -425,7 +431,7 @@ var FieldSupport = (function() {
 
             var addedFieldCounter = 0;
             addNew.addEventListener("click", function() {
-                UserFields.push({
+                var newField = {
                     type: DefaultTypeName,
                     enabled:true,
                     id: ++uniqueId,
@@ -434,13 +440,15 @@ var FieldSupport = (function() {
                     localstorageid: (new Date() - 0) + "-" + Math.round(Math.random() * 1000000),
                     shortname: "f" + addedFieldCounter,
                     html: function() { return "_"; }
-                });
+                };
+                UserFields.push(newField);
 
-                var fieldUI = buildFieldUI(UserFields[UserFields.length - 1]);
+                var fieldUI = buildFieldUI(newField);
                 fieldUI.className += " editing";
                 fields.appendChild(fieldUI);
 
-                saveField(UserFields[UserFields.length - 1], fieldUI);
+                saveField(newField, fieldUI);
+                window.sessionStorage.setItem(getSessionStorageKey(newField), newField.enabled);
 
                 refreshTreeUIAfterFieldChange();
             });

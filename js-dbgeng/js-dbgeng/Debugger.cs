@@ -36,10 +36,10 @@ namespace JsDbg {
         public async Task Run()
         {
             this.didShutdown = false;
+            bool isRestarting = false;
 
             System.EventHandler<EngineStateChangeEventArgs> engineStateChanged = (object sender, EngineStateChangeEventArgs args) => {
                 if (args.Change == EngineStateChange.EffectiveProcessor) {
-
                     Processor processorType = (Processor)args.Argument;
                     if ((processorType == Processor.Amd64) == !(this.isPointer64Bit)) {
                         // Invalidate the type cache.
@@ -49,9 +49,16 @@ namespace JsDbg {
                     }
                 } else if (args.Change == EngineStateChange.ExecutionStatus) {
                     DebugStatus executionStatus = (DebugStatus)(args.Argument & (~(ulong)DebugStatus.InsideWait));
-                    if (executionStatus == DebugStatus.NoDebuggee) {
-                        Console.Out.WriteLine("Debugger has no target, shutting down.");
-                        Task shutdownTask = this.Shutdown();
+                    if (executionStatus == DebugStatus.RestartTarget) {
+                        isRestarting = true;
+                    } else if (executionStatus == DebugStatus.NoDebuggee) {
+                        if (isRestarting) {
+                            isRestarting = false;
+                            Console.Out.WriteLine("Process is restarting.");
+                        } else {
+                            Console.Out.WriteLine("Debugger has no target, shutting down.");
+                            Task shutdownTask = this.Shutdown();
+                        }
                     }
                 }
             };
@@ -110,16 +117,10 @@ namespace JsDbg {
             return type.Fields;
         }
 
-        public async Task<int> GetBaseClassOffset(string module, string typename, string baseTypename) {
+        public async Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typename) {
             await this.WaitForBreakIn();
-
             Type type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename);
-            int offset;
-            if (type.GetBaseTypeOffset(baseTypename, out offset)) {
-                return offset;
-            } else {
-                throw new DebuggerException(String.Format("Invalid base type {0} of type {1}", baseTypename, typename));
-            }
+            return type.BaseTypes;
         }
 
         public async Task<string> LookupConstantName(string module, string type, ulong constant) {
@@ -164,7 +165,7 @@ namespace JsDbg {
                     throw new Exception();
                 }
             } catch {
-                throw new DebuggerException(String.Format("Invalid symbol address: {0}", pointer.ToString()));
+                throw new DebuggerException(String.Format("Invalid symbol address: 0x{0:x8}", pointer));
             }
             return name;
         }
@@ -232,10 +233,10 @@ namespace JsDbg {
                     if (!retryAfterWaitingForBreak) {
                         retryAfterWaitingForBreak = true;
                     } else {
-                        throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                        throw new DebuggerException(String.Format("Invalid memory address: 0x{0:x8}", pointer));
                     }
                 } catch {
-                    throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                    throw new DebuggerException(String.Format("Invalid memory address: 0x{0:x8}", pointer));
                 }
 
                 await this.WaitForBreakIn();
@@ -254,10 +255,10 @@ namespace JsDbg {
                     if (!retryAfterWaitingForBreak) {
                         retryAfterWaitingForBreak = true;
                     } else {
-                        throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                        throw new DebuggerException(String.Format("Invalid memory address: 0x{0:x8}", pointer));
                     }
                 } catch {
-                    throw new DebuggerException(String.Format("Invalid memory address: {0}", pointer.ToString()));
+                    throw new DebuggerException(String.Format("Invalid memory address: 0x{0:x8}", pointer));
                 }
 
                 await this.WaitForBreakIn();

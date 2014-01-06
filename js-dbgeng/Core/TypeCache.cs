@@ -103,32 +103,32 @@ namespace JsDbg
             return false;
         }
 
-        public bool GetBaseTypeOffset(string baseName, out int offset) {
-            if (this.baseTypes != null) {
-                foreach (SBaseType baseType in this.baseTypes) {
-                    if (baseType.Type.Name == baseName) {
-                        // Our base type matches.
-                        offset = baseType.Offset;
-                        return true;
-                    } else if (baseType.Type.GetBaseTypeOffset(baseName, out offset)) {
-                        // Our base type has a base type that matches.
-                        offset = baseType.Offset + offset;
-                        return true;
+        public IEnumerable<SBaseTypeResult> BaseTypes {
+            get {
+                if (this.baseTypes != null) {
+                    foreach (SBaseType baseType in this.baseTypes) {
+                        SBaseTypeResult result = new SBaseTypeResult();
+                        result.TypeName = baseType.Type.Name;
+                        result.Offset = baseType.Offset;
+                        yield return result;
+
+                        foreach (SBaseTypeResult nestedBaseType in baseType.Type.BaseTypes) {
+                            SBaseTypeResult nestedBaseTypeResult = nestedBaseType;
+                            nestedBaseTypeResult.Offset += baseType.Offset;
+                            yield return nestedBaseTypeResult;
+                        }
+                    }
+                } else if (this.baseTypeNames != null) {
+                    foreach (SBaseTypeName baseTypeName in this.baseTypeNames) {
+                        SBaseTypeResult result = new SBaseTypeResult();
+                        result.TypeName = baseTypeName.Name;
+                        result.Offset = baseTypeName.Offset;
+                        yield return result;
                     }
                 }
-            }
 
-            if (this.baseTypeNames != null) {
-                foreach (SBaseTypeName baseTypeName in this.baseTypeNames) {
-                    if (baseTypeName.Name == baseName) {
-                        offset = baseTypeName.Offset;
-                        return true;
-                    }
-                }
+                yield break;
             }
-
-            offset = 0;
-            return false;
         }
         
         public IEnumerable<SFieldResult> Fields {

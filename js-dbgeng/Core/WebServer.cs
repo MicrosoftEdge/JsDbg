@@ -82,7 +82,7 @@ namespace JsDbg {
 
     public class WebServer : IDisposable {
 
-        private const string Version = "2013-11-20-01";
+        private const string Version = "2014-01-06-01";
 
         static public string LocalSupportDirectory
         {
@@ -337,8 +337,8 @@ namespace JsDbg {
             case "constantname":
                 this.ServeConstantName(query, respond, fail);
                 break;
-            case "basetypeoffset":
-                this.ServeBaseTypeOffset(query, respond, fail);
+            case "basetypes":
+                this.ServeBaseTypes(query, respond, fail);
                 break;
             case "typefields":
                 this.ServeTypeFields(query, respond, fail);
@@ -423,12 +423,11 @@ namespace JsDbg {
             respond(responseString);
         }
 
-        private async void ServeBaseTypeOffset(NameValueCollection query, Action<string> respond, Action fail) {
+        private async void ServeBaseTypes(NameValueCollection query, Action<string> respond, Action fail) {
             string module = query["module"];
             string type = query["type"];
-            string baseType = query["basetype"];
 
-            if (module == null || baseType == null || type == null) {
+            if (module == null || type == null) {
                 fail();
                 return;
             }
@@ -436,8 +435,13 @@ namespace JsDbg {
             string responseString;
 
             try {
-                int offset = await this.debugger.GetBaseClassOffset(module, type, baseType);
-                responseString = String.Format("{{ \"offset\": {0} }}", offset);
+                IEnumerable<SBaseTypeResult> baseTypes = await this.debugger.GetBaseTypes(module, type);
+
+                List<string> jsonFragments = new List<string>();
+                foreach (SBaseTypeResult baseType in baseTypes) {
+                    jsonFragments.Add(String.Format("{{ \"type\": \"{0}\", \"offset\": {1} }}", baseType.TypeName, baseType.Offset));
+                }
+                responseString = "[" + String.Join(",", jsonFragments) + "]";
             } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }

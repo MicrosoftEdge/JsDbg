@@ -330,17 +330,16 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/typefields?module=" + esc(module) + "&type=" + esc(type), callback, /*cache*/true);
         },
 
-        _help_LookupBaseTypeOffset: {
-            description: "Looks up the offset of a base type relative to a type.",
+        _help_LookupBaseTypes: {
+            description: "Looks up the names and offsets of the base types of a type.",
             arguments: [
                 {name:"module", type:"string", description:"The module of the type."},
                 {name:"type", type:"string", description:"The type."},
-                {name:"baseType", type:"string", description:"The base type."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        LookupBaseTypeOffset: function(module, type, baseType, callback) {
-            jsonRequest("/jsdbg/basetypeoffset?module=" + esc(module) + "&type=" + esc(type) + "&basetype=" + esc(baseType), callback, /*cache*/true);
+        LookupBaseTypes: function(module, type, callback) {
+            jsonRequest("/jsdbg/basetypes?module=" + esc(module) + "&type=" + esc(type), callback, /*cache*/true);
         },
 
         _help_ReadPointer: {

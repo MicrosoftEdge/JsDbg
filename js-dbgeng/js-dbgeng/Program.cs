@@ -13,7 +13,7 @@ namespace JsDbg {
             string remoteString;
             if (args.Length < 1 || args[0] == "/ask") {
                 // A debugger string wasn't specified.  Prompt for a debug string instead.
-                Console.Write("Please specify a debug remote string (e.g. npipe:Pipe=foo;Server=bar):");
+                Console.Write("Please specify a debug remote string (e.g. npipe:Pipe=foo,Server=bar):");
                 remoteString = Console.ReadLine().Trim();
 
                 if (remoteString.StartsWith("-remote ")) {
@@ -75,7 +75,7 @@ namespace JsDbg {
                     // The web server ending kills the debugger and completes our SynchronizationContext which allows us to exit.
                     webServer.Listen().ContinueWith(async (Task result) => {
                         await debugger.Shutdown();
-                        await Task.Delay(1000);
+                        await Task.Delay(500);
                         syncContext.Complete();
                     });
 
