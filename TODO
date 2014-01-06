@@ -1,6 +1,9 @@
 - box positions
 - windbg links
 
+- support past versions of IE in *Tree
+- "private" fields -- when grabbing fields from others, mark them as private?
+
 - type navigator
 - hook for pointer expansion?
 - auto expansion
