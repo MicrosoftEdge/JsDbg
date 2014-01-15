@@ -1,0 +1,5 @@
+{
+    "name": "layout-log",
+    "author": "Peter Salas",
+    "dependencies": ["dbgobject", "mshtml-helpers", "tree-drawing"]
+}

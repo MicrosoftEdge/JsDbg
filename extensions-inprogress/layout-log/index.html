@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>Layout Log</title>
+    <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
+    <script type="text/javascript">
+        function init() {
+            Promise.map(MSHTML.GetRootCTreeNodes(), function(treeNode) {
+                return treeNode.f("_pElement._pMarkup._pLayoutServices")
+                .then(function (layoutServices) {
+                    if (!layoutServices.isNull()) {
+                        return layoutServices.vcast().f("LayoutLog.log")
+                        .then(createLogViewer);
+                    }
+                })
+            })
+            .then(function(logs) {
+                logs.forEach(function (log) {
+                    if (log) {
+                        document.body.appendChild(log);
+                    }
+                })
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+
+        var ConstantNames = {};
+        var NONE = 0;
+        ConstantNames[NONE] = "None"
+        var START_LAYOUT = 1;
+        ConstantNames[START_LAYOUT] = "Start Layout"
+        var END_LAYOUT = 2;
+        ConstantNames[END_LAYOUT] = "End Layout"
+        var NOTE_CHANGE_SOURCE = 3;
+        ConstantNames[NOTE_CHANGE_SOURCE] = "Note Change Source"
+        var BEGIN_BOX = 4;
+        ConstantNames[BEGIN_BOX] = "Begin Box"
+        var COMPLETE_BOX = 5;
+        ConstantNames[COMPLETE_BOX] = "Complete Box"
+        var DESTROY_BOX = 6;
+        ConstantNames[DESTROY_BOX] = "Destroy Box"
+        var REPLACE_BOX = 7;
+        ConstantNames[REPLACE_BOX] = "Replace Box"
+        var CONSIDER_FOR_REUSE = 8;
+        ConstantNames[CONSIDER_FOR_REUSE] = "Consider For Reuse"
+        var HANDLE_DISPLAY_CHANGE = 9;
+        ConstantNames[HANDLE_DISPLAY_CHANGE] = "Handle Display Change"
+        var CLONE_BOX = 10;
+        ConstantNames[CLONE_BOX] = "Clone Box"
+
+        var serialNumbers = {};
+        var nextSerial = 1;
+        function format(address) {
+            if (typeof(address) == typeof(0)) {
+                var serial = 0;
+                if (address in serialNumbers) {
+                    serial = serialNumbers[address];
+                } else {
+                    serialNumbers[address] = nextSerial++;
+                    serial = nextSerial - 1;
+                }
+                return serial + " (0x" + address.toString(16) + ")";
+            } else {
+                return address;
+            }
+        }
+
+
+        function createLogViewer(log) {
+            return log.f("items._array").size()
+            .then(function (size) {
+                return log.f("count").val().then(function(count) {
+                    return log.f("items._array").as("int").array(count * size / 4);
+                })
+            })
+            .then(function (items) {
+                var events = [];
+                for (var i = 0; i < items.length; i += 4) {
+                    events.push({
+                        type: items[i],
+                        element: items[i + 1],
+                        box1: items[i + 2],
+                        box2: items[i + 3]
+                    })
+                }
+                return events;
+            })
+            .then(stackList)
+        }
+
+        function verboseLog(items) {
+            var result = document.createElement("table");
+            result.innerHTML = "<tr><th>Operation</th><th>Element</th><th>Box 1</th><th>Box 2</th></tr>";
+            var elements = items.forEach(function(item) {
+                var child = document.createElement("tr");
+                var children = [ConstantNames[item.type], item.element, item.box1, item.box2].filter(function (x) { return x != 0; });
+                var cells = children.map(function (content) {
+                    if (typeof(content) == typeof(0)) {
+                        return format(content);
+                    } else {
+                        return content;
+                    }
+                }).map(function (text) {
+                    var cell = document.createElement("td");
+                    cell.appendChild(document.createTextNode(text));
+                    return cell;
+                });
+                cells.forEach(function (cell) {
+                    child.appendChild(cell);
+                });
+                result.appendChild(child);
+            });
+
+            return result;
+        }
+
+        function nestedLog(items) {
+            var result = document.createElement("table");
+            result.innerHTML = "<tr><th>Operation</th><th>Element</th><th>Box 1</th><th>Box 2</th></tr>";
+            var nestingLevel = 0;
+            var elements = items.forEach(function(item) {
+                var child = document.createElement("tr");
+
+                if (item.type == COMPLETE_BOX || item.type == END_LAYOUT) {
+                    --nestingLevel;
+                }
+
+                var children = [ConstantNames[item.type], item.element, item.box1, item.box2].filter(function (x) { return x != 0; });
+                var cells = children.map(function (content) {
+                    if (typeof(content) == typeof(0)) {
+                        return format(content);
+                    } else {
+                        return content;
+                    }
+                }).map(function (text) {
+                    var cell = document.createElement("td");
+                    cell.style.paddingLeft = (nestingLevel * 2) + "em";
+                    cell.appendChild(document.createTextNode(text));
+                    return cell;
+                });
+                cells.forEach(function (cell) {
+                    child.appendChild(cell);
+                });
+                result.appendChild(child);
+
+                if (item.type == BEGIN_BOX || item.type == START_LAYOUT) {
+                    ++nestingLevel;
+                }
+            });
+
+            return result;
+        }
+
+        function counts(items) {
+            var layouts = [];
+            var currentLayout = null;
+            var allCounts = {};
+
+            for (var i = 0; i < items.length; ++i) {
+                var currentEvent = items[i];
+                if (currentEvent.type == START_LAYOUT) {
+                    currentLayout = { counts: {} };
+                    currentLayout.before = JSON.parse(JSON.stringify(allCounts));
+                } else if (currentEvent.type == END_LAYOUT) {
+                    layouts.push(currentLayout);
+                    currentLayout.after = JSON.parse(JSON.stringify(allCounts));
+                } else {
+                    var name = ConstantNames[currentEvent.type];
+                    if (!(name in currentLayout.counts)) {
+                        currentLayout.counts[name] = 0;
+                    }
+                    currentLayout.counts[name] += 1;
+
+                    if (!(name in allCounts)) {
+                        allCounts[name] = 0;
+                    }
+                    allCounts[name] += 1;                    
+                }
+            }
+
+            var result = document.createElement("div");
+            layouts.forEach(function (layout) {
+                var p = document.createElement("pre");
+                p.innerHTML = JSON.stringify(layout, null, "  ");
+                result.appendChild(p);
+            })
+
+            return result;
+        }
+
+        function stackList(items) {
+            // for each layout, generate a stack list
+            var layouts = [];
+            var currentLayout = null;
+
+            function treeElement(e) {
+                if (!(e in currentLayout.elements)) {
+                    currentLayout.elements[e] = {
+                        starts: [],
+                        completes: [],
+                        reuseChecks: [],
+                        children: [],
+                        parent: null
+                    };
+                }
+                return currentLayout.elements[e];
+            }
+
+            function currentParent() {
+                return currentElementStack[currentElementStack.length - 1];
+            }
+
+            var currentElementStack = [];
+            var relevantOps = 0;
+
+            for (var i = 0; i < items.length; ++i) {
+                var currentEvent = items[i];
+                if (currentEvent.type == START_LAYOUT) {
+                    currentLayout = {
+                        elements:{
+                        }
+                    };
+                    currentLayout.start = relevantOps;
+                    treeElement("$ROOT");
+                    currentElementStack = ["$ROOT"];
+                } else if (currentEvent.type == END_LAYOUT) {
+                    currentLayout.end = relevantOps;
+                    layouts.push(currentLayout);
+                    currentLayout = null;
+                } else if (currentEvent.type == NOTE_CHANGE_SOURCE) {
+
+                } else if (currentEvent.type == BEGIN_BOX) {
+                    var e = treeElement(currentEvent.element);
+                    e.starts.push(++relevantOps);
+                    if (e.parent == null) {
+                        e.parent = currentParent();
+                        treeElement(currentParent()).children.push(currentEvent.element);
+                    }
+
+                    currentElementStack.push(currentEvent.element);
+                } else if (currentEvent.type == COMPLETE_BOX) {
+                    var e = treeElement(currentEvent.element);
+                    e.completes.push(++relevantOps);
+                    currentElementStack.pop();
+                } else if (currentEvent.type == DESTROY_BOX) {
+
+                } else if (currentEvent.type == REPLACE_BOX) {
+
+                } else if (currentEvent.type == CONSIDER_FOR_REUSE) {
+                    var e = treeElement(currentEvent.element);
+                    e.reuseChecks.push(++relevantOps);
+                    if (e.parent == null) {
+                        e.parent = currentParent();
+                        treeElement(currentParent()).children.push(currentEvent.element);
+                    }
+                } else if (currentEvent.type == HANDLE_DISPLAY_CHANGE) {
+
+                } else if (currentEvent.type == CLONE_BOX) {
+
+                }
+            }
+
+            // convert each layout into an html fragment
+            var layoutHTML = layouts.map(function(layout) {
+                // for each element, compute a name and a set of ranges.
+                var rangedElements = [];
+
+                var addRangedElements = function(loggedElementName, depth) {
+                    var computedElement = {
+                        name: loggedElementName,
+                        ranges: [],
+                        depth: depth
+                    };
+
+                    var loggedElement = layout.elements[loggedElementName];
+                    loggedElement.reuseChecks.forEach(function (check) {
+                        computedElement.ranges.push({
+                            start:check,
+                            end:check + 1
+                        });
+                    });
+                    loggedElement.starts.forEach(function (start, index) {
+                        computedElement.ranges.push({
+                            start: start,
+                            end: loggedElement.completes[index]
+                        });
+                    });
+
+                    computedElement.ranges.sort(function (a, b) {
+                        return a.start - b.start;
+                    });
+
+                    rangedElements.push(computedElement);
+
+                    // recurse.
+                    loggedElement.children.forEach(function (child) {
+                        addRangedElements(child, depth + 1);
+                    });
+                };
+
+                addRangedElements("$ROOT", 0);
+
+                // each ranged element maps to a row in the table.
+                var tableRows = rangedElements.map(function (rangedElement) {
+                    // two cells: the first cell contains the title
+                    var titleCell = "<td style=\"padding-left:" + (rangedElement.depth) + "em;\">" + format(rangedElement.name) + "</td>";
+                    
+                    var graphicPreamble = "<td><div style=\"position:relative; width:800px; height:1em;\">";
+                    var graphicPostamble = "</div></td>";
+                    var graphics = rangedElement.ranges.map(function (range) {
+                        var start = (range.start - layout.start) / (layout.end - layout.start);
+                        var end = (range.end - layout.start) / (layout.end - layout.start);
+
+                        var toPercent = function (value) {
+                            return Math.max(Math.round(value * 100 * 100) / 100, 0.1) + "%";
+                        }
+
+                        return "<div class=\"graphic\" style=\"left:" + toPercent(start) + "; width:" + toPercent(end - start) + ";\"></div>";
+                    });
+
+                    var graphicCell = graphicPreamble + graphics.join("") + graphicPostamble;
+
+                    return "<tr>" + titleCell + graphicCell + "</tr>";
+                });
+
+                return "<table>" + tableRows.join("") + "</table>";
+            });
+        
+            var result = document.createElement("div");
+            result.innerHTML = layoutHTML.join("");
+            return result;
+        }
+
+        function trees(items) {
+            var elements = {};
+            var layouts = [];
+            var currentLayout = null;
+
+            function treeElement(e) {
+                if (!(e in currentLayout.elements)) {
+                    currentLayout.elements[e] = {
+                        builds: 0,
+                        destroys: 0,
+                        reuseChecks: 0,
+                        children: {},
+                        parents: {}
+                    };
+                }
+                return currentLayout.elements[e];
+            }
+
+            function currentParent() {
+                return currentElementStack[currentElementStack.length - 1];
+            }
+
+            var currentElementStack = [];
+
+            for (var i = 0; i < items.length; ++i) {
+                var currentEvent = items[i];
+                if (currentEvent.type == START_LAYOUT) {
+                    currentLayout = {
+                        elements:{
+                            "$ROOT":{}
+                        }
+                    };
+                    currentElementStack = ["$ROOT"];
+                } else if (currentEvent.type == END_LAYOUT) {
+                    layouts.push(currentLayout);
+                } else if (currentEvent.type == NOTE_CHANGE_SOURCE) {
+
+                } else if (currentEvent.type == BEGIN_BOX) {
+                    var e = treeElement(currentEvent.element);
+                    e.builds++;
+                    e.parents[currentParent()] = true;
+                    treeElement(currentParent()).children[currentEvent.element] = true;
+                    currentElementStack.push(currentEvent.element);
+                } else if (currentEvent.type == COMPLETE_BOX) {
+                    currentElementStack.pop();
+                } else if (currentEvent.type == DESTROY_BOX) {
+
+                } else if (currentEvent.type == REPLACE_BOX) {
+
+                } else if (currentEvent.type == CONSIDER_FOR_REUSE) {
+                    var e = treeElement(currentEvent.element);
+                    e.reuseChecks++;
+                    e.parents[currentParent()] = true;
+                    treeElement(currentParent()).children[currentEvent.element] = true;
+                } else if (currentEvent.type == HANDLE_DISPLAY_CHANGE) {
+
+                } else if (currentEvent.type == CLONE_BOX) {
+
+                }
+            }
+         
+        }
+
+        function createSimpleCounts(items) {
+            var liveBoxes = {};
+            var liveBoxesCount = 0;
+            var liveBoxesCountAtStartOfLayout = 0;
+            var reuseChecks = 0;
+            var newBoxes = 0;
+            var displayChanges = 0;
+            var changeSources = {};
+            var changeSourceCount = 0;            
+
+            var layouts = [];
+
+            for (var i = 0; i < items.length; ++i) {
+                var currentEvent = items[i];
+                if (currentEvent.type == START_LAYOUT) {
+                    liveBoxesCountAtStartOfLayout = liveBoxesCount;
+                    newBoxes = 0;
+                    reuseChecks = 0;
+                    displayChanges = 0;
+                    changeSources = {};
+                    changeSourceCount = 0;
+                } else if (currentEvent.type == BEGIN_BOX) {
+                    liveBoxes[currentEvent.box1] = true;
+                    liveBoxesCount++;
+                    newBoxes++;
+                } else if (currentEvent.type == CLONE_BOX) {
+                    liveBoxes[currentEvent.box1] = true;
+                    liveBoxesCount++;
+                    newBoxes++;
+                } else if (currentEvent.type == DESTROY_BOX) {
+                    if (currentEvent.box1 in liveBoxes) {
+                        liveBoxesCount--;
+                        delete liveBoxes[currentEvent.box1];
+                    } else {
+                        console.log("destroying unknown box: " + currentEvent.box1);
+                    }
+                } else if (currentEvent.type == CONSIDER_FOR_REUSE) {
+                    reuseChecks++;
+                } else if (currentEvent.type == HANDLE_DISPLAY_CHANGE) {
+                    displayChanges++;
+                } else if (currentEvent.type == NOTE_CHANGE_SOURCE) {
+                    if (!(currentEvent.element in changeSources)) {
+                        changeSources[currentEvent.element] = true;
+                        changeSourceCount++;
+                    }
+                } else if (currentEvent.type == END_LAYOUT) {
+                    layouts.push({
+                        liveBoxesCountBefore: liveBoxesCountAtStartOfLayout,
+                        liveBoxesCountAfter: liveBoxesCount,
+                        reuseChecks: reuseChecks,
+                        displayChanges: displayChanges,
+                        changeSources: changeSourceCount,
+                        newBoxes: newBoxes
+                    });
+                }
+            }
+
+            var result = document.createElement("div");
+            layouts.forEach(function (layout, i) {
+                var child = document.createElement("p");
+                var touchedBoxes = layout.newBoxes + layout.reuseChecks;
+                var BOX_COST = 1;
+                var score = layout.newBoxes * BOX_COST + layout.reuseChecks;
+                var basis = (layout.liveBoxesCountAfter - layout.liveBoxesCountBefore + layout.changeSources) * BOX_COST;
+                child.innerHTML = "Layout " + (i + 1) + ": cost: " + score + " efficiency: " + Math.round(score / basis * 100) / 100;
+                //child.innerHTML = "Layout " + (i + 1) + ": " + touchedBoxes + " / " + layout.liveBoxesCountBefore + " => " + layout.liveBoxesCountAfter + " (" + layout.displayChanges + " display, " + layout.changeSources + " change sources)";
+                result.appendChild(child);
+            });
+
+            return result;
+        }
+
+        /*
+
+        var elements = {};
+        var boxes = {};
+
+        var currentBox = null;
+        var currentBoxStack = [];
+        
+        for (var i = 0; i < items.length; ++i) {
+            var currentEvent = items[i];
+            if (currentEvent.type == BEGIN_BOX) {
+                var newBox = {
+                    parents: [currentBox]
+                };
+
+                boxes[currentEvent.box1] = newBox;
+                currentBox = newBox;
+                currentBoxStack.push(currentBox);
+            } else if (currentEvent.type == COMPLETE_BOX) {
+                currentBoxStack.pop();
+                currentBox = currentBoxStack.length > 0 ? currentBoxStack[currentBoxStack.length - 1] : null;
+            } else if (currentEvent.type == REPLACE_BOX) {
+                var newBox = boxes[currentEvent.box1];
+                var oldBox = boxes[currentEvent.box2];
+                
+            }
+        }
+
+        */
+    </script>
+    <style type="text/css">
+        table {
+            border-collapse: collapse;
+        }
+
+        .graphic {
+            height:100%;
+            position:absolute;
+            background:red;
+        }
+        th {
+            text-align: left;
+        }
+        td, th {
+            padding-right:1em;
+        }
+        p {
+            margin:0;
+        }
+    </style>
+</head>
+<body>
+
+</body>
+</html>
