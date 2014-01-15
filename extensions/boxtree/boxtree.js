@@ -133,7 +133,7 @@ var BoxTree = (function() {
                         // If its a PositionedBoxItem, collect it and advance to the next...
                         .then(function(vtable) {
                             if (vtable == "Layout::PositionedBoxItem") {
-                                var childBox = item.as("Layout::PositionedBoxItem").f("flowItem").latestPatch().f("data.boxReference.m_pT");
+                                var childBox = item.as("Layout::PositionedBoxItem").f("flowItem", "boxItem").latestPatch().f("data.boxReference.m_pT");
                                 children.push(childBox);
                             }
 
@@ -219,7 +219,7 @@ var BoxTree = (function() {
         return TableBox.super.prototype.collectChildren.call(this, children)
             // and collect the flow items.
             .then(function() {
-                return FlowBox.collectChildrenInFlow(that.box.f("flow"), children);
+                return FlowBox.collectChildrenInFlow(that.box.f("flow", "items"), children);
             })
     }
 
@@ -316,7 +316,7 @@ var BoxTree = (function() {
         return FlexBox.super.prototype.collectChildren.call(this, children)
             // And collect the flow items.
             .then(function() {
-                return FlowBox.collectChildrenInFlow(that.box.f("flow"), children);
+                return FlowBox.collectChildrenInFlow(that.box.f("flow", "items"), children);
             })
     }
 
@@ -405,7 +405,7 @@ var BoxTree = (function() {
     ReplacedBoxIFrame.prototype.collectChildren = function(children) {
         var that = this;
         return ReplacedBoxIFrame.super.prototype.collectChildren.call(this, children)
-            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("flow"), children); })
+            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("flow", "replacedViewport"), children); })
     }
 
     var ReplacedBoxCLayout = CreateBoxType("Layout::ReplacedBoxCLayout", ReplacedBox);
@@ -424,7 +424,7 @@ var BoxTree = (function() {
     BoxContainerBox.prototype.collectChildren = function(children) {
         var that = this;
         return BoxContainerBox.super.prototype.collectChildren.call(this, children)
-            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("flowItem"), children); })
+            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("flowItem", "boxItem"), children); })
     }
     var PageFrameBox = CreateBoxType("Layout::PageFrameBox", BoxContainerBox);
 
