@@ -7,7 +7,7 @@ var TreeInspector = (function() {
     var treeRoot = null;
     var renderTreeRootPromise = null;
     var lastRenderedPointer = null;
-    var treeAlgorithm = TallTree;
+    var treeAlgorithm = null;
     var treeAlgorithms = { };
 
     return {
@@ -36,14 +36,15 @@ var TreeInspector = (function() {
                             "<a href=\"mailto:psalas&subject=JsDbg%20Help\">Need help?</a>"
                         ]
                         var errorSuggestions = "<ul>" + suggestions.map(function(x) { return "<li>" + x + "</li>"; }).join("") + "</ul>";
-                        var errorObject = "<code>" + JSON.stringify(error, undefined, 4).replace(/\\n/g, "\n") + "</code>";
+                        var errorObject = "<code>" + JSON.stringify(error, undefined, 4).replace(/\\n/g, "\n").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</code>";
                         treeContainer.innerHTML = [errorMessage, errorSuggestions, errorObject].join("\n");
                     });
                 }
             }
 
             function render() {
-                renderTreeRootPromise = treeAlgorithm.BuildTree(treeContainer, treeRoot);
+                var fullyExpand = window.sessionStorage.getItem(id("FullyExpand"));
+                renderTreeRootPromise = treeAlgorithm.BuildTree(treeContainer, treeRoot, fullyExpand !== "false");
                 return renderTreeRootPromise;
             }
 
@@ -99,11 +100,16 @@ var TreeInspector = (function() {
                 if (e.target.checked) {
                     var oldTreeAlgorithm = treeAlgorithm;
                     treeAlgorithm = treeAlgorithms[e.target.id];
+                    window.sessionStorage.setItem(id("TreeAlgorithm"), e.target.id);
 
                     if (treeRoot != null && treeAlgorithm != oldTreeAlgorithm) {
                         render();
                     }
                 }
+            }
+
+            function fullyExpandChanged(e) {
+                window.sessionStorage.setItem(id("FullyExpand"), document.getElementById(id("FullyExpand")).checked);
             }
 
             function createElement(tag, innerHTML, attributes, events) {
@@ -114,7 +120,9 @@ var TreeInspector = (function() {
 
                 if (attributes) {
                     for (var key in attributes) {
-                        e.setAttribute(key, attributes[key]);
+                        if (attributes[key] !== undefined) {
+                            e.setAttribute(key, attributes[key]);
+                        }
                     }
                 }
 
@@ -163,12 +171,16 @@ var TreeInspector = (function() {
 
             treeAlgorithms[id("TallTree")] = TallTree;
             treeAlgorithms[id("WideTree")] = WideTree;
+            treeAlgorithm = TallTree;
+            if (window.sessionStorage.getItem(id("TreeAlgorithm")) == id("WideTree")) {
+                treeAlgorithm = WideTree;
+            }
 
             container.appendChild(createElement("input", null, {
                 name: "treeAlgorithm",
                 id: id("TallTree"),
                 type: "radio",
-                checked: "checked"
+                checked: treeAlgorithm == TallTree ? "checked" : undefined
             }, {
                 "change": treeAlgorithmRadioChanged
             }));
@@ -178,13 +190,28 @@ var TreeInspector = (function() {
             container.appendChild(createElement("input", null, {
                 name: "treeAlgorithm",
                 id: id("WideTree"),
-                type: "radio"
+                type: "radio",
+                checked: treeAlgorithm == WideTree ? "checked" : undefined
             }, {
                 "change": treeAlgorithmRadioChanged
             }));
             container.appendChild(createElement("label", "Wide Tree", {
                 "for": id("WideTree")
             }));
+
+            container.appendChild(ws());
+            container.appendChild(createElement("input", null, {
+                name: "fullyExpand",
+                id: id("FullyExpand"),
+                type: "checkbox",
+                checked: window.sessionStorage.getItem(id("FullyExpand")) === "false" ? undefined : "checked"
+            }, {
+                "change": fullyExpandChanged
+            }));
+            container.appendChild(createElement("label", "Expand Tree Automatically", {
+                "for": id("FullyExpand")
+            }));
+
             container.appendChild(createElement("div", "Click a " + namespace.BasicType + " to show its children.  Ctrl-Click to expand or collapse a subtree."));
 
             treeContainer = createElement("div");
