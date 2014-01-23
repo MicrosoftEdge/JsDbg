@@ -338,6 +338,8 @@ var BoxTree = (function() {
                 });
             } else if (items.typeDescription() == "Layout::BoxItem") {
                 return FlowBox.collectChildrenInFlow(items, children);
+            } else if (items.typeDescription() == "SArray<Layout::FlexBox::SFlexBoxItem>") {
+                return FlowBox.collectChildrenInFlow(that.box.f("flow"), children);
             } else {
                 throw new Error("Unexpected FlexBox child typename: " + items.typeDescription());
             }
