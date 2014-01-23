@@ -133,7 +133,7 @@ var BoxTree = (function() {
                         // If its a PositionedBoxItem, collect it and advance to the next...
                         .then(function(vtable) {
                             if (vtable == "Layout::PositionedBoxItem") {
-                                var childBox = item.as("Layout::PositionedBoxItem").f("flowItem").latestPatch().f("data.boxReference.m_pT");
+                                var childBox = item.as("Layout::PositionedBoxItem").f("boxItem", "flowItem").latestPatch().f("data.boxReference.m_pT");
                                 children.push(childBox);
                             }
 
@@ -219,7 +219,7 @@ var BoxTree = (function() {
         return TableBox.super.prototype.collectChildren.call(this, children)
             // and collect the flow items.
             .then(function() {
-                return FlowBox.collectChildrenInFlow(that.box.f("flow"), children);
+                return FlowBox.collectChildrenInFlow(that.box.f("items", "flow"), children);
             })
     }
 
@@ -314,10 +314,36 @@ var BoxTree = (function() {
         var that = this;
         // Collect children from the super class...
         return FlexBox.super.prototype.collectChildren.call(this, children)
-            // And collect the flow items.
-            .then(function() {
+        
+        // And collect the children.
+        .then(function() {
+            return that.box.f("items", "flow");
+        })
+        .then(function (items) {
+            if (items.typeDescription().indexOf("FlexBoxItemArray") != -1) {
+                return items.f("m_pT")
+                .then(function (itemsArray) {
+                    if (!itemsArray.isNull()) {
+                        return itemsArray.latestPatch().f("data.Array.data").array(itemsArray.latestPatch().f("data.Array.length").val())
+                        .then(function (flexBoxItems) {
+                            return Promise.map(flexBoxItems, function(item) { return item.f("BoxReference.m_pT"); });
+                        })
+                        .then(function (childBoxes) {
+                            childBoxes.forEach(function (box) { children.push(box); });
+                            return children;
+                        });
+                    } else {
+                        return children;
+                    }
+                });
+            } else if (items.typeDescription() == "Layout::BoxItem") {
+                return FlowBox.collectChildrenInFlow(items, children);
+            } else if (items.typeDescription() == "SArray<Layout::FlexBox::SFlexBoxItem>") {
                 return FlowBox.collectChildrenInFlow(that.box.f("flow"), children);
-            })
+            } else {
+                throw new Error("Unexpected FlexBox child typename: " + items.typeDescription());
+            }
+        })
     }
 
     var MultiFragmentBox = CreateBoxType("Layout::MultiFragmentBox", ContainerBox);
@@ -405,7 +431,7 @@ var BoxTree = (function() {
     ReplacedBoxIFrame.prototype.collectChildren = function(children) {
         var that = this;
         return ReplacedBoxIFrame.super.prototype.collectChildren.call(this, children)
-            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("flow"), children); })
+            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("replacedViewport", "flow"), children); })
     }
 
     var ReplacedBoxCLayout = CreateBoxType("Layout::ReplacedBoxCLayout", ReplacedBox);
@@ -424,7 +450,7 @@ var BoxTree = (function() {
     BoxContainerBox.prototype.collectChildren = function(children) {
         var that = this;
         return BoxContainerBox.super.prototype.collectChildren.call(this, children)
-            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("flowItem"), children); })
+            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("boxItem", "flowItem"), children); })
     }
     var PageFrameBox = CreateBoxType("Layout::PageFrameBox", BoxContainerBox);
 

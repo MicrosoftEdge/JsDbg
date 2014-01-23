@@ -79,7 +79,8 @@ var DbgObject = (function() {
         })
         .then(function (result) { 
             if (result.error) {
-                throw new Error(result.error);
+                var error = new Error(result.error);
+                return Promise.fail(error);
             }
             return result; 
         });
@@ -237,7 +238,12 @@ var DbgObject = (function() {
             if (!hasCustomDescription) {
                 customDescription = function(x) { 
                     // Default description: first try to get val(), then just provide the pointer with the type.
-                    if (x.typename in scalarTypes) {
+                    if (x.typename == "bool" || x.bitcount == 1) {
+                        return x.val()
+                        .then(function (value) {
+                            return value == 1 ? "true" : "false";
+                        });
+                    } else if (x.typename in scalarTypes) {
                         return x.val(); 
                     } else if (x.isPointer()) {
                         return Promise.as(x.deref())
@@ -419,7 +425,7 @@ var DbgObject = (function() {
                 .then(
                     function(x) { return x; },
                     function(err) {
-                        return that._fHelper.apply(that, rest);
+                        return that.f.apply(that, rest);
                     }
                 )
             );

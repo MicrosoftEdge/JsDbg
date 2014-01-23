@@ -302,9 +302,19 @@ var WideTree = (function() {
     }
 
     return {
-        BuildTree: function(container, root) {
+        BuildTree: function(container, root, expandFully) {
             return enqueueWork(function() {
                 return DrawingTreeNode._instantiate(root)
+                .then(function(drawingRoot) {
+                    if (expandFully && !drawingRoot.isExpanded) {
+                        return drawingRoot._expand(true)
+                        .then(function() {
+                            return drawingRoot;
+                        })
+                    } else {
+                        return drawingRoot;
+                    }
+                })
                 .then(function(drawingRoot) {
                     container.innerHTML = "";
                     container.className = "node-container";
