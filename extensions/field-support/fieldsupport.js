@@ -19,15 +19,30 @@ var FieldSupport = (function() {
                 UserFields.forEach(function(field) {
                     if (field.enabled && field.type in TypeMap) {
                         var type = TypeMap[field.type];
-                        var oldPrototype = type.prototype.__proto__;
-                        var newPrototype = Object.create(oldPrototype);
-                        type.prototype.__proto__ = newPrototype;
-                        newPrototype.collectUserFields = function(fields) {
-                            if (oldPrototype.collectUserFields) {
-                                oldPrototype.collectUserFields(fields);
-                            }
+
+                        // Inject a collectUserFields method on the type, preserving any existing
+                        // injected fields as well as any fields that may be injected on the prototype,
+                        // now or in the future.
+                        var previousFields;
+                        if (type.prototype.hasOwnProperty("collectUserFields")) {
+                            // We've already augmented this type, so use the existing method.
+                            previousFields = type.prototype.collectUserFields;
+                        } else {
+                            // We haven't yet augmented this type, so provide a method that
+                            // will go up to the prototype at _runtime_ since we might inject
+                            // one of the prototypes in the meantime.
+                            previousFields = function(fields) {
+                                var proto = Object.getPrototypeOf(type.prototype);
+                                if (proto.collectUserFields) {
+                                    proto.collectUserFields(fields);
+                                }
+                            };
+                        }
+
+                        type.prototype.collectUserFields = function(fields) {
+                            previousFields(fields);
                             fields.push(field);
-                        };
+                        }
                         modifiedTypes.push(type);
                     }
                 });
@@ -37,7 +52,7 @@ var FieldSupport = (function() {
                 // Unwind the modified type stack.
                 while (modifiedTypes.length > 0) {
                     var injectedType = modifiedTypes.pop();
-                    injectedType.prototype.__proto__ = injectedType.prototype.__proto__.__proto__;
+                    delete injectedType.prototype.collectUserFields;
                 }
             }
 
