@@ -12,7 +12,7 @@ namespace JsDbg {
             this.client = new DebugClient(connectionString);
             this.client.OutputMask = OutputModes.Normal;
             this.control = new DebugControl(this.client);
-            this.isPointer64Bit = this.control.IsPointer64Bit;
+            this.isPointer64Bit = (this.control.EffectiveProcessorType == Processor.Amd64);
             this.exitDispatchClient = new DebugClient(connectionString);
             this.symbolCache = new SymbolCache(this.client);
             this.typeCache = new TypeCacheWithFallback(this.isPointer64Bit, this.symbolCache.GetModuleSymbolPath);
