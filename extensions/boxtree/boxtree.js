@@ -57,7 +57,7 @@ var BoxTree = (function() {
                 var type = objectAndVtable[1];
 
                 if (obj.ptr() in BoxCache) {
-                    return BoxCache[obj.ptr()];
+                    return new DuplicateBox(BoxCache[obj.ptr()]);
                 }
 
                 if (type in BoxTypes) {
@@ -94,6 +94,23 @@ var BoxTree = (function() {
         MapBoxType(typename, newType);
         FieldTypeMap[fieldName] = newType;
         return newType;
+    }
+
+    // Since some boxes (e.g. floaters) can be in the tree multiple times, after we've seen
+    // a given box once we'll proxy it with the duplicate box.
+    function DuplicateBox(originalBox) {
+        this.originalBox = originalBox;
+    }
+    DuplicateBox.prototype.createRepresentation = function() {
+        return Promise.as(this.originalBox.createRepresentation())
+        .then(function (element) {
+            element.style.color = "grey";
+            element.innerHTML = "<p>(DUPLICATE)</p> " + element.innerHTML;
+            return element;
+        });
+    }
+    DuplicateBox.prototype.getChildren = function() {
+        return Promise.as([]);
     }
 
     function LayoutBox(box, vtableType) {
