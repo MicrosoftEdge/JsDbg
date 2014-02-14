@@ -64,8 +64,7 @@ var TreeInspector = (function() {
                             link.addEventListener("click", function(e) {
                                 e.preventDefault();
                                 pointerField.value = root;
-                                saveHash();
-                                createAndRender();
+                                saveHashAndQueueCreateAndRender();
                             });
                             link.innerHTML = root;
                             rootsElement.appendChild(link);
@@ -92,8 +91,9 @@ var TreeInspector = (function() {
                 }
             }
 
-            function saveHash() {
+            function saveHashAndQueueCreateAndRender() {
                 window.location.hash = pointerField.value;
+                // Changing the hash will trigger a create and render on the hash change.
             }
 
             function treeAlgorithmRadioChanged(e) {
@@ -158,7 +158,7 @@ var TreeInspector = (function() {
 
             container.appendChild(ws());
             container.appendChild(createElement("button", "Load", null, {
-                "click": function() { saveHash(); createAndRender(); }
+                "click": function() { saveHashAndQueueCreateAndRender(); }
             }));
             container.appendChild(ws());
             container.appendChild(createElement("button", "Save", null, {
