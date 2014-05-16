@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title></title>
+    <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
+    <script type="text/javascript">
+
+        function writePromise(promisedText, name) {
+            return Promise.as(promisedText)
+            .then(function (text) {
+                var p = document.createElement("div");
+                p.innerHTML = name + ": " + text;
+                document.body.appendChild(p);
+                return null;
+            });
+        }
+
+        function writeFieldValue(object, field) {
+            return writePromise(object.f(field).desc(), field);
+        }
+
+        function objectify(dbgObject) {
+            var result = {};
+            return Promise.map(dbgObject.fields(), function (f) {
+                return f.value.desc()
+                .then(function (desc) {
+                    result[f.name] = desc;
+                })
+            })
+            .then(function () {
+                return result;
+            })
+        }
+
+        var allocationMap = {};
+        var markingBlocks = {};
+
+        function init() {
+            DbgObject.sym("mshtml!MemoryProtection::CHeapAllocator::instance").deref()
+            .then(function (heapAllocator) {
+                // compute the current active allocation %
+                return Promise.join([heapAllocator.f("allocations.ActiveAllocationCount").val(), heapAllocator.f("allocations.AllocationCount").val()])
+                .then(function (stats) {
+                    return writePromise(Math.round(stats[0] / stats[1] * 10000) / 100 + "%", "Active Allocations (#)");
+                })
+                
+                .then(function() {
+                    return Promise.join([heapAllocator.f("totalBytesFreedNotCollected").val(), heapAllocator.f("totalBytesAllocated").val()])
+                    .then(function (stats) {
+                        return writePromise(100 - Math.round(stats[0] / stats[1] * 10000) / 100 + "%", "Active Allocations (bytes)");
+                    })
+                })
+                
+                // write all the included CHeapAllocator stats out
+                .then(function() {
+                    return Promise.map(heapAllocator.fields(), function (f) {
+                        return writePromise(f.value.desc(), f.name);
+                    })
+                })
+
+
+                // write the AllocationArray stats out
+                .then(function() {
+                    return Promise.map(heapAllocator.f("allocations").fields(), function (f) {
+                        return writePromise(f.value.desc(), "allocations." + f.name);
+                    })
+                })
+
+                // write out the freed allocations
+                .then(function() {
+                    return objectify(heapAllocator.f("allocations"))
+                    .then(function (fieldDescriptions) {
+                        var startIndex = parseInt(fieldDescriptions["ActiveAllocationCount"]);
+                        var stopIndex = parseInt(fieldDescriptions["AllocationCount"]);
+                        if (stopIndex > startIndex) {
+                            return heapAllocator.f("allocations.Array").idx(startIndex).as("unsigned int").array((stopIndex - startIndex) * 3);
+                        }
+                    })
+                    .then(function (data) {
+                        if (data) {
+                            writeOutAllocations(data, "Freed allocation", true);
+                        }
+                    })
+                })
+
+                // write out the active allocations
+                .then(function() {
+                    return objectify(heapAllocator.f("allocations"))
+                    .then(function (fieldDescriptions) {
+                        var stopIndex = parseInt(fieldDescriptions["ActiveAllocationCount"]);
+                        return heapAllocator.f("allocations.Array").idx(0).as("unsigned int").array(stopIndex * 3);
+                    })
+                    .then(function (data) {
+                        writeOutAllocations(data, "Active allocation", false);
+                    })
+                })
+
+                // compute the heaviest markers
+                .then(function() {
+                    var markingBlocksArray = [];
+                    for (var markingAddress in markingBlocks) {
+                        var markedBlocks = markingBlocks[markingAddress];
+                        if (markingAddress in allocationMap) {
+                            var markedSize = 0;
+                            for (var i = 0; i < markedBlocks.length; ++i) {
+                                markedSize += allocationMap[markedBlocks[i]].size;
+                            }
+                            allocationMap[markingAddress].markedSize = markedSize;
+                            markingBlocksArray.push(markingAddress);
+                        }
+                    }
+
+                    markingBlocksArray.sort(function (a, b) {
+                        return allocationMap[b].markedSize - allocationMap[a].markedSize;
+                    });
+
+                    // write out the heaviest markers
+                    markingBlocksArray.forEach(function (block) {
+                        writePromise(addressLink(parseInt(block)) + " weight: " + allocationMap[block].markedSize, "marking block");
+                    })
+                })
+            })
+        }
+
+        function addressLink(address) {
+            return "<a href=\"#\" onclick=\"this.style.backgroundColor = 'gray'; window.clipboardData.setData('Text', 'dps @@(0x" + address.toString(16) + " - 72) L11'); event.preventDefault();\">0x" + address.toString(16) + "</a>";
+        }
+
+        function writeOutAllocations(data, prefix, isAllocationFree) {
+            for (var i = 0; i < data.length; i += 3) {
+                var index = i / 3;
+                var addressAndFlags = data[i];
+                var address = addressAndFlags - (addressAndFlags % 8);
+                var flags = addressAndFlags % 8;
+                var size = data[i + 1];
+                var markingAddress = isAllocationFree ? data[i + 2] : 0;
+                var text = "address: " + addressLink(address) + " flags: 0b" + flags.toString(2) + " size: " + size + " markingAddress: " + addressLink(markingAddress);
+                if (isAllocationFree || (window.location.hash != null && window.location.hash.indexOf("all") != -1)) {
+                    writePromise(text, prefix + " " + index);
+                }
+                allocationMap[address] = {
+                    isFree: isAllocationFree,
+                    address: address,
+                    flags: flags,
+                    size: size,
+                    markingAddress: markingAddress
+                };
+
+                if (markingAddress != 0) {
+                    if (!(markingAddress in markingBlocks)) {
+                        markingBlocks[markingAddress] = [];
+                    }
+                    markingBlocks[markingAddress].push(address);
+                }
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+    <style type="text/css">
+        
+    </style>
+</head>
+<body>
+
+</body>
+</html>

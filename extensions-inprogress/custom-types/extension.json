@@ -1,0 +1,8 @@
+{
+    "name": "CustomTypes",
+    "author": "Peter Salas",
+    "description": "Create and share DbgObject type descriptions.",
+    "dependencies": ["catalog", "catalog-viewer"],
+    "augments": ["dbgobject"],
+    "includes": ["custom-types.js"]
+}
