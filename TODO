@@ -1,15 +1,20 @@
 - box positions
 - windbg links
 
+- better tree drawing
+
 - support past versions of IE in *Tree
 - "private" fields -- when grabbing fields from others, mark them as private?
 
 - type navigator
+    - just click from one type to another and maintain history
 - hook for pointer expansion?
-- auto expansion
 - more aggressive symbol hunting when remote debugging?
 
 BUGS
 
 - copy-paste from IE results in newlines being added - opened BLUE 568186
-- when hovering, also expand horizontally if needed?
+- float over fallback is busted -- struct size is 0.
+- tabbing in field-support shouldn't go to documentation
+- GetLayoutAssociationFromCTreeNode -> doesn't work properly with non boxes because of linked list offset
+- if pdb search fails with case sensitivity, try without case sensitivity before falling back to windbg
