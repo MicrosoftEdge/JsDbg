@@ -50,25 +50,28 @@ var BoxTree = (function() {
     }
 
     function CreateBox(obj) {
-        return Promise
-            .join([Promise.as(obj), obj.vtable()])
-            .then(function(objectAndVtable) {
-                var obj = objectAndVtable[0];
-                var type = objectAndVtable[1];
+        return Promise.as(obj)
+        .then(function (obj) {
+            if (!obj.isNull()) {
+                return obj.vtable()
+                .then(function (type) {
+                    if (obj.ptr() in BoxCache) {
+                        return new DuplicateBox(BoxCache[obj.ptr()]);
+                    }
 
-                if (obj.ptr() in BoxCache) {
-                    return new DuplicateBox(BoxCache[obj.ptr()]);
-                }
+                    if (type in BoxTypes) {
+                        var result = new BoxTypes[type](obj, type);
+                    } else {
+                        var result = new LayoutBox(obj, type);
+                    }
 
-                if (type in BoxTypes) {
-                    var result = new BoxTypes[type](obj, type);
-                } else {
-                    var result = new LayoutBox(obj, type);
-                }
-
-                BoxCache[obj.ptr()] = result;
-                return result;
-            });
+                    BoxCache[obj.ptr()] = result;
+                    return result;
+                })
+            } else {
+                return new NullBox();
+            }
+        })
     }
 
     function MapBoxType(typename, type) {
@@ -112,6 +115,18 @@ var BoxTree = (function() {
     DuplicateBox.prototype.getChildren = function() {
         return Promise.as([]);
     }
+
+    // Sometimes a box has a null box reference, perhaps during building or otherwise.
+    function NullBox() { }
+    NullBox.prototype.createRepresentation = function() {
+        var element = document.createElement("div");
+        element.innerHTML = "<p>NULL</p>";
+        return Promise.as(element);
+    }
+    NullBox.prototype.getChildren = function() {
+        return Promise.as([]);
+    }
+
 
     function LayoutBox(box, vtableType) {
         this.box = box;
