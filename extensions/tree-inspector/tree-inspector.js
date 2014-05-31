@@ -161,6 +161,13 @@ var TreeInspector = (function() {
                 "click": function() { saveHashAndQueueCreateAndRender(); }
             }));
             container.appendChild(ws());
+            container.appendChild(createElement("button", "Reload", null, {
+                "click": function() { 
+                    lastRenderedPointer = null;
+                    createAndRender();
+                }
+            }));
+            container.appendChild(ws());
             container.appendChild(createElement("button", "Save", null, {
                 "click": function() {
                     if (treeRoot != null) {
