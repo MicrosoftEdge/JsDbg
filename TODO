@@ -11,6 +11,18 @@
 - hook for pointer expansion?
 - more aggressive symbol hunting when remote debugging?
 
+- make wide tree more useful on hover?
+
+- Box Builder viewer
+
+- IDEA: add break on access support from the fields
+
+- IDEA: visual tree creator
+    - different types can have different children getters
+    - some might fail, some might work
+    - "code behind" model
+    - build a new tree type, and save it as an extension
+
 BUGS
 
 - copy-paste from IE results in newlines being added - opened BLUE 568186
