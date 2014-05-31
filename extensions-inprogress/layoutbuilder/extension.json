@@ -1,0 +1,12 @@
+{
+    "name": "LayoutBuilder",
+    "author": "Peter Salas",
+    "dependencies": [
+        "dbgobject",
+        "mshtml-helpers",
+        "tree-inspector"
+    ],
+    "includes": [
+        "layoutbuilder.js"
+    ]
+}
