@@ -243,6 +243,7 @@ var BoxTree = (function() {
                 return children;
             })
     }
+    var FieldsetBox = CreateBoxType("Layout::FieldsetBox", FlowBox);
 
     var TableBox = CreateBoxType("Layout::TableBox", ContainerBox);
     TableBox.prototype.collectChildren = function(children) {
