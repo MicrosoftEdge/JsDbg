@@ -246,8 +246,8 @@ var MSHTML = (function() {
         )
     });
 
-    DbgObject.AddTypeDescription("mshtml", function (type) { return type.match(/^(Tree|Layout)::(.*Enum)$/); }, function (enumObj) {
-        var enumString = enumObj.typeDescription().replace(/^(Tree|Layout)::(.*Enum)$/, "$2_");
+    DbgObject.AddTypeDescription("mshtml", function (type) { return type.match(/^(Tree|Layout).*::(.*Enum)$/); }, function (enumObj) {
+        var enumString = enumObj.typeDescription().replace(/^(Tree|Layout).*::(.*Enum)$/, "$2_");
         return Promise.as(enumObj.constant())
             .then(
                 function(k) { return k.substr(enumString.length); },
