@@ -135,6 +135,46 @@ var FieldSupport = (function() {
             }
         }
 
+        function getTextAtCursor(input, count) {
+            if (input.selectionStart || input.selectionStart == 0) {
+                if (count < 0) {
+                    var index = Math.max(input.selectionStart + count, 0);
+                    count = input.selectionStart - index;
+                    return input.value.substr(index, count);
+                } else {
+                    var index = input.selectionStart;
+                    return input.value.substr(index, count);
+                }
+            } else {
+                return input.value.substr(0, count);
+            }
+        }
+
+        function replaceTextAtCursor(input, count, string) {
+            if (input.selectionStart || input.selectionStart == 0) {
+                var prefix = input.value.substr(0, count < 0 ? input.selectionStart + count : input.selectionStart);
+                var suffix = input.value.substr(input.selectionStart + ((count > 0) ? count : 0));
+                input.value = prefix + string + suffix;
+                input.selectionStart = (prefix + string).length;
+                input.selectionEnd = (prefix + string).length;
+            }
+        }
+
+        function handleCodeEditorKeyDown(input, e) {
+            if (e.keyCode == 9) {
+                // Replace tab keypresses with 4 spaces.
+                e.preventDefault();
+                var tab = "    ";
+                if (e.shiftKey) {
+                    if (getTextAtCursor(input, 0 - tab.length) == tab) {
+                        replaceTextAtCursor(input, 0 - tab.length, "");
+                    }
+                } else {
+                    insertTextAtCursor(input, tab);
+                }
+            }
+        }
+
         function buildFieldUI(f) {
             var container = document.createElement("div");
             container.className = "field";
@@ -226,11 +266,7 @@ var FieldSupport = (function() {
             codeInput.value = f.htmlString ? f.htmlString : nativeCodeToString(f.html);
             codeInput.setAttribute("tabIndex", "3");
             codeInput.addEventListener("keydown", function(e) {
-                if (e.keyCode == 9) {
-                    // Replace tab keypresses with 4 spaces.
-                    e.preventDefault();
-                    insertTextAtCursor(codeInput, "    ");
-                }
+                handleCodeEditorKeyDown(codeInput, e);
             })
 
             var codeLabel = document.createElement("label");
