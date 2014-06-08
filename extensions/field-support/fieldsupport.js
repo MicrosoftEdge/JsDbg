@@ -121,20 +121,6 @@ var FieldSupport = (function() {
                 .join("\n");
         }
 
-        function insertTextAtCursor(input, text) {
-            if (input.selectionStart || input.selectionStart == 0) {
-                var start = input.selectionStart;
-                var end = input.selectionEnd;
-                input.value = input.value.substring(0, start)
-                    + text
-                    + input.value.substring(end, input.value.length);
-                input.selectionStart = end + text.length;
-                input.selectionEnd = end + text.length;
-            } else {
-                input.value += text;
-            }
-        }
-
         function getTextAtCursor(input, count) {
             if (input.selectionStart || input.selectionStart == 0) {
                 if (count < 0) {
@@ -160,18 +146,50 @@ var FieldSupport = (function() {
             }
         }
 
+        function getLineAtCursor(input) {
+            if (input.selectionStart || input.selectionStart == 0) {
+                var index = input.selectionStart;
+                var lines = input.value.split("\n");
+                for (var i = 0; i < lines.length; ++i) {
+                    if (index < lines[i].length + 1) {
+                        return {
+                            prefix: lines[i].substr(0, index),
+                            suffix: lines[i].substr(index)
+                        };
+                    }
+
+                    index -= lines[i].length + 1;
+                }
+            }
+            return {
+                prefix:"",
+                suffix:""
+            }
+        }
+
         function handleCodeEditorKeyDown(input, e) {
             if (e.keyCode == 9) {
                 // Replace tab keypresses with 4 spaces.
                 e.preventDefault();
                 var tab = "    ";
                 if (e.shiftKey) {
+                    // Shift+Tab means unindent.
                     if (getTextAtCursor(input, 0 - tab.length) == tab) {
                         replaceTextAtCursor(input, 0 - tab.length, "");
                     }
                 } else {
-                    insertTextAtCursor(input, tab);
+                    replaceTextAtCursor(input, 0, tab);
                 }
+            } else if (e.keyCode == 13) {
+                // When using enter, indent the same amount as the previous line.
+                e.preventDefault();
+                var currentLine = getLineAtCursor(input);
+                var spaces = "";
+                while (currentLine.prefix[spaces.length] == " ") {
+                    spaces += " ";
+                }
+
+                replaceTextAtCursor(input, 0, "\n" + spaces);
             }
         }
 
