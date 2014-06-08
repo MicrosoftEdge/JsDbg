@@ -55,6 +55,7 @@ var LayoutBuilder = (function() {
         }
         return this.childPromise;
     }
+    FieldTypeMap["LayoutBuilder"] = LayoutBuilder;
 
     function MapBoxBuilderType(typename, type) {
         BoxBuilderTypes[typename] = type;
@@ -115,7 +116,7 @@ var LayoutBuilder = (function() {
     var TableBoxBuilder = CreateBoxBuilderType("Layout::TableBoxBuilder", ContainerBoxBuilder);
     var ContainerBoxInitialLayoutBuilder = CreateBoxBuilderType("Layout::ContainerBoxInitialLayoutBuilder", ContainerBoxBuilder);
     var FlowBoxInitialLayoutBuilder = CreateBoxBuilderType("Layout::FlowBoxInitialLayoutBuilder", ContainerBoxInitialLayoutBuilder);
-    var InitialLayoutBoxBuilderDriver = CreateBoxBuilderType("Layout::InitialLayoutBoxBuilderDriver", ContainerBoxBuilder);
+    var InitialLayoutBoxBuilderDriver = CreateBoxBuilderType("Layout::InitialLayoutBoxBuilderDriver", LayoutBoxBuilder);
 
     return {
         Name: "LayoutBuilder",
