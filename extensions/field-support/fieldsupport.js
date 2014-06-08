@@ -584,6 +584,16 @@ var FieldSupport = (function() {
         return errorSpan;
     }
 
+    function descify(obj) {
+        if (typeof(obj.desc) == typeof(descify)) {
+            return Promise.as(obj.desc());
+        } else if (typeof(obj) == typeof([])) {
+            return Promise.map(obj, descify);
+        } else {
+            return obj;
+        }
+    }
+
     function renderFields(injectedObject, dbgObject, representation) {
         var fields = [];
         if (injectedObject.collectUserFields) {
@@ -601,7 +611,7 @@ var FieldSupport = (function() {
                         result = Promise.as(JsDbg.RunSynchronously(field.html.bind(dbgObject, representation)));
                     }
 
-                    return result.then(
+                    return result.then(descify).then(
                         function(x) { return x; }, 
                         function (ex) { return handleFieldException(ex); }
                     );
