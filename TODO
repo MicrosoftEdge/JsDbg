@@ -14,6 +14,7 @@
 - make wide tree more useful on hover?
 
 - Box Builder viewer
+- auto refresh on break
 
 - IDEA: add break on access support from the fields
 
@@ -30,3 +31,4 @@ BUGS
 - tabbing in field-support shouldn't go to documentation
 - GetLayoutAssociationFromCTreeNode -> doesn't work properly with non boxes because of linked list offset
 - if pdb search fails with case sensitivity, try without case sensitivity before falling back to windbg
+- when field support overflows, "new/browse all users" are not scrollable
