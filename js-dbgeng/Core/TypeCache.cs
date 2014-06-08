@@ -226,53 +226,64 @@ namespace JsDbg
             }
 
             if (diaSession != null) {
-                IDiaEnumSymbols symbols;
-                diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagNull, typename, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out symbols);
-                foreach (IDiaSymbol symbol in symbols) {
-                    SymTagEnum symTag = (SymTagEnum)symbol.symTag;
-                    if (symTag == SymTagEnum.SymTagUDT || symTag == SymTagEnum.SymTagBaseType || symTag == SymTagEnum.SymTagEnum) {
-                        // Get the fields for this class.
-                        IDiaEnumSymbols dataSymbols;
-                        symbol.findChildren(SymTagEnum.SymTagData, null, 0, out dataSymbols);
-                        uint typeSize = (uint)symbol.length;
-                        Dictionary<string, SField> fields = new Dictionary<string, SField>();
-
-                        foreach (IDiaSymbol dataSymbol in dataSymbols) {
-                            DiaHelpers.LocationType location = (DiaHelpers.LocationType)dataSymbol.locationType;
-                            if (location == DiaHelpers.LocationType.LocIsBitField) {
-                                byte bitOffset = (byte)dataSymbol.bitPosition;
-                                byte bitCount = (byte)dataSymbol.length;
-                                fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), bitOffset, bitCount));
-                            } else if (location == DiaHelpers.LocationType.LocIsThisRel) {
-                                fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), 0, 0));
-                            }
-                        }
-
-                        // Get the base types.
-                        List<SBaseType> baseTypes = new List<SBaseType>();
-                        IDiaEnumSymbols baseClassSymbols;
-                        symbol.findChildren(SymTagEnum.SymTagBaseClass, null, 0, out baseClassSymbols);
-                        foreach (IDiaSymbol baseClassSymbol in baseClassSymbols) {
-                            string baseTypename = DiaHelpers.GetTypeName(baseClassSymbol.type);
-                            Type baseType = this.GetType(module, baseTypename);
-                            if (baseType != null) {
-                                baseTypes.Add(new SBaseType(baseType, baseClassSymbol.offset));
-                            } else {
-                                System.Diagnostics.Debug.WriteLine("Unable to retrieve base type: {0}", baseTypename);
-                            }
-                        }
-
-                        // Construct the type and add it to the cache.
-                        Type type = new Type(module, typename, typeSize, fields, baseTypes, null);
-                        this.types.Add(key, type);
-
-                        return type;
-                    }
+                Type type = this.GetTypeFromDiaSession(diaSession, module, typename, DiaHelpers.NameSearchOptions.nsCaseSensitive);
+                if (type == null) {
+                    type = this.GetTypeFromDiaSession(diaSession, module, typename, DiaHelpers.NameSearchOptions.nsCaseInsensitive);
                 }
+                if (type != null) {
+                    this.types.Add(key, type);
+                }
+                return type;
             }
 
             // Something prevented us from using DIA for type discovery.  Fall back to getting type info from the debugger session.
             Console.Out.WriteLine("WARNING: Unable to load {0}!{1} from PDBs. Falling back to the debugger, which could be slow...", module, typename);
+            return null;
+        }
+
+        private Type GetTypeFromDiaSession(IDiaSession diaSession, string module, string typename, DiaHelpers.NameSearchOptions options) {
+            IDiaEnumSymbols symbols;
+            diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagNull, typename, (uint)options, out symbols);
+            foreach (IDiaSymbol symbol in symbols) {
+                SymTagEnum symTag = (SymTagEnum)symbol.symTag;
+                if (symTag == SymTagEnum.SymTagUDT || symTag == SymTagEnum.SymTagBaseType || symTag == SymTagEnum.SymTagEnum) {
+                    // Get the fields for this class.
+                    IDiaEnumSymbols dataSymbols;
+                    symbol.findChildren(SymTagEnum.SymTagData, null, 0, out dataSymbols);
+                    uint typeSize = (uint)symbol.length;
+                    Dictionary<string, SField> fields = new Dictionary<string, SField>();
+
+                    foreach (IDiaSymbol dataSymbol in dataSymbols) {
+                        DiaHelpers.LocationType location = (DiaHelpers.LocationType)dataSymbol.locationType;
+                        if (location == DiaHelpers.LocationType.LocIsBitField) {
+                            byte bitOffset = (byte)dataSymbol.bitPosition;
+                            byte bitCount = (byte)dataSymbol.length;
+                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), bitOffset, bitCount));
+                        } else if (location == DiaHelpers.LocationType.LocIsThisRel) {
+                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), 0, 0));
+                        }
+                    }
+
+                    // Get the base types.
+                    List<SBaseType> baseTypes = new List<SBaseType>();
+                    IDiaEnumSymbols baseClassSymbols;
+                    symbol.findChildren(SymTagEnum.SymTagBaseClass, null, 0, out baseClassSymbols);
+                    foreach (IDiaSymbol baseClassSymbol in baseClassSymbols) {
+                        string baseTypename = DiaHelpers.GetTypeName(baseClassSymbol.type);
+                        Type baseType = this.GetType(module, baseTypename);
+                        if (baseType != null) {
+                            baseTypes.Add(new SBaseType(baseType, baseClassSymbol.offset));
+                        } else {
+                            System.Diagnostics.Debug.WriteLine("Unable to retrieve base type: {0}", baseTypename);
+                        }
+                    }
+
+                    // Construct the type.
+                    Type type = new Type(module, typename, typeSize, fields, baseTypes, null);
+                    return type;
+                }
+            }
+
             return null;
         }
 
