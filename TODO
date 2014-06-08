@@ -24,6 +24,10 @@
     - "code behind" model
     - build a new tree type, and save it as an extension
 
+- NULL propagation in DbgObject
+    - capture the field where it became null so that the description can inform it?
+- TreeViewers should override descriptions for the types they know about
+
 BUGS
 
 - float over fallback is busted -- struct size is 0.
