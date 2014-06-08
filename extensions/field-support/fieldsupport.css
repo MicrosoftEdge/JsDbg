@@ -1,16 +1,16 @@
 .field-selection {
-    position:fixed;
-    right:0px;
-    top:0px;
-    overflow:auto;
-    padding-left:1em;
-    padding-bottom:1em;
-    max-height:100%;
-    z-index:10;
-    background:white;
-    border:thin solid #eee;
-    border-right:none;
-    border-top:none;
+    position: fixed;
+    right: 0px;
+    top: 0px;
+    overflow: auto;
+    padding-left: 1em;
+    max-height: 100%;
+    box-sizing: border-box;
+    z-index: 10;
+    background: white;
+    border: thin solid #eee;
+    border-right: none;
+    border-top: none;
 }
 
 .field-selection .fields {
@@ -33,6 +33,12 @@
 
 .field-selection .browse:before {
     content:"[browse all users]";
+}
+
+.field-selection .browse:after {
+    display:block;
+    margin-top:1em;
+    content:"";
 }
 
 .field-selection .edit:before {
