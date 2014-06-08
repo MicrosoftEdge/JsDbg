@@ -182,7 +182,7 @@ var FieldSupport = (function() {
             typeInput.innerHTML = typeSelectInnerHTML;
             typeInput.value = f.type;
             typeInput.addEventListener("change", function() { updateField(f, container); });
-            typeInput.setAttribute("type", "text");
+            typeInput.setAttribute("tabIndex", "1");
 
             var typeLabel = document.createElement("label");
             typeLabel.innerHTML = "Type: ";
@@ -192,6 +192,7 @@ var FieldSupport = (function() {
             nameInput.setAttribute("type", "text");
             nameInput.value = f.fullname;
             nameInput.addEventListener("change", function() { updateField(f, container); });
+            nameInput.setAttribute("tabIndex", "2");
 
             var nameLabel = document.createElement("label");
             nameLabel.innerHTML = "Name: ";
@@ -201,6 +202,7 @@ var FieldSupport = (function() {
             shortNameInput.setAttribute("type", "text");
             shortNameInput.value = f.shortname;
             shortNameInput.addEventListener("change", function() { updateField(f, container); });
+            shortNameInput.setAttribute("tabIndex", "3");
 
             var shortNameLabel = document.createElement("label");
             shortNameLabel.innerHTML = "Short Name: ";
@@ -222,6 +224,7 @@ var FieldSupport = (function() {
             codeInput.addEventListener("change", function() { updateField(f, container); });
             codeInput.setAttribute("placeholder", "See built-in fields for examples.");
             codeInput.value = f.htmlString ? f.htmlString : nativeCodeToString(f.html);
+            codeInput.setAttribute("tabIndex", "3");
             codeInput.addEventListener("keydown", function(e) {
                 if (e.keyCode == 9) {
                     // Replace tab keypresses with 4 spaces.
