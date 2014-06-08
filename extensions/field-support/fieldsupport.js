@@ -558,20 +558,21 @@ var FieldSupport = (function() {
                 fieldRepresentations.forEach(function(html, i) {
                     if (html !== undefined) {
                         var field = fields[i];
-                        var p = document.createElement("p");
+                        var div = document.createElement("div");
+
                         if (field.shortname.length > 0) {
-                            p.innerHTML = field.shortname + ":";
+                            div.innerHTML = field.shortname + ":";
                         }
                         if (typeof(html) == typeof("") || typeof(html) == typeof(1)) {
-                            p.innerHTML += html;
+                            div.innerHTML += html;
                         } else {
                             try {
-                                p.appendChild(html);
+                                div.appendChild(html);
                             } catch (ex) {
-                                p.innerHTML += html;
+                                div.innerHTML += html;
                             }
                         }
-                        representation.appendChild(p);
+                        representation.appendChild(div);
                         representation.appendChild(document.createTextNode(" "));
                     }
                 });

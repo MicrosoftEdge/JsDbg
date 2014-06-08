@@ -23,7 +23,7 @@
     overflow:hidden;
 }
 
-.node-container .node p {
+.node-container .node > * {
     margin:0;
 }
 

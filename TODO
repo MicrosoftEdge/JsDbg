@@ -26,7 +26,6 @@
 
 BUGS
 
-- copy-paste from IE results in newlines being added - opened BLUE 568186
 - float over fallback is busted -- struct size is 0.
 - tabbing in field-support shouldn't go to documentation
 - GetLayoutAssociationFromCTreeNode -> doesn't work properly with non boxes because of linked list offset

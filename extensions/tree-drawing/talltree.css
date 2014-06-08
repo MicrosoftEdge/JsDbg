@@ -14,7 +14,7 @@
     white-space:nowrap;
 }
 
-.tall-node-container .node p {
+.tall-node-container .node > * {
     display:inline;
     margin-left:2em;
 }
@@ -33,7 +33,7 @@
     background:#eee;
 }
 
-.tall-node-container .node p:nth-child(2) {
+.tall-node-container .node > *:nth-child(2) {
     margin-left:0;
 }
 
