@@ -2,6 +2,22 @@ var LayoutBuilder = (function() {
     var BoxBuilderTypes = {};
     var FieldTypeMap = {};
 
+    // Add a type description for LayoutBoxBuilder to link to the LayoutBuilder stack.
+    DbgObject.AddTypeDescription("mshtml", "Layout::LayoutBoxBuilder", function(boxBuilder) {
+        if (boxBuilder.isNull()) {
+            return "null";
+        } else {
+            return "<a href=\"/layoutbuilder/#" + boxBuilder.ptr() + "\">" + boxBuilder.ptr() + "</a>";
+        }
+    });
+    DbgObject.AddTypeDescription("mshtml", "LayoutBuilder", function(layoutBuilder) {
+        if (layoutBuilder.isNull()) {
+            return "null";
+        } else {
+            return "<a href=\"/layoutbuilder/#" + layoutBuilder.ptr() + "\">" + layoutBuilder.ptr() + "</a>";
+        }
+    });
+
     function createBoxBuilderTree(pointer) {
         if (pointer) {
             var builder = new DbgObject("mshtml", "Layout::LayoutBuilder", pointer);

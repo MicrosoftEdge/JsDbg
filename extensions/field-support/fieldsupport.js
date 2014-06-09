@@ -585,7 +585,9 @@ var FieldSupport = (function() {
     }
 
     function descify(obj) {
-        if (typeof(obj.desc) == typeof(descify)) {
+        if (obj == null || obj == undefined) {
+            return obj;
+        } else if (typeof(obj.desc) == typeof(descify)) {
             return Promise.as(obj.desc());
         } else if (typeof(obj) == typeof([])) {
             return Promise.map(obj, descify);

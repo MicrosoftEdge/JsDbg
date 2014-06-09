@@ -1,6 +1,7 @@
 {
     "name": "LayoutBuilder",
     "author": "Peter Salas",
+    "description": "Inspect a LayoutBuilder/LayoutBoxBuilder stack.",
     "dependencies": [
         "dbgobject",
         "mshtml-helpers",
@@ -8,5 +9,8 @@
     ],
     "includes": [
         "layoutbuilder.js"
+    ],
+    "augments": [
+        "dbgobject"
     ]
 }

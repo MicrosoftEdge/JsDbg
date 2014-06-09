@@ -9,5 +9,6 @@
     ],
     "includes": [
         "boxtree.js"
-    ]
+    ],
+    "augments": ["dbgobject"]
 }

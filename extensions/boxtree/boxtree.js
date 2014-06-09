@@ -17,6 +17,15 @@ var BoxTree = (function() {
     var BoxTypes = {};
     var FieldTypeMap = {};
 
+    // Add a type description for LayoutBox to link to the BoxTree.
+    DbgObject.AddTypeDescription("mshtml", "Layout::LayoutBox", function(box) {
+        if (box.isNull()) {
+            return "null";
+        } else {
+            return "<a href=\"/boxtree/#" + box.ptr() + "\">" + box.ptr() + "</a>";
+        }
+    });
+
     function createBoxTree(pointer) {
         if (pointer) {
             var box = new DbgObject("mshtml", "Layout::LayoutBox", pointer);
@@ -520,14 +529,11 @@ var BoxTree = (function() {
     var builtInFields = [
         {
             type: "ContainerBox",
-            fullname: "CTreeNode",
-            shortname: "tn",
+            fullname: "Element",
+            shortname: "e",
             async:true,
             html: function() {
-                return MSHTML.GetCTreeNodeFromTreeElement(this.f("element.m_pT")).ptr()
-                    .then(function(ptr) {
-                        return "<a href='/markuptree/#" + ptr + "'>" + ptr + "</a>";
-                    })
+                return this.f("element.m_pT");
             }
         },
 
@@ -537,11 +543,7 @@ var BoxTree = (function() {
             shortname: "tag",
             async:true,
             html: function() {
-                return MSHTML.GetCTreeNodeFromTreeElement(this.f("element.m_pT"))
-                    .f("_etag")
-                    .as("ELEMENT_TAG")
-                    .constant()
-                    .then(function(tag) { return tag.substr("ETAG_".length); });
+                return MSHTML.GetCTreeNodeFromTreeElement(this.f("element.m_pT")).f("_etag");
             }
         },
         {
@@ -550,7 +552,7 @@ var BoxTree = (function() {
             shortname: "w",
             async:true,
             html: function() {
-                return this.f("contentBoxWidth").desc();
+                return this.f("contentBoxWidth");
             }
         },
 
@@ -560,7 +562,7 @@ var BoxTree = (function() {
             shortname: "h",
             async:true,
             html: function() {
-                return this.f("contentBoxHeight").desc();
+                return this.f("contentBoxHeight");
             }
         },
 
@@ -570,7 +572,7 @@ var BoxTree = (function() {
             shortname: "lp",
             async:true,
             html: function() {
-                return this.f("sourceStyle.fancyFormat._layoutPlacement").desc();
+                return this.f("sourceStyle.fancyFormat._layoutPlacement");
             }
         },
 
@@ -583,17 +585,9 @@ var BoxTree = (function() {
                 // Check if it's been extracted...
                 var that = this;
                 return this.f("isDisplayNodeExtracted").val()
-                    // If it hasn't been extracted, grab the rawDisplayNode...
-                    .then(function(isExtracted) { return isExtracted ? DbgObject.NULL : that.f("rawDisplayNode"); })
 
-                    // and return the HTML.
-                    .then(function(dispNode) {
-                        if (!dispNode.isNull()) {
-                            return "<a href='/displaytree/#" + dispNode.ptr() + "'>" + dispNode.ptr() + "</a>" 
-                        } else {
-                            return "null";
-                        }
-                    })
+                // If it hasn't been extracted, grab the rawDisplayNode...
+                .then(function(isExtracted) { return isExtracted ? DbgObject.NULL : that.f("rawDisplayNode"); })
             }
         },
 

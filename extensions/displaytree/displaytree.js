@@ -17,6 +17,15 @@ var DisplayTree = (function() {
     var DispNodeTypes = {};
     var FieldTypeMap = {};
 
+    // Add a type description for CDispNode to link to the DisplayTree.
+    DbgObject.AddTypeDescription("mshtml", "CDispNode", function(dispNode) {
+        if (dispNode.isNull()) {
+            return "null";
+        } else {
+            return "<a href=\"/displaytree/#" + dispNode.ptr() + "\">" + dispNode.ptr() + "</a>";
+        }
+    });
+
     function createDisplayTree(pointer) {
         if (pointer) {
             var dispNode = new DbgObject("mshtml", "CDispNode", pointer);
@@ -185,44 +194,11 @@ var DisplayTree = (function() {
                     // And get the disp client.
                     .then(function(hasAdvanced) {
                         if (hasAdvanced) {
-                            return node.f("_pAdvancedDisplay._pDispClient").ptr();
+                            return node.f("_pAdvancedDisplay._pDispClient").vcast();
                         } else {
-                            return node.f("_pDispClient").ptr();
+                            return node.f("_pDispClient").vcast();
                         }
                     });
-                });
-            }
-        },
-        {
-            type: "CDispNode",
-            fullname: "Client Type",
-            shortname: "ct",
-            async:true,
-            html: function() {
-                // Get the latest patch...
-                return this.latestPatch()
-
-                // Check if it has advanced display...
-                .then(function(node) {
-                    return node.f("_flags._fAdvanced").val()
-
-                    // And get the disp client.
-                    .then(function(hasAdvanced) {
-                        if (hasAdvanced) {
-                            return node.f("_pAdvancedDisplay._pDispClient");
-                        } else {
-                            return node.f("_pDispClient");
-                        }
-                    });
-                })
-
-                // And get the vtable symbol.
-                .then(function(dispClient) {
-                    if (!dispClient.isNull()) {
-                        return dispClient.vtable();
-                    } else {
-                        return "N/A";
-                    }
                 });
             }
         },
