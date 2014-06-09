@@ -229,10 +229,10 @@ namespace JsDbg {
             return result;
         }
 
-        public async Task<SSymbolResult> LookupLocalSymbol(string module, string methodName, string symbol) {
+        public async Task<IEnumerable<SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbol, int maxCount) {
             await this.WaitForBreakIn();
 
-            SSymbolResult result = new SSymbolResult();
+            List<SSymbolResult> results = new List<SSymbolResult>();
             bool foundStackFrame = false;
             bool foundLocal = false;
 
@@ -267,6 +267,7 @@ namespace JsDbg {
 
                                 DebugSymbolEntry entry = symbolGroup.GetSymbolEntryInformation(i);
 
+                                SSymbolResult result = new SSymbolResult();
                                 result.Module = module;
                                 result.Type = this.symbolCache.GetTypeName(entry.ModuleBase, entry.TypeId);
 
@@ -279,13 +280,17 @@ namespace JsDbg {
                                         result.Type = result.Type.Substring(0, result.Type.Length - 1);
                                     }
                                 }
+                                results.Add(result);
                                 break;
                             }
                         }
 
                         // Restore the previous scope.
                         this.symbols.SetScope(0, previousStackFrame, null);
-                        break;
+
+                        if (maxCount > 0 && results.Count == maxCount) {
+                            break;
+                        }
                     }
                 }
             } catch {
@@ -297,7 +302,7 @@ namespace JsDbg {
             } else if (!foundLocal) {
                 throw new DebuggerException(String.Format("Could not find local symbol: {0}", symbol));
             } else {
-                return result;
+                return results;
             }
         }
 

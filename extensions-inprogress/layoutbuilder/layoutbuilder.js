@@ -10,7 +10,7 @@ var LayoutBuilder = (function() {
             return "<a href=\"/layoutbuilder/#" + boxBuilder.ptr() + "\">" + boxBuilder.ptr() + "</a>";
         }
     });
-    DbgObject.AddTypeDescription("mshtml", "LayoutBuilder", function(layoutBuilder) {
+    DbgObject.AddTypeDescription("mshtml", "Layout::LayoutBuilder", function(layoutBuilder) {
         if (layoutBuilder.isNull()) {
             return "null";
         } else {
@@ -28,11 +28,21 @@ var LayoutBuilder = (function() {
     }
 
     function getRootLayoutBuilders() {
-        return DbgObject.local("mshtml", "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder").f("sp.m_pT")
+        return DbgObject.locals("mshtml", "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder")
+        .then(function (layoutBuilders) {
+            if (layoutBuilders.length == 0) {
+                return Promise.fail("");
+            } else {
+                return Promise.map(
+                    layoutBuilders,
+                    function(layoutBuilder) {
+                        return layoutBuilder.f("sp.m_pT").ptr();
+                    }
+                );
+            }
+        })
         .then(
-            function (layoutBuilder) {
-                return [layoutBuilder.ptr()];
-            },
+            function(x) { return x; },
             function() {
                 return Promise.fail("No LayoutBuilders were found on the call stack. Possible reasons:<ul><li>The debuggee is not broken in layout.</li><li>The debuggee is not IE 11.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a LayoutBuilder explicitly.");
             }

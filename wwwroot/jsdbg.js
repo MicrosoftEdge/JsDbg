@@ -463,17 +463,18 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol) + "&isGlobal=" + esc(isGlobal), callback, /*cache*/isGlobal);
         },
 
-        _help_LookupLocalSymbol: {
-            description: "Evaluates a local symbolic expression and returns the type of and pointer to the value.",
+        _help_LookupLocalSymbols: {
+            description: "Evaluates a local symbolic expression and returns the type of and pointer to the each value on the stack.",
             arguments: [
                 {name:"module", type:"string", description:"The module containing the method."},
                 {name:"method", type:"string", description:"The method whose local symbol should be retrieved."},
                 {name:"symbol", type:"string", description:"The symbolic expression to evaluate."},
+                {name:"maxCount", type:"int", description:"The maximum number of stack frames to collect from."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        LookupLocalSymbol: function(module, method, symbol, callback) {
-            jsonRequest("/jsdbg/localsymbol?module=" + esc(module) + "&method=" + esc(method) + "&symbol=" + esc(symbol), callback, /*cache*/false);
+        LookupLocalSymbols: function(module, method, symbol, maxCount, callback) {
+            jsonRequest("/jsdbg/localsymbols?module=" + esc(module) + "&method=" + esc(method) + "&symbol=" + esc(symbol) + "&maxCount=" + esc(maxCount), callback, /*cache*/false);
         },
 
         _help_GetPersistentData: {

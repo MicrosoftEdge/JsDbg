@@ -51,7 +51,7 @@ namespace JsDbg
         Task<string> LookupConstantName(string module, string type, ulong constant);
         Task<SFieldResult> LookupField(string module, string typename, string fieldName);
         Task<SSymbolResult> LookupSymbol(string symbol, bool isGlobal);
-        Task<SSymbolResult> LookupLocalSymbol(string module, string methodName, string symbol);
+        Task<IEnumerable<SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbol, int maxCount);
         Task<string> LookupSymbol(ulong pointer);
         Task<uint> LookupTypeSize(string module, string typename);
         Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct;
