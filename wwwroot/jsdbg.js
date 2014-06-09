@@ -24,6 +24,7 @@ var JsDbg = (function() {
     var browserSupportsWebSockets = (window.WebSocket !== undefined);
     var currentWebSocket = null;
     var currentWebSocketCallbacks = {};
+    var debuggerBrokeListeners = [];
 
     // Progress indicator support.
     var loadingIndicator = null;
@@ -51,6 +52,22 @@ var JsDbg = (function() {
         }
     }
 
+    function splitFirstN(str, sep, limit) {
+        var stringParts = [];
+        while (limit > 1) {
+            var index = str.indexOf(sep);
+            if (index == -1) {
+                break;
+            }
+
+            stringParts.push(str.substr(0, index));
+            str = str.substr(index + 1);
+            --limit;
+        }
+        stringParts.push(str);
+        return stringParts;
+    }
+
     function sendWebSocketMessage(requestId, messageToSend, callback) {
         requestId = requestId.toString();
         currentWebSocketCallbacks[requestId] = callback;
@@ -58,22 +75,12 @@ var JsDbg = (function() {
         if (currentWebSocket == null || (currentWebSocket.readyState > WebSocket.OPEN)) {
             currentWebSocket = new WebSocket("ws://" + window.location.host);
             currentWebSocket.addEventListener("message", function jsdbgWebSocketMessageHandler(webSocketMessage) {
-                function splitFirstN(str, sep, limit) {
-                    var stringParts = [];
-                    while (limit > 1) {
-                        var index = str.indexOf(sep);
-                        if (index == -1) {
-                            break;
-                        }
-
-                        stringParts.push(str.substr(0, index));
-                        str = str.substr(index + 1);
-                        --limit;
-                    }
-                    stringParts.push(str);
-                    return stringParts;
+                // Check if it's a server-initiated break-in event.
+                if (webSocketMessage.data == "break") {
+                    debuggerBrokeListeners.forEach(function (f) { f(webSocketMessage.data); });
+                    return;
                 }
-                
+
                 var parts = splitFirstN(webSocketMessage.data, ";", 3);
                 if (parts.length != 3) {
                     throw "Bad JsDbg WebSocket protocol!";
@@ -487,7 +494,24 @@ var JsDbg = (function() {
         },
         GetPersistentDataUsers: function(callback) {
             jsonRequest("/jsdbg/persistentstorageusers", callback);
+        },
+
+        _help_RegisterOnBreakListener: {
+            description: "Registers a callback to be fired when the debugger breaks in.",
+            returns: "A value indicating if break events can be fired.",
+            arguments: [
+                {name: "callback", type:"function()", description:"A callback that is called when the debugger breaks in to the target."}
+            ]
+        },
+        RegisterOnBreakListener: function(callback) {
+            if (browserSupportsWebSockets) {
+                debuggerBrokeListeners.push(callback);
+                return true;
+            } else {
+                return false;
+            }
         }
+
     }
 })();
 

@@ -113,12 +113,14 @@ namespace JsDbg {
 
         public WebServer(IDebugger debugger, PersistentStore persistentStore, string path, string defaultExtensionPath) {
             this.debugger = debugger;
+            this.debugger.DebuggerBroke += (sender, e) => { this.NotifyClientsOfBreak(); };
             this.persistentStore = persistentStore;
             this.path = path;
             this.defaultExtensionPath = defaultExtensionPath;
             this.port = StartPortNumber;
             this.loadedExtensions = new List<JsDbgExtension>();
             this.cancellationSource = new CancellationTokenSource();
+            this.openSockets = new HashSet<WebSocket>();
         }
 
         private void CreateHttpListener() {
@@ -906,15 +908,18 @@ namespace JsDbg {
             }
         }
 
+        private const char WebSocketArgumentSeparator = ';';
+
         private async void HandleWebSocket(WebSocket socket) {
             byte[] buffer = new byte[2048];
             ArraySegment<byte> segment = new ArraySegment<byte>(buffer);
-            char argumentSeperator = ';';
+            char argumentSeperator = WebServer.WebSocketArgumentSeparator;
             char[] argumentSeparators = {argumentSeperator};
             Uri baseUri = new Uri("http://localhost:" + this.port.ToString());
 
             using (socket) {
                 try {
+                    this.openSockets.Add(socket);
                     while (socket.State == WebSocketState.Open) {
                         StringBuilder messageBuilder = new StringBuilder();
                         WebSocketReceiveResult result = await socket.ReceiveAsync(segment, this.cancellationSource.Token);
@@ -971,6 +976,17 @@ namespace JsDbg {
                     if (this.httpListener.IsListening) {
                         Console.Out.WriteLine("Closing WebSocket due to WebSocketException: {0}", socketException.Message);
                     }
+                } finally {
+                    this.openSockets.Remove(socket);
+                }
+            }
+        }
+
+        public void NotifyClientsOfBreak() {
+            string message = "break";
+            foreach (WebSocket socket in this.openSockets) {
+                if (socket.State == WebSocketState.Open) {
+                    socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(message)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);
                 }
             }
         }
@@ -998,6 +1014,7 @@ namespace JsDbg {
         private CancellationTokenSource cancellationSource;
         private IDebugger debugger;
         private PersistentStore persistentStore;
+        private HashSet<WebSocket> openSockets;
         private List<JsDbgExtension> loadedExtensions;
         private string path;
         private string defaultExtensionPath;

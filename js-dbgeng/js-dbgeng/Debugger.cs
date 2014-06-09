@@ -7,6 +7,8 @@ using Microsoft.Debuggers.DbgEng;
 
 namespace JsDbg {
     class Debugger : IDisposable, JsDbg.IDebugger {
+
+        public event EventHandler DebuggerBroke;
        
         public Debugger(string connectionString) {
             this.client = new DebugClient(connectionString);
@@ -48,6 +50,7 @@ namespace JsDbg {
                         this.typeCache = new TypeCacheWithFallback(this.isPointer64Bit, this.symbolCache.GetModuleSymbolPath);
                     }
                 } else if (args.Change == EngineStateChange.ExecutionStatus) {
+                    bool insideWait = (args.Argument & (ulong)DebugStatus.InsideWait) == (ulong)DebugStatus.InsideWait;
                     DebugStatus executionStatus = (DebugStatus)(args.Argument & (~(ulong)DebugStatus.InsideWait));
                     if (executionStatus == DebugStatus.RestartTarget) {
                         isRestarting = true;
@@ -58,6 +61,10 @@ namespace JsDbg {
                         } else {
                             Console.Out.WriteLine("Debugger has no target, shutting down.");
                             Task shutdownTask = this.Shutdown();
+                        }
+                    } else if (executionStatus == DebugStatus.Break) {
+                        if (this.DebuggerBroke != null && !insideWait) {
+                            this.DebuggerBroke(this, new EventArgs());
                         }
                     }
                 }

@@ -48,6 +48,25 @@ var TreeInspector = (function() {
                 return renderTreeRootPromise;
             }
 
+            var enqueueWork = (function() {
+                var currentOperation = Promise.as(true);
+                return function enqueueWork(work) {
+                    var workPromise = currentOperation.then(work);
+                    // currentOperation is not allowed to be in a failed state, so trivially handle the error.
+                    currentOperation = workPromise.then(function() {}, function(error) {})
+
+                    // However, the caller might want to see the error, so hand them a promise that might fail.
+                    return workPromise;
+                }
+            })();
+            function refresh() {
+                enqueueWork(function() {
+                    lastRenderedPointer = null;
+                    unpackHash();
+                    return loadRoots(!window.location.hash || window.location.hash.length <= 1);
+                })
+            }
+
             function loadRoots(useDefault) {
                 rootsElement.className = "roots success";
                 rootsElement.innerHTML = namespace.BasicType + " Roots: ";
@@ -108,8 +127,10 @@ var TreeInspector = (function() {
                 }
             }
 
-            function fullyExpandChanged(e) {
-                window.sessionStorage.setItem(id("FullyExpand"), document.getElementById(id("FullyExpand")).checked);
+            function createCheckboxChangeHandler(checkboxId) {
+                return function() {
+                    window.sessionStorage.setItem(checkboxId, document.getElementById(checkboxId).checked);
+                };
             }
 
             function createElement(tag, innerHTML, attributes, events) {
@@ -161,13 +182,6 @@ var TreeInspector = (function() {
                 "click": function() { saveHashAndQueueCreateAndRender(); }
             }));
             container.appendChild(ws());
-            container.appendChild(createElement("button", "Reload", null, {
-                "click": function() { 
-                    lastRenderedPointer = null;
-                    createAndRender();
-                }
-            }));
-            container.appendChild(ws());
             container.appendChild(createElement("button", "Save", null, {
                 "click": function() {
                     if (treeRoot != null) {
@@ -213,11 +227,31 @@ var TreeInspector = (function() {
                 type: "checkbox",
                 checked: window.sessionStorage.getItem(id("FullyExpand")) === "false" ? undefined : "checked"
             }, {
-                "change": fullyExpandChanged
+                "change": createCheckboxChangeHandler(id("FullyExpand"))
             }));
             container.appendChild(createElement("label", "Expand Tree Automatically", {
                 "for": id("FullyExpand")
             }));
+
+            var didRegisterBreakListener = JsDbg.RegisterOnBreakListener(function() {
+                if (document.getElementById(id("RefreshOnBreak")).checked) {
+                    refresh();
+                }
+            });
+            if (didRegisterBreakListener) {
+                container.appendChild(ws());
+                container.appendChild(createElement("input", null, {
+                    name: "refreshOnBreak",
+                    id: id("RefreshOnBreak"),
+                    type: "checkbox",
+                    checked: window.sessionStorage.getItem(id("RefreshOnBreak")) === "true" ? "checked" : undefined
+                }, {
+                    "change": createCheckboxChangeHandler(id("RefreshOnBreak"))
+                }));
+                container.appendChild(createElement("label", "Refresh on Break", {
+                    "for": id("RefreshOnBreak")
+                }));
+            }
 
             container.appendChild(createElement("div", "Click a " + namespace.BasicType + " to show its children.  Ctrl-Click to expand or collapse a subtree."));
 
@@ -227,9 +261,7 @@ var TreeInspector = (function() {
             // On a hash change, reload.
             window.addEventListener("hashchange", unpackHash);
 
-            // Load the roots to start, and try to unpack the hash.
-            loadRoots(!window.location.hash || window.location.hash.length <= 1);
-            unpackHash();
+            refresh();
 
             FieldSupport.Initialize(
                 namespace.Name, 

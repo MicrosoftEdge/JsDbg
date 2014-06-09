@@ -43,6 +43,7 @@ namespace JsDbg
 
     public interface IDebugger
     {
+        event EventHandler DebuggerBroke;
         void Dispose();
         Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename);
         Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typeName);
