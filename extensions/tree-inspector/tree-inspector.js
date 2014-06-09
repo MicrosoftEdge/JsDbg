@@ -7,6 +7,7 @@ var TreeInspector = (function() {
     var treeRoot = null;
     var renderTreeRootPromise = null;
     var lastRenderedPointer = null;
+    var currentRoots = [];
     var treeAlgorithm = null;
     var treeAlgorithms = { };
 
@@ -62,49 +63,53 @@ var TreeInspector = (function() {
             function refresh() {
                 enqueueWork(function() {
                     lastRenderedPointer = null;
-                    unpackHash();
-                    return loadRoots(!window.location.hash || window.location.hash.length <= 1);
+                    return loadRoots()
+                    .then(unpackHash, unpackHash);
                 })
             }
 
-            function loadRoots(useDefault) {
+            function loadRoots() {
                 rootsElement.className = "roots success";
                 rootsElement.innerHTML = namespace.BasicType + " Roots: ";
 
                 return namespace.Roots()
-                    .then(function(roots) {
-                        if (roots.length == 0) {
-                            rootsElement.innerHTML += "(none)";
-                        }
+                .then(function(roots) {
+                    currentRoots = roots;
 
-                        roots.forEach(function(root) {
-                            var link = document.createElement("a");
-                            link.setAttribute("href", "#");
-                            link.addEventListener("click", function(e) {
-                                e.preventDefault();
-                                pointerField.value = root;
-                                saveHashAndQueueCreateAndRender();
-                            });
-                            link.innerHTML = root;
-                            rootsElement.appendChild(link);
-                            rootsElement.appendChild(document.createTextNode(" "));
-                        });
+                    if (roots.length == 0) {
+                        rootsElement.innerHTML += "(none)";
+                    }
 
-                        if (useDefault && roots.length > 0) {
-                            pointerField.value = roots[0];
-                            createAndRender();
-                        }
-                    }, function (ex) {
-                        rootsElement.className = "roots error";
-                        rootsElement.innerHTML = ex;
+                    roots.forEach(function(root, index) {
+                        var link = document.createElement("a");
+                        link.setAttribute("href", "#root" + index);
+                        link.innerHTML = root;
+                        rootsElement.appendChild(link);
+                        rootsElement.appendChild(document.createTextNode(" "));
                     });
 
-                
+                    return roots;
+                }, function (ex) {
+                    rootsElement.className = "roots error";
+                    rootsElement.innerHTML = ex;
+                });
             }
 
             function unpackHash() {
-                if (window.location.hash && window.location.hash.length > 1) {
-                    var value = window.location.hash.substr(1);
+                var hash = window.location.hash;
+                if (!hash || hash.length <= 1) {
+                    hash = "#root0";
+                }
+
+                if (hash.indexOf("#root") == 0) {
+                    var rootIndex = parseInt(hash.substr("#root".length));
+                    rootIndex = Math.min(rootIndex, currentRoots.length - 1);
+                    if (rootIndex >= 0) {
+                        pointerField.value = currentRoots[rootIndex];
+                        createAndRender();
+                    }
+                } else {
+                    var value = hash.substr(1);
                     pointerField.value = value;
                     createAndRender();
                 }
