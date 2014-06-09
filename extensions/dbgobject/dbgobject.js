@@ -319,6 +319,23 @@ var DbgObject = (function() {
         );
     }
 
+    DbgObject._help_local = {
+        description: "Evaluates a reference to a local symbol in the debuggee.",
+        returns: "(A promise to) a DbgObject representing the symbol.",
+        arguments: [
+            {name:"module", type:"string", description:"The module containing the method."},
+            {name:"method", type:"string", description:"The method containing the local symbol."},
+            {name:"symbol", type:"string", description:"The symbol to evaluate."}
+        ]
+    }
+    DbgObject.local = function(module, method, symbol) {
+        return checkSyncDbgObject(
+            jsDbgPromise(JsDbg.LookupLocalSymbol, module, method, symbol).then(function(result) {
+                return new DbgObject(result.module, result.type, result.pointer);
+            })
+        );
+    }    
+
     DbgObject._help_NULL = {description: "A DbgObject that represents a null value."}
     DbgObject.NULL = new DbgObject("", "", 0, 0, 0);
 

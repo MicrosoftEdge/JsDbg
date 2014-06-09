@@ -27,6 +27,18 @@ var LayoutBuilder = (function() {
         return null;
     }
 
+    function getRootLayoutBuilders() {
+        return DbgObject.local("mshtml", "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder").f("sp.m_pT")
+        .then(
+            function (layoutBuilder) {
+                return [layoutBuilder.ptr()];
+            },
+            function() {
+                return Promise.fail("No LayoutBuilders were found on the call stack. Possible reasons:<ul><li>The debuggee is not broken in layout.</li><li>The debuggee is not IE 11.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a LayoutBuilder explicitly.");
+            }
+        );
+    }
+
     function CreateBoxBuilder(obj) {
         return Promise.as(obj)
         .then(function (obj) {
@@ -140,6 +152,6 @@ var LayoutBuilder = (function() {
         BuiltInFields: [],
         TypeMap: FieldTypeMap,
         Create: createBoxBuilderTree,
-        Roots: function () { return Promise.as([]); }
+        Roots: getRootLayoutBuilders
     };
 })();

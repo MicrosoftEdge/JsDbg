@@ -463,6 +463,19 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol) + "&isGlobal=" + esc(isGlobal), callback, /*cache*/isGlobal);
         },
 
+        _help_LookupLocalSymbol: {
+            description: "Evaluates a local symbolic expression and returns the type of and pointer to the value.",
+            arguments: [
+                {name:"module", type:"string", description:"The module containing the method."},
+                {name:"method", type:"string", description:"The method whose local symbol should be retrieved."},
+                {name:"symbol", type:"string", description:"The symbolic expression to evaluate."},
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        LookupLocalSymbol: function(module, method, symbol, callback) {
+            jsonRequest("/jsdbg/localsymbol?module=" + esc(module) + "&method=" + esc(method) + "&symbol=" + esc(symbol), callback, /*cache*/false);
+        },
+
         _help_GetPersistentData: {
             description: "Gets the persistent data associated with the current user or a specified user.",
             arguments: [

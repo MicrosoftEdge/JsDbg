@@ -229,6 +229,78 @@ namespace JsDbg {
             return result;
         }
 
+        public async Task<SSymbolResult> LookupLocalSymbol(string module, string methodName, string symbol) {
+            await this.WaitForBreakIn();
+
+            SSymbolResult result = new SSymbolResult();
+            bool foundStackFrame = false;
+            bool foundLocal = false;
+
+            try {
+                DebugStackTrace stack = this.control.GetStackTrace(128);
+                string fullMethodName = module + "!" + methodName;
+
+                foreach (DebugStackFrame frame in stack) {
+                    string frameName;
+                    ulong displacement;
+
+                    try {
+                        this.symbolCache.GetSymbolName(frame.InstructionOffset, out frameName, out displacement);
+                    } catch {
+                        continue;
+                    }
+
+                    if (frameName == fullMethodName) {
+                        foundStackFrame = true;
+
+                        // Save the previous scope.
+                        ulong previousInstructionOffset;
+                        DebugStackFrame previousStackFrame;
+                        this.symbols.GetScope(out previousInstructionOffset, out previousStackFrame, null);
+
+                        // Jump to this scope, and see if the symbol is there.
+                        this.symbols.SetScope(0, frame, null);
+                        DebugSymbolGroup symbolGroup = this.symbols.GetScopeSymbolGroup(GroupScope.Arguments | GroupScope.Locals);
+                        for (uint i = 0; i < symbolGroup.NumberSymbols; ++i) {
+                            if (symbol == symbolGroup.GetSymbolName(i)) {
+                                foundLocal = true;
+
+                                DebugSymbolEntry entry = symbolGroup.GetSymbolEntryInformation(i);
+
+                                result.Module = module;
+                                result.Type = this.symbolCache.GetTypeName(entry.ModuleBase, entry.TypeId);
+
+                                if (entry.Offset != 0) {
+                                    result.Pointer = entry.Offset;
+                                } else {
+                                    this.symbols.GetOffsetByName(symbol, out result.Pointer);
+                                    if (result.Type.EndsWith("*")) {
+                                        // Trim off the last * because the offset we were given is the value itself (i.e. it is the pointer, not the pointer to the pointer).
+                                        result.Type = result.Type.Substring(0, result.Type.Length - 1);
+                                    }
+                                }
+                                break;
+                            }
+                        }
+
+                        // Restore the previous scope.
+                        this.symbols.SetScope(0, previousStackFrame, null);
+                        break;
+                    }
+                }
+            } catch {
+                throw new DebuggerException(String.Format("Unexpected error occurred while retrieving local \"{0}\" in method \"{1}\".", symbol, methodName));
+            }
+
+            if (!foundStackFrame) {
+                throw new DebuggerException(String.Format("Could not find stack frame: {0}", methodName));
+            } else if (!foundLocal) {
+                throw new DebuggerException(String.Format("Could not find local symbol: {0}", symbol));
+            } else {
+                return result;
+            }
+        }
+
         public async Task<T> ReadMemory<T>(ulong pointer) where T : struct {
             bool retryAfterWaitingForBreak = false;
             do {

@@ -333,6 +333,9 @@ namespace JsDbg {
             case "symbol":
                 this.ServeSymbol(query, respond, fail);
                 break;
+            case "localsymbol":
+                this.ServeLocalSymbol(query, respond, fail);
+                break;
             case "pointersize":
                 this.ServePointerSize(query, respond, fail);
                 break;
@@ -641,6 +644,27 @@ namespace JsDbg {
             string responseString;
             try {
                 SSymbolResult result = await this.debugger.LookupSymbol(symbol, isGlobal);
+                responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
+            } catch (JsDbg.DebuggerException ex) {
+                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+            }
+
+            respond(responseString);
+        }
+
+        private async void ServeLocalSymbol(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
+            string method = query["method"];
+            string symbol = query["symbol"];
+
+            if (module == null || method == null || symbol == null) {
+                fail();
+                return;
+            }
+
+            string responseString;
+            try {
+                SSymbolResult result = await this.debugger.LookupLocalSymbol(module, method, symbol);
                 responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
             } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
