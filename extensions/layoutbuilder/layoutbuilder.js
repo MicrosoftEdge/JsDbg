@@ -149,6 +149,9 @@ var LayoutBuilder = (function() {
 
     var ContainerBoxBuilder = CreateBoxBuilderType("Layout::ContainerBoxBuilder", LayoutBoxBuilder);
     var FlowBoxBuilder = CreateBoxBuilderType("Layout::FlowBoxBuilder", ContainerBoxBuilder);
+    var FlexBoxBuilder = CreateBoxBuilderType("Layout::FlexBoxBuilder", ContainerBoxBuilder);
+    var GridBoxBuilder = CreateBoxBuilderType("Layout::GridBoxBuilder", ContainerBoxBuilder);
+    var MultiColumnBoxBuilder = CreateBoxBuilderType("Layout::MultiColumnBoxBuilder", ContainerBoxBuilder);
     var ReplacedBoxBuilder = CreateBoxBuilderType("Layout::ReplacedBoxBuilder", ContainerBoxBuilder);
     var TableGridBoxBuilder = CreateBoxBuilderType("Layout::TableGridBoxBuilder", ContainerBoxBuilder);
     var TableBoxBuilder = CreateBoxBuilderType("Layout::TableBoxBuilder", ContainerBoxBuilder);
