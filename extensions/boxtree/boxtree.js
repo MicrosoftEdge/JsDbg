@@ -39,20 +39,40 @@ var BoxTree = (function() {
     function getRootLayoutBoxes() {
         return Promise.map(MSHTML.GetRootCTreeNodes(), MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode)
             .then(function(layoutBoxes) {
-                return layoutBoxes
-                    .filter(function(box) { return !box.isNull(); })
-                    .map(function(box) { return box.ptr(); });
+                return Promise.map(
+                    layoutBoxes,
+                    function(box) {
+                        // Collect any associated boxes as well.
+                        var allBoxes = [];
+
+                        function collectBoxAndAssociation(currentBox) {
+                            if (currentBox.isNull()) {
+                                return allBoxes;
+                            } else {
+                                allBoxes.push(currentBox.ptr());
+                                return currentBox.f("associatedBoxLink").then(collectBoxAndAssociation);
+                            }
+                        }
+
+                        return collectBoxAndAssociation(box.as("Layout::ContainerBox"));
+                    }
+                );
             })
             .then(function(boxPtrs) {
-                if (boxPtrs.length == 0) {
+                var flattenedArray = [];
+                boxPtrs.forEach(function (innerArray) {
+                    flattenedArray = flattenedArray.concat(innerArray);
+                });
+
+                if (flattenedArray.length == 0) {
                     return Promise.fail();
                 } else {
-                    return boxPtrs;
+                    return flattenedArray;
                 }
             })
             .then(
                 function(results) { return results; },
-                function() {
+                function(error) {
                     return Promise.fail("No root CTreeNodes with LayoutBoxes were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The docmode is < 8.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a LayoutBox explicitly.");
                 }
             );
