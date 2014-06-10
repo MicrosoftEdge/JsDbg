@@ -170,6 +170,11 @@ namespace JsDbg
         private readonly List<SBaseTypeName> baseTypeNames;
     }
 
+
+    public struct SLocalVariable {
+        public long FrameOffset;
+        public string Type;
+    }
 #endregion
 
     public class TypeCache {
@@ -200,31 +205,7 @@ namespace JsDbg
 
             Console.Out.WriteLine("Loading type information for {0}!{1}...", module, typename);
 
-            IDiaSession diaSession = null;
-            while (!this.isInFallback) {
-                try {
-                    diaSession = this.LoadDiaSession(module);
-                    break;
-                } catch (JsDbg.DebuggerException) {
-                    throw;
-                } catch (System.Runtime.InteropServices.COMException comException) {
-                    if ((uint)comException.ErrorCode == 0x80040154 && !this.didAttemptDIARegistration) {
-                        // The DLL isn't registered.
-                        this.didAttemptDIARegistration = true;
-                        try {
-                            this.AttemptDIARegistration();
-                        } catch (Exception ex) {
-                            // Go into fallback.
-                            Console.Out.WriteLine("Falling back due to DIA registration failure: {0}", ex.Message);
-                        }
-                    }
-
-                    this.isInFallback = true;
-                } catch {
-                    this.isInFallback = true;
-                }
-            }
-
+            IDiaSession diaSession = this.AttemptLoadDiaSession(module);
             if (diaSession != null) {
                 Type type = this.GetTypeFromDiaSession(diaSession, module, typename, DiaHelpers.NameSearchOptions.nsCaseSensitive);
                 if (type == null) {
@@ -239,6 +220,43 @@ namespace JsDbg
             // Something prevented us from using DIA for type discovery.  Fall back to getting type info from the debugger session.
             Console.Out.WriteLine("WARNING: Unable to load {0}!{1} from PDBs. Falling back to the debugger, which could be slow...", module, typename);
             return null;
+        }
+
+        public IList<SLocalVariable> GetLocals(string module, string method, string symbolName) {
+            IDiaSession diaSession = this.AttemptLoadDiaSession(module);
+            if (diaSession == null) {
+                return null;
+            }
+
+            List<SLocalVariable> results = new List<SLocalVariable>();
+            IDiaEnumSymbols symbols;
+            diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagFunction, method, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out symbols);
+            
+            foreach (IDiaSymbol symbol in symbols) {
+                List<IDiaSymbol> symbolResults = new List<IDiaSymbol>();
+                this.AccumulateChildLocalSymbols(symbol, symbolName, symbolResults);
+                foreach (IDiaSymbol resultSymbol in symbolResults) {
+                    if ((DiaHelpers.LocationType)resultSymbol.locationType == DiaHelpers.LocationType.LocIsRegRel) {
+                        results.Add(new SLocalVariable() { FrameOffset = resultSymbol.offset, Type = DiaHelpers.GetTypeName(resultSymbol.type) });
+                    }
+                }
+            }
+
+            return results;
+        }
+
+        private void AccumulateChildLocalSymbols(IDiaSymbol symbol, string symbolName, List<IDiaSymbol> results) {
+            IDiaEnumSymbols dataSymbols;
+            symbol.findChildren(SymTagEnum.SymTagData, symbolName, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out dataSymbols);
+            foreach (IDiaSymbol dataSymbol in dataSymbols) {
+                results.Add(dataSymbol);
+            }
+
+            IDiaEnumSymbols blockSymbols;
+            symbol.findChildren(SymTagEnum.SymTagBlock, null, (uint)DiaHelpers.NameSearchOptions.nsNone, out blockSymbols);
+            foreach (IDiaSymbol blockSymbol in blockSymbols) {
+                AccumulateChildLocalSymbols(blockSymbol, symbolName, results);
+            }
         }
 
         private Type GetTypeFromDiaSession(IDiaSession diaSession, string module, string typename, DiaHelpers.NameSearchOptions options) {
@@ -287,21 +305,44 @@ namespace JsDbg
             return null;
         }
 
-        private IDiaSession LoadDiaSession(string module) {
-            IDiaSession diaSession;
-            if (this.modules.ContainsKey(module)) {
-                diaSession = this.modules[module];
-            } else {
-                // Get the symbol path.                
-                DiaSource source = new DiaSource();
-                source.loadDataFromPdb(this.GetModuleSymbolPath(module));
-                source.openSession(out diaSession);
-                this.modules[module] = diaSession;
+        private IDiaSession AttemptLoadDiaSession(string module) {
+            while (!this.isInFallback) {
+                try {
+                    IDiaSession diaSession;
+                    if (this.modules.ContainsKey(module)) {
+                        diaSession = this.modules[module];
+                    } else {
+                        // Get the symbol path.                
+                        DiaSource source = new DiaSource();
+                        source.loadDataFromPdb(this.GetModuleSymbolPath(module));
+                        source.openSession(out diaSession);
+                        this.modules[module] = diaSession;
+                    }
+
+                    return diaSession;
+                } catch (JsDbg.DebuggerException) {
+                    throw;
+                } catch (System.Runtime.InteropServices.COMException comException) {
+                    if ((uint)comException.ErrorCode == 0x80040154 && !this.didAttemptDIARegistration) {
+                        // The DLL isn't registered.
+                        this.didAttemptDIARegistration = true;
+                        try {
+                            this.AttemptDIARegistration();
+                        } catch (Exception ex) {
+                            // Go into fallback.
+                            Console.Out.WriteLine("Falling back due to DIA registration failure: {0}", ex.Message);
+                        }
+                    }
+
+                    this.isInFallback = true;
+                } catch {
+                    this.isInFallback = true;
+                }
             }
 
-            return diaSession;
+            return null;
         }
-        
+
         private void AttemptDIARegistration() {
             string dllName = "msdia110.dll";
             Console.WriteLine("Attempting to register {0}.  This will require elevation...", dllName);

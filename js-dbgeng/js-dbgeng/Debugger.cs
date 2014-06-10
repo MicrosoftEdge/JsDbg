@@ -253,40 +253,51 @@ namespace JsDbg {
                     if (frameName == fullMethodName) {
                         foundStackFrame = true;
 
-                        // Save the previous scope.
-                        ulong previousInstructionOffset;
-                        DebugStackFrame previousStackFrame;
-                        this.symbols.GetScope(out previousInstructionOffset, out previousStackFrame, null);
-
-                        // Jump to this scope, and see if the symbol is there.
-                        this.symbols.SetScope(0, frame, null);
-                        DebugSymbolGroup symbolGroup = this.symbols.GetScopeSymbolGroup(GroupScope.Arguments | GroupScope.Locals);
-                        for (uint i = 0; i < symbolGroup.NumberSymbols; ++i) {
-                            if (symbol == symbolGroup.GetSymbolName(i)) {
+                        IList<SLocalVariable> locals = this.typeCache.GetLocals(module, methodName, symbol);
+                        if (locals != null) {
+                            if (locals.Count > 0) {
+                                // Currently the type cache can return multiple locals from the same method if they have the same name; we're just grabbing the first one.
                                 foundLocal = true;
-
-                                DebugSymbolEntry entry = symbolGroup.GetSymbolEntryInformation(i);
-
-                                SSymbolResult result = new SSymbolResult();
-                                result.Module = module;
-                                result.Type = this.symbolCache.GetTypeName(entry.ModuleBase, entry.TypeId);
-
-                                if (entry.Offset != 0) {
-                                    result.Pointer = entry.Offset;
-                                } else {
-                                    this.symbols.GetOffsetByName(symbol, out result.Pointer);
-                                    if (result.Type.EndsWith("*")) {
-                                        // Trim off the last * because the offset we were given is the value itself (i.e. it is the pointer, not the pointer to the pointer).
-                                        result.Type = result.Type.Substring(0, result.Type.Length - 1);
-                                    }
-                                }
-                                results.Add(result);
-                                break;
+                                results.Add(new SSymbolResult() { Module = module, Pointer = (ulong)((long)frame.FrameOffset + locals[0].FrameOffset), Type = locals[0].Type });
                             }
-                        }
+                        } else {
+                            // We couldn't get the locals from the type cache.  Try the debugger instead.
 
-                        // Restore the previous scope.
-                        this.symbols.SetScope(0, previousStackFrame, null);
+                            // Save the previous scope.
+                            ulong previousInstructionOffset;
+                            DebugStackFrame previousStackFrame;
+                            this.symbols.GetScope(out previousInstructionOffset, out previousStackFrame, null);
+
+                            // Jump to this scope, and see if the symbol is there.
+                            this.symbols.SetScope(0, frame, null);
+                            DebugSymbolGroup symbolGroup = this.symbols.GetScopeSymbolGroup(GroupScope.Arguments | GroupScope.Locals);
+                            for (uint i = 0; i < symbolGroup.NumberSymbols; ++i) {
+                                if (symbol == symbolGroup.GetSymbolName(i)) {
+                                    foundLocal = true;
+
+                                    DebugSymbolEntry entry = symbolGroup.GetSymbolEntryInformation(i);
+
+                                    SSymbolResult result = new SSymbolResult();
+                                    result.Module = module;
+                                    result.Type = this.symbolCache.GetTypeName(entry.ModuleBase, entry.TypeId);
+
+                                    if (entry.Offset != 0) {
+                                        result.Pointer = entry.Offset;
+                                    } else {
+                                        this.symbols.GetOffsetByName(symbol, out result.Pointer);
+                                        if (result.Type.EndsWith("*")) {
+                                            // Trim off the last * because the offset we were given is the value itself (i.e. it is the pointer, not the pointer to the pointer).
+                                            result.Type = result.Type.Substring(0, result.Type.Length - 1);
+                                        }
+                                    }
+                                    results.Add(result);
+                                    break;
+                                }
+                            }
+
+                            // Restore the previous scope.
+                            this.symbols.SetScope(0, previousStackFrame, null);
+                        }
 
                         if (maxCount > 0 && results.Count == maxCount) {
                             break;
