@@ -69,11 +69,11 @@ var TreeInspector = (function() {
             }
 
             function loadRoots() {
-                rootsElement.className = "roots success";
-                rootsElement.innerHTML = namespace.BasicType + " Roots: ";
-
                 return namespace.Roots()
                 .then(function(roots) {
+                    rootsElement.className = "roots success";
+                    rootsElement.innerHTML = namespace.BasicType + " Roots: ";
+
                     currentRoots = roots;
 
                     if (roots.length == 0) {
@@ -171,6 +171,8 @@ var TreeInspector = (function() {
             container.className += " tree-inspector-root";
 
             rootsElement = createElement("div");
+            rootsElement.className = "roots success";
+            rootsElement.innerHTML = namespace.BasicType + " Roots: ";
             container.appendChild(rootsElement);
 
             container.appendChild(createElement("label",  "Pointer:", {"for": id("pointer")}));
