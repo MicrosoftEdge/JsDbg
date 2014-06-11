@@ -817,6 +817,10 @@ var DbgObject = (function() {
             // Lookup the vtable type (coerce to promise in case we're running synchronously)...
             Promise.as(this.vtable())
             .then(function(vtableType) {
+                if (vtableType == that.typename) {
+                    return that;
+                }
+
                 // Lookup the base class offset...
                 return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, vtableType)
 
