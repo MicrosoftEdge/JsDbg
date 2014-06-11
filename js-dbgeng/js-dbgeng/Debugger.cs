@@ -240,6 +240,8 @@ namespace JsDbg {
                 DebugStackTrace stack = this.control.GetStackTrace(128);
                 string fullMethodName = module + "!" + methodName;
 
+                ulong moduleBase = this.symbolCache.GetModuleBase(module);
+
                 foreach (DebugStackFrame frame in stack) {
                     string frameName;
                     ulong displacement;
@@ -253,7 +255,9 @@ namespace JsDbg {
                     if (frameName == fullMethodName) {
                         foundStackFrame = true;
 
-                        IList<SLocalVariable> locals = this.typeCache.GetLocals(module, methodName, symbol);
+                        uint rva = (uint)(frame.InstructionOffset - moduleBase);
+
+                        IList<SLocalVariable> locals = this.typeCache.GetLocals(module, methodName, rva, symbol);
                         if (locals != null) {
                             if (locals.Count > 0) {
                                 // Currently the type cache can return multiple locals from the same method if they have the same name; we're just grabbing the first one.

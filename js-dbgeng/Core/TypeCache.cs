@@ -222,7 +222,7 @@ namespace JsDbg
             return null;
         }
 
-        public IList<SLocalVariable> GetLocals(string module, string method, string symbolName) {
+        public IList<SLocalVariable> GetLocals(string module, string method, uint rva, string symbolName) {
             IDiaSession diaSession = this.AttemptLoadDiaSession(module);
             if (diaSession == null) {
                 return null;
@@ -234,7 +234,7 @@ namespace JsDbg
             
             foreach (IDiaSymbol symbol in symbols) {
                 List<IDiaSymbol> symbolResults = new List<IDiaSymbol>();
-                this.AccumulateChildLocalSymbols(symbol, symbolName, symbolResults);
+                this.AccumulateChildLocalSymbols(symbol, symbolName, rva, symbolResults);
                 foreach (IDiaSymbol resultSymbol in symbolResults) {
                     if ((DiaHelpers.LocationType)resultSymbol.locationType == DiaHelpers.LocationType.LocIsRegRel) {
                         results.Add(new SLocalVariable() { FrameOffset = resultSymbol.offset, Type = DiaHelpers.GetTypeName(resultSymbol.type) });
@@ -245,17 +245,17 @@ namespace JsDbg
             return results;
         }
 
-        private void AccumulateChildLocalSymbols(IDiaSymbol symbol, string symbolName, List<IDiaSymbol> results) {
+        private void AccumulateChildLocalSymbols(IDiaSymbol symbol, string symbolName, uint rva, List<IDiaSymbol> results) {
             IDiaEnumSymbols dataSymbols;
-            symbol.findChildren(SymTagEnum.SymTagData, symbolName, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out dataSymbols);
+            symbol.findChildrenExByRVA(SymTagEnum.SymTagData, symbolName, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, rva, out dataSymbols);
             foreach (IDiaSymbol dataSymbol in dataSymbols) {
                 results.Add(dataSymbol);
             }
 
             IDiaEnumSymbols blockSymbols;
-            symbol.findChildren(SymTagEnum.SymTagBlock, null, (uint)DiaHelpers.NameSearchOptions.nsNone, out blockSymbols);
+            symbol.findChildrenExByRVA(SymTagEnum.SymTagBlock, null, (uint)DiaHelpers.NameSearchOptions.nsNone, rva, out blockSymbols);
             foreach (IDiaSymbol blockSymbol in blockSymbols) {
-                AccumulateChildLocalSymbols(blockSymbol, symbolName, results);
+                AccumulateChildLocalSymbols(blockSymbol, symbolName, rva, results);
             }
         }
 
