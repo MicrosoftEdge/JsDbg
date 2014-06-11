@@ -232,6 +232,78 @@ namespace Sushraja.Jump
             gcHandle.Free();
             return result;
         }
+
+        private static string StripModuleSuffix(string symbolName, string suffix) {
+            string strippedName = symbolName;
+
+            suffix = "." + suffix + "!";
+            int suffixIndex = symbolName.IndexOf(suffix);
+            if (suffixIndex >= 0) {
+                strippedName = strippedName.Substring(0, suffixIndex) + strippedName.Substring(suffixIndex + suffix.Length - 1);
+            }
+
+            return strippedName;
+        }
+
+        private static string StripModuleSuffix(string symbolName) {
+            string strippedName = symbolName;
+
+            strippedName = StripModuleSuffix(strippedName, "dll");
+            strippedName = StripModuleSuffix(strippedName, "exe");
+
+            return strippedName;
+        }
+
+        public async Task<IEnumerable<SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbol, int maxCount) {
+            await this.WaitForBreakIn();
+
+            List<SSymbolResult> results = new List<SSymbolResult>();
+
+            IDebugThread2 thread = this.currentThread;
+            if (thread == null) {
+                throw new DebuggerException("No thread was recorded.");
+            }
+            IEnumDebugFrameInfo2 frameEnumerator;
+            thread.EnumFrameInfo((uint)(enum_FRAMEINFO_FLAGS.FIF_FUNCNAME | enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_MODULE | enum_FRAMEINFO_FLAGS.FIF_STACKRANGE), 0x10, out frameEnumerator);
+
+            uint frameCount = 0;
+            frameEnumerator.GetCount(out frameCount);
+            FRAMEINFO[] frames = new FRAMEINFO[frameCount];
+
+            string fullyQualifiedName = module + "!" + methodName;
+
+            bool foundStackFrame = false;
+            bool foundLocal = false;
+
+            frameEnumerator.Reset();
+            if (frameEnumerator.Next((uint)frames.Length, frames, ref frameCount) == S_OK) {
+                for (int i = 0; i < frameCount; ++i) {
+                    FRAMEINFO frame = frames[i];
+
+                    if (StripModuleSuffix(frame.m_bstrFuncName) == fullyQualifiedName) {
+                        foundStackFrame = true;
+
+                        IList<SLocalVariable> locals = this.typeCache.GetLocals(module, methodName, 0, symbol);
+                        if (locals != null && locals.Count > 0) {
+                            foundLocal = true;
+
+                            // Currently the type cache can return multiple locals from the same method if they have the same name; we're just grabbing the first one.
+                            results.Add(new SSymbolResult() { Module = module, Pointer = (ulong)((long)frame.m_addrMin - 8 + locals[0].FrameOffset), Type = locals[0].Type });
+                        }
+                    }
+                }
+            }
+
+            if (!foundStackFrame) {
+                throw new DebuggerException(String.Format("Could not find stack frame: {0}", methodName));
+            } else if (!foundLocal) {
+                throw new DebuggerException(String.Format("Could not find local symbol: {0}", symbol));
+            } else {
+                return results;
+            }
+        }
+
+        public event EventHandler DebuggerBroke;
         #endregion
 
         #region Visual Studio Debugger Callbacks
@@ -308,6 +380,17 @@ namespace Sushraja.Jump
             else if (riidEvent == stopDebugEvent)
             {
                 Reset();
+            } 
+            else if (riidEvent == breakInEvent)
+            {
+                if (this.DebuggerBroke != null)
+                {
+                    this.DebuggerBroke(this, new EventArgs());
+                }
+            }
+            else if (riidEvent == threadSwitchEvent)
+            {
+                this.currentThread = thread;
             }
 
             return S_OK;
@@ -420,12 +503,15 @@ namespace Sushraja.Jump
         IDebugProgram2 currentDebugProgram;
         IDebugMemoryContext2 memoryContext;
         IDebugMemoryBytes2 memoryBytes;
+        IDebugThread2 currentThread;
         bool isPointer64Bit;
         EnvDTE80.DTE2 dte;
 
         static Guid debugModule3Guid = Guid.Parse("245F9D6A-E550-404D-82F1-FDB68281607A");
         static Guid startDebugEvent = Guid.Parse("2c2b15b7-fc6d-45b3-9622-29665d964a76");
         static Guid stopDebugEvent = Guid.Parse("f199b2c2-88fe-4c5d-a0fd-aa046b0dc0dc");
+        static Guid breakInEvent = Guid.Parse("04bcb310-5e1a-469c-87c6-4971e6c8483a");
+        static Guid threadSwitchEvent = Guid.Parse("8764364b-0c52-4c7c-af6a-8b19a8c98226");
         const int evaluateExpressionTimeout = int.MaxValue;
         const int decimalBaseRadix = 10;
     }
