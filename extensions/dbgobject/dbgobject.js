@@ -831,7 +831,17 @@ var DbgObject = (function() {
                             return new DbgObject(that.module, vtableType, that._pointer - baseTypes[i].offset);
                         }
                     }
-                    throw new Error(that.typename + " is not a known base type of " + vtableType);
+
+                    // Maybe the vtable type is a base type of the original...
+                    return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, that.typename)
+                    .then(function(originalBaseTypes) {
+                        for (var i = 0; i < originalBaseTypes.length; ++i) {
+                            if (originalBaseTypes[i].type == vtableType) {
+                                return new DbgObject(that.module, vtableType, that._pointer + originalBaseTypes[i].offset);
+                            }
+                        }
+                        throw new Error("The DbgObject's type " + that.typename + " is not related to the vtable's type, " + vtableType);
+                    });
                 });
             })
         );
