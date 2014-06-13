@@ -13,9 +13,6 @@
 
 - make wide tree more useful on hover?
 
-- Box Builder viewer
-- auto refresh on break
-
 - IDEA: add break on access support from the fields
 
 - IDEA: visual tree creator
@@ -32,4 +29,3 @@ BUGS
 
 - float over fallback is busted -- struct size is 0.
 - GetLayoutAssociationFromCTreeNode -> doesn't work properly with non boxes because of linked list offset
-- base type fails when vcast goes down
