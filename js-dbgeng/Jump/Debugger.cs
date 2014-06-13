@@ -264,7 +264,7 @@ namespace Sushraja.Jump
                 throw new DebuggerException("No thread was recorded.");
             }
             IEnumDebugFrameInfo2 frameEnumerator;
-            thread.EnumFrameInfo((uint)(enum_FRAMEINFO_FLAGS.FIF_FUNCNAME | enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_MODULE | enum_FRAMEINFO_FLAGS.FIF_STACKRANGE), 0x10, out frameEnumerator);
+            thread.EnumFrameInfo((uint)(enum_FRAMEINFO_FLAGS.FIF_FUNCNAME | enum_FRAMEINFO_FLAGS.FIF_FRAME | enum_FRAMEINFO_FLAGS.FIF_DEBUG_MODULEP | enum_FRAMEINFO_FLAGS.FIF_FUNCNAME_MODULE | enum_FRAMEINFO_FLAGS.FIF_STACKRANGE), decimalBaseRadix, out frameEnumerator);
 
             uint frameCount = 0;
             frameEnumerator.GetCount(out frameCount);
@@ -283,12 +283,25 @@ namespace Sushraja.Jump
                     if (StripModuleSuffix(frame.m_bstrFuncName) == fullyQualifiedName) {
                         foundStackFrame = true;
 
-                        IList<SLocalVariable> locals = this.typeCache.GetLocals(module, methodName, 0, symbol);
+                        IDebugCodeContext2 codeContext;
+                        frame.m_pFrame.GetCodeContext(out codeContext);
+                        CONTEXT_INFO[] contextInfo = new CONTEXT_INFO[1];
+                        codeContext.GetInfo((uint)enum_CONTEXT_INFO_FIELDS.CIF_ALLFIELDS, contextInfo);
+                        ulong instructionAddress = ulong.Parse(contextInfo[0].bstrAddress.Substring(2), System.Globalization.NumberStyles.AllowHexSpecifier);
+
+                        MODULE_INFO[] moduleInfo = new MODULE_INFO[1];
+                        frame.m_pModule.GetInfo((uint)enum_MODULE_INFO_FIELDS.MIF_LOADADDRESS, moduleInfo);
+                        ulong baseAddress = moduleInfo[0].m_addrLoadAddress;
+
+                        IList<SLocalVariable> locals = this.typeCache.GetLocals(module, methodName, (uint)(instructionAddress - baseAddress), symbol);
                         if (locals != null && locals.Count > 0) {
                             foundLocal = true;
 
+                            ulong address = locals[0].IsOffsetFromBottom ? frame.m_addrMax : (frame.m_addrMin - 8);
+                            address = (ulong)((long)address + locals[0].FrameOffset);
+
                             // Currently the type cache can return multiple locals from the same method if they have the same name; we're just grabbing the first one.
-                            results.Add(new SSymbolResult() { Module = module, Pointer = (ulong)((long)frame.m_addrMin - 8 + locals[0].FrameOffset), Type = locals[0].Type });
+                            results.Add(new SSymbolResult() { Module = module, Pointer = address, Type = locals[0].Type });
                         }
                     }
                 }
