@@ -262,7 +262,9 @@ namespace JsDbg {
                             if (locals.Count > 0) {
                                 // Currently the type cache can return multiple locals from the same method if they have the same name; we're just grabbing the first one.
                                 foundLocal = true;
-                                results.Add(new SSymbolResult() { Module = module, Pointer = (ulong)((long)frame.FrameOffset + locals[0].FrameOffset), Type = locals[0].Type });
+                                ulong address = locals[0].IsOffsetFromBottom ? frame.StackOffset : frame.FrameOffset;
+                                address = (ulong)((long)address + locals[0].FrameOffset);
+                                results.Add(new SSymbolResult() { Module = module, Pointer = address, Type = locals[0].Type });
                             }
                         } else {
                             // We couldn't get the locals from the type cache.  Try the debugger instead.

@@ -172,6 +172,7 @@ namespace JsDbg
 
 
     public struct SLocalVariable {
+        public bool IsOffsetFromBottom;
         public long FrameOffset;
         public string Type;
     }
@@ -237,7 +238,9 @@ namespace JsDbg
                 this.AccumulateChildLocalSymbols(symbol, symbolName, rva, symbolResults);
                 foreach (IDiaSymbol resultSymbol in symbolResults) {
                     if ((DiaHelpers.LocationType)resultSymbol.locationType == DiaHelpers.LocationType.LocIsRegRel) {
-                        results.Add(new SLocalVariable() { FrameOffset = resultSymbol.offset, Type = DiaHelpers.GetTypeName(resultSymbol.type) });
+                        // If the register id is %rsp or %esp, the offset is from the bottom.
+                        bool offsetFromBottom = (resultSymbol.registerId == 335 || resultSymbol.registerId == 21);
+                        results.Add(new SLocalVariable() { FrameOffset = resultSymbol.offset, Type = DiaHelpers.GetTypeName(resultSymbol.type), IsOffsetFromBottom=offsetFromBottom });
                     }
                 }
             }
