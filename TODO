@@ -27,5 +27,4 @@
 
 BUGS
 
-- float over fallback is busted -- struct size is 0.
 - GetLayoutAssociationFromCTreeNode -> doesn't work properly with non boxes because of linked list offset

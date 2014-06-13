@@ -102,7 +102,7 @@ namespace JsDbg {
                 {"uint2b", new SBuiltInTypeNameAndSize("unsigned short", 2)},
                 {"uint4b", new SBuiltInTypeNameAndSize("unsigned int", 4)},
                 {"uint8b", new SBuiltInTypeNameAndSize("unsigned long long", 8)},
-                {"float", new SBuiltInTypeNameAndSize(null, 0)}
+                {"float", new SBuiltInTypeNameAndSize(null, uint.MaxValue)}
             };
 
         private bool ParseType(string[] tokens, out uint size, out string typename, out SBitFieldDescription bitField) {
@@ -161,15 +161,14 @@ namespace JsDbg {
             }
 
             if (tokens.Length > 1 && normalizedDescription == "class" || normalizedDescription == "struct" || normalizedDescription == "union" || normalizedDescription == "enum") {
-                // The next token is a proper typename.
-                typename = tokens[1];
-                for (int tokenIndex = 2; tokenIndex < tokens.Length; ++tokenIndex) {
-                    if (tokens[tokenIndex].Length > 0 && tokens[tokenIndex][0] == '>') {
-                        // Continuation of the type name: e.g. SArray<SP<Layout::TableRowLayout> >
-                        typename += " " + tokens[tokenIndex];
-                    } else {
-                        break;
-                    }
+                if (normalizedDescription == "class" || normalizedDescription == "struct" || normalizedDescription == "union") {
+                    // "typename<a, type<b, c> >, N elements, 0xb bytes"
+                    // We'll split on the ',' and take all but the last two entries.
+                    string fullString = String.Join(" ", ArraySlice(tokens, 1));
+                    string[] commaDelimited = fullString.Split(',');
+                    typename = String.Join(",", commaDelimited, 0, commaDelimited.Length - 2);
+                } else {
+                    typename = tokens[1];
                 }
                 typename = typename.TrimEnd(',');
                 bitField = new SBitFieldDescription();

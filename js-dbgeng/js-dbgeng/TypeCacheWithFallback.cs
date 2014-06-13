@@ -108,7 +108,12 @@ namespace JsDbg
                 {
                     if (!BuiltInTypes.TryGetValue(resolvedTypeName, out resolvedTypeSize))
                     {
-                        resolvedTypeSize = symbolCache.GetTypeSize(moduleBase, typeId);
+                        try {
+                            uint fieldTypeId = symbolCache.GetTypeId(moduleBase, resolvedTypeName);
+                            resolvedTypeSize = symbolCache.GetTypeSize(moduleBase, fieldTypeId);
+                        } catch {
+                            throw new JsDbg.DebuggerException(String.Format("Internal Exception: Unknown type \"{0}\" found when parsing type {1}!{2}", resolvedTypeName, module, typename));
+                        }
                     }
                 }
 
