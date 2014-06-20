@@ -37,26 +37,8 @@ var BoxTree = (function() {
     }
 
     function getRootLayoutBoxes() {
-        return Promise.map(MSHTML.GetRootCTreeNodes(), MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode)
-            .then(function(layoutBoxes) {
-                return Promise.map(
-                    layoutBoxes,
-                    function(box) {
-                        // Collect any associated boxes as well.
-                        var allBoxes = [];
-
-                        function collectBoxAndAssociation(currentBox) {
-                            if (currentBox.isNull()) {
-                                return allBoxes;
-                            } else {
-                                allBoxes.push(currentBox.ptr());
-                                return currentBox.f("associatedBoxLink").then(collectBoxAndAssociation);
-                            }
-                        }
-
-                        return collectBoxAndAssociation(box.as("Layout::ContainerBox"));
-                    }
-                );
+        return Promise.map(MSHTML.GetRootCTreeNodes(), function(treeNode) {
+                return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode).as("Layout::ContainerBox").list("associatedBoxLink").ptr();
             })
             .then(function(boxPtrs) {
                 var flattenedArray = [];
@@ -175,7 +157,10 @@ var BoxTree = (function() {
     LayoutBox.prototype.getChildren = function() {
         if (this.childrenPromise == null) {
             var children = [];
-            this.childrenPromise = Promise.map(this.collectChildren(children), CreateBox);
+            this.childrenPromise = Promise.as(this.collectChildren(children))
+            .then(function () {
+                return Promise.map(children, CreateBox);
+            });
         }
         return this.childrenPromise;
     }
@@ -184,75 +169,72 @@ var BoxTree = (function() {
     ContainerBox.prototype.collectChildren = function(children) {
         var that = this;
         return ContainerBox.super.prototype.collectChildren.call(this, children)
-            .then(function() {
-                return that.box.f("PositionedItems.firstItem.m_pT");
-            })
-            .then(function(firstItem) {
-                function collectItemAndAdvance(item) {
-                    // Check the vtable...
-                    return item.vtable()
-                        // If its a PositionedBoxItem, collect it and advance to the next...
-                        .then(function(vtable) {
-                            if (vtable == "Layout::PositionedBoxItem") {
-                                var childBox = item.as("Layout::PositionedBoxItem").f("boxItem", "flowItem").latestPatch().f("data.boxReference.m_pT");
-                                children.push(childBox);
-                            }
+        .then(function() {
+            // Get the first item in the positioned item list...
+            return that.box.f("PositionedItems.firstItem.m_pT")
 
-                            return item.f("next.m_pT");                                
-                        })
-                        // If we're back at the first item, we're done.  Otherwise collect the rest.
-                        .then(function(nextItem) {
-                            if (!nextItem.equals(firstItem)) {
-                                return collectItemAndAdvance(nextItem);
-                            } else {
-                                return children;
-                            }
-                        })
-                }
+            // collect all the items in the list...
+            .list("next.m_pT")
 
-                if (!firstItem.isNull()) {
-                    return collectItemAndAdvance(firstItem);
-                } else {
-                    return children;
-                }
+            // vcast them...
+            .vcast()
+
+            // filter out anything that's not a PositionedBoxItem...
+            .filter(function (listItem) {
+                return listItem.typeDescription() == "Layout::PositionedBoxItem";
             })
+
+            // get the box from each item...
+            .f("boxItem", "flowItem").latestPatch().f("data.boxReference.m_pT")
+
+            // and add them to the array.
+            .forEach(function (box) {
+                children.push(box);
+            });
+        })
     }
 
     var FlowBox = CreateBoxType("Layout::FlowBox", ContainerBox);
     FlowBox.collectChildrenInFlow = function(flow, children) {
-        return flow.latestPatch().list(function (flowItem) {
+        return flow
+        .latestPatch()
+        .list(function (flowItem) {
             return flowItem.f("data.next").latestPatch();
-        }).f("data.boxReference.m_pT").forEach(function(item) { children.push(item); });
+        })
+        .f("data.boxReference.m_pT")
+        .forEach(function(item) { 
+            children.push(item); 
+        });
     }
     FlowBox.prototype.collectChildren = function(children) {
         var that = this;
         // Collect children from the superclass...
         return FlowBox.super.prototype.collectChildren.call(this, children)
-            // Collect flow items...
-            .then(function() {
-                return FlowBox.collectChildrenInFlow(that.box.f("flow"), children)
-            })
-            // Get the floater array DbgObject...
-            .then(function() {
-                return that.box.f("geometry._array");
-            })
-            // Get the array of floaters...
-            .then(function(floaterArrayObj) {
-                if (!floaterArrayObj.isNull()) {
-                    return floaterArrayObj.array(floaterArrayObj.as("int").idx(-1).val());
-                } else {
-                    return [];
-                }
-            })
-            // Add the floaters and return the children.
-            .then(function(floaters) {
-                floaters.forEach(function(floater) {
-                    var box = floater.f("floaterBoxReference.m_pT").latestPatch().f("data.BoxReference.m_pT");
-                    children.push(box);
-                });
+        // Collect flow items...
+        .then(function() {
+            return FlowBox.collectChildrenInFlow(that.box.f("flow"), children)
+        })
+        // Get the floater array DbgObject...
+        .then(function() {
+            return that.box.f("geometry._array");
+        })
+        // Get the array of floaters...
+        .then(function(floaterArrayObj) {
+            if (!floaterArrayObj.isNull()) {
+                return floaterArrayObj.array(floaterArrayObj.as("int").idx(-1).val());
+            } else {
+                return [];
+            }
+        })
+        // Add the floaters and return the children.
+        .then(function(floaters) {
+            floaters.forEach(function(floater) {
+                var box = floater.f("floaterBoxReference.m_pT").latestPatch().f("data.BoxReference.m_pT");
+                children.push(box);
+            });
 
-                return children;
-            })
+            return children;
+        })
     }
     var FieldsetBox = CreateBoxType("Layout::FieldsetBox", FlowBox);
 
@@ -261,10 +243,10 @@ var BoxTree = (function() {
         var that = this;
         // Collect children from the superclass...
         return TableBox.super.prototype.collectChildren.call(this, children)
-            // and collect the flow items.
-            .then(function() {
-                return FlowBox.collectChildrenInFlow(that.box.f("items", "flow"), children);
-            })
+        // and collect the flow items.
+        .then(function() {
+            return FlowBox.collectChildrenInFlow(that.box.f("items", "flow"), children);
+        })
     }
 
 
@@ -281,45 +263,32 @@ var BoxTree = (function() {
 
             // And collect the cell boxes from the rows.
             .then(function() {
-                function collectCellsFromRowLayoutAndAdvance(rowLayoutPromise) {
-                    return rowLayoutPromise
-                        .then(function(rowLayout) {
-                            if (rowLayout.isNull()) {
-                                // All done.
-                                return children;
-                            }
-                            
-                            // Get the columns DbgObject...
-                            return rowLayout.f("Columns.m_pT")
-                                // Get the columns array...
-                                .then(function(columnsObj) {
-                                    if (!columnsObj.isNull()) {
-                                        return columnsObj.latestPatch().f("data.Array.data").array(columnsObj.f("data.Array.length").val());
-                                    } else {
-                                        return [];
-                                    }
-                                })
-                                // Collect the box references...
-                                .then(function(columns) {
-                                    return Promise.map(columns, function(column) {
-                                        // Get the box...
-                                        return column.f("cellBoxReference.m_pT")
-                                            // If the box isn't null, add it to the children.
-                                            .then(function(box) {
-                                                if (!box.isNull()) {
-                                                    children.push(box);
-                                                }
-                                            });
-                                    });
-                                })
-                                // And look at the remaining TableRowLayouts.
-                                .then(function() {
-                                    return collectCellsFromRowLayoutAndAdvance(rowLayout.f("nextRowLayout.m_pT"));
-                                })
-                        })
-                }
+                return that.box.f("firstRowLayout.m_pT").list("nextRowLayout.m_pT")
 
-                return collectCellsFromRowLayoutAndAdvance(that.box.f("firstRowLayout.m_pT"));
+                // Get the columns...
+                .f("Columns.m_pT")
+
+                .map(function(columnsObj) {
+                    if (!columnsObj.isNull()) {
+                        return columnsObj.latestPatch().f("data.Array.data").array(columnsObj.f("data.Array.length").val());
+                    } else {
+                        return [];
+                    }
+                })
+
+                // Collect the box references...
+                .forEach(function(columns) {
+                    return Promise.map(columns, function(column) {
+                        // Get the box...
+                        return column.f("cellBoxReference.m_pT")
+                            // If the box isn't null, add it to the children.
+                            .then(function(box) {
+                                if (!box.isNull()) {
+                                    children.push(box);
+                                }
+                            });
+                    });
+                })
             });
     }
 
@@ -396,23 +365,24 @@ var BoxTree = (function() {
         var that = this;
         // Collect children from the super class...
         return MultiColumnBox.super.prototype.collectChildren.call(this, children)
-            // Get the items array DbgObject...
-            .then(function() {
-                return that.box.f("items.m_pT");
-            })
-            // Get the items...
-            .then(function(itemsArrayObj) {
-                if (!itemsArrayObj.isNull()) {
-                    return itemsArrayObj.latestPatch().f("data.Array.data").array(that.box.f("itemsCount").val())
-                } else {
-                    return [];
-                }
-            })
-            // And collect the box references.
-            .then(function(items) {
-                items.forEach(function(item) { children.push(item.f("BoxReference.m_pT")); });
-                return children;
-            });
+
+        // Get the items array DbgObject...
+        .then(function() {
+            return that.box.f("items.m_pT");
+        })
+        // Get the items...
+        .then(function(itemsArrayObj) {
+            if (!itemsArrayObj.isNull()) {
+                return itemsArrayObj.latestPatch().f("data.Array.data").array(that.box.f("itemsCount").val())
+            } else {
+                return [];
+            }
+        })
+        // And collect the box references.
+        .then(function(items) {
+            items.forEach(function(item) { children.push(item.f("BoxReference.m_pT")); });
+            return children;
+        });
     }
 
     var LineBox = CreateBoxType("Layout::LineBox", LayoutBox);
@@ -420,47 +390,45 @@ var BoxTree = (function() {
         var that = this;
         // Collect children from the super class...
         return LineBox.super.prototype.collectChildren.call(this, children)
-            // Get the LineBox flags...
-            .then(function() { return that.box.f("lineBoxFlags").val(); })
 
-            // Get the first run if we might have inline blocks...
-            .then(function(lineBoxFlags) {
-                if ((lineBoxFlags & 0x8) > 0) {
-                    return that.box.f("firstRun.m_pT");
-                } else {
-                    // No inline-blocks, so don't use a run.
-                    return DbgObject.NULL;
-                }
+        // Get the LineBox flags...
+        .then(function() { return that.box.f("lineBoxFlags").val(); })
+
+        // Get the first run if we might have inline blocks...
+        .then(function(lineBoxFlags) {
+            if ((lineBoxFlags & 0x8) > 0) {
+                return that.box.f("firstRun.m_pT");
+            } else {
+                // No inline-blocks, so don't use a run.
+                return DbgObject.NULL;
+            }
+        })
+
+        // Collect any inline-blocks from the run.
+        .then(function(firstRun) {
+            // Get the list of runs...
+            return firstRun.list("next.m_pT")
+
+            // vcast them...
+            .vcast()
+
+            // filter them to only the inline-blocks...
+            .filter(function (run) {
+                var type = run.typeDescription();
+                return (
+                    type == "Layout::InlineBlockLineBoxRun" || 
+                    type == "Layout::InlineBlockWithBreakConditionLineBoxRun"
+                );
             })
 
-            // Collect any inline-blocks from the run.
-            .then(function(firstRun) {
-                function collectInlineBlocksFromRunAndAdvance(run) {
-                    if (!run.isNull()) {
-                        // Get the vtable type...
-                        return run.vtable()
-                            // If it's an inline-block run, grab the inline block; then advance...
-                            .then(function(type) {
-                                if (type == "Layout::InlineBlockLineBoxRun" || 
-                                    type == "Layout::InlineBlockWithBreakConditionLineBoxRun"
-                                ) {
-                                    var box = run.as("Layout::InlineBlockLineBoxRun").f("boxReference.m_pT");
-                                    children.push(box);
-                                }
+            // get the box reference...
+            .f("boxReference.m_pT")
 
-                                // Advance to the next run.
-                                return run.f("next.m_pT");
-                            })
-                            // And collect the rest of the inline-blocks.
-                            .then(collectInlineBlocksFromRunAndAdvance);
-                    } else {
-                        // Run is null; all done.
-                        return children;
-                    }
-                }
-
-                return collectInlineBlocksFromRunAndAdvance(firstRun);
-            })
+            // and add them to the list.
+            .forEach(function (box) {
+                children.push(box);
+            });
+        })
     }
 
     MapBoxType("Layout::LineBoxCompactShort", LineBox)
