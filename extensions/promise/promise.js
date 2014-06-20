@@ -318,37 +318,40 @@ var Promise = (function() {
             })
     }
 
-    Promise._help_promisedType = {
-        description: "Creates a new type that can be treated both as a promise to a type or as such a type where every method returns a promise.",
+    Promise._help_CreatePromisedType = {
+        description: "Creates a new type that can be treated both as a promise to a type or as an instance of that type where every method returns a promise.",
         returns: "A type constructor.",
         arguments: [
-            {name:"constructor", type:"type constructor", description:"A constructor to the promised type."},
-            {name:"methods", type:"array of strings", description:"An array of methods on the promised type that return a value of that type."}
+            {name:"constructor", type:"type constructor", description:"A constructor to the promised type."}
         ],
-        notes:"On the returned type, the given methods will return an instance of the promised type.  Other methods on the original type will return simple promises."
+        notes:"This effectively provides sugaring for promise chaining to minimize <code>.then()</code> chaining.  For example: \
+        <p><code>promiseToObject.then(function (obj) { return obj.method(); })</code></p> can become <p><code>promiseToObject.method();</code></p>"
     }
-    Promise.promisedType = function(constructor, methods) {
+    Promise.CreatePromisedType = function(constructor, sameTypeMethods, arrayMethods) {
         var promisedType = function(promise) { this.promise = promise; };
         promisedType.prototype.then = function() {
             return this.promise.then.apply(this.promise, arguments);
         };
-        var wrappedMethods = {};
 
         promisedType.Array = function(promise) { this.promise = promise; }
         promisedType.Array.prototype.then = function() {
             return this.promise.then.apply(this.promise, arguments);
         };
+        promisedType.Array.prototype.filter = function(f) {
+            return new promisedType.Array(Promise.filter(this.promise, f));
+        }
         promisedType.Array.prototype.map = function(f) {
-            return Promise.map(this.promise, f);
+            return new promisedType.Array(Promise.map(this.promise, f));
         }
         promisedType.Array.prototype.forEach = function(f) {
             return this.map(function (item) {
-                f(item);
-                return item;
+                return Promise.as(f(item))
+                .then(function () {
+                    return item;
+                });
             });
         }
         promisedType.IncludePromisedMethod = function(methodName, resultPromisedType) {
-            wrappedMethods[methodName] = true;
             var method = constructor.prototype[methodName];
             if (typeof(method) == typeof(function() {})) {
                 promisedType.prototype[methodName] = function promisedMethod() {
@@ -375,13 +378,9 @@ var Promise = (function() {
             }
         }
 
-        methods.forEach(function (method) { 
-            promisedType.IncludePromisedMethod(method, promisedType);
-        });
-
         for (var methodName in constructor.prototype) {
             var method = constructor.prototype[methodName];
-            if (!(methodName in wrappedMethods) && typeof(method) == typeof(function() {})) {
+            if (typeof(method) == typeof(function() {})) {
                 promisedType.IncludePromisedMethod(methodName, null);
             }
         }

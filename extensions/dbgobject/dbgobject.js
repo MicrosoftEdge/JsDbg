@@ -938,5 +938,11 @@ var DbgObject = (function() {
     return DbgObject;
 })();
 
-var PromisedDbgObject = Promise.promisedType(DbgObject, ["f", "as", "deref", "idx", "unembed", "vcast"]);
+var PromisedDbgObject = Promise.CreatePromisedType(DbgObject);
+PromisedDbgObject.IncludePromisedMethod("f", PromisedDbgObject);
+PromisedDbgObject.IncludePromisedMethod("as", PromisedDbgObject); 
+PromisedDbgObject.IncludePromisedMethod("deref", PromisedDbgObject); 
+PromisedDbgObject.IncludePromisedMethod("idx", PromisedDbgObject); 
+PromisedDbgObject.IncludePromisedMethod("unembed", PromisedDbgObject); 
+PromisedDbgObject.IncludePromisedMethod("vcast", PromisedDbgObject);
 PromisedDbgObject.IncludePromisedMethod("list", PromisedDbgObject.Array);
