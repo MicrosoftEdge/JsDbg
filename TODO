@@ -25,6 +25,10 @@
     - capture the field where it became null so that the description can inform it?
 - TreeViewers should override descriptions for the types they know about
 
+- remove synchronous support in DbgObject
+
+- see how expensive dependency loading is?
+
 BUGS
 
 - GetLayoutAssociationFromCTreeNode -> doesn't work properly with non boxes because of linked list offset
