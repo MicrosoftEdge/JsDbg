@@ -726,6 +726,26 @@ var DbgObject = (function() {
         );
     }
 
+    DbgObject.prototype.list = function(fieldOrFunction) {
+        var firstNode = this;
+        var collectedNodes = [];
+        function collectRemainingNodes(node) {
+            if (node.isNull() || (node.equals(firstNode) && node != firstNode)) {
+                return collectedNodes;
+            }
+
+            collectedNodes.push(node);
+            if (typeof(fieldOrFunction) == typeof("")) {
+                return node.f(fieldOrFunction).then(collectRemainingNodes);
+            } else if (typeof(fieldOrFunction) == typeof(collectRemainingNodes)) {
+                return Promise.as(fieldOrFunction(node)).then(collectRemainingNodes);
+            }
+        }
+        var resultPromise = new PromisedDbgObject.Array(Promise.as(collectRemainingNodes(firstNode)));
+
+        return DbgObject.ForcePromiseIfSync(resultPromise);
+    }
+
     DbgObject.prototype._help_ptr = {
         description: "Returns the address of the object, as a hexadecimal-formatted string or \"NULL\".",
         returns: "A string."
@@ -919,3 +939,4 @@ var DbgObject = (function() {
 })();
 
 var PromisedDbgObject = Promise.promisedType(DbgObject, ["f", "as", "deref", "idx", "unembed", "vcast"]);
+PromisedDbgObject.IncludePromisedMethod("list", PromisedDbgObject.Array);

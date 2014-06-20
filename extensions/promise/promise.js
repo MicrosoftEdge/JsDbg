@@ -334,32 +334,55 @@ var Promise = (function() {
         };
         var wrappedMethods = {};
 
-        promisedType.IncludePromisedMethod = function(methodName) {
+        promisedType.Array = function(promise) { this.promise = promise; }
+        promisedType.Array.prototype.then = function() {
+            return this.promise.then.apply(this.promise, arguments);
+        };
+        promisedType.Array.prototype.map = function(f) {
+            return Promise.map(this.promise, f);
+        }
+        promisedType.Array.prototype.forEach = function(f) {
+            return this.map(function (item) {
+                f(item);
+                return item;
+            });
+        }
+        promisedType.IncludePromisedMethod = function(methodName, resultPromisedType) {
             wrappedMethods[methodName] = true;
             var method = constructor.prototype[methodName];
             if (typeof(method) == typeof(function() {})) {
                 promisedType.prototype[methodName] = function promisedMethod() {
                     var forwardedArguments = arguments;
-                    return new promisedType(this.promise.then(function callPromisedMethodOnRealizedObject(result) {
+                    var resultPromise = this.promise.then(function callPromisedMethodOnRealizedObject(result) {
                         return result[methodName].apply(result, forwardedArguments);
-                    }));
-                }
+                    });
+                    if (resultPromisedType != null) {
+                        resultPromise = new resultPromisedType(resultPromise);
+                    }
+                    return resultPromise;
+                };
+
+                promisedType.Array.prototype[methodName] = function promisedArrayMethod() {
+                    var forwardedArguments = arguments;
+                    var resultPromise = Promise.map(this.promise, function callPromisedMethodOnMappedItem(item) {
+                        return item[methodName].apply(item, forwardedArguments);
+                    });
+                    if (resultPromisedType != null && resultPromisedType.Array != null) {
+                        resultPromise = new resultPromisedType.Array(resultPromise);
+                    }
+                    return resultPromise;
+                };
             }
         }
 
-        methods.forEach(promisedType.IncludePromisedMethod);
+        methods.forEach(function (method) { 
+            promisedType.IncludePromisedMethod(method, promisedType);
+        });
 
         for (var methodName in constructor.prototype) {
             var method = constructor.prototype[methodName];
             if (!(methodName in wrappedMethods) && typeof(method) == typeof(function() {})) {
-                (function(methodName) {
-                    promisedType.prototype[methodName] = function promisedMethod() {
-                        var forwardedArguments = arguments;
-                        return this.promise.then(function callPromisedMethodOnRealizedObject(result) {
-                            return result[methodName].apply(result, forwardedArguments);
-                        });
-                    };
-                })(methodName);
+                promisedType.IncludePromisedMethod(methodName, null);
             }
         }
         

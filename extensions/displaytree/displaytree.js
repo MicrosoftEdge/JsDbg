@@ -7,7 +7,7 @@
 //
 // This file has the mshtml-specific logic for constructing a display tree.  The methods that new types implement are
 //  - typename -> string               [a name that identifies the type]
-//  - collectChildren(array) -> void   [adds children to the given array]
+//  - getChildren() -> promised array  [collects the children in the array]
 //
 // These types also act as backing nodes drawn by widetree/talltree.js, which means that CDispNode implements
 //  - getChildren -> array of backing nodes
@@ -106,7 +106,6 @@ var DisplayTree = (function() {
     FieldTypeMap["CDispNode"] = CDispNode;
 
     CDispNode.prototype.typename = function() { return this.vtableType; }
-    CDispNode.prototype.collectChildren = function(children) { return Promise.as(children); }
 
     CDispNode.prototype.createRepresentation = function() {
         var element = document.createElement("div");
@@ -114,47 +113,17 @@ var DisplayTree = (function() {
         return FieldSupport.RenderFields(this, this.dispNode, element);
     }
     CDispNode.prototype.getChildren = function() {
-        if (this.childrenPromise == null) {
-            var children = [];
-            this.childrenPromise = Promise.map(this.collectChildren(children), CreateDispNode);
-        }
-        return this.childrenPromise;
+        return Promise.as([]);
     }
     var CDispLeafNode = CreateDispNodeType("CDispLeafNode", CDispNode);
     var CDispSVGLeafNode = CreateDispNodeType("CDispSVGLeafNode", CDispNode);
     var CDispProxyNode = CreateDispNodeType("CDispProxyNode", CDispNode);
 
     var CDispParentNode = CreateDispNodeType("CDispParentNode", CDispNode);
-    CDispParentNode.prototype.collectChildren = function(children) {
-        // Get any children from the super class...
-        var that = this;
-        return CDispParentNode.super.prototype.collectChildren.call(this, children)
-
-            // And get my own children.
-            .then(function() {
-                function collectChildAndRemainingSiblings(currentChild) {
-                    if (!currentChild.isNull()) {
-                        // Get the latest version of the child...
-                        return currentChild.latestPatch()
-
-                            // Store the latest version in the child array and move to the next one...
-                            .then(function (latestPatch) {
-                                children.push(latestPatch);
-                                return latestPatch.f("_pNext");
-                            })
-
-                            // And collect the rest.
-                            .then(collectChildAndRemainingSiblings);
-                    } else {
-                        return children;
-                    }
-                }
-                
-                // Get the first child...
-                return that.dispNode.f("_pFirstChild")
-                    // And collect it and its siblings. 
-                    .then(collectChildAndRemainingSiblings);
-            })
+    CDispParentNode.prototype.getChildren = function() {
+        return this.dispNode.f("_pFirstChild").latestPatch().list(function (node) {
+            return node.f("_pNext").latestPatch();
+        }).map(CreateDispNode);
     }
 
     var CDispStructureNode = CreateDispNodeType("CDispStructureNode", CDispParentNode);

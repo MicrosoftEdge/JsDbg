@@ -180,6 +180,10 @@ var MSHTML = (function() {
     },
     DbgObject.prototype.latestPatch = function() {
         var that = this;
+        if (this.isNull()) {
+            return this;
+        }
+        
         var promise = Promise.as(this.f("_pNextPatch"))
             .then(function(nextPatch) {
                 if (!nextPatch.isNull()) {
@@ -190,7 +194,7 @@ var MSHTML = (function() {
             });
         return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
     }
-    PromisedDbgObject.IncludePromisedMethod("latestPatch");
+    PromisedDbgObject.IncludePromisedMethod("latestPatch", PromisedDbgObject);
 
     // Provide additional type info on some fields.
     DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bVisibility", "styleVisibility");

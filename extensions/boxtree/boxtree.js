@@ -220,27 +220,9 @@ var BoxTree = (function() {
 
     var FlowBox = CreateBoxType("Layout::FlowBox", ContainerBox);
     FlowBox.collectChildrenInFlow = function(flow, children) {
-        return Promise.as(flow)
-            .then(function(initialFlowItem) {
-                function collectFlowItemAndAdvance(flowItem) {
-                    flowItem = flowItem.latestPatch();
-                    children.push(flowItem.f("data.boxReference.m_pT"));
-                    return flowItem.f("data.next")
-                        .then(function(nextFlowItem) {
-                            if (!nextFlowItem.equals(initialFlowItem)) {
-                                return collectFlowItemAndAdvance(nextFlowItem);
-                            } else {
-                                return children;
-                            }
-                        });
-                }
-                
-                if (!initialFlowItem.isNull()) {
-                    return collectFlowItemAndAdvance(initialFlowItem);
-                } else {
-                    return children;
-                }
-            });
+        return flow.latestPatch().list(function (flowItem) {
+            return flowItem.f("data.next").latestPatch();
+        }).f("data.boxReference.m_pT").forEach(function(item) { children.push(item); });
     }
     FlowBox.prototype.collectChildren = function(children) {
         var that = this;
