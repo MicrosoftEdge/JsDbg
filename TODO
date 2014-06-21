@@ -21,11 +21,16 @@
     - "code behind" model
     - build a new tree type, and save it as an extension
 
-- NULL propagation in DbgObject
-    - capture the field where it became null so that the description can inform it?
 - TreeViewers should override descriptions for the types they know about
 
+- automatic latest patch use for type hooking?
+
+- known array type feature in dbgobject?
+- provide DbgObject.array as a promised obj?
+
 - remove synchronous support in DbgObject
+
+- default description should be clickable to dump fields
 
 - see how expensive dependency loading is?
 
