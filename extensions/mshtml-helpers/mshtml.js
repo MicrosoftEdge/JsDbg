@@ -28,12 +28,12 @@ var MSHTML = (function() {
         }
 
         var promise = Promise.as(DbgObject.global("mshtml!g_pts").deref()).then(collectRemainingDocs);
-        return DbgObject.ForcePromiseIfSync(promise);
+        return promise;
     }
 
     function GetCDocs() {
         var promise = Promise.map(GetDocsAndThreadstates(), function(obj) { return obj.doc; });
-        return DbgObject.ForcePromiseIfSync(promise);
+        return promise;
     }
 
     function GetRootCTreeNodes() {
@@ -46,22 +46,20 @@ var MSHTML = (function() {
                     .filter(function(w) { return !w.isNull(); })
                     .map(function(pw) { return pw.f("_pCWindow._pMarkup._ptpFirst").unembed("CTreeNode", "_tpBegin"); });
             });
-        return DbgObject.ForcePromiseIfSync(promise);
+        return promise;
     }
 
     function GetCTreeNodeFromTreeElement(element) {
-        var promise = Promise.as(element)
-            .then(function(element) {
-                return element.f("placeholder");
-            })
-            .then(function() {
+        return element.f("placeholder")
+        .then(
+            function() {
                 // We're in chk, offset by the size of a void*.
                 return element.as("void*").idx(1).as("CTreeNode");
             }, function() {
                 // We're in fre, cast to CTreeNode.
                 return element.as("CTreeNode");
-            });
-        return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
+            }
+        );
     }
 
     function GetLayoutAssociationFromCTreeNode(treeNode, flag) {
@@ -72,7 +70,7 @@ var MSHTML = (function() {
             0x8: "Layout::LayoutBox"
         })[flag];
 
-        var promise = Promise.as(treeNode.f("_fHasLayoutAssociationPtr").val())
+        var promise = treeNode.f("_fHasLayoutAssociationPtr").val()
             .then(function (layoutAssociationBits) {
                 if (layoutAssociationBits & flag) {
                     var bits = 0;
@@ -92,7 +90,7 @@ var MSHTML = (function() {
                     return DbgObject.NULL;
                 }
             });
-        return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
+        return new PromisedDbgObject(promise);
     }
 
     function GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode) {
@@ -142,7 +140,7 @@ var MSHTML = (function() {
             }
         });
 
-        return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
+        return new PromisedDbgObject(promise);
     }
 
     function GetObjectFromDataCache(cache, index) {
@@ -166,7 +164,7 @@ var MSHTML = (function() {
             return cache.f("_paelBuckets").idx(Math.floor(index / bucketSize)).deref().idx(index % bucketSize).f("_pvData").as(resultType);
         });
 
-        return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
+        return new PromisedDbgObject(promise);
     }
 
     function GetObjectFromThreadstateCache(object, cacheType, index) {
@@ -180,15 +178,14 @@ var MSHTML = (function() {
     },
     DbgObject.prototype.latestPatch = function() {
         var that = this;        
-        var promise = Promise.as(this.f("_pNextPatch"))
-            .then(function(nextPatch) {
-                if (!nextPatch.isNull()) {
-                    return nextPatch.as(that.typename);
-                } else {
-                    return that;
-                }
-            });
-        return DbgObject.ForcePromiseIfSync(new PromisedDbgObject(promise));
+        return this.f("_pNextPatch")
+        .then(function(nextPatch) {
+            if (!nextPatch.isNull()) {
+                return nextPatch.as(that.typename);
+            } else {
+                return that;
+            }
+        });
     }
     PromisedDbgObject.IncludePromisedMethod("latestPatch", PromisedDbgObject);
 

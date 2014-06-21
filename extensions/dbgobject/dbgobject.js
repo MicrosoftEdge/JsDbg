@@ -49,7 +49,7 @@ var DbgObject = (function() {
     DbgObject._help = {
         name: "DbgObject",
         description: "Provides convenient navigation of C++ objects in the debuggee.",
-        notes: "<p>DbgObjects are immutable.</p><p>Note that several methods return either Promises or values depending on whether JsDbg is currently running synchronously.  Promises to a DbgObject returned by these methods can be treated as DbgObjects where <em>every</em> method returns a promise.</p>",
+        notes: "<p>DbgObjects are immutable.</p><p>Note that most methods return promises.  Promises to a DbgObject returned by these methods can be treated as DbgObjects where <em>every</em> method returns a promise.</p>",
         _help_constructor: {
             arguments: [
                 {name: "module", type:"string", description:"The module that contains the type."},
@@ -85,45 +85,6 @@ var DbgObject = (function() {
             return result; 
         });
     }
-
-    function checkSync(promise) {
-        if (JsDbg.IsRunningSynchronously() && Promise.isPromise(promise)) {
-            var retval = undefined;
-            var didError = false;
-            promise.then(function(result) {
-                retval = result;
-            }, function(error) {
-                didError = true;
-                retval = error;
-            });
-
-            if (didError) {
-                throw retval;
-            }
-            return retval;
-        } else {
-            return promise;
-        }
-    }
-
-    function checkSyncDbgObject(promise) {
-        promise = checkSync(promise);
-        if (Promise.isPromise(promise)) {
-            return new PromisedDbgObject(promise);
-        } else {
-            return promise;
-        }
-    }
-
-    DbgObject._help_ForcePromiseIfSync = {
-        description: "Forces a promise to its value if JsDbg is currently running synchronously.",
-        returns: "The given promise's if JsDbg is running synchronously, the promise itself otherwise.",
-        notes: "This method requires that a given promise is already fulfilled if JsDbg is running synchronously.",
-        arguments: [
-            {name: "promise", type:"Promise", description: "A promise to force if running synchronously."}
-        ]
-    },
-    DbgObject.ForcePromiseIfSync = checkSync;
 
     var typeOverrides = {};
     DbgObject._help_AddTypeOverride = {
@@ -297,13 +258,13 @@ var DbgObject = (function() {
 
     DbgObject._help_global = {
         description: "Evaluates a reference to a global symbol in the debuggee.",
-        returns: "(A promise to) a DbgObject representing the symbol.",
+        returns: "A promise to a DbgObject representing the symbol.",
         arguments: [
             {name:"symbol", type:"string", description:"The module-prefixed global symbol to evaluate."}
         ]
     }
     DbgObject.global = function(symbol) {
-        return checkSyncDbgObject(
+        return new PromisedDbgObject(
             jsDbgPromise(JsDbg.LookupSymbol, symbol, true).then(function(result) {
                 return new DbgObject(result.module, result.type, result.pointer);
             })
@@ -312,13 +273,13 @@ var DbgObject = (function() {
 
     DbgObject._help_sym = {
         description: "Evaluates a reference to a symbol in the debuggee.",
-        returns: "(A promise to) a DbgObject representing the symbol.",
+        returns: "A promise to a DbgObject representing the symbol.",
         arguments: [
             {name:"symbol", type:"string", description:"The symbol to evaluate."}
         ]
     }
     DbgObject.sym = function(symbol) {
-        return checkSyncDbgObject(
+        return new PromisedDbgObject(
             jsDbgPromise(JsDbg.LookupSymbol, symbol, false).then(function(result) {
                 return new DbgObject(result.module, result.type, result.pointer);
             })
@@ -327,7 +288,7 @@ var DbgObject = (function() {
 
     DbgObject._help_locals = {
         description: "Evaluates a reference to local symbols in the debuggee.",
-        returns: "(A promise to) an array of DbgObjects representing the symbols on the stack.",
+        returns: "A promise to an array of DbgObjects representing the symbols on the stack.",
         arguments: [
             {name:"module", type:"string", description:"The module containing the method."},
             {name:"method", type:"string", description:"The method containing the local symbol."},
@@ -335,8 +296,9 @@ var DbgObject = (function() {
         ]
     }
     DbgObject.locals = function(module, method, symbol) {
-        return checkSync(
-            jsDbgPromise(JsDbg.LookupLocalSymbols, module, method, symbol, /*maxCount*/0).then(function(resultArray) {
+        return new PromisedDbgObject.Array(
+            jsDbgPromise(JsDbg.LookupLocalSymbols, module, method, symbol, /*maxCount*/0)
+            .then(function(resultArray) {
                 return resultArray.map(function(result) {
                     return new DbgObject(result.module, result.type, result.pointer);
                 });
@@ -354,7 +316,7 @@ var DbgObject = (function() {
             return jsDbgPromise(JsDbg.GetPointerSize).then(function(result) {
                 return result.pointerSize;
             });
-        } else if (this.typename == "") {
+        } else if (this == DbgObject.NULL) {
             return Promise.as(0);
         } else {
             return jsDbgPromise(JsDbg.LookupTypeSize, this.module, this.typename).then(function(result) {
@@ -385,27 +347,26 @@ var DbgObject = (function() {
 
     DbgObject.prototype._help_size = {
         description:"Gets the size of the DbgObject in bytes.",
-        returns: "(A promise to) an integral number of bytes."
+        returns: "A promise to an integral number of bytes."
     }
     DbgObject.prototype.size = function() {
-        return checkSync(this._getStructSize());
+        return this._getStructSize();
     }
 
     DbgObject.prototype._help_deref = {
         description: "Derferences a DbgObject that represents a pointer.",
-        returns: "(A promise to) a DbgObject."
+        returns: "A promise to a DbgObject."
     }
     DbgObject.prototype.deref = function() {
         if (this.isNull()) {
-            return Promise.as(new DbgObject(this.module, this._getDereferencedTypeName(), 0));
+            return new PromisedDbgObject(new DbgObject(this.module, this._getDereferencedTypeName(), 0));
         }
 
         var that = this;
-        return checkSyncDbgObject(
-            jsDbgPromise(JsDbg.ReadPointer, that._pointer).then(function(result) {
-                return new DbgObject(that.module, that._getDereferencedTypeName(), result.value);
-            })
-        );
+        return jsDbgPromise(JsDbg.ReadPointer, that._pointer)
+        .then(function(result) {
+            return new DbgObject(that.module, that._getDereferencedTypeName(), result.value);
+        });
     }
 
     DbgObject.prototype._help_f = {
@@ -430,7 +391,7 @@ var DbgObject = (function() {
 <li><code>a.f(\"b.c.value\")</code> returns a DbgObject representing an int.</li>\
 <li><code>a.f(\"z\", \"b\")</code> returns a DbgObject representing an object of type B.</li>\
 </ul></p>",
-        returns: "(A promise to) a DbgObject.",
+        returns: "A promise to a DbgObject.",
         arguments: [
             {name:"field", type:"string", description:"One or more fields (separated by \".\") to access."},
             {name:"...", description:"Fields to use if the prior field lookups failed (e.g. because a field has been renamed)."}
@@ -440,21 +401,19 @@ var DbgObject = (function() {
         if (arguments.length < 0) {
             throw new Error("You must provide a field.");
         } else if (arguments.length == 1) {
-            return checkSyncDbgObject(this._fHelper(field));
+            return this._fHelper(field);
         } else {
             var rest = [];
             for (var i = 1; i < arguments.length; ++i) {
                 rest.push(arguments[i]);
             }
             var that = this;
-            return checkSyncDbgObject(
-                this._fHelper(field)
-                .then(
-                    function(x) { return x; },
-                    function(err) {
-                        return that.f.apply(that, rest);
-                    }
-                )
+            return this._fHelper(field)
+            .then(
+                function(x) { return x; },
+                function(err) {
+                    return that.f.apply(that, rest);
+                }
             );
         }
     }
@@ -482,6 +441,8 @@ var DbgObject = (function() {
             throw new Error("You cannot do a field lookup on a pointer.");
         } else if (this._isArray) {
             throw new Error("You cannot get a field from an array.");
+        } else if (this == DbgObject.NULL) {
+            return new PromisedDbgObject(DbgObject.NULL);
         }
 
         var that = this;
@@ -513,7 +474,7 @@ var DbgObject = (function() {
 
     DbgObject.prototype._help_unembed = {
         description: "Gets the containing structure from an embedded object.",
-        returns: "(A promise to) a DbgObject.",
+        returns: "A promise to a DbgObject.",
         arguments: [
             {name: "type", type:"string", description:"The containing type."},
             {name: "field", type:"string", description:"The field containing the callee DbgObject."}
@@ -521,12 +482,10 @@ var DbgObject = (function() {
     }
     DbgObject.prototype.unembed = function(type, field) {
         var that = this;
-        return checkSyncDbgObject(
-            jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, field)
-                .then(function(result) { 
-                    return new DbgObject(that.module, type, that.isNull() ? 0 : that._pointer - result.offset); 
-                })
-        );
+        return jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, field)
+        .then(function(result) { 
+            return new DbgObject(that.module, type, that.isNull() ? 0 : that._pointer - result.offset); 
+        });
     }
 
     DbgObject.prototype._help_as = {
@@ -545,25 +504,25 @@ var DbgObject = (function() {
 
     DbgObject.prototype._help_idx = {
         description: "Returns the i<sup>th</sup> object in an array after the given object.",
-        returns: "(A promise to) a DbgObject.",
+        returns: "A promise to a DbgObject.",
         arguments: [{name: "index", type:"int", description:"The index to retrieve."}],
         notes: "<p>Any object can be treated as if it is an array, i.e. <code>obj.idx(a + b)</code> is equivalent to <code>obj.idx(a).idx(b)</code>.</p>"
     }
     DbgObject.prototype.idx = function(index) {
         var that = this;
-        return checkSyncDbgObject(
-            // index might be a promise...
-            Promise.as(index)
-                // Get the struct size...
-                .then(function(index) { return Promise.join([that._getStructSize(), index]); })
-                // And offset the struct.
-                .then(function(args) { return that._off(args[0] * args[1]); })
-        );
+        // index might be a promise...
+        return Promise.as(index)
+
+        // Get the struct size...
+        .then(function(index) { return Promise.join([that._getStructSize(), index]); })
+
+        // And offset the struct.
+        .then(function(args) { return that._off(args[0] * args[1]); });
     }
 
     DbgObject.prototype._help_val = {
         description: "Retrieves a scalar value held by a DbgObject.",
-        returns: "(A promise to) a number."
+        returns: "A promise to a number."
     }
     DbgObject.prototype.val = function() {
         return this._val(this._isUnsigned);
@@ -571,7 +530,7 @@ var DbgObject = (function() {
 
     DbgObject.prototype._help_uval = {
         description: "Retrieves an unsigned scalar value held by a DbgObject.",
-        returns: "(A promise to) an unsigned number."
+        returns: "A promise to an unsigned number."
     }
     DbgObject.prototype.uval = function() {
         return this._val(true);
@@ -579,7 +538,7 @@ var DbgObject = (function() {
 
     DbgObject.prototype._help_sval = {
         description: "Retrieves a signed scalar value held by a DbgObject.",
-        returns: "(A promise to) a signed number."
+        returns: "A promise to a signed number."
     }
     DbgObject.prototype.sval = function() {
         return this._val(false);
@@ -591,7 +550,7 @@ var DbgObject = (function() {
         }
 
         if (this.typename == "void") {
-            return checkSync(Promise.as(this._pointer));
+            return Promise.as(this._pointer);
         }
 
         if (this._isArray) {
@@ -599,42 +558,37 @@ var DbgObject = (function() {
         }
 
         var that = this;
-        return checkSync(
-            // Lookup the structure size...
-            this._getStructSize()
 
-            // Read the value...
-            .then(function(structSize) {
-                return jsDbgPromise(JsDbg.ReadNumber, that._pointer, structSize, unsigned, that._isFloat());
-            })
+        // Lookup the structure size...
+        return this._getStructSize()
 
-            // If we're a bit field, extract the bits.
-            .then(function(result) {
-                var value = result.value;
-                if (that.bitcount && that.bitoffset !== undefined) {
-                    value = (value >> that.bitoffset) & ((1 << that.bitcount) - 1);
-                }
-                return value;
-            })
-        );
+        // Read the value...
+        .then(function(structSize) {
+            return jsDbgPromise(JsDbg.ReadNumber, that._pointer, structSize, unsigned, that._isFloat());
+        })
+
+        // If we're a bit field, extract the bits.
+        .then(function(result) {
+            var value = result.value;
+            if (that.bitcount && that.bitoffset !== undefined) {
+                value = (value >> that.bitoffset) & ((1 << that.bitcount) - 1);
+            }
+            return value;
+        })
     }
 
     DbgObject.prototype._help_constant = {
         description: "Retrieves a constant/enum value held by a DbgObject.",
-        returns: "(A promise to) a string."
+        returns: "A promise to a string."
     }
     DbgObject.prototype.constant = function() {
         var that = this;
-        return checkSync(
-            // Read the value (coerce to promise in case we're running synchronously)...
-            Promise.as(this.val())
+        return this.val()
+        // Lookup the constant name...
+        .then(function(value) { return jsDbgPromise(JsDbg.LookupConstantName, that.module, that.typename, value); })
 
-            // Lookup the constant name...
-            .then(function(value) { return jsDbgPromise(JsDbg.LookupConstantName, that.module, that.typename, value); })
-
-            // And return it.
-            .then(function(result) { return result.name; })
-        );
+        // And return it.
+        .then(function(result) { return result.name; })
     }
 
     DbgObject.prototype._help_hasDesc = {
@@ -642,17 +596,15 @@ var DbgObject = (function() {
         returns: "(A promise to a) bool."
     }
     DbgObject.prototype.hasDesc = function() {
-        return checkSync(
-            getTypeDescriptionFunctionIncludingBaseTypes(this.module, this.typename)
-            .then(function (result) {
-                return result != null;
-            })
-        );
+        return getTypeDescriptionFunctionIncludingBaseTypes(this.module, this.typename)
+        .then(function (result) {
+            return result != null;
+        });
     }
 
     DbgObject.prototype._help_desc = {
         description: "Provides a human-readable description of the object.",
-        returns: "(A promise to) an HTML fragment.",
+        returns: "A promise to an HTML fragment.",
         notes: function() {
             var html = "<p>Type-specific description generators can be registered with <code>DbgObject.AddTypeDescription</code>.</p>";
             var loadedDescriptionTypes = [];
@@ -666,67 +618,64 @@ var DbgObject = (function() {
         }
     }
     DbgObject.prototype.desc = function() {
-        return checkSync(getTypeDescription(this));
+        return getTypeDescription(this);
     }
 
     DbgObject.prototype._help_array = {
         description: "Provides an array of values or DbgObjects.",
-        returns: "(A promise to) an array of numbers if the type is not a pointer type and can be treated as a scalar, or an array of DbgObjects.",
+        returns: "A promise to an array of numbers if the type is not a pointer type and can be treated as a scalar, or an array of DbgObjects.",
         arguments: [{name:"count", type:"int", description:"The number of items to retrieve.  Optional if the object represents an inline array."}]
     }
     DbgObject.prototype.array = function(count) {
         var that = this;
-        return checkSync(
-            // "count" might be a promise...
-            Promise.as(count)
+        // "count" might be a promise...
+        return Promise.as(count)
+        .then(function (count) {
+            // If we were given a DbgObject, go ahead and get the value.
+            if (count.val == DbgObject.prototype.val) {
+                return count.val();
+            } else {
+                return count;
+            }
+        })
 
-            .then(function (count) {
-                // If we were given a DbgObject, go ahead and get the value.
-                if (count.val == DbgObject.prototype.val) {
-                    return count.val();
-                } else {
-                    return count;
-                }
-            })
+        // Once we have the real count we can get the array.
+        .then(function(count) {
+            if (count == undefined && that._isArray) {
+                count = that._arrayLength;
+            }
 
-            // Once we have the real count we can get the array.
-            .then(function(count) {
-                if (count == undefined && that._isArray) {
-                    count = that._arrayLength;
-                }
+            if (count == 0 || that.isNull()) {
+                return [];
+            }
 
-                if (count == 0 || that.isNull()) {
-                    return [];
-                }
+            if (that.typename in scalarTypes || that.isPointer()) {
+                // Get the struct size...
+                return that._getStructSize()
 
-                if (that.typename in scalarTypes || that.isPointer()) {
-                    // Get the struct size...
-                    return that._getStructSize()
+                // Read the array...
+                .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, that._isUnsigned, that._isFloat(), count); })
 
-                    // Read the array...
-                    .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, that._isUnsigned, that._isFloat(), count); })
-
-                    // Process the array into DbgObjects if necessary.
-                    .then(function(result) {
-                        if (that._isPointer()) {
-                            // If the type is a pointer, return an array of DbgObjects.
-                            var itemTypename = that._getDereferencedTypeName();
-                            return result.array.map(function(x) { return new DbgObject(that.module, itemTypename, x); });
-                        } else {
-                            // Otherwise, the items are values.
-                            return result.array;
-                        }
-                    });
-                } else {
-                    // The array isn't an array of scalars.  Provide an array of idx calls instead.
-                    var array = [];
-                    for (var i = 0; i < count; ++i) {
-                        array.push(that.idx(i));
+                // Process the array into DbgObjects if necessary.
+                .then(function(result) {
+                    if (that._isPointer()) {
+                        // If the type is a pointer, return an array of DbgObjects.
+                        var itemTypename = that._getDereferencedTypeName();
+                        return result.array.map(function(x) { return new DbgObject(that.module, itemTypename, x); });
+                    } else {
+                        // Otherwise, the items are values.
+                        return result.array;
                     }
-                    return Promise.join(array);
+                });
+            } else {
+                // The array isn't an array of scalars.  Provide an array of idx calls instead.
+                var array = [];
+                for (var i = 0; i < count; ++i) {
+                    array.push(that.idx(i));
                 }
-            })
-        );
+                return Promise.join(array);
+            }
+        });
     }
 
     DbgObject.prototype.list = function(fieldOrFunction) {
@@ -744,9 +693,8 @@ var DbgObject = (function() {
                 return Promise.as(fieldOrFunction(node)).then(collectRemainingNodes);
             }
         }
-        var resultPromise = new PromisedDbgObject.Array(Promise.as(collectRemainingNodes(firstNode)));
 
-        return DbgObject.ForcePromiseIfSync(resultPromise);
+        return Promise.as(collectRemainingNodes(firstNode));
     }
 
     DbgObject.prototype._help_ptr = {
@@ -805,7 +753,7 @@ var DbgObject = (function() {
 
     DbgObject.prototype._help_vtable = {
         description: "Returns the type associated with the object's vtable.",
-        returns: "(A promise to) a string."
+        returns: "A promise to a string."
     }
     DbgObject.prototype.vtable = function() {
         if (this.isNull()) {
@@ -813,25 +761,24 @@ var DbgObject = (function() {
         }
 
         var pointer = this._pointer;
-        return checkSync(
-            // Read the value at the this pointer...
-            jsDbgPromise(JsDbg.ReadPointer, pointer)
 
-            // Lookup the symbol at that value...
-            .then(function(result) { 
-                return jsDbgPromise(JsDbg.LookupSymbolName, result.value);
-            })
+        // Read the value at the this pointer...
+        return jsDbgPromise(JsDbg.ReadPointer, pointer)
 
-            // And strip away the vftable suffix..
-            .then(function(result) {
-                return result.symbolName.substring(result.symbolName.indexOf("!") + 1, result.symbolName.indexOf("::`vftable'"));
-            })
-        );
+        // Lookup the symbol at that value...
+        .then(function(result) { 
+            return jsDbgPromise(JsDbg.LookupSymbolName, result.value);
+        })
+
+        // And strip away the vftable suffix..
+        .then(function(result) {
+            return result.symbolName.substring(result.symbolName.indexOf("!") + 1, result.symbolName.indexOf("::`vftable'"));
+        });
     }
 
     DbgObject.prototype._help_vcast = {
         description: "Lookup the type to an object's vtable and attempt a multiple-inheritance-aware cast.",
-        returns: "(A promise to) a DbgObject.",
+        returns: "A promise to a DbgObject.",
         notes: "If the vtable's type implements the DbgObject's type multiple times (e.g. <code>IUnknown</code>) the result of this method is undefined."
     }
     DbgObject.prototype.vcast = function() {
@@ -840,43 +787,41 @@ var DbgObject = (function() {
         }
 
         var that = this;
-        return checkSyncDbgObject(
-            // Lookup the vtable type (coerce to promise in case we're running synchronously)...
-            Promise.as(this.vtable())
-            .then(function(vtableType) {
-                if (vtableType == that.typename) {
-                    return that;
+        // Lookup the vtable type...
+        return this.vtable()
+        .then(function(vtableType) {
+            if (vtableType == that.typename) {
+                return that;
+            }
+
+            // Lookup the base class offset...
+            return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, vtableType)
+
+            // And shift/cast.
+            .then(function(baseTypes) {
+                for (var i = 0; i < baseTypes.length; ++i) {
+                    if (baseTypes[i].type == that.typename) {
+                        return new DbgObject(that.module, vtableType, that._pointer - baseTypes[i].offset);
+                    }
                 }
 
-                // Lookup the base class offset...
-                return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, vtableType)
-
-                // And shift/cast.
-                .then(function(baseTypes) {
-                    for (var i = 0; i < baseTypes.length; ++i) {
-                        if (baseTypes[i].type == that.typename) {
-                            return new DbgObject(that.module, vtableType, that._pointer - baseTypes[i].offset);
+                // Maybe the vtable type is a base type of the original...
+                return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, that.typename)
+                .then(function(originalBaseTypes) {
+                    for (var i = 0; i < originalBaseTypes.length; ++i) {
+                        if (originalBaseTypes[i].type == vtableType) {
+                            return new DbgObject(that.module, vtableType, that._pointer + originalBaseTypes[i].offset);
                         }
                     }
-
-                    // Maybe the vtable type is a base type of the original...
-                    return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, that.typename)
-                    .then(function(originalBaseTypes) {
-                        for (var i = 0; i < originalBaseTypes.length; ++i) {
-                            if (originalBaseTypes[i].type == vtableType) {
-                                return new DbgObject(that.module, vtableType, that._pointer + originalBaseTypes[i].offset);
-                            }
-                        }
-                        throw new Error("The DbgObject's type " + that.typename + " is not related to the vtable's type, " + vtableType);
-                    });
+                    throw new Error("The DbgObject's type " + that.typename + " is not related to the vtable's type, " + vtableType);
                 });
-            })
-        );
+            });
+        });
     }
 
     DbgObject.prototype._help_fields = {
         description: "Gets all available fields for a given type.",
-        returns: "(A promise to) an array of {name:(string), offset:(int), size:(int), value:(DbgObjects)} objects."
+        returns: "A promise to an array of {name:(string), offset:(int), size:(int), value:(DbgObjects)} objects."
     }
     DbgObject.prototype.fields = function() {
         if (this._isPointer()) {
@@ -884,30 +829,28 @@ var DbgObject = (function() {
         }
 
         var that = this;
-        return checkSync(
-            // Lookup the fields...
-            jsDbgPromise(JsDbg.LookupFields, this.module, this.typename)
+        // Lookup the fields...
+        return jsDbgPromise(JsDbg.LookupFields, this.module, this.typename)
 
-            // Sort them by offset and massage the output.
-            .then(function(result) {
-                result.fields.sort(function(a, b) { return a.offset - b.offset; });
-                return result.fields.map(function(field) {
-                    return {
-                        name: field.name,
-                        offset: field.offset,
-                        size: field.size,
-                        value: new DbgObject(
-                            that.module, 
-                            getFieldType(that.module, that.typename, field.name, field.type), 
-                            that._pointer == 0 ? 0 : that._pointer + field.offset, 
-                            field.bitcount, 
-                            field.bitoffset, 
-                            field.size
-                        )
-                    };
-                });
-            })
-        );
+        // Sort them by offset and massage the output.
+        .then(function(result) {
+            result.fields.sort(function(a, b) { return a.offset - b.offset; });
+            return result.fields.map(function(field) {
+                return {
+                    name: field.name,
+                    offset: field.offset,
+                    size: field.size,
+                    value: new DbgObject(
+                        that.module, 
+                        getFieldType(that.module, that.typename, field.name, field.type), 
+                        that._pointer == 0 ? 0 : that._pointer + field.offset, 
+                        field.bitcount, 
+                        field.bitoffset, 
+                        field.size
+                    )
+                };
+            });
+        });
     }
 
     DbgObject.prototype._help_arrayLength = {

@@ -265,17 +265,6 @@ var FieldSupport = (function() {
             var shortNameLabel = document.createElement("label");
             shortNameLabel.innerHTML = "Short Name: ";
 
-            var asyncLabel = document.createElement("label");
-            asyncLabel.innerHTML = "Async: ";
-
-            var asyncInputContainer = document.createElement("div");
-            var asyncInput = document.createElement("input");
-            asyncInput.className = "edit-async";
-            asyncInput.setAttribute("type", "checkbox");
-            asyncInput.checked = f.async ? true : false;
-            asyncInput.addEventListener("change", function() { updateField(f, container); });
-            asyncInputContainer.appendChild(asyncInput);
-
             var codeInput = document.createElement("textarea");
             codeInput.className = "edit-code";
             codeInput.setAttribute("spellcheck", "false");
@@ -308,7 +297,6 @@ var FieldSupport = (function() {
                 [typeLabel, typeInput],
                 [nameLabel, nameInput],
                 [shortNameLabel, shortNameInput],
-                [asyncLabel, asyncInputContainer],
                 [codeLabel, codeDescription],
                 [null, codeInput]
             ]));
@@ -355,7 +343,6 @@ var FieldSupport = (function() {
                     type: typeString,
                     name: nameString,
                     shortName: shortNameString,
-                    async: f.async ? true : false,
                     codeString: codeString
                 });
             }
@@ -376,7 +363,6 @@ var FieldSupport = (function() {
             var nameString = container.querySelector(".edit-name").value;
             var shortNameString = container.querySelector(".edit-shortName").value;
             var codeString = container.querySelector(".edit-code").value;
-            var isAsync = container.querySelector(".edit-async").checked;
 
             if (typeString in TypeMap) {
                 f.type = typeString;
@@ -386,7 +372,6 @@ var FieldSupport = (function() {
             }
             f.fullname = nameString;
             f.shortname = shortNameString;
-            f.async = isAsync;
             f.html = codeStringToFunction(codeString);
             f.htmlString = codeString;
 
@@ -477,7 +462,6 @@ var FieldSupport = (function() {
                     type: savedField.type,
                     enabled: false,
                     fullname: savedField.name,
-                    async: savedField.async,
                     localstorageid: key,
                     shortname: savedField.shortName,
                     html: codeStringToFunction(savedField.codeString),
@@ -507,7 +491,6 @@ var FieldSupport = (function() {
                     type: DefaultTypeName,
                     enabled:true,
                     id: ++uniqueId,
-                    async: true,
                     fullname: "Custom" + (++addedFieldCounter),
                     localstorageid: (new Date() - 0) + "-" + Math.round(Math.random() * 1000000),
                     shortname: "f" + addedFieldCounter,
@@ -550,7 +533,6 @@ var FieldSupport = (function() {
                                 id:++uniqueId,
                                 enabled: true,
                                 external: true,
-                                async: field.async,
                                 fullname: field.name,
                                 shortname: field.shortName,
                                 html: codeStringToFunction(field.codeString),
@@ -606,12 +588,7 @@ var FieldSupport = (function() {
             // Create the representations...
             .join(fields.map(function(field) { 
                 try {
-                    var result;
-                    if (field.async) {
-                        result = Promise.as(field.html.call(dbgObject, representation));
-                    } else {
-                        result = Promise.as(JsDbg.RunSynchronously(field.html.bind(dbgObject, representation)));
-                    }
+                    var result = Promise.as(field.html.call(dbgObject, representation));
 
                     return result.then(descify).then(
                         function(x) { return x; }, 

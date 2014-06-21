@@ -328,7 +328,9 @@ var Promise = (function() {
         <p><code>promiseToObject.then(function (obj) { return obj.method(); })</code></p> can become <p><code>promiseToObject.method();</code></p>"
     }
     Promise.CreatePromisedType = function(constructor, sameTypeMethods, arrayMethods) {
-        var promisedType = function(promise) { this.promise = promise; };
+        var promisedType = function(promise) { 
+            this.promise = Promise.as(promise);
+        };
         promisedType.prototype.then = function() {
             return this.promise.then.apply(this.promise, arguments);
         };
@@ -353,6 +355,17 @@ var Promise = (function() {
         }
         promisedType.IncludePromisedMethod = function(methodName, resultPromisedType) {
             var method = constructor.prototype[methodName];
+            if (resultPromisedType != null) {
+                // Wrap the original method in a method to return a promised type instead.
+                constructor.prototype[methodName] = function wrappedPromisedMethod() {
+                    var returnValue = method.apply(this, arguments);
+                    if (Promise.isPromise(returnValue)) {
+                        return new resultPromisedType(returnValue);
+                    } else {
+                        return returnValue;
+                    }
+                };
+            }
             if (typeof(method) == typeof(function() {})) {
                 promisedType.prototype[methodName] = function promisedMethod() {
                     var forwardedArguments = arguments;
