@@ -216,15 +216,8 @@ var BoxTree = (function() {
         })
         // Get the floater array DbgObject...
         .then(function() {
-            return that.box.f("geometry._array");
-        })
-        // Get the array of floaters...
-        .then(function(floaterArrayObj) {
-            if (!floaterArrayObj.isNull()) {
-                return floaterArrayObj.array(floaterArrayObj.as("int").idx(-1).val());
-            } else {
-                return [];
-            }
+            var floaterArray = that.box.f("geometry._array");
+            return floaterArray.array(floaterArray.as("SArrayHeader").idx(-1).f("Length"));
         })
         // Add the floaters and return the children.
         .then(function(floaters) {
@@ -263,20 +256,19 @@ var BoxTree = (function() {
 
             // And collect the cell boxes from the rows.
             .then(function() {
-                return that.box.f("firstRowLayout.m_pT").list("nextRowLayout.m_pT")
+                return that.box.f("firstRowLayout.m_pT")
 
-                // Get the columns...
-                .f("Columns.m_pT")
+                // Get the list of table row layouts, and for each of them...
+                .list("nextRowLayout.m_pT")
 
-                .map(function(columnsObj) {
-                    if (!columnsObj.isNull()) {
-                        return columnsObj.latestPatch().f("data.Array.data").array(columnsObj.f("data.Array.length").val());
-                    } else {
-                        return [];
-                    }
+                // get the columns array...
+                .f("Columns.m_pT").latestPatch().f("data.Array")
+
+                .map(function(columns) {
+                    return columns.f("data").array(columns.f("length"));
                 })
 
-                // Collect the box references...
+                // and finally collect the box references...
                 .forEach(function(columns) {
                     return Promise.map(columns, function(column) {
                         // Get the box...
@@ -299,15 +291,8 @@ var BoxTree = (function() {
         return GridBox.super.prototype.collectChildren.call(this, children)
             // Get the GridBoxItemsArray DbgObject...
             .then(function() {
-                return that.box.f("Items.m_pT");
-            })
-            // Get the items in the array...
-            .then(function(gridBoxItemsArrayObj) {
-                if (!gridBoxItemsArrayObj.isNull()) {
-                    return gridBoxItemsArrayObj.latestPatch().f("data.Array.data").array(gridBoxItemsArrayObj.f("data.Array.length").val())
-                } else {
-                    return [];
-                }
+                var itemsArray = that.box.f("Items.m_pT").latestPatch();
+                return itemsArray.f("data.Array.data").array(itemsArray.f("data.Array.length"));
             })
             // Map each item to the box reference...
             .then(function(gridBoxItems) {
@@ -334,20 +319,14 @@ var BoxTree = (function() {
         })
         .then(function (items) {
             if (items.typeDescription().indexOf("FlexBoxItemArray") != -1) {
-                return items.f("m_pT")
-                .then(function (itemsArray) {
-                    if (!itemsArray.isNull()) {
-                        return itemsArray.latestPatch().f("data.Array.data").array(itemsArray.latestPatch().f("data.Array.length").val())
-                        .then(function (flexBoxItems) {
-                            return Promise.map(flexBoxItems, function(item) { return item.f("BoxReference.m_pT"); });
-                        })
-                        .then(function (childBoxes) {
-                            childBoxes.forEach(function (box) { children.push(box); });
-                            return children;
-                        });
-                    } else {
-                        return children;
-                    }
+                var itemsArray = items.f("m_pT").latestPatch().f("data.Array");
+                return Promise.map(
+                    itemsArray.f("data").array(itemsArray.f("length")),
+                    function(item) { return item.f("BoxReference.m_pT"); }
+                )
+                .then(function (childBoxes) {
+                    childBoxes.forEach(function (box) { children.push(box); });
+                    return children;
                 });
             } else if (items.typeDescription() == "Layout::BoxItem") {
                 return FlowBox.collectChildrenInFlow(items, children);
@@ -366,17 +345,9 @@ var BoxTree = (function() {
         // Collect children from the super class...
         return MultiColumnBox.super.prototype.collectChildren.call(this, children)
 
-        // Get the items array DbgObject...
-        .then(function() {
-            return that.box.f("items.m_pT");
-        })
         // Get the items...
-        .then(function(itemsArrayObj) {
-            if (!itemsArrayObj.isNull()) {
-                return itemsArrayObj.latestPatch().f("data.Array.data").array(that.box.f("itemsCount").val())
-            } else {
-                return [];
-            }
+        .then(function() {
+            return that.box.f("items.m_pT").latestPatch().f("data.Array.data").array(that.box.f("itemsCount"));
         })
         // And collect the box references.
         .then(function(items) {
