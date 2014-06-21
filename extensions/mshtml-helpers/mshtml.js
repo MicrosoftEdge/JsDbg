@@ -179,11 +179,7 @@ var MSHTML = (function() {
         returns: "(A promise to) a DbgObject"
     },
     DbgObject.prototype.latestPatch = function() {
-        var that = this;
-        if (this.isNull()) {
-            return this;
-        }
-        
+        var that = this;        
         var promise = Promise.as(this.f("_pNextPatch"))
             .then(function(nextPatch) {
                 if (!nextPatch.isNull()) {
