@@ -232,6 +232,10 @@ var DbgObject = (function() {
     }, {});
 
     function getTypeDescription(dbgObject) {
+        if (dbgObject.isNull()) {
+            return Promise.as(null);
+        }
+
         return getTypeDescriptionFunctionIncludingBaseTypes(dbgObject.module, dbgObject.typename)
         .then(function (customDescription) {
             var hasCustomDescription = customDescription != null;
@@ -265,6 +269,8 @@ var DbgObject = (function() {
                         if (hasCustomDescription) {
                             // The custom description provider had an error.
                             return obj.typename + "???";
+                        } else if (obj.isNull()) {
+                            return null;
                         } else {
                             return obj.typename + " " + obj.ptr();
                         }
@@ -348,6 +354,8 @@ var DbgObject = (function() {
             return jsDbgPromise(JsDbg.GetPointerSize).then(function(result) {
                 return result.pointerSize;
             });
+        } else if (this.typename == "") {
+            return Promise.as(0);
         } else {
             return jsDbgPromise(JsDbg.LookupTypeSize, this.module, this.typename).then(function(result) {
                 return result.size;
@@ -364,7 +372,7 @@ var DbgObject = (function() {
     }
 
     DbgObject.prototype._off = function(offset) {
-        return new DbgObject(this.module, this.typename, this._pointer + offset, this.bitcount, this.bitoffset, this.structSize);
+        return new DbgObject(this.module, this.typename, this.isNull() ? 0 : this._pointer + offset, this.bitcount, this.bitoffset, this.structSize);
     }
 
     DbgObject.prototype._isPointer = function() {
@@ -389,7 +397,7 @@ var DbgObject = (function() {
     }
     DbgObject.prototype.deref = function() {
         if (this.isNull()) {
-            throw new Error("You cannot deref a NULL object.");
+            return Promise.as(new DbgObject(this.module, this._getDereferencedTypeName(), 0));
         }
 
         var that = this;
@@ -472,8 +480,6 @@ var DbgObject = (function() {
 
         if (this._isPointer()) {
             throw new Error("You cannot do a field lookup on a pointer.");
-        } else if (this._pointer == 0) {
-            throw new Error("You cannot get a field from a null pointer.");
         } else if (this._isArray) {
             throw new Error("You cannot get a field from an array.");
         }
@@ -484,7 +490,7 @@ var DbgObject = (function() {
             var target = new DbgObject(
                 that.module, 
                 getFieldType(that.module, that.typename, field, result.type), 
-                that._pointer + result.offset, 
+                that.isNull() ? 0 : that._pointer + result.offset, 
                 result.bitcount, 
                 result.bitoffset, 
                 result.size
@@ -514,15 +520,11 @@ var DbgObject = (function() {
         ]
     }
     DbgObject.prototype.unembed = function(type, field) {
-        if (this.isNull()) {
-            throw new Error("You cannot unembed a NULL object.");
-        }
-
         var that = this;
         return checkSyncDbgObject(
             jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, field)
                 .then(function(result) { 
-                    return new DbgObject(that.module, type, that._pointer - result.offset); 
+                    return new DbgObject(that.module, type, that.isNull() ? 0 : that._pointer - result.offset); 
                 })
         );
     }
@@ -548,10 +550,6 @@ var DbgObject = (function() {
         notes: "<p>Any object can be treated as if it is an array, i.e. <code>obj.idx(a + b)</code> is equivalent to <code>obj.idx(a).idx(b)</code>.</p>"
     }
     DbgObject.prototype.idx = function(index) {
-        if (this.isNull()) {
-            throw new Error("You cannot get an index from a NULL pointer.");
-        }
-
         var that = this;
         return checkSyncDbgObject(
             // index might be a promise...
@@ -589,7 +587,7 @@ var DbgObject = (function() {
 
     DbgObject.prototype._val = function(unsigned) {
         if (this.isNull()) {
-            throw new Error("You cannot get a value from a NULL object.");
+            return Promise.as(null);
         }
 
         if (this.typename == "void") {
@@ -682,18 +680,23 @@ var DbgObject = (function() {
             // "count" might be a promise...
             Promise.as(count)
 
+            .then(function (count) {
+                // If we were given a DbgObject, go ahead and get the value.
+                if (count.val == DbgObject.prototype.val) {
+                    return count.val();
+                } else {
+                    return count;
+                }
+            })
+
             // Once we have the real count we can get the array.
             .then(function(count) {
                 if (count == undefined && that._isArray) {
                     count = that._arrayLength;
                 }
 
-                if (count == 0) {
+                if (count == 0 || that.isNull()) {
                     return [];
-                }
-
-                if (that.isNull()) {
-                    throw new Error("You cannot get an array from a NULL object.");
                 }
 
                 if (that.typename in scalarTypes || that.isPointer()) {
@@ -806,7 +809,7 @@ var DbgObject = (function() {
     }
     DbgObject.prototype.vtable = function() {
         if (this.isNull()) {
-            throw new Error("You cannot get a vtable from a NULL object.");
+            return Promise.as(this.typename);
         }
 
         var pointer = this._pointer;
@@ -832,6 +835,10 @@ var DbgObject = (function() {
         notes: "If the vtable's type implements the DbgObject's type multiple times (e.g. <code>IUnknown</code>) the result of this method is undefined."
     }
     DbgObject.prototype.vcast = function() {
+        if (this.isNull()) {
+            return Promise.as(this);
+        }
+
         var that = this;
         return checkSyncDbgObject(
             // Lookup the vtable type (coerce to promise in case we're running synchronously)...
