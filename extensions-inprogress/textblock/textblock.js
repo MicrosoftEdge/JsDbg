@@ -10,6 +10,14 @@ var TextBlock = (function() {
         }
     }
 
+    DbgObject.AddTypeDescription("mshtml", "Tree::TextBlock", function(textBlock) {
+        if (textBlock.isNull()) {
+            return "null";
+        } else {
+            return "<a href=\"/textblock/#" + textBlock.ptr() + "\">" + textBlock.ptr() + "</a>";
+        }
+    });
+
     function TextBlock(textBlock) {
         this.textBlock = textBlock;
         this.childrenPromise = null;
