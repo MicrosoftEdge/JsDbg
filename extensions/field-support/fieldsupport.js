@@ -625,7 +625,7 @@ var FieldSupport = (function() {
             // Apply the representations to the container...
             .then(function(fieldRepresentations) {
                 fieldRepresentations.forEach(function(html, i) {
-                    if (html !== undefined) {
+                    if (html !== undefined && html !== null) {
                         var field = fields[i];
                         var div = document.createElement("div");
 
