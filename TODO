@@ -34,5 +34,4 @@
 
 BUGS
 
-- symbol search fallback should be per-module
 - GetLayoutAssociationFromCTreeNode -> doesn't work properly with non boxes because of linked list offset

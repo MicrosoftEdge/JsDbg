@@ -184,7 +184,6 @@ namespace JsDbg
             this.modules = new Dictionary<string, IDiaSession>();
             this.isPointer64Bit = isPointer64Bit;
             this.didAttemptDIARegistration = false;
-            this.isInFallback = false;
             this.GetModuleSymbolPath = getModuleSymbolPath;
         }
 
@@ -308,8 +307,16 @@ namespace JsDbg
             return null;
         }
 
+        private bool IsInFallbackForModule(string module) {
+            return this.modules.ContainsKey(module) && this.modules[module] == null;
+        }
+
+        private void SetInFallbackForModule(string module) {
+            this.modules[module] = null;
+        }
+
         private IDiaSession AttemptLoadDiaSession(string module) {
-            while (!this.isInFallback) {
+            while (!this.IsInFallbackForModule(module)) {
                 try {
                     IDiaSession diaSession;
                     if (this.modules.ContainsKey(module)) {
@@ -334,12 +341,13 @@ namespace JsDbg
                         } catch (Exception ex) {
                             // Go into fallback.
                             Console.Out.WriteLine("Falling back due to DIA registration failure: {0}", ex.Message);
+                            this.SetInFallbackForModule(module);
                         }
+                    } else {
+                        this.SetInFallbackForModule(module);
                     }
-
-                    this.isInFallback = true;
                 } catch {
-                    this.isInFallback = true;
+                    this.SetInFallbackForModule(module);
                 }
             }
 
@@ -411,6 +419,5 @@ namespace JsDbg
         private Dictionary<string, IDiaSession> modules;
         private bool isPointer64Bit;
         private bool didAttemptDIARegistration;
-        private bool isInFallback;
     }
 }
