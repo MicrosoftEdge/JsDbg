@@ -621,6 +621,30 @@ var DbgObject = (function() {
         return getTypeDescription(this);
     }
 
+    var registeredArrayTypes = [];
+
+    DbgObject._help_AddDynamicArrayType = {
+        description: "Registers a type as a dynamic array type and provides a transformation to get the contents as an array.",
+        arguments: [
+            {name:"module", type:"string", description: "The module of the array type."},
+            {name:"typeNameOrFn", type:"string/function(string) -> bool", description: "The array type (or a predicate that matches the array type)."},
+            {name:"transformation", type:"function(DbgObject) -> (promised) array", description: "A function that converts a DbgObject of the specified type to an array."}
+        ]
+    }
+    DbgObject.AddDynamicArrayType = function(module, typeNameOrFn, transformation) {
+        if (typeof(typeNameOrFn) == typeof("")) {
+             var typeName = typeNameOrFn;
+             typeNameOrFn = function(typeNameToCheck) {
+                return typeName == typeNameToCheck;
+             };
+        } 
+        registeredArrayTypes.push({
+            module: module,
+            matchesType: typeNameOrFn,
+            transformation: transformation
+        });
+    }
+
     DbgObject.prototype._help_array = {
         description: "Provides an array of values or DbgObjects.",
         returns: "A promise to an array of numbers if the type is not a pointer type and can be treated as a scalar, or an array of DbgObjects.",
@@ -632,17 +656,61 @@ var DbgObject = (function() {
         return Promise.as(count)
         .then(function (count) {
             // If we were given a DbgObject, go ahead and get the value.
-            if (count.val == DbgObject.prototype.val) {
-                return count.val();
+            if (count !== undefined && count.val == DbgObject.prototype.val) {
+                if (count.isNull()) {
+                    return 0;
+                } else {
+                    return count.val();
+                }
+            } else {
+                return count;
+            }
+        })
+
+        .then(function (count) {
+            if (!that._isArray && count === undefined) {
+                // Check the registered dynamic array types.
+                return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, that.typename)
+                .then(function (baseTypes) {
+                    baseTypes = [{type: that.typename, offset:0}].concat(baseTypes);
+
+                    for (var i = 0; i < baseTypes.length; ++i) {
+                        var baseType = baseTypes[i];
+
+                        for (var j = 0; j < registeredArrayTypes.length; ++j) {
+                            var registration = registeredArrayTypes[j];
+                            if (that.module != registration.module) {
+                                continue;
+                            }
+
+                            if (registration.matchesType(baseType.type)) {
+                                // We found a match.  Cast it up to the matching base type.
+                                var castedType = new DbgObject(that.module, baseType.type, that._pointer + baseType.offset);
+                                return registration.transformation(castedType)
+                            }
+                        }
+                    }
+
+                    // No matches.
+                    return count;
+                });
             } else {
                 return count;
             }
         })
 
         // Once we have the real count we can get the array.
-        .then(function(count) {
-            if (count == undefined && that._isArray) {
+        .then(function(arrayOrCount) {
+            if (typeof(arrayOrCount) == typeof([])) {
+                return arrayOrCount;
+            } else {
+                var count = arrayOrCount;
+            }
+
+            if (count === undefined && that._isArray) {
                 count = that._arrayLength;
+            } else if (count === undefined) {
+                throw new Error("Unknown array type: " + that.typename);
             }
 
             if (count == 0 || that.isNull()) {

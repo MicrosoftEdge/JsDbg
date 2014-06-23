@@ -12,8 +12,7 @@ var MSHTML = (function() {
                 return collectedDocs;
             }
 
-            var docArrayObj = threadstate.as("THREADSTATEUI").f("_paryDoc");
-            return Promise.as(docArrayObj.f("_pv").as("CDoc*").array(docArrayObj.f("_c").val()))
+            return threadstate.as("THREADSTATEUI").f("_paryDoc").array()
             .then(function(docs) {
                 docs = docs.map(function(doc) {
                     return {
@@ -426,6 +425,24 @@ var MSHTML = (function() {
         .then(function (values) {
             return "(" + values[0] + ", " + values[1] + ")";
         }); 
+    });
+
+    DbgObject.AddDynamicArrayType("mshtml", function(type) { return type.match(/^SArray<.*>$/) != null; }, function(array) {
+        var arrayStart = array.f("_array");
+        return arrayStart.array(arrayStart.as("SArrayHeader").idx(-1).f("Length"));
+    });
+
+    DbgObject.AddDynamicArrayType("mshtml", function(type) { return type.match(/^Layout::PatchableArray<.*>$/) != null; }, function(array) {
+        return array.f("data.Array").array();
+    });
+
+    DbgObject.AddDynamicArrayType("mshtml", function(type) { return type.match(/^Collections::SRawArray<.*>$/) != null; }, function(array) {
+        return array.f("data").array(array.f("length"));
+    });
+
+    DbgObject.AddDynamicArrayType("mshtml", function(type) { return type.match(/^(CDataAry|CPtrAry)<.*>$/) != null; }, function (array) {
+        var innerType = array.typeDescription().match(/^(CDataAry|CPtrAry)<(.*)>$/)[2];
+        return array.f("_pv").as(innerType).array(array.f("_c"));
     });
 
     return {

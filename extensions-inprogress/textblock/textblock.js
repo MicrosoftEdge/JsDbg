@@ -26,7 +26,7 @@ var TextBlock = (function() {
 
     TextBlock.prototype.getChildren = function() {
         if (this.childrenPromise == null) {
-            this.childrenPromise = this.textBlock.f("_aryRuns._pv").as("Tree::TextBlockRun*").array(this.textBlock.f("_aryRuns._c").val())
+            this.childrenPromise = this.textBlock.f("_aryRuns").array()
             .then(function (textBlockRuns) {
                 return textBlockRuns.map(function(run) {
                     return new TextBlockRun(run);

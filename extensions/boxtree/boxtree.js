@@ -216,8 +216,7 @@ var BoxTree = (function() {
         })
         // Get the floater array DbgObject...
         .then(function() {
-            var floaterArray = that.box.f("geometry._array");
-            return floaterArray.array(floaterArray.as("SArrayHeader").idx(-1).f("Length"));
+            return that.box.f("geometry").array();
         })
         // Add the floaters and return the children.
         .then(function(floaters) {
@@ -262,10 +261,10 @@ var BoxTree = (function() {
                 .list("nextRowLayout.m_pT")
 
                 // get the columns array...
-                .f("Columns.m_pT").latestPatch().f("data.Array")
+                .f("Columns.m_pT").latestPatch()
 
                 .map(function(columns) {
-                    return columns.f("data").array(columns.f("length"));
+                    return columns.array();
                 })
 
                 // and finally collect the box references...
@@ -291,8 +290,7 @@ var BoxTree = (function() {
         return GridBox.super.prototype.collectChildren.call(this, children)
             // Get the GridBoxItemsArray DbgObject...
             .then(function() {
-                var itemsArray = that.box.f("Items.m_pT").latestPatch();
-                return itemsArray.f("data.Array.data").array(itemsArray.f("data.Array.length"));
+                return that.box.f("Items.m_pT").latestPatch().array();
             })
             // Map each item to the box reference...
             .then(function(gridBoxItems) {
@@ -319,9 +317,8 @@ var BoxTree = (function() {
         })
         .then(function (items) {
             if (items.typeDescription().indexOf("FlexBoxItemArray") != -1) {
-                var itemsArray = items.f("m_pT").latestPatch().f("data.Array");
                 return Promise.map(
-                    itemsArray.f("data").array(itemsArray.f("length")),
+                    items.f("m_pT").latestPatch().array(),
                     function(item) { return item.f("BoxReference.m_pT"); }
                 )
                 .then(function (childBoxes) {
@@ -346,11 +343,16 @@ var BoxTree = (function() {
         return MultiColumnBox.super.prototype.collectChildren.call(this, children)
 
         // Get the items...
-        .then(function() {
-            return that.box.f("items.m_pT").latestPatch().f("data.Array.data").array(that.box.f("itemsCount"));
+        .then(function () {
+            return that.box.f("items.m_pT").latestPatch().array();
         })
         // And collect the box references.
-        .then(function(items) {
+        .then(function (items) {
+            return that.box.f("itemsCount").val().then(function (count) {
+                return items.slice(0, count);
+            })
+        })
+        .then(function (items) {
             items.forEach(function(item) { children.push(item.f("BoxReference.m_pT")); });
             return children;
         });
@@ -622,7 +624,7 @@ var BoxTree = (function() {
                         // Get the text.
                         if (!textBlock.isNull() && runIndexAtStartOfLine >= 0) {
                             // Get the TextBlockRuns...
-                            return textBlock.f("_aryRuns._pv").as("Tree::TextBlockRun*").array(textBlock.f("_aryRuns._c").val())
+                            return textBlock.f("_aryRuns").array()
 
                             // Get an array of HTML fragments...
                             .then(function (runArray) {
