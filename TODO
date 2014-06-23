@@ -25,7 +25,6 @@
 
 - automatic latest patch use for type hooking?
 
-- known array type feature in dbgobject?
 - provide DbgObject.array as a promised obj?
 
 - default description should be clickable to dump fields
