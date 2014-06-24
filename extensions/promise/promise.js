@@ -346,7 +346,7 @@ var Promise = (function() {
             return new promisedType.Array(Promise.filter(this.promise, f));
         }
         promisedType.Array.prototype.map = function(f) {
-            return new promisedType.Array(Promise.map(this.promise, f));
+            return Promise.map(this.promise, f);
         }
         promisedType.Array.prototype.forEach = function(f) {
             return this.map(function (item) {
