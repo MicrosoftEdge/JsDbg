@@ -964,3 +964,4 @@ PromisedDbgObject.IncludePromisedMethod("idx", PromisedDbgObject);
 PromisedDbgObject.IncludePromisedMethod("unembed", PromisedDbgObject); 
 PromisedDbgObject.IncludePromisedMethod("vcast", PromisedDbgObject);
 PromisedDbgObject.IncludePromisedMethod("list", PromisedDbgObject.Array);
+PromisedDbgObject.IncludePromisedMethod("array", PromisedDbgObject.Array);

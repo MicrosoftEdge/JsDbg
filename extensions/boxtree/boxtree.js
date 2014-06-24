@@ -214,18 +214,11 @@ var BoxTree = (function() {
         .then(function() {
             return FlowBox.collectChildrenInFlow(that.box.f("flow"), children)
         })
-        // Get the floater array DbgObject...
         .then(function() {
-            return that.box.f("geometry").array();
-        })
-        // Add the floaters and return the children.
-        .then(function(floaters) {
-            floaters.forEach(function(floater) {
-                var box = floater.f("floaterBoxReference.m_pT").latestPatch().f("data.BoxReference.m_pT");
-                children.push(box);
-            });
-
-            return children;
+            return that.box.f("geometry")
+            .array()
+                .f("floaterBoxReference.m_pT").latestPatch().f("data.BoxReference.m_pT")
+            .forEach(function(box) { children.push(box); });
         })
     }
     var FieldsetBox = CreateBoxType("Layout::FieldsetBox", FlowBox);
@@ -260,26 +253,19 @@ var BoxTree = (function() {
                 // Get the list of table row layouts, and for each of them...
                 .list("nextRowLayout.m_pT")
 
-                // get the columns array...
-                .f("Columns.m_pT").latestPatch()
+                    // Get the columns array...
+                    .f("Columns.m_pT").latestPatch()
 
                 .map(function(columns) {
-                    return columns.array();
-                })
-
-                // and finally collect the box references...
-                .forEach(function(columns) {
-                    return Promise.map(columns, function(column) {
-                        // Get the box...
-                        return column.f("cellBoxReference.m_pT")
-                            // If the box isn't null, add it to the children.
-                            .then(function(box) {
-                                if (!box.isNull()) {
-                                    children.push(box);
-                                }
-                            });
+                    return columns
+                    .array()
+                        .f("cellBoxReference.m_pT")
+                    .forEach(function (box) {
+                        if (!box.isNull()) {
+                            children.push(box);
+                        }
                     });
-                })
+                });
             });
     }
 
@@ -290,18 +276,19 @@ var BoxTree = (function() {
         return GridBox.super.prototype.collectChildren.call(this, children)
             // Get the GridBoxItemsArray DbgObject...
             .then(function() {
-                return that.box.f("Items.m_pT").latestPatch().array();
-            })
-            // Map each item to the box reference...
-            .then(function(gridBoxItems) {
-                return Promise.map(gridBoxItems, function(item) { return item.f("BoxReference.m_pT"); });
-            })
-            // Filter null boxes and add them to the children array.
-            .then(function(itemBoxes) {
-                itemBoxes
-                    .filter(function(box) { return !box.isNull(); })
-                    .forEach(function(box) { children.push(box); });
-                return children;
+                // Get the items array...
+                return that.box.f("Items.m_pT").latestPatch()
+                .array()
+                    
+                    // Map each item to the box reference...
+                    .f("BoxReference.m_pT")
+
+                // And add them to the children array.
+                .forEach(function (box) {
+                    if (!box.isNull()) {
+                        children.push(box);
+                    }
+                })
             });
     }
 
@@ -317,14 +304,14 @@ var BoxTree = (function() {
         })
         .then(function (items) {
             if (items.typeDescription().indexOf("FlexBoxItemArray") != -1) {
-                return Promise.map(
-                    items.f("m_pT").latestPatch().array(),
-                    function(item) { return item.f("BoxReference.m_pT"); }
-                )
-                .then(function (childBoxes) {
-                    childBoxes.forEach(function (box) { children.push(box); });
-                    return children;
-                });
+                return items.f("m_pT").latestPatch()
+                .array()
+                    .f("BoxReference.m_pT")
+                .forEach(function (box) {
+                    if (!box.isNull()) {
+                        children.push(box);
+                    }
+                })
             } else if (items.typeDescription() == "Layout::BoxItem") {
                 return FlowBox.collectChildrenInFlow(items, children);
             } else if (items.typeDescription() == "SArray<Layout::FlexBox::SFlexBoxItem>") {
@@ -344,18 +331,18 @@ var BoxTree = (function() {
 
         // Get the items...
         .then(function () {
-            return that.box.f("items.m_pT").latestPatch().array();
-        })
-        // And collect the box references.
-        .then(function (items) {
-            return that.box.f("itemsCount").val().then(function (count) {
-                return items.slice(0, count);
+            return that.box.f("items.m_pT").latestPatch()
+            .array()
+                .f("BoxReference.m_pT")
+            .then(function (boxes) {
+                return that.box.f("itemsCount").val()
+                .then(function (count) {
+                    return boxes.slice(0, count).forEach(function (box) {
+                        children.push(box);
+                    });
+                })
             })
         })
-        .then(function (items) {
-            items.forEach(function(item) { children.push(item.f("BoxReference.m_pT")); });
-            return children;
-        });
     }
 
     var LineBox = CreateBoxType("Layout::LineBox", LayoutBox);
