@@ -224,19 +224,16 @@ var DbgObject = (function() {
             var description = function(obj) {
                 return Promise.as(obj)
                 .then(customDescription)
-                .then(
-                    function(x) { return x;},
-                    function(err) {
-                        if (hasCustomDescription) {
-                            // The custom description provider had an error.
-                            return obj.typename + "???";
-                        } else if (obj.isNull()) {
-                            return null;
-                        } else {
-                            return obj.typename + " " + obj.ptr();
-                        }
+                .then(null, function(err) {
+                    if (hasCustomDescription) {
+                        // The custom description provider had an error.
+                        return obj.typename + "???";
+                    } else if (obj.isNull()) {
+                        return null;
+                    } else {
+                        return obj.typename + " " + obj.ptr();
                     }
-                ); 
+                }); 
             }
 
             if (dbgObject.isArray()) {
@@ -409,12 +406,9 @@ var DbgObject = (function() {
             }
             var that = this;
             return this._fHelper(field)
-            .then(
-                function(x) { return x; },
-                function(err) {
-                    return that.f.apply(that, rest);
-                }
-            );
+            .then(null, function(err) {
+                return that.f.apply(that, rest);
+            });
         }
     }
 

@@ -590,10 +590,11 @@ var FieldSupport = (function() {
                 try {
                     var result = Promise.as(field.html.call(dbgObject, representation));
 
-                    return result.then(descify).then(
-                        function(x) { return x; }, 
-                        function (ex) { return handleFieldException(ex); }
-                    );
+                    return result
+                    .then(descify)
+                    .then(null, function (ex) { 
+                        return handleFieldException(ex);
+                    });
                 } catch (ex) {
                     return handleFieldException(ex);
                 }

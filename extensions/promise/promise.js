@@ -146,6 +146,9 @@ var Promise = (function() {
             return { 
                 then: function simpleThen(f) {
                     try {
+                        if (!f) {
+                            return this;
+                        }
                         var result = f(value);
                         return Promise.as(result);
                     } catch (ex) {
@@ -413,7 +416,7 @@ var Promise = (function() {
         description: "Provides a callback to handle the fulfilled value of a promise.",
         returns:"A Promise to the value returned by the fulillment handler.",
         arguments: [
-            {name:"fulfilled", type:"function(any) -> any", description:"The fulfillment callback."},
+            {name:"fulfilled", type:"function(any) -> any", description:"(optional) The fulfillment callback."},
             {name:"error", type:"function(any) -> any", description:"(optional) The error callback."},
         ],
         notes: "<p>This method returns a promise to the value returned by the fulfillment handler.\
@@ -429,24 +432,30 @@ var Promise = (function() {
         var result = new Promise(function thenPromiseWork(newPromiseWorkFinished, newPromiseWorkErred, newPromise) {
             that._addCallback(function thenCallback() {
                 if (that.isCompleted) {
-                    try {
-                        var fulfillmentResult = fulfilled(that.result);
-                    } catch (fulfillmentError) {
-                        console.log("Got exception during fulfillment: " + fulfillmentError);
-                        newPromiseWorkErred(fulfillmentError);
-                        return;
-                    }
-
-                    if (Promise.isPromise(fulfillmentResult)) {
-                        // The fulfillment method returned another promise.  Tie this promise to that one.
-                        if (DEBUG_PROMISES) {
-                            newPromise.parentPromises.push(fulfillmentResult);
+                    if (fulfilled) {
+                        try {
+                            var fulfillmentResult = fulfilled(that.result);
+                        } catch (fulfillmentError) {
+                            console.log("Got exception during fulfillment: " + fulfillmentError);
+                            newPromiseWorkErred(fulfillmentError);
+                            return;
                         }
-                        fulfillmentResult.then(newPromiseWorkFinished, newPromiseWorkErred);
+
+                        if (Promise.isPromise(fulfillmentResult)) {
+                            // The fulfillment method returned another promise.  Tie this promise to that one.
+                            if (DEBUG_PROMISES) {
+                                newPromise.parentPromises.push(fulfillmentResult);
+                            }
+                            fulfillmentResult.then(newPromiseWorkFinished, newPromiseWorkErred);
+                        } else {
+                            // The fulfillment method returned a value.  The new promise is complete.
+                            newPromiseWorkFinished(fulfillmentResult);
+                        }
                     } else {
-                        // The fulfillment method returned a value.  The new promise is complete.
-                        newPromiseWorkFinished(fulfillmentResult);
+                        // Forward it to the new promise instead.
+                        newPromiseWorkFinished(that.result);
                     }
+                    
                 } else if (that.isError) {
                     if (error) {
                         // Handle the error.
