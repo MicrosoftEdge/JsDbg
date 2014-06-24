@@ -7,6 +7,17 @@
 
 var JsDbg = (function() {
 
+    // WebSocket support.
+    var browserSupportsWebSockets = (window.WebSocket !== undefined);
+    var currentWebSocket = null;
+    var currentWebSocketCallbacks = {};
+    var debuggerBrokeListeners = [];
+
+    var CacheType = {
+        Uncached:         0,
+        Cached:           1
+    };
+
     // Certain types of requests are cacheable -- this maintains that cache.
     var responseCache = {};
 
@@ -19,12 +30,6 @@ var JsDbg = (function() {
 
     // Big hammer - makes every request synchronous.
     var everythingIsSynchronous = false;
-
-    // WebSocket support.
-    var browserSupportsWebSockets = (window.WebSocket !== undefined);
-    var currentWebSocket = null;
-    var currentWebSocketCallbacks = {};
-    var debuggerBrokeListeners = [];
 
     // Progress indicator support.
     var loadingIndicator = null;
@@ -111,11 +116,11 @@ var JsDbg = (function() {
         }
     }
 
-    function jsonRequest(url, callback, cache, method, data) {
-        if (cache && url in responseCache) {
+    function jsonRequest(url, callback, cacheType, method, data) {
+        if (cacheType == CacheType.Cached && url in responseCache) {
             callback(responseCache[url]);
             return;
-        } else if (!everythingIsSynchronous && cache) {
+        } else if (!everythingIsSynchronous && cacheType == CacheType.Cached) {
             if (url in pendingCachedRequests) {
                 pendingCachedRequests[url].push(callback);
                 return;
@@ -131,7 +136,7 @@ var JsDbg = (function() {
         function handleJsonResponse(jsonText) {
             var result = JSON.parse(jsonText);
             var otherCallbacks = [];
-            if (cache && !everythingIsSynchronous) {
+            if (cacheType == CacheType.Cached && !everythingIsSynchronous) {
                 otherCallbacks = pendingCachedRequests[url];
                 delete pendingCachedRequests[url];
                 responseCache[url] = result;
@@ -255,7 +260,7 @@ var JsDbg = (function() {
             ]
         },
         LoadExtension: function(path, callback) {
-            jsonRequest("/jsdbg/loadextension?path=" + esc(path), callback);
+            jsonRequest("/jsdbg/loadextension?path=" + esc(path), callback, CacheType.Uncached);
         },
 
         _help_UnloadExtension: {
@@ -266,7 +271,7 @@ var JsDbg = (function() {
             ]
         },
         UnloadExtension: function(name, callback) {
-            jsonRequest("/jsdbg/unloadextension?name=" + esc(name), callback);
+            jsonRequest("/jsdbg/unloadextension?name=" + esc(name), callback, CacheType.Uncached);
         },
 
         _help_GetExtensions: {
@@ -276,7 +281,7 @@ var JsDbg = (function() {
             ]
         },
         GetExtensions: function(callback) {
-            jsonRequest("/jsdbg/extensions", callback);
+            jsonRequest("/jsdbg/extensions", callback, CacheType.Uncached);
         },
 
         _help_GetExtensionPath: {
@@ -286,7 +291,7 @@ var JsDbg = (function() {
             ]
         },
         GetExtensionPath: function(callback) {
-            jsonRequest("/jsdbg/extensionpath", callback, /*cache*/false, "GET");
+            jsonRequest("/jsdbg/extensionpath", callback, CacheType.Uncached, "GET");
         },
 
         _help_SetExtensionPath: {
@@ -297,7 +302,7 @@ var JsDbg = (function() {
             ]
         },
         SetExtensionPath: function(path, callback) {
-            jsonRequest("/jsdbg/extensionpath", callback, /*cache*/false, "PUT", path);
+            jsonRequest("/jsdbg/extensionpath", callback, CacheType.Uncached, "PUT", path);
         },
 
         _help_LookupTypeSize: {
@@ -309,7 +314,7 @@ var JsDbg = (function() {
             ]
         },
         LookupTypeSize: function(module, type, callback) {
-            jsonRequest("/jsdbg/typesize?module=" + esc(module) + "&type=" + esc(type), callback, /*cache*/true);
+            jsonRequest("/jsdbg/typesize?module=" + esc(module) + "&type=" + esc(type), callback, CacheType.Cached);
         },
 
         _help_LookupFieldOffset: {
@@ -322,7 +327,7 @@ var JsDbg = (function() {
             ]
         },
         LookupFieldOffset: function(module, type, field, callback) {
-            jsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&field=" + esc(field), callback, /*cache*/true);
+            jsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&field=" + esc(field), callback, CacheType.Cached);
         },
 
         _help_LookupFields: {
@@ -334,7 +339,7 @@ var JsDbg = (function() {
             ]
         },
         LookupFields: function(module, type, callback) {
-            jsonRequest("/jsdbg/typefields?module=" + esc(module) + "&type=" + esc(type), callback, /*cache*/true);
+            jsonRequest("/jsdbg/typefields?module=" + esc(module) + "&type=" + esc(type), callback, CacheType.Cached);
         },
 
         _help_LookupBaseTypes: {
@@ -346,7 +351,7 @@ var JsDbg = (function() {
             ]
         },
         LookupBaseTypes: function(module, type, callback) {
-            jsonRequest("/jsdbg/basetypes?module=" + esc(module) + "&type=" + esc(type), callback, /*cache*/true);
+            jsonRequest("/jsdbg/basetypes?module=" + esc(module) + "&type=" + esc(type), callback, CacheType.Cached);
         },
 
         _help_ReadPointer: {
@@ -357,7 +362,7 @@ var JsDbg = (function() {
             ]
         },
         ReadPointer: function(pointer, callback) {
-            jsonRequest("/jsdbg/memory?type=pointer&pointer=" + esc(pointer), callback);
+            jsonRequest("/jsdbg/memory?type=pointer&pointer=" + esc(pointer), callback, CacheType.Uncached);
         },
 
         _help_ReadNumber: {
@@ -385,7 +390,7 @@ var JsDbg = (function() {
                 }
             }
 
-            jsonRequest("/jsdbg/memory?type=" + esc(sizeName) + "&pointer=" + esc(pointer), callback);
+            jsonRequest("/jsdbg/memory?type=" + esc(sizeName) + "&pointer=" + esc(pointer), callback, CacheType.Uncached);
         },
 
         _help_ReadArray: {
@@ -414,7 +419,7 @@ var JsDbg = (function() {
                 }
             }
 
-            jsonRequest("/jsdbg/array?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&length=" + count, callback);
+            jsonRequest("/jsdbg/array?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&length=" + count, callback, CacheType.Uncached);
         },
 
         _help_LookupSymbolName: {
@@ -425,7 +430,7 @@ var JsDbg = (function() {
             ]
         },
         LookupSymbolName: function(pointer, callback) {
-            jsonRequest("/jsdbg/symbolname?pointer=" + esc(pointer), callback);
+            jsonRequest("/jsdbg/symbolname?pointer=" + esc(pointer), callback, CacheType.Uncached);
         },
 
         _help_LookupConstantName: {
@@ -438,7 +443,7 @@ var JsDbg = (function() {
             ]
         },
         LookupConstantName: function(module, type, constant, callback) {
-            jsonRequest("/jsdbg/constantname?module=" + esc(module) + "&type=" + esc(type) + "&constant=" + esc(constant), callback, /*cache*/true);
+            jsonRequest("/jsdbg/constantname?module=" + esc(module) + "&type=" + esc(type) + "&constant=" + esc(constant), callback, CacheType.Cached);
         },
 
         _help_GetPointerSize: {
@@ -448,7 +453,7 @@ var JsDbg = (function() {
             ]
         },
         GetPointerSize: function(callback) {
-            jsonRequest("/jsdbg/pointersize", callback, /*cache*/true);
+            jsonRequest("/jsdbg/pointersize", callback, CacheType.Cached);
         },
 
         _help_LookupSymbol: {
@@ -460,7 +465,7 @@ var JsDbg = (function() {
             ]
         },
         LookupSymbol: function(symbol, isGlobal, callback) {
-            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol) + "&isGlobal=" + esc(isGlobal), callback, /*cache*/isGlobal);
+            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol) + "&isGlobal=" + esc(isGlobal), callback, isGlobal ? CacheType.Cached : CacheType.Uncached);
         },
 
         _help_LookupLocalSymbols: {
@@ -474,7 +479,7 @@ var JsDbg = (function() {
             ]
         },
         LookupLocalSymbols: function(module, method, symbol, maxCount, callback) {
-            jsonRequest("/jsdbg/localsymbols?module=" + esc(module) + "&method=" + esc(method) + "&symbol=" + esc(symbol) + "&maxCount=" + esc(maxCount), callback, /*cache*/false);
+            jsonRequest("/jsdbg/localsymbols?module=" + esc(module) + "&method=" + esc(method) + "&symbol=" + esc(symbol) + "&maxCount=" + esc(maxCount), callback, CacheType.Uncached);
         },
 
         _help_GetPersistentData: {
@@ -485,7 +490,7 @@ var JsDbg = (function() {
             ]
         },
         GetPersistentData: function(user, callback) {
-            jsonRequest("/jsdbg/persistentstorage" + (user ? "?user=" + esc(user) : ""), callback, /*cache*/false, "GET");
+            jsonRequest("/jsdbg/persistentstorage" + (user ? "?user=" + esc(user) : ""), callback, CacheType.Uncached, "GET");
         },
 
         _help_SetPersistentData: {
@@ -497,7 +502,7 @@ var JsDbg = (function() {
         },
         SetPersistentData: function(data, callback) {
             var value = JSON.stringify(data);
-            jsonRequest("/jsdbg/persistentstorage", callback, /*cache*/false, "PUT", value);
+            jsonRequest("/jsdbg/persistentstorage", callback, CacheType.Uncached, "PUT", value);
         },
 
         _help_GetPersistentDataUsers: {
@@ -507,7 +512,7 @@ var JsDbg = (function() {
             ]
         },
         GetPersistentDataUsers: function(callback) {
-            jsonRequest("/jsdbg/persistentstorageusers", callback);
+            jsonRequest("/jsdbg/persistentstorageusers", callback, CacheType.Uncached);
         },
 
         _help_RegisterOnBreakListener: {
