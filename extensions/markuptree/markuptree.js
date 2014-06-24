@@ -57,7 +57,6 @@ var MarkupTree = (function() {
             this.childrenPromise = this.treeNode.f("_tpBegin").f("_ptpThreadRight")
             .list(
                 function (treePos) {
-                    console.log(treePos._pointer);
                     // What kind of tree pos is this?
                     return treePos.f("_cElemLeftAndFlags").val()
                     .then(function (treePosFlags) {
