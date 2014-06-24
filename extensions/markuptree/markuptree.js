@@ -53,56 +53,44 @@ var MarkupTree = (function() {
 
     CTreeNode.prototype.getChildren = function() {
         if (this.childrenPromise == null)
-        {    
-            var lastTreePos = this.treeNode.f("_tpEnd");
-            var children = [];
-
-            var collectRemainingChildren = function(firstTreePosToConsider) {
-                return Promise
-                    // In order to compare the first tree pos and the last tree pos, get the pointers...
-                    .join([firstTreePosToConsider.pointerValue(), lastTreePos.pointerValue()])
-                    .then(function (pointers) {
-                        if (pointers[0] != pointers[1]) {
-                            // We haven't reached the end.  Check the flags to see if its a node begin and keep going...
-                            return firstTreePosToConsider.f("_cElemLeftAndFlags").val()
-
-                            // If this TreePos is a node begin, note it and skip its children.
-                            .then(function (treePosFlags) {
-                                if (treePosFlags & 0x01) {
-                                    // We are at a node begin.  Note the child and skip to the end of it.
-                                    var childTreeNode = firstTreePosToConsider.unembed("CTreeNode", "_tpBegin");
-                                    children.push(childTreeNode);
-                                    firstTreePosToConsider = childTreeNode.f("_tpEnd");
-                                } else if (treePosFlags & 0x4) {
-                                    // We are at a text node.
-                                    children.push(firstTreePosToConsider.as("CTreeDataPos"));
-                                }
-                            })
-
-                            // Advance to the next one...
-                            .then(function() { return firstTreePosToConsider.f("_ptpThreadRight"); })
-                            
-                            // And collect the remaining children.
-                            .then(collectRemainingChildren);
+        {
+            this.childrenPromise = this.treeNode.f("_tpBegin").f("_ptpThreadRight")
+            .list(
+                function (treePos) {
+                    console.log(treePos._pointer);
+                    // What kind of tree pos is this?
+                    return treePos.f("_cElemLeftAndFlags").val()
+                    .then(function (treePosFlags) {
+                        if (treePosFlags & 0x01) {
+                            // Node begin, skip to the end.
+                            treePos = treePos.unembed("CTreeNode", "_tpBegin").f("_tpEnd");
                         }
-                    });
-            }
-
-            var that = this;
-
-            // Collect all the children as promised DbgObjects...
-            this.childrenPromise = collectRemainingChildren(that.treeNode.f("_tpBegin").f("_ptpThreadRight"))
-
-            // And map them to our JS CTreeNode representation...
-            .then(function() {
-                return Promise.map(Promise.join(children), function (node) {
-                    if (node.typeDescription() == "CTreeNode") {
-                        return new CTreeNode(node); 
+                        // Get the next tree pos.
+                        return treePos.f("_ptpThreadRight");
+                    })
+                },
+                // Stop when we reach the end of the node.
+                this.treeNode.f("_tpEnd")
+            )
+            .map(function (treePos) {
+                return treePos.f("_cElemLeftAndFlags").val()
+                .then(function (treePosFlags) {
+                    if (treePosFlags & 0x01) {
+                        return treePos
+                        .unembed("CTreeNode", "_tpBegin")
+                        .then(function (treeNode) {
+                            return new CTreeNode(treeNode);
+                        })
+                    } else if (treePosFlags & 0x04) {
+                        return new TextNode(treePos.as("CTreeDataPos"));
                     } else {
-                        return new TextNode(node);
+                        return null;
                     }
                 })
             })
+            .then(function (children) {
+                return children.filter(function (child) { return child != null; });
+            });
         }
 
         return this.childrenPromise;

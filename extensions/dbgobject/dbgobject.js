@@ -740,23 +740,39 @@ var DbgObject = (function() {
         });
     }
 
-    DbgObject.prototype.list = function(fieldOrFunction) {
+
+    DbgObject.prototype._help_list = {
+        description: "Walks a linked list until it reaches null, the first node, or a given node.",
+        returns: "A promise to an array of DbgObjects.",
+        arguments: [
+            {name: "fieldOrFunction", type: "string/function(DbgObject) -> DbgObject", description: "The next field(s) to walk, or a function that walks from one node to the next."},
+            {name: "lastNodePromise (optional)", type: "(a promise to) a DbgObject", description: "A node to stop at."}
+        ]
+    }
+    DbgObject.prototype.list = function(fieldOrFunction, lastNodePromise) {
         var firstNode = this;
-        var collectedNodes = [];
-        function collectRemainingNodes(node) {
-            if (node.isNull() || (node.equals(firstNode) && node != firstNode)) {
-                return collectedNodes;
+        return Promise.as(lastNodePromise)
+        .then(function (lastNode) {
+            var stoppingNode = lastNode ? lastNode : firstNode;
+            var isFirstNode = lastNode ? false : true;
+
+            var collectedNodes = [];
+            function collectRemainingNodes(node) {
+                if (node.isNull() || (node.equals(stoppingNode) && !isFirstNode)) {
+                    return collectedNodes;
+                }
+                isFirstNode = false;
+
+                collectedNodes.push(node);
+                if (typeof(fieldOrFunction) == typeof("")) {
+                    return node.f(fieldOrFunction).then(collectRemainingNodes);
+                } else if (typeof(fieldOrFunction) == typeof(collectRemainingNodes)) {
+                    return Promise.as(fieldOrFunction(node)).then(collectRemainingNodes);
+                }
             }
 
-            collectedNodes.push(node);
-            if (typeof(fieldOrFunction) == typeof("")) {
-                return node.f(fieldOrFunction).then(collectRemainingNodes);
-            } else if (typeof(fieldOrFunction) == typeof(collectRemainingNodes)) {
-                return Promise.as(fieldOrFunction(node)).then(collectRemainingNodes);
-            }
-        }
-
-        return Promise.as(collectRemainingNodes(firstNode));
+            return Promise.as(collectRemainingNodes(firstNode));
+        })
     }
 
     DbgObject.prototype._help_ptr = {
