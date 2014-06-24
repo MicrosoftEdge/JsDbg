@@ -14,12 +14,14 @@ var JsDbg = (function() {
     var debuggerBrokeListeners = [];
 
     var CacheType = {
-        Uncached:         0,
-        Cached:           1
+        Uncached:         0, // The resource is not cached.
+        Cached:           1, // The resource is cached until the page is refreshed.
+        TransientCache:   2  // The resource is cached until the debugger breaks in again.
     };
 
     // Certain types of requests are cacheable -- this maintains that cache.
     var responseCache = {};
+    var transientCache = browserSupportsWebSockets ? {} : null;
 
     // If we make a cacheable request and there are already outstanding requests for that resource,
     // piggyback onto the existing request.  This maintains a list of piggybacked requests.
@@ -82,6 +84,9 @@ var JsDbg = (function() {
             currentWebSocket.addEventListener("message", function jsdbgWebSocketMessageHandler(webSocketMessage) {
                 // Check if it's a server-initiated break-in event.
                 if (webSocketMessage.data == "break") {
+                    // Invalidate the transient cache.  This should probably be invalidated on "run" instead.
+                    transientCache = {};
+
                     debuggerBrokeListeners.forEach(function (f) { f(webSocketMessage.data); });
                     return;
                 }
@@ -117,10 +122,18 @@ var JsDbg = (function() {
     }
 
     function jsonRequest(url, callback, cacheType, method, data) {
+        // If the transient cache isn't supported, downgrade to uncached.
+        if (cacheType == CacheType.TransientCache && transientCache == null) {
+            cacheType = CacheType.Uncached;
+        }
+
         if (cacheType == CacheType.Cached && url in responseCache) {
             callback(responseCache[url]);
             return;
-        } else if (!everythingIsSynchronous && cacheType == CacheType.Cached) {
+        } else if (cacheType == CacheType.TransientCache && url in transientCache) {
+            callback(transientCache[url]);
+            return;
+        } else if (!everythingIsSynchronous && cacheType != CacheType.Uncached) {
             if (url in pendingCachedRequests) {
                 pendingCachedRequests[url].push(callback);
                 return;
@@ -136,10 +149,15 @@ var JsDbg = (function() {
         function handleJsonResponse(jsonText) {
             var result = JSON.parse(jsonText);
             var otherCallbacks = [];
-            if (cacheType == CacheType.Cached && !everythingIsSynchronous) {
+            if (cacheType != CacheType.Uncached && !everythingIsSynchronous) {
                 otherCallbacks = pendingCachedRequests[url];
                 delete pendingCachedRequests[url];
-                responseCache[url] = result;
+
+                if (cacheType == CacheType.Cached) {
+                    responseCache[url] = result;
+                } else if (cacheType == CacheType.TransientCache) {
+                    transientCache[url] = result;
+                }
             }
             callback(result);
             otherCallbacks.forEach(function fireBatchedJsDbgCallback(f) { f(result); });
@@ -362,7 +380,7 @@ var JsDbg = (function() {
             ]
         },
         ReadPointer: function(pointer, callback) {
-            jsonRequest("/jsdbg/memory?type=pointer&pointer=" + esc(pointer), callback, CacheType.Uncached);
+            jsonRequest("/jsdbg/memory?type=pointer&pointer=" + esc(pointer), callback, CacheType.TransientCache);
         },
 
         _help_ReadNumber: {
@@ -390,7 +408,7 @@ var JsDbg = (function() {
                 }
             }
 
-            jsonRequest("/jsdbg/memory?type=" + esc(sizeName) + "&pointer=" + esc(pointer), callback, CacheType.Uncached);
+            jsonRequest("/jsdbg/memory?type=" + esc(sizeName) + "&pointer=" + esc(pointer), callback, CacheType.TransientCache);
         },
 
         _help_ReadArray: {
@@ -419,7 +437,7 @@ var JsDbg = (function() {
                 }
             }
 
-            jsonRequest("/jsdbg/array?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&length=" + count, callback, CacheType.Uncached);
+            jsonRequest("/jsdbg/array?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&length=" + count, callback, CacheType.TransientCache);
         },
 
         _help_LookupSymbolName: {
@@ -430,7 +448,7 @@ var JsDbg = (function() {
             ]
         },
         LookupSymbolName: function(pointer, callback) {
-            jsonRequest("/jsdbg/symbolname?pointer=" + esc(pointer), callback, CacheType.Uncached);
+            jsonRequest("/jsdbg/symbolname?pointer=" + esc(pointer), callback, CacheType.TransientCache);
         },
 
         _help_LookupConstantName: {
@@ -465,7 +483,7 @@ var JsDbg = (function() {
             ]
         },
         LookupSymbol: function(symbol, isGlobal, callback) {
-            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol) + "&isGlobal=" + esc(isGlobal), callback, isGlobal ? CacheType.Cached : CacheType.Uncached);
+            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol) + "&isGlobal=" + esc(isGlobal), callback, isGlobal ? CacheType.Cached : CacheType.TransientCache);
         },
 
         _help_LookupLocalSymbols: {
@@ -479,7 +497,7 @@ var JsDbg = (function() {
             ]
         },
         LookupLocalSymbols: function(module, method, symbol, maxCount, callback) {
-            jsonRequest("/jsdbg/localsymbols?module=" + esc(module) + "&method=" + esc(method) + "&symbol=" + esc(symbol) + "&maxCount=" + esc(maxCount), callback, CacheType.Uncached);
+            jsonRequest("/jsdbg/localsymbols?module=" + esc(module) + "&method=" + esc(method) + "&symbol=" + esc(symbol) + "&maxCount=" + esc(maxCount), callback, CacheType.TransientCache);
         },
 
         _help_GetPersistentData: {
