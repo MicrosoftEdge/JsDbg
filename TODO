@@ -21,11 +21,7 @@
     - "code behind" model
     - build a new tree type, and save it as an extension
 
-- TreeViewers should override descriptions for the types they know about
-
 - automatic latest patch use for type hooking?
-
-- provide DbgObject.array as a promised obj?
 
 - default description should be clickable to dump fields
 

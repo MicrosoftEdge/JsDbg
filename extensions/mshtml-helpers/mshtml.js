@@ -6,58 +6,54 @@
 
 var MSHTML = (function() {
     function GetDocsAndThreadstates(){
-        var collectedDocs = [];
-        function collectRemainingDocs(threadstate) {
-            if (threadstate.isNull()) {
-                return collectedDocs;
-            }
-
-            return threadstate.as("THREADSTATEUI").f("_paryDoc").array()
-            .then(function(docs) {
-                docs = docs.map(function(doc) {
-                    return {
-                        threadstate: threadstate,
-                        doc: doc
-                    };
-                });
-
-                collectedDocs = collectedDocs.concat(docs);
-                return Promise.as(threadstate.f("ptsNext")).then(collectRemainingDocs);
+        return DbgObject.global("mshtml!g_pts").deref()
+        .list("ptsNext")
+        .map(function (threadstate) {
+            return threadstate.as("THREADSTATEUI").f("_paryDoc")
+            .array()
+            .map(function (doc) {
+                return {
+                    threadstate: threadstate,
+                    doc: doc
+                };
             })
-        }
-
-        var promise = Promise.as(DbgObject.global("mshtml!g_pts").deref()).then(collectRemainingDocs);
-        return promise;
+        })
+        .then(function (outerArray) {
+            var result = [];
+            outerArray.forEach(function (innerArray) {
+                result = result.concat(innerArray);
+            });
+            return result;
+        })
     }
 
     function GetCDocs() {
-        var promise = Promise.map(GetDocsAndThreadstates(), function(obj) { return obj.doc; });
-        return promise;
+        return new PromisedDbgObject.Array(
+            Promise.map(GetDocsAndThreadstates(), function(obj) { return obj.doc; })
+        );
     }
 
     function GetRootCTreeNodes() {
-        var promise = Promise.as(GetCDocs())
-            .then(function (docs) {
-                return Promise.join(docs.map(function (doc) { return doc.f("_pWindowPrimary"); }));
-            })
-            .then(function (windows) {
-                return windows
-                    .filter(function(w) { return !w.isNull(); })
-                    .map(function(pw) { return pw.f("_pCWindow._pMarkup._ptpFirst").unembed("CTreeNode", "_tpBegin"); });
-            });
-        return promise;
+        return GetCDocs()
+            .f("_pWindowPrimary._pCWindow._pMarkup._ptpFirst")
+            .unembed("CTreeNode", "_tpBegin")
+        .filter(function (treeNode) {
+            return !treeNode.isNull();
+        })
     }
 
     function GetCTreeNodeFromTreeElement(element) {
-        return element.f("placeholder")
-        .then(
-            function() {
-                // We're in chk, offset by the size of a void*.
-                return element.as("void*").idx(1).as("CTreeNode");
-            }, function() {
-                // We're in fre, cast to CTreeNode.
-                return element.as("CTreeNode");
-            }
+        return new PromisedDbgObject(
+            element.f("placeholder")
+            .then(
+                function() {
+                    // We're in chk, offset by the size of a void*.
+                    return element.as("void*").idx(1).as("CTreeNode");
+                }, function() {
+                    // We're in fre, cast to CTreeNode.
+                    return element.as("CTreeNode");
+                }
+            )
         );
     }
 
@@ -159,7 +155,6 @@ var MSHTML = (function() {
             }
 
             var bucketSize = 128;
-            debugger;
             return cache.f("_paelBuckets").idx(Math.floor(index / bucketSize)).deref().idx(index % bucketSize).f("_pvData").as(resultType);
         });
 
