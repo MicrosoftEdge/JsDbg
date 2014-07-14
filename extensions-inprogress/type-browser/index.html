@@ -21,7 +21,7 @@
                 var module = moduleAndType.split("!")[0];
                 var type = moduleAndType.split("!")[1];
             } else {
-                var module = "mshtml";
+                var module = MSHTML.Module;
                 var type = moduleAndType;
             }
             loadType(module, type, null);

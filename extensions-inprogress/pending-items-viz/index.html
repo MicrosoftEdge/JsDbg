@@ -7,7 +7,7 @@
     <script type="text/javascript">
         function dump() {
             var ptr = parseInt(document.querySelector("input").value);
-            var obj = new DbgObject("mshtml", "Layout::PendingCollection", ptr);
+            var obj = new DbgObject(MSHTML.Module, "Layout::PendingCollection", ptr);
             obj.desc()
             .then(function(items) {
                 document.getElementById("results").innerHTML = items;

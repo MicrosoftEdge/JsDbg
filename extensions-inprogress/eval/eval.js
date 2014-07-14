@@ -53,7 +53,7 @@ var Eval = (function() {
             fn: function (str, stack) {
                 var asInt = parseInt(str);
                 if (!isNaN(asInt)) {
-                    return stack.push(new DbgObject("mshtml", "void", asInt));
+                    return stack.push(new DbgObject(MSHTML.Module, "void", asInt));
                 } else if (str.length == 0) {
                     return stack;
                 } else {

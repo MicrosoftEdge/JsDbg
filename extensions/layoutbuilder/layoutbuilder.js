@@ -3,14 +3,14 @@ var LayoutBuilder = (function() {
     var FieldTypeMap = {};
 
     // Add a type description for LayoutBoxBuilder to link to the LayoutBuilder stack.
-    DbgObject.AddTypeDescription("mshtml", "Layout::LayoutBoxBuilder", function(boxBuilder) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBoxBuilder", function(boxBuilder) {
         if (boxBuilder.isNull()) {
             return "null";
         } else {
             return "<a href=\"/layoutbuilder/#" + boxBuilder.ptr() + "\">" + boxBuilder.ptr() + "</a>";
         }
     });
-    DbgObject.AddTypeDescription("mshtml", "Layout::LayoutBuilder", function(layoutBuilder) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBuilder", function(layoutBuilder) {
         if (layoutBuilder.isNull()) {
             return "null";
         } else {
@@ -20,7 +20,7 @@ var LayoutBuilder = (function() {
 
     function createBoxBuilderTree(pointer) {
         if (pointer) {
-            var builder = new DbgObject("mshtml", "Layout::LayoutBuilder", pointer);
+            var builder = new DbgObject(MSHTML.Module, "Layout::LayoutBuilder", pointer);
             return CreateBoxBuilder(builder);
         }
 
@@ -28,7 +28,7 @@ var LayoutBuilder = (function() {
     }
 
     function getRootLayoutBuilders() {
-        return DbgObject.locals("mshtml", "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder")
+        return DbgObject.locals(MSHTML.Module, "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder")
         .then(function (layoutBuilders) {
             if (layoutBuilders.length == 0) {
                 return Promise.fail("");

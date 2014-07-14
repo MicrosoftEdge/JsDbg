@@ -38,7 +38,7 @@
         var markingBlocks = {};
 
         function init() {
-            DbgObject.sym("mshtml!MemoryProtection::CHeapAllocator::instance").deref()
+            DbgObject.sym(MSHTML.Module + "!MemoryProtection::CHeapAllocator::instance").deref()
             .then(function (heapAllocator) {
                 // compute the current active allocation %
                 return Promise.join([heapAllocator.f("allocations.ActiveAllocationCount").val(), heapAllocator.f("allocations.AllocationCount").val()])

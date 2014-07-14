@@ -4,13 +4,13 @@ var TextBlock = (function() {
 
     function createTextBlock(pointer) {
         if (pointer) {
-            return new TextBlock(new DbgObject("mshtml", "Tree::TextBlock", pointer));
+            return new TextBlock(new DbgObject(MSHTML.Module, "Tree::TextBlock", pointer));
         } else {
             return null;
         }
     }
 
-    DbgObject.AddTypeDescription("mshtml", "Tree::TextBlock", function(textBlock) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextBlock", function(textBlock) {
         if (textBlock.isNull()) {
             return "null";
         } else {
