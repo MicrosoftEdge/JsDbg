@@ -897,6 +897,16 @@ var DbgObject = (function() {
         });
     }
 
+    DbgObject.prototype.baseTypes = function() {
+        var that = this;
+        return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, that.typename)
+        .then(function (baseTypes) {
+            return baseTypes.map(function (typeAndOffset) {
+                return new DbgObject(that.module, typeAndOffset.type, that._pointer + typeAndOffset.offset);
+            });
+        });
+    }
+
     DbgObject.prototype._help_fields = {
         description: "Gets all available fields for a given type.",
         returns: "A promise to an array of {name:(string), offset:(int), size:(int), value:(DbgObjects)} objects."
@@ -975,3 +985,4 @@ PromisedDbgObject.IncludePromisedMethod("unembed", PromisedDbgObject);
 PromisedDbgObject.IncludePromisedMethod("vcast", PromisedDbgObject);
 PromisedDbgObject.IncludePromisedMethod("list", PromisedDbgObject.Array);
 PromisedDbgObject.IncludePromisedMethod("array", PromisedDbgObject.Array);
+PromisedDbgObject.IncludePromisedMethod("baseTypes", PromisedDbgObject.Array);
