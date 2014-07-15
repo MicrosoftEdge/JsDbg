@@ -1,0 +1,31 @@
+
+.error-icon {
+    background:red;
+    border-radius:50%;
+    color:white;
+    cursor:default;
+    font-weight:bold;
+    line-height:1.0;
+    position:absolute;
+    right:0px;
+    text-align:center;
+    width:1em;
+}
+
+.error-icon > .error-descriptions {
+    display:none;
+}
+
+.error-icon:hover > .error-descriptions {
+    background: white;
+    border:thin solid;
+    color:red;
+    display:block;
+    margin-right:0.5em;
+    padding:1em;
+    position:absolute;
+    right:100%;
+    text-align: left;
+    top:0px;
+    z-index:1;
+}

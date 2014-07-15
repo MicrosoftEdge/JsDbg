@@ -22,6 +22,8 @@ var Tree = (function() {
         this.basicDescription = basicDescription === undefined || basicDescription === null ? this.dbgObject.htmlTypeDescription() : basicDescription;
         this.childrenPromise = null;
         this.matchingRegistrationsPromise = null;
+        this.basicDescriptionPromise = null;
+        this.recordedErrors = [];
     }
 
     TreeNode.prototype.getMatchingRegistrations = function() {
@@ -66,11 +68,27 @@ var Tree = (function() {
             var that = this;
             this.childrenPromise = this.getMatchingRegistrations(this.dbgObject)
             .then(function (registrations) {
-                return Promise.map(registrations, function (registration) { return registration.getChildren ? registration.getChildren(that.dbgObject) : []; })
+                // XXX/psalas: need to make it so that if one fails they don't all fail
+                return Promise.map(registrations, function (registration) { 
+                    if (registration.getChildren) {
+                        return Promise.as(registration.getChildren(that.dbgObject))
+                        .then(null, function (error) {
+                            that.recordedErrors.push(error);
+                            return [];
+                        })
+                    } else {
+                        return [];
+                    }
+                });
+
             })
             .then(flatten)
             .then(function (children) {
                 return children.map(function (child) { return new TreeNode(child); });
+            })
+            .then(null, function (error) {
+                that.recordedErrors.push(error);
+                return [];
             });
         }
         return this.childrenPromise;
@@ -78,20 +96,44 @@ var Tree = (function() {
 
     TreeNode.prototype.createRepresentation = function() {
         var that = this;
-        return this.getMatchingRegistrations()
-        .then(function (registrations) {
-            return registrations.filter(function (registration) { return registration.getBasicDescription; })
-        })
-        .then(function (descriptionRegistrations) {
-            if (descriptionRegistrations.length == 0) {
+        if (this.basicDescriptionPromise == null) {
+            this.basicDescriptionPromise = this.getMatchingRegistrations()
+            .then(function (registrations) {
+                return registrations.filter(function (registration) { return registration.getBasicDescription; })
+            })
+            .then(function (descriptionRegistrations) {
+                if (descriptionRegistrations.length == 0) {
+                    return that.dbgObject.htmlTypeDescription();
+                } else {
+                    return descriptionRegistrations[descriptionRegistrations.length - 1].getBasicDescription(that.dbgObject);
+                }
+            })
+            .then(null, function (error) {
+                that.recordedErrors.push(error);
                 return that.dbgObject.htmlTypeDescription();
-            } else {
-                return descriptionRegistrations[descriptionRegistrations.length - 1].getBasicDescription(that.dbgObject);
-            }
-        })
-        .then(function (basicDescription) {
+            })
+        }
+
+        return this.basicDescriptionPromise.then(function (basicDescription) {
             var result = document.createElement("div");
+            result.style.position = "relative";
             result.textContent = basicDescription + " " + that.dbgObject.ptr();
+
+            if (that.recordedErrors.length > 0) {
+                var errorDiv = document.createElement("div");
+                errorDiv.className = "error-icon";
+                errorDiv.textContent = "!";
+
+                var descriptions = document.createElement("div");
+                descriptions.className = "error-descriptions";
+                that.recordedErrors.forEach(function (error) {
+                    var errorElement = document.createElement("div");
+                    errorElement.textContent = JSON.stringify(error);
+                    descriptions.appendChild(errorElement);
+                })
+                errorDiv.appendChild(descriptions);
+                result.appendChild(errorDiv);
+            }
             return result;
         });
     }

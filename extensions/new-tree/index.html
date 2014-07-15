@@ -18,12 +18,14 @@
                     .then(function (pointerandGravityAndCling) {
                         return new DbgObject(MSHTML.Module, "CMarkupPointer", (pointerandGravityAndCling | 3) - 3);
                     })
+                } else {
+                    return null;
                 }
             })
         }
 
         function init() {
-            Tree.AddRoot("CTreeNode", function() { return MSHTML.GetRootCTreeNodes(); });
+            Tree.AddRoot("Markup Tree", function() { return MSHTML.GetRootCTreeNodes(); });
             Tree.AddType("CTreeNode", null, function (object) {
                 return object.f("_tpBegin").f("_ptpThreadRight")
                 .list(
@@ -52,7 +54,9 @@
                     return "<" + tag + ">";
                 })
             });
-            Tree.AddType("CTreeDataPos", null, null, "Text");
+            Tree.AddType("CTreeDataPos", null, function (obj) { return obj.f("not_a_field"); }, "Text");
+            Tree.AddType("CTreeDataPos", null, function (obj) { return obj.f("another_bad_field"); }, "Text");
+
             Tree.Render(document.querySelector("div"));
         }
 

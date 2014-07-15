@@ -237,7 +237,7 @@ var Promise = (function() {
                     promise.then(storeJoinResult, function promiseJoinError(errorResult) {
                         if (!didError) {
                             didError = true;
-                            error({item:index, result: errorResult});
+                            error(errorResult);
                         }
                     });
                 }
