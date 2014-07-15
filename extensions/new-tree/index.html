@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title></title>
+    <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
+    <script type="text/javascript">
+        function promoteTreePos(treePos) {
+            // What kind of tree pos is this?
+            return treePos.f("_cElemLeftAndFlags").val()
+            .then(function (treePosFlags) {
+                if (treePosFlags & 0x01) {
+                    return treePos.unembed("CTreeNode", "_tpBegin")
+                } else if (treePosFlags & 0x04) {
+                    return treePos.as("CTreeDataPos");
+                } else if (treePosFlags & 0x08) {
+                    return treePos.as("CTreeDataPos").f("p._dwPointerAndGravityAndCling").val()
+                    .then(function (pointerandGravityAndCling) {
+                        return new DbgObject(MSHTML.Module, "CMarkupPointer", (pointerandGravityAndCling | 3) - 3);
+                    })
+                }
+            })
+        }
+
+        function init() {
+            Tree.AddRoot("CTreeNode", function() { return MSHTML.GetRootCTreeNodes(); });
+            Tree.AddType("CTreeNode", null, function (object) {
+                return object.f("_tpBegin").f("_ptpThreadRight")
+                .list(
+                    function (treePos) {
+                        // What kind of tree pos is this?
+                        return treePos.f("_cElemLeftAndFlags").val()
+                        .then(function (treePosFlags) {
+                            if (treePosFlags & 0x01) {
+                                // Node begin, skip to the end.
+                                treePos = treePos.unembed("CTreeNode", "_tpBegin").f("_tpEnd");
+                            }
+                            // Get the next tree pos.
+                            return treePos.f("_ptpThreadRight");
+                        })
+                    },
+                    // Stop when we reach the end of the node.
+                    object.f("_tpEnd")
+                )
+                .map(promoteTreePos)
+                .then(function(children) {
+                    return children.filter(function(child) { return child != null; });
+                })
+            }, function (treeNode) {
+                return treeNode.f("_etag").desc()
+                .then(function (tag) {
+                    return "<" + tag + ">";
+                })
+            });
+            Tree.AddType("CTreeDataPos", null, null, "Text");
+            Tree.Render(document.querySelector("div"));
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+    <style type="text/css">
+        
+    </style>
+</head>
+<body>
+    <div></div>
+</body>
+</html>
