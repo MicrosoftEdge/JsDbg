@@ -47,7 +47,7 @@
 
             descriptions.push({
                 name: "Math::SRectangle",
-                module: "mshtml",
+                module: MSHTML.Module,
                 type: "Math::SRectangle",
                 code: "var fieldNames = [\"x\", \"y\", \"width\", \"height\"];\n\
 return Promise.join(fieldNames.map(function(side) { return object.f(side).desc(); }))\n\
@@ -119,7 +119,7 @@ return Promise.join(fieldNames.map(function(side) { return object.f(side).desc()
     document.addEventListener("DOMContentLoaded", init); 
 
 
-    DbgObject.AddTypeDescription("mshtml", "CRect", function (value) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "CRect", function (value) {
         return value.fields()
         .then(function (fields) {
             return Promise.map(fields, function (field) { return field.value.desc(); })

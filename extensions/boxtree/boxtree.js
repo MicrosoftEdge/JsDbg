@@ -18,7 +18,7 @@ var BoxTree = (function() {
     var FieldTypeMap = {};
 
     // Add a type description for LayoutBox to link to the BoxTree.
-    DbgObject.AddTypeDescription("mshtml", "Layout::LayoutBox", function(box) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBox", function(box) {
         if (box.isNull()) {
             return "null";
         } else {
@@ -28,7 +28,7 @@ var BoxTree = (function() {
 
     function createBoxTree(pointer) {
         if (pointer) {
-            var box = new DbgObject("mshtml", "Layout::LayoutBox", pointer);
+            var box = new DbgObject(MSHTML.Module, "Layout::LayoutBox", pointer);
             BoxCache = {};
             return CreateBox(box);
         }

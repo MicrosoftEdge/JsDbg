@@ -18,7 +18,7 @@ var DisplayTree = (function() {
     var FieldTypeMap = {};
 
     // Add a type description for CDispNode to link to the DisplayTree.
-    DbgObject.AddTypeDescription("mshtml", "CDispNode", function(dispNode) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "CDispNode", function(dispNode) {
         if (dispNode.isNull()) {
             return "null";
         } else {
@@ -28,7 +28,7 @@ var DisplayTree = (function() {
 
     function createDisplayTree(pointer) {
         if (pointer) {
-            var dispNode = new DbgObject("mshtml", "CDispNode", pointer);
+            var dispNode = new DbgObject(MSHTML.Module, "CDispNode", pointer);
             DispNodeCache = {};
             return CreateDispNode(dispNode);
         }

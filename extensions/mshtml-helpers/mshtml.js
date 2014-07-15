@@ -5,8 +5,22 @@
 // Some mshtml-specific helpers.
 
 var MSHTML = (function() {
+    // Figure out which module to use.
+    var moduleName = null;
+    JsDbg.RunSynchronously(function() {
+        DbgObject.global("edgehtml!g_pts")
+        .then(
+            function() {
+                moduleName = "edgehtml";
+            },
+            function() {
+                moduleName = "mshtml";
+            }
+        );
+    });
+
     function GetDocsAndThreadstates(){
-        return DbgObject.global("mshtml!g_pts").deref()
+        return DbgObject.global(moduleName + "!g_pts").deref()
         .list("ptsNext")
         .map(function (threadstate) {
             return threadstate.as("THREADSTATEUI").f("_paryDoc")
@@ -184,46 +198,46 @@ var MSHTML = (function() {
     PromisedDbgObject.IncludePromisedMethod("latestPatch", PromisedDbgObject);
 
     // Provide additional type info on some fields.
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bVisibility", "styleVisibility");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bDisplay", "styleDisplay");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bStyleFloat", "styleStyleFloat");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bPositionType", "stylePosition");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bOverflowX", "styleOverflow");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bOverflowY", "styleOverflow");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bPageBreakBefore", "stylePageBreak");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bPageBreakAfter", "stylePageBreak");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_uTextOverflow", "styleTextOverflow");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_fImageInterpolation", "styleInterpolation");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_uTransformStyle)", "styleTransformStyle");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_uBackfaceVisibility)", "styleBackfaceVisibility");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bMsTouchAction", "styleMsTouchAction");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bMsScrollTranslation", "styleMsTouchAction");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bMsTextCombineHorizontal", "styleMsTextCombineHorizontal");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bWrapFlow", "styleWrapFlow");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bWrapThrough", "styleWrapThrough");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_layoutPlacement", "Tree::LayoutPlacementEnum");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_layoutType", "Tree::LayoutTypeEnum");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedPositionType", "Tree::CssPositionEnum");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedStyleFloat", "Tree::CssFloatEnum");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedOverflowX", "Tree::CssOverflowEnum");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedOverflowY", "Tree::CssOverflowEnum");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedBreakBefore", "Tree::CssBreakEnum");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedBreakAfter", "Tree::CssBreakEnum");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedBreakInside", "Tree::CssBreakInsideEnum");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedVisibility", "Tree::CssVisibilityEnum");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedFlowDirection", "Tree::CssWritingModeEnum");
-    DbgObject.AddTypeOverride("mshtml", "CFancyFormat", "_bNormalizedContentZooming", "Tree::CssContentZoomingEnum");
-    DbgObject.AddTypeOverride("mshtml", "CTreeNode", "_etag", "ELEMENT_TAG");
-    DbgObject.AddTypeOverride("mshtml", "CBorderDefinition", "_bBorderStyles", "Tree::CssBorderStyleEnum[4]");
-    DbgObject.AddTypeOverride("mshtml", "CBorderInfo", "abStyles", "Tree::CssBorderStyleEnum[4]");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bVisibility", "styleVisibility");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bDisplay", "styleDisplay");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bStyleFloat", "styleStyleFloat");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bPositionType", "stylePosition");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bOverflowX", "styleOverflow");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bOverflowY", "styleOverflow");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bPageBreakBefore", "stylePageBreak");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bPageBreakAfter", "stylePageBreak");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_uTextOverflow", "styleTextOverflow");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_fImageInterpolation", "styleInterpolation");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_uTransformStyle)", "styleTransformStyle");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_uBackfaceVisibility)", "styleBackfaceVisibility");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bMsTouchAction", "styleMsTouchAction");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bMsScrollTranslation", "styleMsTouchAction");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bMsTextCombineHorizontal", "styleMsTextCombineHorizontal");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bWrapFlow", "styleWrapFlow");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bWrapThrough", "styleWrapThrough");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_layoutPlacement", "Tree::LayoutPlacementEnum");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_layoutType", "Tree::LayoutTypeEnum");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedPositionType", "Tree::CssPositionEnum");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedStyleFloat", "Tree::CssFloatEnum");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedOverflowX", "Tree::CssOverflowEnum");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedOverflowY", "Tree::CssOverflowEnum");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedBreakBefore", "Tree::CssBreakEnum");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedBreakAfter", "Tree::CssBreakEnum");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedBreakInside", "Tree::CssBreakInsideEnum");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedVisibility", "Tree::CssVisibilityEnum");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedFlowDirection", "Tree::CssWritingModeEnum");
+    DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedContentZooming", "Tree::CssContentZoomingEnum");
+    DbgObject.AddTypeOverride(moduleName, "CTreeNode", "_etag", "ELEMENT_TAG");
+    DbgObject.AddTypeOverride(moduleName, "CBorderDefinition", "_bBorderStyles", "Tree::CssBorderStyleEnum[4]");
+    DbgObject.AddTypeOverride(moduleName, "CBorderInfo", "abStyles", "Tree::CssBorderStyleEnum[4]");
 
 
     // Provide some type descriptions.
-    DbgObject.AddTypeDescription("mshtml", "ELEMENT_TAG", function(tagObj) {
+    DbgObject.AddTypeDescription(moduleName, "ELEMENT_TAG", function(tagObj) {
         return Promise.as(tagObj.constant()).then(function(k) { return k.substr("ETAG_".length); });
     });
 
-    DbgObject.AddTypeDescription("mshtml", function (type) { return type.match(/^_?(style[A-z0-9]+)$/); }, function(enumObj) {
+    DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^_?(style[A-z0-9]+)$/); }, function(enumObj) {
         var enumString = enumObj.typeDescription().replace(/^_?(style[A-z0-9]+)$/, "$1");
         return Promise.as(enumObj.as("_" + enumString).constant())
         .then(
@@ -237,7 +251,7 @@ var MSHTML = (function() {
         )
     });
 
-    DbgObject.AddTypeDescription("mshtml", function (type) { return type.match(/^(Tree|Layout).*::(.*Enum)$/); }, function (enumObj) {
+    DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^(Tree|Layout).*::(.*Enum)$/); }, function (enumObj) {
         var enumString = enumObj.typeDescription().replace(/^(Tree|Layout).*::(.*Enum)$/, "$2_");
         return Promise.as(enumObj.constant())
             .then(
@@ -254,7 +268,7 @@ var MSHTML = (function() {
     var colorTypesWithInlineColorRef = {"CT_COLORREF":true, "CT_COLORREFA":true, "CT_POUND1":true, "CT_POUND2":true, "CT_POUND3":true, "CT_POUND4":true, "CT_POUND5":true, "CT_POUND6":true, "CT_RGBSPEC":true, "CT_RGBASPEC":true, "CT_HSLSPEC":true, "CT_HSLASPEC":true};
     var colorTypesWithAlpha = {"CT_COLORREFA": true, "CT_RGBASPEC": true, "CT_HSLASPEC": true};
 
-    DbgObject.AddTypeDescription("mshtml", "CColorValue", function(color) {
+    DbgObject.AddTypeDescription(moduleName, "CColorValue", function(color) {
         return Promise.join([color.f("_ct").as("CColorValue::COLORTYPE").constant(), color.f("_crValue").val(), color.f("_flAlpha").val()])
         .then(function(colorTypeAndRefAndAlpha) {
             var colorType = colorTypeAndRefAndAlpha[0];
@@ -281,10 +295,10 @@ var MSHTML = (function() {
 
             var indirectColorRefs = {
                 "CT_NAMEDHTML" : function() {
-                    return DbgObject.global("mshtml!g_HtmlColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
+                    return DbgObject.global(moduleName + "!g_HtmlColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
                 },
                 "CT_NAMEDSYS" : function() {
-                    return Promise.as(DbgObject.global("mshtml!g_SystemColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())
+                    return Promise.as(DbgObject.global(moduleName + "!g_SystemColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())
                         .then(function(x) {
                             return x & 0xFFFFFF;
                         })
@@ -316,7 +330,7 @@ var MSHTML = (function() {
         });
     });
 
-    DbgObject.AddTypeDescription("mshtml", "CUnitValue", function(unitval) {
+    DbgObject.AddTypeDescription(moduleName, "CUnitValue", function(unitval) {
         var SCALEMULT_NULLVALUE        = 0;
         var SCALEMULT_POINT            = 1000;
         var SCALEMULT_PICA             = 100;
@@ -390,7 +404,7 @@ var MSHTML = (function() {
         });
     });
 
-    DbgObject.AddTypeDescription("mshtml", "Tree::SComputedValue", function(computedValue) {
+    DbgObject.AddTypeDescription(moduleName, "Tree::SComputedValue", function(computedValue) {
         return Promise.as(computedValue.as("CUnitValue").desc())
         .then(function(unitvalueDesc) {
             if (unitvalueDesc == "_") {
@@ -401,12 +415,12 @@ var MSHTML = (function() {
         })
     });
 
-    DbgObject.AddTypeDescription("mshtml", "Math::SLayoutMeasure", function(layoutMeasure) {
+    DbgObject.AddTypeDescription(moduleName, "Math::SLayoutMeasure", function(layoutMeasure) {
         return Promise.as(layoutMeasure.val())
             .then(function(val) { return val / 100 + "px"; });
     });
 
-    DbgObject.AddTypeDescription("mshtml", "Layout::SBoxFrame", function(rect) {
+    DbgObject.AddTypeDescription(moduleName, "Layout::SBoxFrame", function(rect) {
         var sideNames = ["top", "right", "bottom", "left"];
         return Promise.join(sideNames.map(function(side) { return rect.f(side).desc(); }))
         .then(function (sides) {
@@ -414,7 +428,7 @@ var MSHTML = (function() {
         });
     });
 
-    DbgObject.AddTypeDescription("mshtml", "Math::SPoint", function(point) {
+    DbgObject.AddTypeDescription(moduleName, "Math::SPoint", function(point) {
        var fieldNames = ["x", "y"];
         return Promise.join(fieldNames.map(function(side) { return point.f(side).desc(); }))
         .then(function (values) {
@@ -422,20 +436,20 @@ var MSHTML = (function() {
         }); 
     });
 
-    DbgObject.AddDynamicArrayType("mshtml", function(type) { return type.match(/^SArray<.*>$/) != null; }, function(array) {
+    DbgObject.AddDynamicArrayType(moduleName, function(type) { return type.match(/^SArray<.*>$/) != null; }, function(array) {
         var arrayStart = array.f("_array");
         return arrayStart.array(arrayStart.as("SArrayHeader").idx(-1).f("Length"));
     });
 
-    DbgObject.AddDynamicArrayType("mshtml", function(type) { return type.match(/^Layout::PatchableArray<.*>$/) != null; }, function(array) {
+    DbgObject.AddDynamicArrayType(moduleName, function(type) { return type.match(/^Layout::PatchableArray<.*>$/) != null; }, function(array) {
         return array.f("data.Array").array();
     });
 
-    DbgObject.AddDynamicArrayType("mshtml", function(type) { return type.match(/^Collections::SRawArray<.*>$/) != null; }, function(array) {
+    DbgObject.AddDynamicArrayType(moduleName, function(type) { return type.match(/^Collections::SRawArray<.*>$/) != null; }, function(array) {
         return array.f("data").array(array.f("length"));
     });
 
-    DbgObject.AddDynamicArrayType("mshtml", function(type) { return type.match(/^(CDataAry|CPtrAry)<.*>$/) != null; }, function (array) {
+    DbgObject.AddDynamicArrayType(moduleName, function(type) { return type.match(/^(CDataAry|CPtrAry)<.*>$/) != null; }, function (array) {
         var innerType = array.typeDescription().match(/^(CDataAry|CPtrAry)<(.*)>$/)[2];
         return array.f("_pv").as(innerType).array(array.f("_c"));
     });
@@ -443,7 +457,7 @@ var MSHTML = (function() {
     return {
         _help : {
             name: "MSHTML",
-            description: "mshtml.dll-specific functionality."
+            description: "mshtml.dll/edgehtml.dll-specific functionality."
         },
 
         _help_GetCDocs: {
@@ -506,7 +520,12 @@ var MSHTML = (function() {
                 {name:"index", type:"(Promise to an) int.", description: "The index in the cache."}
             ]
         },
-        GetObjectFromThreadstateCache: GetObjectFromThreadstateCache
+        GetObjectFromThreadstateCache: GetObjectFromThreadstateCache,
+
+        _help_Module: {
+            description: "The name of the Trident DLL (e.g. \"mshtml\" or \"edgehtml\")"
+        },
+        Module: moduleName
     }
 })();
 

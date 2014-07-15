@@ -3,14 +3,14 @@
 var MarkupTree = (function() {
 
     // Add a type description for CTreeNode to link to the BoxTree.
-    DbgObject.AddTypeDescription("mshtml", "CTreeNode", function(treeNode) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "CTreeNode", function(treeNode) {
         if (treeNode.isNull()) {
             return "null";
         } else {
             return "<a href=\"/markuptree/#" + treeNode.ptr() + "\">" + treeNode.ptr() + "</a>";
         }
     });
-    DbgObject.AddTypeDescription("mshtml", "Tree::ElementNode", function(elementNode) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::ElementNode", function(elementNode) {
         return MSHTML.GetCTreeNodeFromTreeElement(elementNode)
         .then(function (treeNode) {
             if (treeNode.isNull()) {
@@ -23,7 +23,7 @@ var MarkupTree = (function() {
 
     function createMarkupTree(pointer) {
         if (pointer) {
-            return new CTreeNode(new DbgObject("mshtml", "CTreeNode", pointer));
+            return new CTreeNode(new DbgObject(MSHTML.Module, "CTreeNode", pointer));
         } else {
             return null;
         }

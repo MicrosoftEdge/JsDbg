@@ -1,6 +1,6 @@
 
 
-DbgObject.AddTypeDescription("mshtml", "Layout::PendingCollection", function(collection) {
+DbgObject.AddTypeDescription(MSHTML.Module, "Layout::PendingCollection", function(collection) {
     var items = [];
     function collectRestOfItems(firstItem, item) {
         return item.vcast().desc()
@@ -31,11 +31,11 @@ DbgObject.AddTypeDescription("mshtml", "Layout::PendingCollection", function(col
     });
 });
 
-DbgObject.AddTypeDescription("mshtml", "Layout::ExportedCollection", function(collection) {
+DbgObject.AddTypeDescription(MSHTML.Module, "Layout::ExportedCollection", function(collection) {
     return collection.f("pendingCollection.m_pT").desc();
 });
 
-DbgObject.AddTypeDescription("mshtml", "Layout::UnpositionedElement", function(unpositionedElement) {
+DbgObject.AddTypeDescription(MSHTML.Module, "Layout::UnpositionedElement", function(unpositionedElement) {
     return unpositionedElement.f("PositionedElement.m_pT").desc()
     .then(function (desc) {
         return "Unpositioned(" + desc + ")";

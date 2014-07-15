@@ -1,5 +1,5 @@
 
-DbgObject.AddTypeDescription("mshtml", function(type) { return type.match(/^SArray<(.*)>$/); }, function(object) {
+DbgObject.AddTypeDescription(MSHTML.Module, function(type) { return type.match(/^SArray<(.*)>$/); }, function(object) {
     var itemType = object.typeDescription().replace(/^SArray<\s*(.*?)\s*>$/, "$1");
     return Promise.as(object.f("_array"))
     .then(function (arrayObj) {
@@ -14,7 +14,7 @@ DbgObject.AddTypeDescription("mshtml", function(type) { return type.match(/^SArr
     });
 });
 
-DbgObject.AddTypeDescription("mshtml", function(type) { return type.match(/^SP<(.*)>$/); }, function(object) {
+DbgObject.AddTypeDescription(MSHTML.Module, function(type) { return type.match(/^SP<(.*)>$/); }, function(object) {
     var itemType = object.typeDescription().replace(/^SP<\s*(.*?)\s*>$/, "$1");
     return Promise.as(object.f("m_pT"))
     .then(function (referencedObject) {
@@ -22,7 +22,7 @@ DbgObject.AddTypeDescription("mshtml", function(type) { return type.match(/^SP<(
     });
 });
 
-DbgObject.AddTypeDescription("mshtml", "Tree::AryTextBlockRuns", function(object) {
+DbgObject.AddTypeDescription(MSHTML.Module, "Tree::AryTextBlockRuns", function(object) {
     return object.f("_c").val()
     .then(function (count) {
         return object.f("_pv").as("Tree::TextBlockRun*[" + count + "]").desc();
