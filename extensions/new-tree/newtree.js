@@ -43,14 +43,14 @@ var Tree = (function() {
                 return Promise
                 .map(
                     // Only consider objects that have a registered type handler.
-                    baseTypes.filter(function (object) { return object.typeDescription() in registeredTypes; }),
+                    baseTypes.filter(function (object) { return (object.module + "!" + object.typeDescription()) in registeredTypes; }),
 
                     // Get the children.
                     function (object) {
                         return Promise
                         // Filter out any registrations that don't match.
                         .filter(
-                            registeredTypes[object.typeDescription()],
+                            registeredTypes[object.module + "!" + object.typeDescription()],
                             function (registration) {
                                 return registration.isMatched(object);
                             }
@@ -105,18 +105,18 @@ var Tree = (function() {
                 var basicDescriptionRegistrations = registrations.filter(function (reg) { return reg.getBasicDescription ? true : false; });
                 var namedRegistrations = registrations.filter(function (reg) { return reg.name ? true : false; });
 
+                var backupDescription = namedRegistrations.length > 0 ? namedRegistrations[namedRegistrations.length - 1].name : that.dbgObject.htmlTypeDescription();
+
                 if (basicDescriptionRegistrations.length > 0) {
-                    return basicDescriptionRegistrations[basicDescriptionRegistrations.length - 1].getBasicDescription(that.dbgObject);
-                } else if (namedRegistrations.length > 0) {
-                    return namedRegistrations[namedRegistrations.length - 1].name;
+                    return basicDescriptionRegistrations[basicDescriptionRegistrations.length - 1].getBasicDescription(that.dbgObject)
+                    .then(null, function (error) {
+                        that.recordedErrors.push(error);
+                        return backupDescription;
+                    });
                 } else {
-                    return that.dbgObject.htmlTypeDescription();
+                    return backupDescription;
                 }
-            })
-            .then(null, function (error) {
-                that.recordedErrors.push(error);
-                return that.dbgObject.htmlTypeDescription();
-            })
+            });
         }
 
         return this.basicDescriptionPromise.then(function (basicDescription) {
@@ -149,11 +149,14 @@ var Tree = (function() {
 
 
     return {
-        AddType: function(name, typename, discriminant, getChildren, getBasicDescription) {
-            if (!(typename in registeredTypes)) {
-                registeredTypes[typename] = [];
+        AddType: function(name, module, typename, discriminant, getChildren, getBasicDescription) {
+            var fullTypename = module + "!" + typename;
+            if (!(fullTypename in registeredTypes)) {
+                registeredTypes[fullTypename] = [];
             }
-            registeredTypes[typename].push({
+            registeredTypes[fullTypename].push({
+                module: module,
+                typename: typename,
                 name: name ? name : typename,
                 isMatched: discriminant ? discriminant : function() { return true; },
                 getChildren: getChildren ? getChildren : function() { return []; },
