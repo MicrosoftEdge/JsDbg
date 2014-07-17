@@ -61,6 +61,11 @@
                 return new DbgObject(MSHTML.Module, "CTreeNode", address);
             });
 
+            var treeNodeField = function(element) {
+                element.textContent += " This is an element.";
+            };
+            Tree.AddField(MSHTML.Module, "CTreeNode", treeNodeField);
+
             Tree.Render(document.querySelector("div"));
 
             Tree.RenderTreeNode(document.querySelector("div"), Tree.InterpretAddress(0x0daf6ef0), TallTree);

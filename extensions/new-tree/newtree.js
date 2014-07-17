@@ -4,6 +4,7 @@ var Tree = (function() {
     var registeredTypes = {};
     var registeredRoots = [];
     var registeredAddressInterpreters = [];
+    var currentFields = {};
 
     function flatten(array, result) {
         if (result === undefined) {
@@ -11,7 +12,7 @@ var Tree = (function() {
         }
         for (var i = 0; i < array.length; ++i) {
             var item = array[i];
-            if (item && item.length !== undefined) {
+            if (item && item instanceof Array) {
                 flatten(item, result);
             } else {
                 result.push(item);
@@ -123,26 +124,55 @@ var Tree = (function() {
             var result = document.createElement("div");
             result.textContent = basicDescription + " " + that.dbgObject.ptr();
 
-            if (that.recordedErrors.length > 0) {
-                var errorContainer = document.createElement("div");
-                errorContainer.className = "error-container";
+            return that.dbgObject.baseTypes()
+            .then(function (baseTypes) {
+                baseTypes.reverse();
+                baseTypes.push(that.dbgObject);
 
-                var errorDiv = document.createElement("div");
-                errorDiv.className = "error-icon";
-                errorDiv.textContent = "!";
-                errorContainer.appendChild(errorDiv);
+                // Collect any fields for each of the base types.
+                var fields = baseTypes.map(function (baseType) {
+                    var fullyQualifiedType = baseType.module + "!" + baseType.typeDescription();
+                    if (fullyQualifiedType in currentFields) {
+                        return currentFields[fullyQualifiedType];
+                    } else {
+                        return [];
+                    }
+                });
 
-                var descriptions = document.createElement("div");
-                descriptions.className = "error-descriptions";
-                that.recordedErrors.forEach(function (error) {
-                    var errorElement = document.createElement("div");
-                    errorElement.textContent = JSON.stringify(error);
-                    descriptions.appendChild(errorElement);
+                fields = flatten(fields);
+
+                // Serialize the rendering of the fields.
+                var fieldPromise = Promise.as(null);
+                fields.forEach(function (field) {
+                    fieldPromise = fieldPromise.then(function () {
+                        return field(result);
+                    });
                 })
-                errorContainer.appendChild(descriptions);
-                result.appendChild(errorContainer);
-            }
-            return result;
+
+                return fieldPromise.then(function () {
+                    if (that.recordedErrors.length > 0) {
+                        var errorContainer = document.createElement("div");
+                        errorContainer.className = "error-container";
+
+                        var errorDiv = document.createElement("div");
+                        errorDiv.className = "error-icon";
+                        errorDiv.textContent = "!";
+                        errorContainer.appendChild(errorDiv);
+
+                        var descriptions = document.createElement("div");
+                        descriptions.className = "error-descriptions";
+                        that.recordedErrors.forEach(function (error) {
+                            var errorElement = document.createElement("div");
+                            errorElement.textContent = JSON.stringify(error);
+                            descriptions.appendChild(errorElement);
+                        })
+                        errorContainer.appendChild(descriptions);
+                        result.appendChild(errorContainer);
+                    }
+
+                    return result;
+                });
+            });
         });
     }
 
@@ -162,6 +192,25 @@ var Tree = (function() {
                 getChildren: getChildren ? getChildren : function() { return []; },
                 getBasicDescription: typeof(getBasicDescription) == typeof("") ? function() { return getBasicDescription; } : getBasicDescription
             });
+        },
+
+        AddField: function (module, typename, code) {
+            var fullTypename = module + "!" + typename;
+            if (!(fullTypename in currentFields)) {
+                currentFields[fullTypename] = [];
+            }
+
+            currentFields[fullTypename].push(code);
+        },
+
+        RemoveField: function (module, typename, code) {
+            var fullTypename = module + "!" + typename;
+            if (fullTypename in currentFields) {
+                var index = currentFields[fullTypename].indexOf(code);
+                if (index >= 0) {
+                    currentFields[fullTypename].splice(index, 1);
+                }
+            }
         },
 
         AddRoot: function(name, getRoots) {
@@ -204,7 +253,7 @@ var Tree = (function() {
                 var innerElement = document.createElement("div");
                 container.appendChild(innerElement);
                 treeAlgorithm.BuildTree(innerElement, treeNode, true);
-            });
+            })
         },
 
         GetRootTreeNodes: function() {
