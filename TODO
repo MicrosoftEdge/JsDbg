@@ -27,6 +27,8 @@
 
 - see how expensive dependency loading is?
 
+- make it more clear when content is loading (especially if it has been loading for more than ~0.5s)
+
 BUGS
 
 - GetLayoutAssociationFromCTreeNode -> doesn't work properly with non boxes because of linked list offset
