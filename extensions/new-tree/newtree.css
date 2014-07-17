@@ -1,31 +1,42 @@
 
+.error-container {
+    position:absolute;
+    right:0px;
+    left:0px;
+    text-align:right;
+}
+
 .error-icon {
+    text-align:center;
+    display:inline-block;
     background:red;
     border-radius:50%;
     color:white;
     cursor:default;
     font-weight:bold;
     line-height:1.0;
-    position:absolute;
-    right:0px;
-    text-align:center;
     width:1em;
 }
 
-.error-icon > .error-descriptions {
+.error-container > .error-descriptions {
     display:none;
 }
 
-.error-icon:hover > .error-descriptions {
+.error-icon:hover + .error-descriptions {
     background: white;
     border:thin solid;
     color:red;
     display:block;
     margin-right:0.5em;
-    padding:1em;
     position:absolute;
-    right:100%;
     text-align: left;
+    padding:1em 1em 1em 2em;
+    right:1em;
     top:0px;
     z-index:1;
+    white-space: normal;
+}
+
+.error-descriptions > div {
+    display: list-item;
 }

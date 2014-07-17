@@ -116,13 +116,16 @@ var Tree = (function() {
 
         return this.basicDescriptionPromise.then(function (basicDescription) {
             var result = document.createElement("div");
-            result.style.position = "relative";
             result.textContent = basicDescription + " " + that.dbgObject.ptr();
 
             if (that.recordedErrors.length > 0) {
+                var errorContainer = document.createElement("div");
+                errorContainer.className = "error-container";
+
                 var errorDiv = document.createElement("div");
                 errorDiv.className = "error-icon";
                 errorDiv.textContent = "!";
+                errorContainer.appendChild(errorDiv);
 
                 var descriptions = document.createElement("div");
                 descriptions.className = "error-descriptions";
@@ -131,8 +134,8 @@ var Tree = (function() {
                     errorElement.textContent = JSON.stringify(error);
                     descriptions.appendChild(errorElement);
                 })
-                errorDiv.appendChild(descriptions);
-                result.appendChild(errorDiv);
+                errorContainer.appendChild(descriptions);
+                result.appendChild(errorContainer);
             }
             return result;
         });
