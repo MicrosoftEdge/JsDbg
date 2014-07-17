@@ -51,7 +51,15 @@ namespace JsDbg {
                     switch (parts[1]) {
                         case "__BaseClass":
                             // +0x000 __BaseClass class [typename]
-                            this.ParsedBaseClasses.Add(new SBaseClass() { Offset = offset, TypeName = parts[3].TrimEnd(',') });
+                            uint typeSize;
+                            string typename;
+                            SBitFieldDescription bitField;
+                            bool didParseType = this.ParseType(ArraySlice(parts, 2), out typeSize, out typename, out bitField);
+                            if (didParseType) {
+                                this.ParsedBaseClasses.Add(new SBaseClass() { Offset = offset, TypeName = typename });
+                            } else {
+                                System.Diagnostics.Debug.WriteLine(String.Format("Unable to parse type entry: {0}", line));
+                            }
                             break;
                         case "__VFN_table":
                             // Ignore vtables.
