@@ -26,7 +26,7 @@
 
         function init() {
             Tree.AddRoot("Markup Tree", function() { return MSHTML.GetRootCTreeNodes(); });
-            Tree.AddType("CTreeNode", null, function (object) {
+            Tree.AddType("Tree Node", "CTreeNode", null, function (object) {
                 return object.f("_tpBegin").f("_ptpThreadRight")
                 .list(
                     function (treePos) {
@@ -54,10 +54,16 @@
                     return "<" + tag + ">";
                 })
             });
-            Tree.AddType("CTreeDataPos", null, function (obj) { return obj.f("not_a_field"); }, "Text");
-            Tree.AddType("CTreeDataPos", null, function (obj) { return obj.f("another_bad_field"); }, "Text");
+            Tree.AddType("Text","CTreeDataPos", null, function (obj) { return obj.f("not_a_field"); });
+            Tree.AddType("Text", "CTreeDataPos", null, function (obj) { return obj.f("another_bad_field"); });
+
+            Tree.AddAddressInterpreter(function (address) {
+                return new DbgObject(MSHTML.Module, "CTreeNode", address);
+            });
 
             Tree.Render(document.querySelector("div"));
+
+            Tree.RenderTreeNode(document.querySelector("div"), Tree.InterpretAddress(0x0daf6ef0), TallTree);
         }
 
         document.addEventListener("DOMContentLoaded", init);

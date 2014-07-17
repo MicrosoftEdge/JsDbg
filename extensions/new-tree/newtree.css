@@ -1,8 +1,9 @@
 
 .error-container {
     position:absolute;
-    right:0px;
+    right:0.25em;
     left:0px;
+    bottom:0.25em;
     text-align:right;
 }
 
@@ -27,12 +28,13 @@
     border:thin solid;
     color:red;
     display:block;
-    margin-right:0.5em;
-    position:absolute;
+    margin:0.5em;
+    position:fixed;
     text-align: left;
     padding:1em 1em 1em 2em;
-    right:1em;
-    top:0px;
+
+    bottom:0px;
+    left:0px;
     z-index:1;
     white-space: normal;
 }

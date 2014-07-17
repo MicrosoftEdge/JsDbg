@@ -1,6 +1,9 @@
+"use strict";
+
 var Tree = (function() {
     var registeredTypes = {};
     var registeredRoots = [];
+    var registeredAddressInterpreters = [];
 
     function flatten(array, result) {
         if (result === undefined) {
@@ -68,7 +71,6 @@ var Tree = (function() {
             var that = this;
             this.childrenPromise = this.getMatchingRegistrations(this.dbgObject)
             .then(function (registrations) {
-                // XXX/psalas: need to make it so that if one fails they don't all fail
                 return Promise.map(registrations, function (registration) { 
                     if (registration.getChildren) {
                         return Promise.as(registration.getChildren(that.dbgObject))
@@ -99,13 +101,16 @@ var Tree = (function() {
         if (this.basicDescriptionPromise == null) {
             this.basicDescriptionPromise = this.getMatchingRegistrations()
             .then(function (registrations) {
-                return registrations.filter(function (registration) { return registration.getBasicDescription; })
-            })
-            .then(function (descriptionRegistrations) {
-                if (descriptionRegistrations.length == 0) {
-                    return that.dbgObject.htmlTypeDescription();
+                var registrationToUse = null;
+                var basicDescriptionRegistrations = registrations.filter(function (reg) { return reg.getBasicDescription ? true : false; });
+                var namedRegistrations = registrations.filter(function (reg) { return reg.name ? true : false; });
+
+                if (basicDescriptionRegistrations.length > 0) {
+                    return basicDescriptionRegistrations[basicDescriptionRegistrations.length - 1].getBasicDescription(that.dbgObject);
+                } else if (namedRegistrations.length > 0) {
+                    return namedRegistrations[namedRegistrations.length - 1].name;
                 } else {
-                    return descriptionRegistrations[descriptionRegistrations.length - 1].getBasicDescription(that.dbgObject);
+                    return that.dbgObject.htmlTypeDescription();
                 }
             })
             .then(null, function (error) {
@@ -141,14 +146,17 @@ var Tree = (function() {
         });
     }
 
+
+
     return {
-        AddType: function(typename, discriminant, getChildren, getBasicDescription) {
+        AddType: function(name, typename, discriminant, getChildren, getBasicDescription) {
             if (!(typename in registeredTypes)) {
                 registeredTypes[typename] = [];
             }
             registeredTypes[typename].push({
+                name: name ? name : typename,
                 isMatched: discriminant ? discriminant : function() { return true; },
-                getChildren: getChildren,
+                getChildren: getChildren ? getChildren : function() { return []; },
                 getBasicDescription: typeof(getBasicDescription) == typeof("") ? function() { return getBasicDescription; } : getBasicDescription
             });
         },
@@ -160,8 +168,43 @@ var Tree = (function() {
             });
         },
 
-        Render: function(element) {
-            // Get all the roots.
+        AddAddressInterpreter: function(addressInterpreter) {
+            registeredAddressInterpreters.push(addressInterpreter);
+        },
+
+        InterpretAddress: function (address) {
+            return Promise.map(registeredAddressInterpreters, function(interpreter) {
+                return Promise.as(interpreter(address))
+                .then(
+                    function (dbgObject) {
+                        return new TreeNode(dbgObject);
+                    },
+                    function (error) {
+                        return null;
+                    }
+                )
+            })
+            .then(function (results) {
+                for (var i = 0; i < results.length; ++i) {
+                    if (results[i] != null) {
+                        return results[i];
+                    }
+                }
+
+                throw new Error("Invalid root address.");
+            })
+        },
+
+        RenderTreeNode: function(container, treeNode, treeAlgorithm) {
+            return Promise.as(treeNode)
+            .then(function (treeNode) {
+                var innerElement = document.createElement("div");
+                container.appendChild(innerElement);
+                treeAlgorithm.BuildTree(innerElement, treeNode, true);
+            });
+        },
+
+        GetRootTreeNodes: function() {
             return Promise
             .map(
                 registeredRoots,
@@ -172,15 +215,18 @@ var Tree = (function() {
             .then(function (roots) {
                 return flatten(roots)
                 .map(function (root) {                     
-                    var rootTreeNode = new TreeNode(root);
-                    var innerElement = document.createElement("div");
-                    element.appendChild(innerElement);
-                    TallTree.BuildTree(innerElement, rootTreeNode, true);
-                });
-            })
-            .then(null, function(err) {
-                alert(err);
-            })
+                    return new TreeNode(root);
+                })
+            });
+        },
+
+        Render: function(element) {
+            return Tree.GetRootTreeNodes()
+            .then(function (treeNodes) {
+                return treeNodes.forEach(function(treeNode) {
+                    Tree.RenderTreeNode(element, treeNode, TallTree);
+                })
+            });
         }
     }
 })();
