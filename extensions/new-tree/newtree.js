@@ -87,7 +87,9 @@ var Tree = (function() {
             })
             .then(flatten)
             .then(function (children) {
-                return children.map(function (child) { return new TreeNode(child); });
+                return children
+                .filter(function (child) { return !child.isNull(); })
+                .map(function (child) { return new TreeNode(child); });
             })
             .then(null, function (error) {
                 that.recordedErrors.push(error);

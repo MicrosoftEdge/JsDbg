@@ -13,9 +13,6 @@
 //  - getChildren -> array of backing nodes
 //  - createRepresentation -> dom element
 var BoxTree = (function() {
-    var BoxCache = {};
-    var BoxTypes = {};
-    var FieldTypeMap = {};
 
     // Add a type description for LayoutBox to link to the BoxTree.
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBox", function(box) {
@@ -26,23 +23,14 @@ var BoxTree = (function() {
         }
     });
 
-    function createBoxTree(pointer) {
-        if (pointer) {
-            var box = new DbgObject(MSHTML.Module, "Layout::LayoutBox", pointer);
-            BoxCache = {};
-            return CreateBox(box);
-        }
-
-        return null;
-    }
-
-    function getRootLayoutBoxes() {
-        return Promise.map(MSHTML.GetRootCTreeNodes(), function(treeNode) {
-                return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode).as("Layout::ContainerBox").list("associatedBoxLink").ptr();
+    if (JsDbg.GetCurrentExtension() == "boxtree") {
+        Tree.AddRoot("Box Tree", function() {
+            return Promise.map(MSHTML.GetRootCTreeNodes(), function(treeNode) {
+                return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode).as("Layout::ContainerBox").list("associatedBoxLink").vcast();
             })
-            .then(function(boxPtrs) {
+            .then(function(boxes) {
                 var flattenedArray = [];
-                boxPtrs.forEach(function (innerArray) {
+                boxes.forEach(function (innerArray) {
                     flattenedArray = flattenedArray.concat(innerArray);
                 });
 
@@ -52,409 +40,139 @@ var BoxTree = (function() {
                     return flattenedArray;
                 }
             })
-            .then(
-                function(results) { return results; },
-                function(error) {
-                    return Promise.fail("No root CTreeNodes with LayoutBoxes were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The docmode is < 8.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a LayoutBox explicitly.");
+            .then(null, function(error) {
+                return Promise.fail("No root CTreeNodes with LayoutBoxes were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The docmode is < 8.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a LayoutBox explicitly.");
+            });
+        });
+
+        Tree.AddAddressInterpreter(function (address) {
+            return new DbgObject(MSHTML.Module, "Layout::LayoutBox", address).vcast();
+        })
+
+        function collectChildrenInFlow(flow) {
+            return flow
+            .latestPatch()
+            .list(function (flowItem) { return flowItem.f("data.next").latestPatch(); })
+                .f("data.boxReference.m_pT")
+                .vcast();
+        }
+
+        Tree.AddType(null, MSHTML.Module, "Layout::ContainerBox", null, function (object) {
+            return object.f("PositionedItems.firstItem.m_pT").list("next.m_pT")
+                .vcast()
+                .filter(function (listItem) {
+                    return listItem.typeDescription() == "Layout::PositionedBoxItem";
+                })
+                .f("boxItem", "flowItem")
+                .latestPatch()
+                .f("data.boxReference.m_pT")
+                .vcast();
+        });
+
+        Tree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
+            // Collect floaters.
+            return object.f("geometry").array()
+                .f("floaterBoxReference.m_pT")
+                .latestPatch()
+                .f("data.BoxReference.m_pT")
+                .vcast();
+        });
+
+        Tree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
+            // Collect static flow.
+            return collectChildrenInFlow(object.f("flow"));
+        });
+
+        Tree.AddType(null, MSHTML.Module, "Layout::TableBox", null, function (object) {
+            return collectChildrenInFlow(object.f("items", "flow"));
+        });
+
+        Tree.AddType(null, MSHTML.Module, "Layout::TableGridBox", null, function (object) {
+            return collectChildrenInFlow(object.f("fragmentedCellContents"))
+        });
+
+        Tree.AddType(null, MSHTML.Module, "Layout::TableGridBox", null, function (object) {
+            return collectChildrenInFlow(object.f("collapsedCells"));
+        });
+
+        Tree.AddType(null, MSHTML.Module, "Layout::TableGridBox", null, function (object) {
+            return object.f("firstRowLayout.m_pT")
+            .list("nextRowLayout.m_pT")
+                .f("Columns.m_pT").latestPatch()
+            .map(function(columns) {
+                return columns.array()
+                    .f("cellBoxReference.m_pT").vcast()
+            });
+        });
+
+        Tree.AddType(null, MSHTML.Module, "Layout::GridBox", null, function (object) {
+            return object.f("Items.m_pT").latestPatch().array().f("BoxReference.m_pT").vcast()
+        });
+
+        Tree.AddType(null, MSHTML.Module, "Layout::FlexBox", null, function (object) {
+            return object.f("items", "flow")
+            .then(function (items) {
+                if (items.typeDescription().indexOf("FlexBoxItemArray") != -1) {
+                    return items.f("m_pT").latestPatch().array().f("BoxReference.m_pT").vcast();
+                } else if (items.typeDescription() == "Layout::BoxItem") {
+                    return collectChildrenInFlow(items);
+                } else if (items.typeDescription() == "SArray<Layout::FlexBox::SFlexBoxItem>") {
+                    return items.collectChildrenInFlow(object.f("flow"));
+                } else {
+                    throw new Error("Unexpected FlexBox child typename: " + items.typeDescription());
                 }
-            );
-    }
+            })
+        });
 
-    function CreateBox(obj) {
-        return Promise.as(obj)
-        .then(function (obj) {
-            if (!obj.isNull()) {
-                return obj.vtable()
-                .then(function (type) {
-                    if (obj.ptr() in BoxCache) {
-                        return new DuplicateBox(BoxCache[obj.ptr()]);
-                    }
+        Tree.AddType(null, MSHTML.Module, "Layout::MultiColumnBox", null, function (object) {
+            return object.f("items.m_pT").latestPatch().array().f("BoxReference.m_pT").vcast();
+        });
 
-                    if (type in BoxTypes) {
-                        var result = new BoxTypes[type](obj, type);
-                    } else {
-                        var result = new LayoutBox(obj, type);
-                    }
+        Tree.AddType(null, MSHTML.Module, "Layout::LineBox", null, function(object) {
+            // Get the LineBox flags...
+            return object.f("lineBoxFlags").val()
 
-                    BoxCache[obj.ptr()] = result;
-                    return result;
-                })
-            } else {
-                return new NullBox();
-            }
-        })
-    }
+            // Get the runs if we might have inline blocks...
+            .then(function(lineBoxFlags) {
+                if ((lineBoxFlags & 0x8) > 0) {
+                    return object.f("firstRun.m_pT")
+                    .list("next.m_pT")
+                        .vcast()
+                    .filter(function (run) {
+                        var type = run.typeDescription();
+                        return (
+                            type == "Layout::InlineBlockLineBoxRun" || 
+                            type == "Layout::InlineBlockWithBreakConditionLineBoxRun"
+                        );
+                    })
+                        .f("boxReference.m_pT")
+                        .vcast();
+                } else {
+                    return [];
+                }
+            });
+        });
 
-    function MapBoxType(typename, type) {
-        BoxTypes[typename] = type;
-    }
+        Tree.AddType(null, MSHTML.Module, "Layout::ReplacedBoxIFrame", null, function (object) {
+            return collectChildrenInFlow(object.f("replacedViewport", "flow"));
+        });
 
-    function CreateBoxType(typename, superType) {
-        // For the description, strip "Layout::" and strip the last "Box".
-        var name = typename.substr("Layout::".length);
-        var fieldName = name;
-        var lastIndexOfBox = name.lastIndexOf("Box");
-        name = name.substr(0, lastIndexOfBox) + name.substr(lastIndexOfBox + "Box".length);
+        Tree.AddType(null, MSHTML.Module, "Layout::BoxContainerBox", null, function (object) {
+            return collectChildrenInFlow(object.f("boxItem", "flowItem"));
+        });
 
-        var newType = function(box, vtableType) {
-            superType.call(this, box, vtableType);
-            this.box = this.box.as(typename);
-        }
-        newType.prototype = Object.create(superType.prototype);
-        newType.prototype.typename = function() { return name; }
-        newType.super = superType;
-        newType.prototype.rawTypename = typename;
+        Tree.AddType(null, MSHTML.Module, "Layout::SvgCssContainerBox", null, function (object) {
+            return collectChildrenInFlow(object.f("firstSvgItem"));
+        });
 
-        MapBoxType(typename, newType);
-        FieldTypeMap[fieldName] = newType;
-        return newType;
-    }
+        Tree.AddType(null, MSHTML.Module, "Layout::SvgContainerBox", null, function (object) {
+            return collectChildrenInFlow(object.f("firstSvgItem"));
+        });
 
-    // Since some boxes (e.g. floaters) can be in the tree multiple times, after we've seen
-    // a given box once we'll proxy it with the duplicate box.
-    function DuplicateBox(originalBox) {
-        this.originalBox = originalBox;
-    }
-    DuplicateBox.prototype.createRepresentation = function() {
-        return Promise.as(this.originalBox.createRepresentation())
-        .then(function (element) {
-            element.style.color = "grey";
-            element.innerHTML = "<p>(DUPLICATE)</p> " + element.innerHTML;
-            return element;
+        Tree.AddType(null, MSHTML.Module, "Layout::SvgTextBox", null, function (object) {
+            return collectChildrenInFlow(object.f("flow"));
         });
     }
-    DuplicateBox.prototype.getChildren = function() {
-        return Promise.as([]);
-    }
-
-    // Sometimes a box has a null box reference, perhaps during building or otherwise.
-    function NullBox() { }
-    NullBox.prototype.createRepresentation = function() {
-        var element = document.createElement("div");
-        element.innerHTML = "<p>NULL</p>";
-        return Promise.as(element);
-    }
-    NullBox.prototype.getChildren = function() {
-        return Promise.as([]);
-    }
-
-
-    function LayoutBox(box, vtableType) {
-        this.box = box;
-        this.childrenPromise = null;
-        this.vtableType = vtableType;
-    }
-    FieldTypeMap["LayoutBox"] = LayoutBox;
-
-    LayoutBox.prototype.typename = function() { return this.vtableType.replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-    LayoutBox.prototype.collectChildren = function(children) { return Promise.as(children); }
-
-    LayoutBox.prototype.createRepresentation = function() {
-        var element = document.createElement("div");
-        element.innerHTML = "<p>" + this.typename() + "</p> <p>" + this.box.ptr() + "</p> ";
-        return FieldSupport.RenderFields(this, this.box, element);
-    }
-    LayoutBox.prototype.getChildren = function() {
-        if (this.childrenPromise == null) {
-            var children = [];
-            this.childrenPromise = Promise.as(this.collectChildren(children))
-            .then(function () {
-                return Promise.map(children, CreateBox);
-            });
-        }
-        return this.childrenPromise;
-    }
-
-    var ContainerBox = CreateBoxType("Layout::ContainerBox", LayoutBox);
-    ContainerBox.prototype.collectChildren = function(children) {
-        var that = this;
-        return ContainerBox.super.prototype.collectChildren.call(this, children)
-        .then(function() {
-            // Get the first item in the positioned item list...
-            return that.box.f("PositionedItems.firstItem.m_pT")
-
-            // collect all the items in the list...
-            .list("next.m_pT")
-
-            // vcast them...
-            .vcast()
-
-            // filter out anything that's not a PositionedBoxItem...
-            .filter(function (listItem) {
-                return listItem.typeDescription() == "Layout::PositionedBoxItem";
-            })
-
-            // get the box from each item...
-            .f("boxItem", "flowItem").latestPatch().f("data.boxReference.m_pT")
-
-            // and add them to the array.
-            .forEach(function (box) {
-                children.push(box);
-            });
-        })
-    }
-
-    var FlowBox = CreateBoxType("Layout::FlowBox", ContainerBox);
-    FlowBox.collectChildrenInFlow = function(flow, children) {
-        return flow
-        .latestPatch()
-        .list(function (flowItem) {
-            return flowItem.f("data.next").latestPatch();
-        })
-        .f("data.boxReference.m_pT")
-        .forEach(function(item) { 
-            children.push(item); 
-        });
-    }
-    FlowBox.prototype.collectChildren = function(children) {
-        var that = this;
-        // Collect children from the superclass...
-        return FlowBox.super.prototype.collectChildren.call(this, children)
-        // Collect flow items...
-        .then(function() {
-            return FlowBox.collectChildrenInFlow(that.box.f("flow"), children)
-        })
-        .then(function() {
-            return that.box.f("geometry")
-            .array()
-                .f("floaterBoxReference.m_pT").latestPatch().f("data.BoxReference.m_pT")
-            .forEach(function(box) { children.push(box); });
-        })
-    }
-    var FieldsetBox = CreateBoxType("Layout::FieldsetBox", FlowBox);
-
-    var TableBox = CreateBoxType("Layout::TableBox", ContainerBox);
-    TableBox.prototype.collectChildren = function(children) {
-        var that = this;
-        // Collect children from the superclass...
-        return TableBox.super.prototype.collectChildren.call(this, children)
-        // and collect the flow items.
-        .then(function() {
-            return FlowBox.collectChildrenInFlow(that.box.f("items", "flow"), children);
-        })
-    }
-
-
-    var TableGridBox = CreateBoxType("Layout::TableGridBox", ContainerBox);
-    TableGridBox.prototype.collectChildren = function(children) {
-        var that = this;
-        // Collect children from the superclass...
-        return TableGridBox.super.prototype.collectChildren.call(this, children)
-            // Collect fragmented cell contents...
-            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("fragmentedCellContents"), children); })
-
-            // Collect collapsed cells...
-            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("collapsedCells"), children); })
-
-            // And collect the cell boxes from the rows.
-            .then(function() {
-                return that.box.f("firstRowLayout.m_pT")
-
-                // Get the list of table row layouts, and for each of them...
-                .list("nextRowLayout.m_pT")
-
-                    // Get the columns array...
-                    .f("Columns.m_pT").latestPatch()
-
-                .map(function(columns) {
-                    return columns
-                    .array()
-                        .f("cellBoxReference.m_pT")
-                    .forEach(function (box) {
-                        if (!box.isNull()) {
-                            children.push(box);
-                        }
-                    });
-                });
-            });
-    }
-
-    var GridBox = CreateBoxType("Layout::GridBox", ContainerBox);
-    GridBox.prototype.collectChildren = function(children) {
-        var that = this;
-        // Collect children from the superclass...
-        return GridBox.super.prototype.collectChildren.call(this, children)
-            // Get the GridBoxItemsArray DbgObject...
-            .then(function() {
-                // Get the items array...
-                return that.box.f("Items.m_pT").latestPatch()
-                .array()
-                    
-                    // Map each item to the box reference...
-                    .f("BoxReference.m_pT")
-
-                // And add them to the children array.
-                .forEach(function (box) {
-                    if (!box.isNull()) {
-                        children.push(box);
-                    }
-                })
-            });
-    }
-
-    var FlexBox = CreateBoxType("Layout::FlexBox", ContainerBox);
-    FlexBox.prototype.collectChildren = function(children) {
-        var that = this;
-        // Collect children from the super class...
-        return FlexBox.super.prototype.collectChildren.call(this, children)
-        
-        // And collect the children.
-        .then(function() {
-            return that.box.f("items", "flow");
-        })
-        .then(function (items) {
-            if (items.typeDescription().indexOf("FlexBoxItemArray") != -1) {
-                return items.f("m_pT").latestPatch()
-                .array()
-                    .f("BoxReference.m_pT")
-                .forEach(function (box) {
-                    if (!box.isNull()) {
-                        children.push(box);
-                    }
-                })
-            } else if (items.typeDescription() == "Layout::BoxItem") {
-                return FlowBox.collectChildrenInFlow(items, children);
-            } else if (items.typeDescription() == "SArray<Layout::FlexBox::SFlexBoxItem>") {
-                return FlowBox.collectChildrenInFlow(that.box.f("flow"), children);
-            } else {
-                throw new Error("Unexpected FlexBox child typename: " + items.typeDescription());
-            }
-        })
-    }
-
-    var MultiFragmentBox = CreateBoxType("Layout::MultiFragmentBox", ContainerBox);
-    var MultiColumnBox = CreateBoxType("Layout::MultiColumnBox", MultiFragmentBox);
-    MultiColumnBox.prototype.collectChildren = function(children) {
-        var that = this;
-        // Collect children from the super class...
-        return MultiColumnBox.super.prototype.collectChildren.call(this, children)
-
-        // Get the items...
-        .then(function () {
-            return that.box.f("items.m_pT").latestPatch()
-            .array()
-                .f("BoxReference.m_pT")
-            .then(function (boxes) {
-                return that.box.f("itemsCount").val()
-                .then(function (count) {
-                    return boxes.slice(0, count).forEach(function (box) {
-                        children.push(box);
-                    });
-                })
-            })
-        })
-    }
-
-    var LineBox = CreateBoxType("Layout::LineBox", LayoutBox);
-    LineBox.prototype.collectChildren = function(children) {
-        var that = this;
-        // Collect children from the super class...
-        return LineBox.super.prototype.collectChildren.call(this, children)
-
-        // Get the LineBox flags...
-        .then(function() { return that.box.f("lineBoxFlags").val(); })
-
-        // Get the first run if we might have inline blocks...
-        .then(function(lineBoxFlags) {
-            if ((lineBoxFlags & 0x8) > 0) {
-                return that.box.f("firstRun.m_pT");
-            } else {
-                // No inline-blocks, so don't use a run.
-                return DbgObject.NULL;
-            }
-        })
-
-        // Collect any inline-blocks from the run.
-        .then(function(firstRun) {
-            // Get the list of runs...
-            return firstRun.list("next.m_pT")
-
-            // vcast them...
-            .vcast()
-
-            // filter them to only the inline-blocks...
-            .filter(function (run) {
-                var type = run.typeDescription();
-                return (
-                    type == "Layout::InlineBlockLineBoxRun" || 
-                    type == "Layout::InlineBlockWithBreakConditionLineBoxRun"
-                );
-            })
-
-            // get the box reference...
-            .f("boxReference.m_pT")
-
-            // and add them to the list.
-            .forEach(function (box) {
-                children.push(box);
-            });
-        })
-    }
-
-    MapBoxType("Layout::LineBoxCompactShort", LineBox)
-    MapBoxType("Layout::LineBoxCompactInteger", LineBox)
-    MapBoxType("Layout::LineBoxFullInteger", LineBox)
-    MapBoxType("Layout::LineBoxFullIntegerWithVisibleBounds", LineBox)
-    MapBoxType("Layout::LineBoxFullShort", LineBox)
-
-    var ReplacedBox = CreateBoxType("Layout::ReplacedBox", ContainerBox);
-
-    var ReplacedBoxIFrame = CreateBoxType("Layout::ReplacedBoxIFrame", ReplacedBox);
-    ReplacedBoxIFrame.prototype.collectChildren = function(children) {
-        var that = this;
-        return ReplacedBoxIFrame.super.prototype.collectChildren.call(this, children)
-            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("replacedViewport", "flow"), children); })
-    }
-
-    var ReplacedBoxCLayout = CreateBoxType("Layout::ReplacedBoxCLayout", ReplacedBox);
-    var ReplacedBoxCOleLayout = CreateBoxType("Layout::ReplacedBoxCOleLayout", ReplacedBoxCLayout);
-
-    var ReplacedBoxNative = CreateBoxType("Layout::ReplacedBoxNative", ReplacedBox);
-
-    var ReplacedBoxNativeImage = CreateBoxType("Layout::ReplacedBoxNativeImage", ReplacedBoxNative);
-    var ReplacedBoxNativeGeneratedImage = CreateBoxType("Layout::ReplacedBoxNativeGeneratedImage", ReplacedBoxNative);
-    var ReplacedBoxNativeMSWebView = CreateBoxType("Layout::ReplacedBoxNativeMSWebView", ReplacedBoxNative);
-    var ReplacedBoxNativeCheckBoxValue = CreateBoxType("Layout::ReplacedBoxNativeCheckBoxValue", ReplacedBoxNative);
-    var ReplacedBoxNativeComboBoxValue = CreateBoxType("Layout::ReplacedBoxNativeComboBoxValue", ReplacedBoxNative);
-    var ReplacedBoxNativeInputFileAction = CreateBoxType("Layout::ReplacedBoxNativeInputFileAction", ReplacedBoxNative);
-
-    var BoxContainerBox = CreateBoxType("Layout::BoxContainerBox", ReplacedBox);
-    BoxContainerBox.prototype.collectChildren = function(children) {
-        var that = this;
-        return BoxContainerBox.super.prototype.collectChildren.call(this, children)
-            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("boxItem", "flowItem"), children); })
-    }
-    var PageFrameBox = CreateBoxType("Layout::PageFrameBox", BoxContainerBox);
-
-
-    var SvgCssContainerBox = CreateBoxType("Layout::SvgCssContainerBox", ContainerBox);
-    SvgCssContainerBox.prototype.collectChildren = function(children) {
-        var that = this;
-        return SvgCssContainerBox.super.prototype.collectChildren.call(this, children)
-            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("firstSvgItem"), children); })
-    }
-
-    var SvgBox = CreateBoxType("Layout::SvgBox", LayoutBox);
-
-    var SvgContainerBox = CreateBoxType("Layout::SvgContainerBox", SvgBox);
-    SvgContainerBox.prototype.collectChildren = function(children) {
-        var that = this;
-        return SvgContainerBox.super.prototype.collectChildren.call(this, children)
-            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("firstSvgItem"), children); })
-    }
-
-    var SvgTextBox = CreateBoxType("Layout::SvgTextBox", SvgBox);
-    SvgTextBox.prototype.collectChildren = function(children) {
-        var that = this;
-        return SvgTextBox.super.prototype.collectChildren.call(this, children)
-            .then(function() { return FlowBox.collectChildrenInFlow(that.box.f("flow"), children); })
-    }
-
-    var SvgPrimitiveBox = CreateBoxType("Layout::SvgPrimitiveBox", SvgBox);
-    var SvgLinePrimitiveBox = CreateBoxType("Layout::SvgLinePrimitiveBox", SvgPrimitiveBox);
-    var SvgImagePrimitiveBox = CreateBoxType("Layout::SvgImagePrimitiveBox", SvgPrimitiveBox);
-    var SvgGeometryBox = CreateBoxType("Layout::SvgGeometryBox", SvgPrimitiveBox);
-    var SvgLineBox = CreateBoxType("Layout::SvgLineBox", LineBox);
 
     var builtInFields = [
         {
@@ -660,8 +378,40 @@ var BoxTree = (function() {
         Name: "BoxTree",
         BasicType: "LayoutBox",
         BuiltInFields: builtInFields,
-        TypeMap: FieldTypeMap,
-        Create: createBoxTree,
-        Roots: getRootLayoutBoxes
+        TypeMap: {
+            "LayoutBox": "Layout::LayoutBox",
+            "ContainerBox": "Layout::ContainerBox",
+            "FlowBox": "Layout::FlowBox",
+            "FieldsetBox": "Layout::FieldsetBox",
+            "TableBox": "Layout::TableBox",
+            "TableGridBox": "Layout::TableGridBox",
+            "GridBox": "Layout::GridBox",
+            "FlexBox": "Layout::FlexBox",
+            "MultiFragmentBox": "Layout::MultiFragmentBox",
+            "MultiColumnBox": "Layout::MultiColumnBox",
+            "LineBox": "Layout::LineBox",
+            "ReplacedBox": "Layout::ReplacedBox",
+            "ReplacedBoxIFrame": "Layout::ReplacedBoxIFrame",
+            "ReplacedBoxCLayout": "Layout::ReplacedBoxCLayout",
+            "ReplacedBoxCOleLayout": "Layout::ReplacedBoxCOleLayout",
+            "ReplacedBoxNative": "Layout::ReplacedBoxNative",
+            "ReplacedBoxNativeImage": "Layout::ReplacedBoxNativeImage",
+            "ReplacedBoxNativeGeneratedImage": "Layout::ReplacedBoxNativeGeneratedImage",
+            "ReplacedBoxNativeMSWebView": "Layout::ReplacedBoxNativeMSWebView",
+            "ReplacedBoxNativeCheckBoxValue": "Layout::ReplacedBoxNativeCheckBoxValue",
+            "ReplacedBoxNativeComboBoxValue": "Layout::ReplacedBoxNativeComboBoxValue",
+            "ReplacedBoxNativeInputFileAction": "Layout::ReplacedBoxNativeInputFileAction",
+            "BoxContainerBox": "Layout::BoxContainerBox",
+            "PageFrameBox": "Layout::PageFrameBox",
+            "SvgCssContainerBox": "Layout::SvgCssContainerBox",
+            "SvgBox": "Layout::SvgBox",
+            "SvgContainerBox": "Layout::SvgContainerBox",
+            "SvgTextBox": "Layout::SvgTextBox",
+            "SvgPrimitiveBox": "Layout::SvgPrimitiveBox",
+            "SvgLinePrimitiveBox": "Layout::SvgLinePrimitiveBox",
+            "SvgImagePrimitiveBox": "Layout::SvgImagePrimitiveBox",
+            "SvgGeometryBox": "Layout::SvgGeometryBox",
+            "SvgLineBox": "Layout::SvgLineBox"
+        }
     };
 })();
