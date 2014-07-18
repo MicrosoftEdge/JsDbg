@@ -41,8 +41,8 @@ var MarkupTree = (function() {
     }
 
     if (JsDbg.GetCurrentExtension() == "markuptree") {
-        Tree.AddRoot("Markup Tree", function() { return MSHTML.GetRootCTreeNodes(); });
-        Tree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
+        DbgObjectTree.AddRoot("Markup Tree", function() { return MSHTML.GetRootCTreeNodes(); });
+        DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
             return object.f("_tpBegin").f("_ptpThreadRight")
             .list(
                 function (treePos) {
@@ -70,9 +70,9 @@ var MarkupTree = (function() {
                 return "&lt;" + tag + "&gt;";
             })
         });
-        Tree.AddType("Text", MSHTML.Module, "CTreeDataPos");
+        DbgObjectTree.AddType("Text", MSHTML.Module, "CTreeDataPos");
 
-        Tree.AddAddressInterpreter(function (address) {
+        DbgObjectTree.AddAddressInterpreter(function (address) {
             return new DbgObject(MSHTML.Module, "CTreeNode", address);
         });
 

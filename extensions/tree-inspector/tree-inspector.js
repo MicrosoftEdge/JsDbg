@@ -16,7 +16,7 @@ var TreeInspector = (function() {
             function createAndRender() {
                 if (lastRenderedPointer != pointerField.value) {
                     // Don't re-render if we've already rendered.
-                    Promise.as(Tree.InterpretAddress(parseInt(pointerField.value, 16)))
+                    Promise.as(DbgObjectTree.InterpretAddress(parseInt(pointerField.value, 16)))
                     .then(function(createdRoot) {
                         lastRenderedPointer = pointerField.value;
                         treeRoot = createdRoot;
@@ -45,7 +45,7 @@ var TreeInspector = (function() {
 
             function render() {
                 var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
-                renderTreeRootPromise = Tree.RenderTreeNode(treeContainer, treeRoot, fullyExpand, treeAlgorithm);
+                renderTreeRootPromise = DbgObjectTree.RenderTreeNode(treeContainer, treeRoot, fullyExpand, treeAlgorithm);
                 return renderTreeRootPromise;
             }
 
@@ -69,7 +69,7 @@ var TreeInspector = (function() {
             }
 
             function loadRoots() {
-                return Tree.GetRootTreeNodes()
+                return DbgObjectTree.GetRootTreeNodes()
                 .then(function (roots) {
                     rootsElement.className = "roots success";
                     rootsElement.innerHTML = namespace.BasicType + " Roots: ";

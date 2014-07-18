@@ -1,0 +1,8 @@
+{
+    "name": "dbgobject-tree",
+    "headless": true,
+    "author": "Peter Salas",
+    "description": "Provides an interface for traversing a tree of DbgObjects.",
+    "dependencies": ["dbgobject"],
+    "includes": ["dbgobject-tree.js", "dbgobject-tree.css"]
+}

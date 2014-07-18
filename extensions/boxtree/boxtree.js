@@ -24,7 +24,7 @@ var BoxTree = (function() {
     });
 
     if (JsDbg.GetCurrentExtension() == "boxtree") {
-        Tree.AddRoot("Box Tree", function() {
+        DbgObjectTree.AddRoot("Box Tree", function() {
             return Promise.map(MSHTML.GetRootCTreeNodes(), function(treeNode) {
                 return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode).as("Layout::ContainerBox").list("associatedBoxLink").vcast();
             })
@@ -45,7 +45,7 @@ var BoxTree = (function() {
             });
         });
 
-        Tree.AddAddressInterpreter(function (address) {
+        DbgObjectTree.AddAddressInterpreter(function (address) {
             return new DbgObject(MSHTML.Module, "Layout::LayoutBox", address).vcast();
         })
 
@@ -57,7 +57,7 @@ var BoxTree = (function() {
                 .vcast();
         }
 
-        Tree.AddType(null, MSHTML.Module, "Layout::ContainerBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::ContainerBox", null, function (object) {
             return object.f("PositionedItems.firstItem.m_pT").list("next.m_pT")
                 .vcast()
                 .filter(function (listItem) {
@@ -69,12 +69,12 @@ var BoxTree = (function() {
                 .vcast();
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
             // Collect static flow.
             return collectChildrenInFlow(object.f("flow"));
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
             // Collect floaters.
             return object.f("geometry").array()
                 .f("floaterBoxReference.m_pT")
@@ -83,19 +83,19 @@ var BoxTree = (function() {
                 .vcast();
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::TableBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::TableBox", null, function (object) {
             return collectChildrenInFlow(object.f("items", "flow"));
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::TableGridBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::TableGridBox", null, function (object) {
             return collectChildrenInFlow(object.f("fragmentedCellContents"))
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::TableGridBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::TableGridBox", null, function (object) {
             return collectChildrenInFlow(object.f("collapsedCells"));
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::TableGridBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::TableGridBox", null, function (object) {
             return object.f("firstRowLayout.m_pT")
             .list("nextRowLayout.m_pT")
                 .f("Columns.m_pT").latestPatch()
@@ -105,11 +105,11 @@ var BoxTree = (function() {
             });
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::GridBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::GridBox", null, function (object) {
             return object.f("Items.m_pT").latestPatch().array().f("BoxReference.m_pT").vcast()
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::FlexBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::FlexBox", null, function (object) {
             return object.f("items", "flow")
             .then(function (items) {
                 if (items.typeDescription().indexOf("FlexBoxItemArray") != -1) {
@@ -124,11 +124,11 @@ var BoxTree = (function() {
             })
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::MultiColumnBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::MultiColumnBox", null, function (object) {
             return object.f("items.m_pT").latestPatch().array().f("BoxReference.m_pT").vcast();
         });
 
-        Tree.AddType("LineBox", MSHTML.Module, "Layout::LineBox", null, function(object) {
+        DbgObjectTree.AddType("LineBox", MSHTML.Module, "Layout::LineBox", null, function(object) {
             // Get the LineBox flags...
             return object.f("lineBoxFlags").val()
 
@@ -153,23 +153,23 @@ var BoxTree = (function() {
             });
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::ReplacedBoxIFrame", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::ReplacedBoxIFrame", null, function (object) {
             return collectChildrenInFlow(object.f("replacedViewport", "flow"));
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::BoxContainerBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::BoxContainerBox", null, function (object) {
             return collectChildrenInFlow(object.f("boxItem", "flowItem"));
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::SvgCssContainerBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::SvgCssContainerBox", null, function (object) {
             return collectChildrenInFlow(object.f("firstSvgItem"));
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::SvgContainerBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::SvgContainerBox", null, function (object) {
             return collectChildrenInFlow(object.f("firstSvgItem"));
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::SvgTextBox", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::SvgTextBox", null, function (object) {
             return collectChildrenInFlow(object.f("flow"));
         });
     }

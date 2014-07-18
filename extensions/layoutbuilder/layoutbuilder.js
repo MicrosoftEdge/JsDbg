@@ -16,7 +16,7 @@ var LayoutBuilder = (function() {
     });
 
     if (JsDbg.GetCurrentExtension() == "layoutbuilder") {
-        Tree.AddRoot("LayoutBuilder Stack", function() {
+        DbgObjectTree.AddRoot("LayoutBuilder Stack", function() {
             return DbgObject.locals(MSHTML.Module, "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder").f("sp.m_pT")
             .then(function (layoutBuilders) {
                 if (layoutBuilders.length == 0) {
@@ -27,19 +27,19 @@ var LayoutBuilder = (function() {
             });
         });
 
-        Tree.AddAddressInterpreter(function (address) {
+        DbgObjectTree.AddAddressInterpreter(function (address) {
             return new DbgObject(MSHTML.Module, "Layout::LayoutBuilder", address).vcast();
         });
 
-        Tree.AddAddressInterpreter(function (address) {
+        DbgObjectTree.AddAddressInterpreter(function (address) {
             return new DbgObject(MSHTML.Module, "Layout::LayoutBoxBuilder", address).vcast();
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::LayoutBuilder", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::LayoutBuilder", null, function (object) {
             return object.f("currentBuilder.m_pT").vcast().then(function (builder) { return [builder]; });
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::LayoutBoxBuilder", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::LayoutBoxBuilder", null, function (object) {
             return object.f("parentBuilder.m_pT").vcast().then(function (builder) { return [builder]; });
         })
     }

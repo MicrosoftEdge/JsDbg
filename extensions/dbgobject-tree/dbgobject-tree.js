@@ -1,6 +1,6 @@
 "use strict";
 
-var Tree = (function() {
+var DbgObjectTree = (function() {
     var registeredTypes = {};
     var registeredRoots = [];
     var registeredAddressInterpreters = [];

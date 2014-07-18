@@ -23,7 +23,7 @@ var DisplayTree = (function() {
     });
 
     if (JsDbg.GetCurrentExtension() == "displaytree") {
-        Tree.AddRoot("Display Tree", function() {
+        DbgObjectTree.AddRoot("Display Tree", function() {
             return MSHTML.GetCDocs()
             .then(function(docs) {
                 return Promise.map(docs, function(doc) { return doc.f("_view._pDispRoot"); });
@@ -45,11 +45,11 @@ var DisplayTree = (function() {
             );
         });
 
-        Tree.AddAddressInterpreter(function (address) {
+        DbgObjectTree.AddAddressInterpreter(function (address) {
             return new DbgObject(MSHTML.Module, "CDispNode", address).vcast();
         });
 
-        Tree.AddType(null, MSHTML.Module, "CDispParentNode", null, function (object) {
+        DbgObjectTree.AddType(null, MSHTML.Module, "CDispParentNode", null, function (object) {
             return object.f("_pFirstChild").latestPatch().list(function (node) {
                 return node.f("_pNext").latestPatch()
             }).vcast();

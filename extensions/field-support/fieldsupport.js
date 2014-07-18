@@ -40,7 +40,7 @@ var FieldSupport = (function() {
         return knownTypes[fullType];
     }
 
-    Tree.AddTypeNotifier(function(module, type) {
+    DbgObjectTree.AddTypeNotifier(function(module, type) {
         addKnownType(module, type);
         requestRebuildTypeOptions();
     });
@@ -165,7 +165,7 @@ var FieldSupport = (function() {
                         var renderThisField = function (dbgObject, element) {
                             renderField(field, dbgObject, element);
                         };
-                        Tree.AddField(field.fullType.module, field.fullType.type, renderThisField);
+                        DbgObjectTree.AddField(field.fullType.module, field.fullType.type, renderThisField);
 
                         addedFields.push({
                             module: field.fullType.module,
@@ -180,7 +180,7 @@ var FieldSupport = (function() {
                 // Unwind the modified type stack.
                 while (addedFields.length > 0) {
                     var addedField = addedFields.pop();
-                    Tree.RemoveField(addedField.module, addedField.type, addedField.code);
+                    DbgObjectTree.RemoveField(addedField.module, addedField.type, addedField.code);
                 }
             }
 
