@@ -49,6 +49,54 @@ var FieldSupport = (function() {
         }
     }
 
+    function handleFieldException(ex) {
+        var errorSpan = document.createElement("span");
+        errorSpan.style.color = "red";
+        var errorMsg = ex.stack ? ex.toString() : JSON.stringify(ex);
+        errorSpan.innerHTML = "(" + errorMsg + ")";
+        return errorSpan;
+    }
+
+    function descify(obj) {
+        if (obj == null || obj == undefined) {
+            return obj;
+        } else if (typeof(obj.desc) == typeof(descify)) {
+            return Promise.as(obj.desc());
+        } else if (typeof(obj) == typeof([])) {
+            return Promise.map(obj, descify);
+        } else {
+            return obj;
+        }
+    }
+
+    function renderField(field, dbgObject, element) {
+        return Promise.as(null)
+        .then(function () {
+            return Promise.as(field.html.call(dbgObject, element)).then(descify);
+        })
+        .then(null, handleFieldException)
+        .then(function (html) {
+            if (html !== undefined && html !== null) {
+                var div = document.createElement("div");
+
+                if (field.shortname.length > 0) {
+                    div.innerHTML = field.shortname + ":";
+                }
+                if (typeof(html) == typeof("") || typeof(html) == typeof(1)) {
+                    div.innerHTML += html;
+                } else {
+                    try {
+                        div.appendChild(html);
+                    } catch (ex) {
+                        div.innerHTML += html;
+                    }
+                }
+                element.appendChild(div);
+                element.appendChild(document.createTextNode(" "));
+            }
+        });
+    }
+
     function initialize(StoragePrefix, UserFields, DefaultTypeName, UpdateUI) {
         var reinjectUserFields = (function() {
             var modifiedTypes = [];
@@ -58,40 +106,15 @@ var FieldSupport = (function() {
                 UserFields.forEach(function (field) {
                     var type = lookupType(field.type);
                     if (field.enabled && type !== undefined) {
-                        var renderField = function(dbgObject, element) {
-                            return Promise.as(null)
-                            .then(function () {
-                                return Promise.as(field.html.call(dbgObject, element)).then(descify);
-                            })
-                            .then(null, handleFieldException)
-                            .then(function (html) {
-                                if (html !== undefined && html !== null) {
-                                    var div = document.createElement("div");
-
-                                    if (field.shortname.length > 0) {
-                                        div.innerHTML = field.shortname + ":";
-                                    }
-                                    if (typeof(html) == typeof("") || typeof(html) == typeof(1)) {
-                                        div.innerHTML += html;
-                                    } else {
-                                        try {
-                                            div.appendChild(html);
-                                        } catch (ex) {
-                                            div.innerHTML += html;
-                                        }
-                                    }
-                                    element.appendChild(div);
-                                    element.appendChild(document.createTextNode(" "));
-                                }
-                            });
-                        }
-
-                        Tree.AddField(type.module, type.type, renderField);
+                        var renderThisField = function (dbgObject, element) {
+                            renderField(field, dbgObject, element);
+                        };
+                        Tree.AddField(type.module, type.type, renderThisField);
 
                         addedFields.push({
                             module: type.module,
                             type: type.type,
-                            code: renderField
+                            code: renderThisField
                         });
                     }
                 })
@@ -607,80 +630,8 @@ var FieldSupport = (function() {
         });
     }
 
-    function handleFieldException(ex) {
-        var errorSpan = document.createElement("span");
-        errorSpan.style.color = "red";
-        var errorMsg = ex.stack ? ex.toString() : JSON.stringify(ex);
-        errorSpan.innerHTML = "(" + errorMsg + ")";
-        return errorSpan;
-    }
-
-    function descify(obj) {
-        if (obj == null || obj == undefined) {
-            return obj;
-        } else if (typeof(obj.desc) == typeof(descify)) {
-            return Promise.as(obj.desc());
-        } else if (typeof(obj) == typeof([])) {
-            return Promise.map(obj, descify);
-        } else {
-            return obj;
-        }
-    }
-
-    function renderFields(injectedObject, dbgObject, representation) {
-        var fields = [];
-        if (injectedObject.collectUserFields) {
-            injectedObject.collectUserFields(fields);
-        }
-
-        return Promise
-            // Create the representations...
-            .join(fields.map(function(field) { 
-                try {
-                    var result = Promise.as(field.html.call(dbgObject, representation));
-
-                    return result
-                    .then(descify)
-                    .then(null, function (ex) { 
-                        return handleFieldException(ex);
-                    });
-                } catch (ex) {
-                    return handleFieldException(ex);
-                }
-            }))
-
-            // Apply the representations to the container...
-            .then(function(fieldRepresentations) {
-                fieldRepresentations.forEach(function(html, i) {
-                    if (html !== undefined && html !== null) {
-                        var field = fields[i];
-                        var div = document.createElement("div");
-
-                        if (field.shortname.length > 0) {
-                            div.innerHTML = field.shortname + ":";
-                        }
-                        if (typeof(html) == typeof("") || typeof(html) == typeof(1)) {
-                            div.innerHTML += html;
-                        } else {
-                            try {
-                                div.appendChild(html);
-                            } catch (ex) {
-                                div.innerHTML += html;
-                            }
-                        }
-                        representation.appendChild(div);
-                        representation.appendChild(document.createTextNode(" "));
-                    }
-                });
-            })
-
-            // And return the container.
-            .then(function() { return representation; });
-    }
-
     return {
         Initialize: initialize,
-        RenderFields: renderFields,
         RegisterTypeAlias: addTypeAlias
     };
 })();
