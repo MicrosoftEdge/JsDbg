@@ -103,9 +103,12 @@ var TreeInspector = (function() {
                 if (hash.indexOf("#root") == 0) {
                     var rootIndex = parseInt(hash.substr("#root".length));
                     rootIndex = Math.min(rootIndex, currentRoots.length - 1);
-                    if (rootIndex >= 0) {
+                    if (rootIndex >= 0 && rootIndex < currentRoots.length) {
                         pointerField.value = currentRoots[rootIndex].dbgObject.ptr();
-                        createAndRender();
+                        treeRoot = currentRoots[rootIndex];
+                        render();
+                    } else {
+                        window.location.hash = "";
                     }
                 } else {
                     var value = hash.substr(1);

@@ -32,8 +32,3 @@
 BUGS
 
 - GetLayoutAssociationFromCTreeNode -> doesn't work properly with non boxes because of linked list offset
-
-
-NEWTREE
-    - get rid of typemap for field-support
-    - clean up contracts with the tree-inspector
