@@ -70,17 +70,17 @@ var BoxTree = (function() {
         });
 
         Tree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
+            // Collect static flow.
+            return collectChildrenInFlow(object.f("flow"));
+        });
+
+        Tree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
             // Collect floaters.
             return object.f("geometry").array()
                 .f("floaterBoxReference.m_pT")
                 .latestPatch()
                 .f("data.BoxReference.m_pT")
                 .vcast();
-        });
-
-        Tree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
-            // Collect static flow.
-            return collectChildrenInFlow(object.f("flow"));
         });
 
         Tree.AddType(null, MSHTML.Module, "Layout::TableBox", null, function (object) {
@@ -128,7 +128,7 @@ var BoxTree = (function() {
             return object.f("items.m_pT").latestPatch().array().f("BoxReference.m_pT").vcast();
         });
 
-        Tree.AddType(null, MSHTML.Module, "Layout::LineBox", null, function(object) {
+        Tree.AddType("LineBox", MSHTML.Module, "Layout::LineBox", null, function(object) {
             // Get the LineBox flags...
             return object.f("lineBoxFlags").val()
 

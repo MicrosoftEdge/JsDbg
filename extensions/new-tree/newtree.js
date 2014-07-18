@@ -117,7 +117,19 @@ var Tree = (function() {
                 var basicDescriptionRegistrations = registrations.filter(function (reg) { return reg.getBasicDescription ? true : false; });
                 var namedRegistrations = registrations.filter(function (reg) { return reg.name ? true : false; });
 
-                var backupDescription = namedRegistrations.length > 0 ? namedRegistrations[namedRegistrations.length - 1].name : that.dbgObject.htmlTypeDescription();
+                var backupDescription = null;
+                if (namedRegistrations.length > 0) {
+                    backupDescription = namedRegistrations[namedRegistrations.length - 1].name;    
+                } else {
+                    backupDescription = that.dbgObject.htmlTypeDescription();
+                    
+                    var namespaces = backupDescription.split("::");
+                    if (namespaces.length > 1) {
+                        var namespace = namespaces.slice(0, namespaces.length - 1).join("::");
+                        var type = namespaces[namespaces.length - 1];
+                        backupDescription = "<span class=\"namespace\">" + namespace + "::</span>" + type;
+                    }
+                }
 
                 if (basicDescriptionRegistrations.length > 0) {
                     return basicDescriptionRegistrations[basicDescriptionRegistrations.length - 1].getBasicDescription(that.dbgObject)
@@ -130,7 +142,7 @@ var Tree = (function() {
                 }
             })
             .then(function (description) {
-                return (that.isDuplicate ? "(DUPLICATE) " : "") + description + " " + that.dbgObject.ptr();
+                return (that.isDuplicate ? "(DUPLICATE) " : "") + description;
             })
         }
         return this.basicDescriptionPromise;
@@ -146,8 +158,13 @@ var Tree = (function() {
             }
 
             var description = document.createElement("div");
-            description.textContent = basicDescription;
+            description.innerHTML = basicDescription;
             result.appendChild(description);
+            result.appendChild(document.createTextNode(" "));
+
+            var pointer = document.createElement("div");
+            pointer.innerHTML = that.dbgObject.ptr();
+            result.appendChild(pointer);
             result.appendChild(document.createTextNode(" "));
 
             return that.dbgObject.baseTypes()
@@ -276,9 +293,7 @@ var Tree = (function() {
         RenderTreeNode: function(container, treeNode, fullyExpand, treeAlgorithm) {
             return Promise.as(treeNode)
             .then(function (treeNode) {
-                var innerElement = document.createElement("div");
-                container.appendChild(innerElement);
-                return treeAlgorithm.BuildTree(innerElement, treeNode, fullyExpand);
+                return treeAlgorithm.BuildTree(container, treeNode, fullyExpand);
             })
         },
 

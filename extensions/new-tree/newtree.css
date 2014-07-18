@@ -1,4 +1,8 @@
 
+.namespace {
+    font-size:0;
+}
+
 .error-container {
     position:absolute;
     right:0.25em;

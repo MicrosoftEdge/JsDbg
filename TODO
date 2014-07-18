@@ -35,6 +35,5 @@ BUGS
 
 
 NEWTREE
-    - make namespaced types more attractive?
     - get rid of typemap for field-support
     - clean up contracts with the tree-inspector

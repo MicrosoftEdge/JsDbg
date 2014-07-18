@@ -13,12 +13,12 @@ body { \
     font-family:Consolas; \
     font-size:9pt;\
 }\
-p {\
+div.node > div:first-child > div {\
     display:inline;\
     margin:0;\
     margin-left:1em;\
 }\
-p:first-child {\
+div.node > div:first-child > div:first-child {\
     margin:0;\
 }\
 div.node {\

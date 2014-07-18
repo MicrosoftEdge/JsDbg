@@ -67,7 +67,7 @@ var MarkupTree = (function() {
         }, function (treeNode) {
             return treeNode.f("_etag").desc()
             .then(function (tag) {
-                return "<" + tag + ">";
+                return "&lt;" + tag + "&gt;";
             })
         });
         Tree.AddType("Text", MSHTML.Module, "CTreeDataPos");
