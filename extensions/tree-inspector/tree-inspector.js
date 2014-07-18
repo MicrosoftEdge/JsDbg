@@ -16,7 +16,7 @@ var TreeInspector = (function() {
             function createAndRender() {
                 if (lastRenderedPointer != pointerField.value) {
                     // Don't re-render if we've already rendered.
-                    Promise.as(namespace.Create(parseInt(pointerField.value, 16)))
+                    Promise.as(Tree.InterpretAddress(parseInt(pointerField.value, 16)))
                     .then(function(createdRoot) {
                         lastRenderedPointer = pointerField.value;
                         treeRoot = createdRoot;
@@ -69,8 +69,8 @@ var TreeInspector = (function() {
             }
 
             function loadRoots() {
-                return namespace.Roots()
-                .then(function(roots) {
+                return Tree.GetRootTreeNodes()
+                .then(function (roots) {
                     rootsElement.className = "roots success";
                     rootsElement.innerHTML = namespace.BasicType + " Roots: ";
 
@@ -80,18 +80,17 @@ var TreeInspector = (function() {
                         rootsElement.innerHTML += "(none)";
                     }
 
-                    roots.forEach(function(root, index) {
+                    roots.forEach(function (root, index) {
                         var link = document.createElement("a");
                         link.setAttribute("href", "#root" + index);
-                        link.innerHTML = root;
+                        link.innerText = root.dbgObject.ptr();
                         rootsElement.appendChild(link);
                         rootsElement.appendChild(document.createTextNode(" "));
                     });
 
-                    return roots;
-                }, function (ex) {
+                }, function (error) {
                     rootsElement.className = "roots error";
-                    rootsElement.innerHTML = ex;
+                    rootsElement.innerHTML = error;
                 });
             }
 
@@ -105,7 +104,7 @@ var TreeInspector = (function() {
                     var rootIndex = parseInt(hash.substr("#root".length));
                     rootIndex = Math.min(rootIndex, currentRoots.length - 1);
                     if (rootIndex >= 0) {
-                        pointerField.value = currentRoots[rootIndex];
+                        pointerField.value = currentRoots[rootIndex].dbgObject.ptr();
                         createAndRender();
                     }
                 } else {

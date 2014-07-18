@@ -21,40 +21,29 @@ var MarkupTree = (function() {
         });
     });
 
-    function createMarkupTree(pointer) {
-        if (pointer) {
-            return new CTreeNode(new DbgObject(MSHTML.Module, "CTreeNode", pointer));
-        } else {
-            return null;
-        }
+    function promoteTreePos(treePos) {
+        // What kind of tree pos is this?
+        return treePos.f("_cElemLeftAndFlags").val()
+        .then(function (treePosFlags) {
+            if (treePosFlags & 0x01) {
+                return treePos.unembed("CTreeNode", "_tpBegin")
+            } else if (treePosFlags & 0x04) {
+                return treePos.as("CTreeDataPos");
+            } else if (treePosFlags & 0x08) {
+                return treePos.as("CTreeDataPos").f("p._dwPointerAndGravityAndCling").val()
+                .then(function (pointerandGravityAndCling) {
+                    return new DbgObject(MSHTML.Module, "CMarkupPointer", (pointerandGravityAndCling | 3) - 3);
+                })
+            } else {
+                return null;
+            }
+        })
     }
 
-    function getRootCTreeNodes() {
-        return MSHTML.GetRootCTreeNodes()
-            .then(function(promisedRoots) {
-                if (promisedRoots.length == 0) {
-                    return Promise.fail();
-                }
-                // Sort the roots to favor the ones that have layout.
-                return Promise.sort(Promise.join(promisedRoots), function(root) { return root.f("_fHasLayoutAssociationPtr").val(); }, function(a, b) { return b - a; });
-            })
-            .then(
-                function(sortedValues) { return sortedValues.map(function(root) { return root.ptr(); }); },
-                function() {
-                    return Promise.fail("No root CTreeNodes were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a CTreeNode explicitly.");
-                }
-            );
-    }
-
-    function CTreeNode(treeNode) {
-        this.treeNode = treeNode;
-        this.childrenPromise = null;
-    }
-
-    CTreeNode.prototype.getChildren = function() {
-        if (this.childrenPromise == null)
-        {
-            this.childrenPromise = this.treeNode.f("_tpBegin").f("_ptpThreadRight")
+    if (JsDbg.GetCurrentExtension() == "markuptree") {
+        Tree.AddRoot("Markup Tree", function() { return MSHTML.GetRootCTreeNodes(); });
+        Tree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
+            return object.f("_tpBegin").f("_ptpThreadRight")
             .list(
                 function (treePos) {
                     // What kind of tree pos is this?
@@ -69,60 +58,23 @@ var MarkupTree = (function() {
                     })
                 },
                 // Stop when we reach the end of the node.
-                this.treeNode.f("_tpEnd")
+                object.f("_tpEnd")
             )
-            .map(function (treePos) {
-                return treePos.f("_cElemLeftAndFlags").val()
-                .then(function (treePosFlags) {
-                    if (treePosFlags & 0x01) {
-                        return treePos
-                        .unembed("CTreeNode", "_tpBegin")
-                        .then(function (treeNode) {
-                            return new CTreeNode(treeNode);
-                        })
-                    } else if (treePosFlags & 0x04) {
-                        return new TextNode(treePos.as("CTreeDataPos"));
-                    } else {
-                        return null;
-                    }
-                })
+            .map(promoteTreePos)
+            .then(function(children) {
+                return children.filter(function(child) { return child != null; });
             })
-            .then(function (children) {
-                return children.filter(function (child) { return child != null; });
-            });
-        }
+        }, function (treeNode) {
+            return treeNode.f("_etag").desc()
+            .then(function (tag) {
+                return "<" + tag + ">";
+            })
+        });
+        Tree.AddType("Text", MSHTML.Module, "CTreeDataPos");
 
-        return this.childrenPromise;
-    }
-
-    CTreeNode.prototype.createRepresentation = function() {
-        var element = document.createElement("div");
-        var that = this;
-        
-        // Get the tag...
-        return this.treeNode.f("_etag").as("ELEMENT_TAG").constant()
-
-        // And create the representation with fields.
-        .then(function(constant) {
-            var tag = constant.substr("ETAG_".length);
-            element.innerHTML = "<p>&lt;" + tag + "&gt;</p> <p>" + that.treeNode.ptr() + "</p> ";
-            return FieldSupport.RenderFields(that, that.treeNode, element);
-        })
-    }
-
-    function TextNode(treeDataPos) {
-        this.treeDataPos = treeDataPos;
-    }
-
-    TextNode.prototype.getChildren = function() {
-        return Promise.as([]);
-    }
-
-    TextNode.prototype.createRepresentation = function() {
-        var element = document.createElement("div");
-
-        element.innerHTML = "<p>Text</p> <p>" + this.treeDataPos.ptr() + "</p> ";
-        return Promise.as(FieldSupport.RenderFields(this, this.treeDataPos, element));
+        Tree.AddAddressInterpreter(function (address) {
+            return new DbgObject(MSHTML.Module, "CTreeNode", address);
+        });
     }
 
     var builtInFields = [
@@ -202,8 +154,6 @@ var MarkupTree = (function() {
         Name: "MarkupTree",
         BasicType: "CTreeNode",
         BuiltInFields: builtInFields,
-        TypeMap: { "CTreeNode": CTreeNode, "Text":TextNode },
-        Create: createMarkupTree,
-        Roots: getRootCTreeNodes
+        TypeMap: { "CTreeNode": "CTreeNode", "Text":"CTreeDataPos" }
     }
 })();

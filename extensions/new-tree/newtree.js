@@ -97,7 +97,7 @@ var Tree = (function() {
         return this.childrenPromise;
     }
 
-    TreeNode.prototype.createRepresentation = function() {
+    TreeNode.prototype.getBasicDescription = function() {
         var that = this;
         if (this.basicDescriptionPromise == null) {
             this.basicDescriptionPromise = this.getMatchingRegistrations()
@@ -117,12 +117,23 @@ var Tree = (function() {
                 } else {
                     return backupDescription;
                 }
-            });
+            })
+            .then(function (description) {
+                return description + " " + that.dbgObject.ptr();
+            })
         }
+        return this.basicDescriptionPromise;
+    }
 
-        return this.basicDescriptionPromise.then(function (basicDescription) {
+    TreeNode.prototype.createRepresentation = function() {
+        var that = this;
+
+        return this.getBasicDescription().then(function (basicDescription) {
             var result = document.createElement("div");
-            result.textContent = basicDescription + " " + that.dbgObject.ptr();
+            var description = document.createElement("div");
+            description.textContent = basicDescription;
+            result.appendChild(description);
+            result.appendChild(document.createTextNode(" "));
 
             return that.dbgObject.baseTypes()
             .then(function (baseTypes) {
@@ -145,7 +156,7 @@ var Tree = (function() {
                 var fieldPromise = Promise.as(null);
                 fields.forEach(function (field) {
                     fieldPromise = fieldPromise.then(function () {
-                        return field(result);
+                        return field(that.dbgObject, result);
                     });
                 })
 

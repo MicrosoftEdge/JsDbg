@@ -14,45 +14,55 @@ var FieldSupport = (function() {
 
         var reinjectUserFields = (function() {
             var modifiedTypes = [];
+            var addedFields = [];
 
             function inject() {
-                UserFields.forEach(function(field) {
+                UserFields.forEach(function (field) {
                     if (field.enabled && field.type in TypeMap) {
-                        var type = TypeMap[field.type];
+                        var renderField = function(dbgObject, element) {
+                            return Promise.as(null)
+                            .then(function () {
+                                return Promise.as(field.html.call(dbgObject, element)).then(descify);
+                            })
+                            .then(null, handleFieldException)
+                            .then(function (html) {
+                                if (html !== undefined && html !== null) {
+                                    var div = document.createElement("div");
 
-                        // Inject a collectUserFields method on the type, preserving any existing
-                        // injected fields as well as any fields that may be injected on the prototype,
-                        // now or in the future.
-                        var previousFields;
-                        if (type.prototype.hasOwnProperty("collectUserFields")) {
-                            // We've already augmented this type, so use the existing method.
-                            previousFields = type.prototype.collectUserFields;
-                        } else {
-                            // We haven't yet augmented this type, so provide a method that
-                            // will go up to the prototype at _runtime_ since we might inject
-                            // one of the prototypes in the meantime.
-                            previousFields = function(fields) {
-                                var proto = Object.getPrototypeOf(type.prototype);
-                                if (proto.collectUserFields) {
-                                    proto.collectUserFields(fields);
+                                    if (field.shortname.length > 0) {
+                                        div.innerHTML = field.shortname + ":";
+                                    }
+                                    if (typeof(html) == typeof("") || typeof(html) == typeof(1)) {
+                                        div.innerHTML += html;
+                                    } else {
+                                        try {
+                                            div.appendChild(html);
+                                        } catch (ex) {
+                                            div.innerHTML += html;
+                                        }
+                                    }
+                                    element.appendChild(div);
+                                    element.appendChild(document.createTextNode(" "));
                                 }
-                            };
+                            });
                         }
 
-                        type.prototype.collectUserFields = function(fields) {
-                            previousFields(fields);
-                            fields.push(field);
-                        }
-                        modifiedTypes.push(type);
+                        Tree.AddField(MSHTML.Module, TypeMap[field.type], renderField);
+
+                        addedFields.push({
+                            module: MSHTML.Module,
+                            type: TypeMap[field.type],
+                            code: renderField
+                        });
                     }
-                });
+                })
             }
 
             function uninject() {
                 // Unwind the modified type stack.
-                while (modifiedTypes.length > 0) {
-                    var injectedType = modifiedTypes.pop();
-                    delete injectedType.prototype.collectUserFields;
+                while (addedFields.length > 0) {
+                    var addedField = addedFields.pop();
+                    Tree.RemoveField(addedField.module, addedField.type, addedField.code);
                 }
             }
 

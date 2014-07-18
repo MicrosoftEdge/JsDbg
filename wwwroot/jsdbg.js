@@ -249,6 +249,14 @@ var JsDbg = (function() {
             return everythingIsSynchronous;
         },
 
+        GetCurrentExtension: function() {
+            var components = window.location.pathname.split('/');
+            if (components.length > 1 && components[1].length > 0) {
+                return components[1].toLowerCase();
+            }
+            return null;
+        },
+
         _help_RunSynchronously: {
             description: "Runs JsDbg synchronously for the duration of a given function.",
             returns: "The return value of the given function.",
@@ -598,11 +606,11 @@ var JsDbg = (function() {
                 extensions.forEach(function(e) { nameMap[e.name.toLowerCase()] = e; });
 
                 // Find the current extension.
-                var components = window.location.pathname.split('/');
-                if (components.length > 1 && components[1].length > 0) {
+                var currentExtension = JsDbg.GetCurrentExtension();
+                if (currentExtension != null) {
                     var includes = [];
                     var collectedExtensions = {};
-                    collectIncludes(components[1].toLowerCase(), includes, collectedExtensions, nameMap);
+                    collectIncludes(currentExtension, includes, collectedExtensions, nameMap);
 
                     // Find any extensions that augment any loaded extensions.
                     extensions.forEach(function(e) {
