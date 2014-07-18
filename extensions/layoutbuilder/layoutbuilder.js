@@ -1,7 +1,4 @@
 var LayoutBuilder = (function() {
-    var BoxBuilderTypes = {};
-    var FieldTypeMap = {};
-
     // Add a type description for LayoutBoxBuilder to link to the LayoutBuilder stack.
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBoxBuilder", function(boxBuilder) {
         if (boxBuilder.isNull()) {
@@ -18,153 +15,53 @@ var LayoutBuilder = (function() {
         }
     });
 
-    function createBoxBuilderTree(pointer) {
-        if (pointer) {
-            var builder = new DbgObject(MSHTML.Module, "Layout::LayoutBuilder", pointer);
-            return CreateBoxBuilder(builder);
-        }
-
-        return null;
-    }
-
-    function getRootLayoutBuilders() {
-        return DbgObject.locals(MSHTML.Module, "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder")
-        .then(function (layoutBuilders) {
-            if (layoutBuilders.length == 0) {
-                return Promise.fail("");
-            } else {
-                return Promise.map(
-                    layoutBuilders,
-                    function(layoutBuilder) {
-                        return layoutBuilder.f("sp.m_pT").ptr();
-                    }
-                );
-            }
-        })
-        .then(
-            function(x) { return x; },
-            function() {
-                return Promise.fail("No LayoutBuilders were found on the call stack. Possible reasons:<ul><li>The debuggee is not broken in layout.</li><li>The debuggee is not IE 11.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a LayoutBuilder explicitly.");
-            }
-        );
-    }
-
-    function CreateBoxBuilder(obj) {
-        return Promise.as(obj)
-        .then(function (obj) {
-            return obj.vtable()
-            .then(function (type) {
-                if (type == "Layout::LayoutBuilder") {
-                    var result = new LayoutBuilder(obj.as("Layout::LayoutBuilder"), "Layout::LayoutBuilder");
-                } else if (type in BoxBuilderTypes) {
-                    var result = new BoxBuilderTypes[type](obj, type);
+    if (JsDbg.GetCurrentExtension() == "layoutbuilder") {
+        Tree.AddRoot("LayoutBuilder Stack", function() {
+            return DbgObject.locals(MSHTML.Module, "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder").f("sp.m_pT")
+            .then(function (layoutBuilders) {
+                if (layoutBuilders.length == 0) {
+                    return Promise.fail("No LayoutBuilders were found on the call stack. Possible reasons:<ul><li>The debuggee is not broken in layout.</li><li>The debuggee is not IE 11.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a LayoutBuilder explicitly.")
                 } else {
-                    var result = new LayoutBoxBuilder(obj, type);
-                }
-
-                return result;
-            })
-        })
-    }
-
-    function LayoutBuilder(layoutBuilder) {
-        this.layoutBuilder = layoutBuilder;
-        this.childPromise = null;
-    }
-
-    LayoutBuilder.prototype.createRepresentation = function() {
-        var element = document.createElement("div");
-        element.innerHTML = "<p>LayoutBuilder</p> <p>" + this.layoutBuilder.ptr() + "</p> ";
-        return FieldSupport.RenderFields(this, this.layoutBuilder, element);
-    }
-
-    LayoutBuilder.prototype.getChildren = function() {
-        if (this.childPromise == null) {
-            this.childPromise = this.layoutBuilder.f("currentBuilder.m_pT")
-            .then(function(topBuilder) {
-                if (topBuilder.isNull()) {
-                    return [];
-                } else {
-                    return CreateBoxBuilder(topBuilder).then(function(resolvedTopBuilder) {
-                        return [resolvedTopBuilder];
-                    });
+                    return layoutBuilders;
                 }
             });
-        }
-        return this.childPromise;
+        });
+
+        Tree.AddAddressInterpreter(function (address) {
+            return new DbgObject(MSHTML.Module, "Layout::LayoutBuilder", address).vcast();
+        });
+
+        Tree.AddAddressInterpreter(function (address) {
+            return new DbgObject(MSHTML.Module, "Layout::LayoutBoxBuilder", address).vcast();
+        });
+
+        Tree.AddType(null, MSHTML.Module, "Layout::LayoutBuilder", null, function (object) {
+            return object.f("currentBuilder.m_pT").vcast().then(function (builder) { return [builder]; });
+        });
+
+        Tree.AddType(null, MSHTML.Module, "Layout::LayoutBoxBuilder", null, function (object) {
+            return object.f("parentBuilder.m_pT").vcast().then(function (builder) { return [builder]; });
+        })
     }
-    FieldTypeMap["LayoutBuilder"] = LayoutBuilder;
-
-    function MapBoxBuilderType(typename, type) {
-        BoxBuilderTypes[typename] = type;
-    }
-
-    function CreateBoxBuilderType(typename, superType) {
-        // For the description, strip "Layout::" and strip the last "Box".
-        var name = typename.substr("Layout::".length);
-        var fieldName = name;
-
-        var newType = function(boxBuilder, vtableType) {
-            superType.call(this, boxBuilder, vtableType);
-            this.boxBuilder = this.boxBuilder.as(typename);
-        }
-        newType.prototype = Object.create(superType.prototype);
-        newType.prototype.typename = function() { return name; }
-        newType.super = superType;
-        newType.prototype.rawTypename = typename;
-
-        MapBoxBuilderType(typename, newType);
-        FieldTypeMap[fieldName] = newType;
-        return newType;
-    }
-
-    function LayoutBoxBuilder(boxBuilder, vtableType) {
-        this.boxBuilder = boxBuilder;
-        this.childrenPromise = null;
-        this.vtableType = vtableType;
-    }
-    FieldTypeMap["LayoutBoxBuilder"] = LayoutBoxBuilder;
-
-    LayoutBoxBuilder.prototype.typename = function() { return this.vtableType.replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
-
-    LayoutBoxBuilder.prototype.createRepresentation = function() {
-        var element = document.createElement("div");
-        element.innerHTML = "<p>" + this.typename() + "</p> <p>" + this.boxBuilder.ptr() + "</p> ";
-        return FieldSupport.RenderFields(this, this.boxBuilder, element);
-    }
-    LayoutBoxBuilder.prototype.getChildren = function() {
-        if (this.childrenPromise == null) {
-            this.childrenPromise = this.boxBuilder.f("parentBuilder.m_pT").then(function (parentBuilder) {
-                if (parentBuilder.isNull()) {
-                    return [];
-                } else {
-                    return CreateBoxBuilder(parentBuilder).then(function (parentBuilderObj) {
-                        return [parentBuilderObj];
-                    })
-                }
-            })
-        }
-        return this.childrenPromise;
-    }
-
-    var ContainerBoxBuilder = CreateBoxBuilderType("Layout::ContainerBoxBuilder", LayoutBoxBuilder);
-    var FlowBoxBuilder = CreateBoxBuilderType("Layout::FlowBoxBuilder", ContainerBoxBuilder);
-    var FlexBoxBuilder = CreateBoxBuilderType("Layout::FlexBoxBuilder", ContainerBoxBuilder);
-    var GridBoxBuilder = CreateBoxBuilderType("Layout::GridBoxBuilder", ContainerBoxBuilder);
-    var MultiColumnBoxBuilder = CreateBoxBuilderType("Layout::MultiColumnBoxBuilder", ContainerBoxBuilder);
-    var ReplacedBoxBuilder = CreateBoxBuilderType("Layout::ReplacedBoxBuilder", ContainerBoxBuilder);
-    var TableGridBoxBuilder = CreateBoxBuilderType("Layout::TableGridBoxBuilder", ContainerBoxBuilder);
-    var TableBoxBuilder = CreateBoxBuilderType("Layout::TableBoxBuilder", ContainerBoxBuilder);
-    var ContainerBoxInitialLayoutBuilder = CreateBoxBuilderType("Layout::ContainerBoxInitialLayoutBuilder", ContainerBoxBuilder);
-    var FlowBoxInitialLayoutBuilder = CreateBoxBuilderType("Layout::FlowBoxInitialLayoutBuilder", ContainerBoxInitialLayoutBuilder);
-    var InitialLayoutBoxBuilderDriver = CreateBoxBuilderType("Layout::InitialLayoutBoxBuilderDriver", LayoutBoxBuilder);
 
     return {
         Name: "LayoutBuilder",
         BasicType: "LayoutBoxBuilder",
         BuiltInFields: [],
-        TypeMap: FieldTypeMap,
-        Create: createBoxBuilderTree,
-        Roots: getRootLayoutBuilders
+        TypeMap: {
+            "LayoutBuilder": "Layout::LayoutBuilder",
+            "LayoutBoxBuilder": "Layout::LayoutBoxBuilder",
+            "ContainerBoxBuilder": "Layout::ContainerBoxBuilder",
+            "FlowBoxBuilder": "Layout::FlowBoxBuilder",
+            "FlexBoxBuilder": "Layout::FlexBoxBuilder",
+            "GridBoxBuilder": "Layout::GridBoxBuilder",
+            "MultiColumnBoxBuilder": "Layout::MultiColumnBoxBuilder",
+            "ReplacedBoxBuilder": "Layout::ReplacedBoxBuilder",
+            "TableGridBoxBuilder": "Layout::TableGridBoxBuilder",
+            "TableBoxBuilder": "Layout::TableBoxBuilder",
+            "ContainerBoxInitialLayoutBuilder": "Layout::ContainerBoxInitialLayoutBuilder",
+            "FlowBoxInitialLayoutBuilder": "Layout::FlowBoxInitialLayoutBuilder",
+            "InitialLayoutBoxBuilderDriver": "Layout::InitialLayoutBoxBuilderDriver"
+        },
     };
 })();
