@@ -42,25 +42,15 @@ var LayoutBuilder = (function() {
         Tree.AddType(null, MSHTML.Module, "Layout::LayoutBoxBuilder", null, function (object) {
             return object.f("parentBuilder.m_pT").vcast().then(function (builder) { return [builder]; });
         })
-
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::LayoutBuilder", "LayoutBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::LayoutBoxBuilder", "LayoutBoxBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ContainerBoxBuilder", "ContainerBoxBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::FlowBoxBuilder", "FlowBoxBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::FlexBoxBuilder", "FlexBoxBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::GridBoxBuilder", "GridBoxBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::MultiColumnBoxBuilder", "MultiColumnBoxBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBoxBuilder", "ReplacedBoxBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::TableGridBoxBuilder", "TableGridBoxBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::TableBoxBuilder", "TableBoxBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ContainerBoxInitialLayoutBuilder", "ContainerBoxInitialLayoutBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::FlowBoxInitialLayoutBuilder", "FlowBoxInitialLayoutBuilder");
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::InitialLayoutBoxBuilderDriver", "InitialLayoutBoxBuilderDriver");
     }
 
     return {
         Name: "LayoutBuilder",
         BasicType: "LayoutBoxBuilder",
+        DefaultFieldType: {
+            module: MSHTML.Module,
+            type: "Layout::LayoutBoxBuilder"
+        },
         BuiltInFields: []
     };
 })();
