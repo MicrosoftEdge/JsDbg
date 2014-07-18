@@ -71,7 +71,10 @@ var DisplayTree = (function() {
 
     var builtInFields = [
         {
-            type: "CDispNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CDispNode"
+            },
             fullname: "Bounds",
             shortname: "b",
             async:true,
@@ -82,7 +85,10 @@ var DisplayTree = (function() {
             }
         },
         {
-            type: "CDispNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CDispNode"
+            },
             fullname: "Client",
             shortname: "c",
             async:true,
@@ -106,7 +112,10 @@ var DisplayTree = (function() {
             }
         },
         {
-            type: "CDispNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CDispNode"
+            },
             fullname: "All Flags",
             shortname: "flags",
             async:true,
@@ -131,6 +140,10 @@ var DisplayTree = (function() {
     return {
         Name: "DisplayTree",
         BasicType: "CDispNode",
+        DefaultFieldType: {
+            module: MSHTML.Module,
+            type: "CDispNode"
+        },
         BuiltInFields: builtInFields
     };
 })();
