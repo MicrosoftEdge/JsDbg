@@ -76,13 +76,16 @@ var MarkupTree = (function() {
             return new DbgObject(MSHTML.Module, "CTreeNode", address);
         });
 
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CTreeNode", "CTreeNode");
         FieldSupport.RegisterTypeAlias(MSHTML.Module, "CTreeDataPos", "Text");
     }
 
     var builtInFields = [
         {
             type: "CTreeNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeNode"
+            },
             fullname: "_iFF",
             shortname: "_iFF",
             async:true,
@@ -97,6 +100,10 @@ var MarkupTree = (function() {
         },
         {
             type: "CTreeNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeNode"
+            },
             fullname: "_iCF",
             shortname: "_iCF",
             async:true,
@@ -111,6 +118,10 @@ var MarkupTree = (function() {
         },
         {
             type: "CTreeNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeNode"
+            },
             fullname: "_iPF",
             shortname: "_iPF",
             async:true,
@@ -125,6 +136,10 @@ var MarkupTree = (function() {
         },
         {
             type: "CTreeNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeNode"
+            },
             fullname: "_iSF",
             shortname: "_iSF",
             async:true,
@@ -139,6 +154,10 @@ var MarkupTree = (function() {
         },
         {
             type: "Text",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeDataPos"
+            },
             fullname: "TextBlock",
             shortname: "tb",
             async:true,
@@ -156,6 +175,10 @@ var MarkupTree = (function() {
     return {
         Name: "MarkupTree",
         BasicType: "CTreeNode",
+        DefaultFieldType: {
+            module: "edgehtml",
+            type: "CTreeNode"
+        },
         BuiltInFields: builtInFields
     }
 })();

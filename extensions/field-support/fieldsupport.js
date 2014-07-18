@@ -11,7 +11,9 @@
 
 var FieldSupport = (function() {
     var knownTypes = {};
+    var typeOptionHTML = "";
     var typeAliases = {};
+    var selectControls = [];
 
     function addKnownType(module, type) {
         var fullType = module + "!" + type;
@@ -26,7 +28,10 @@ var FieldSupport = (function() {
         return knownTypes[fullType];
     }
 
-    Tree.AddTypeNotifier(addKnownType);
+    Tree.AddTypeNotifier(function(module, type) {
+        addKnownType(module, type);
+        rebuildTypeOptions();
+    });
 
     function addTypeAlias(module, type, alias) {
         if (alias in typeAliases) {
@@ -36,17 +41,52 @@ var FieldSupport = (function() {
         var knownType = addKnownType(module, type);
         knownType.aliases.push(alias);
         typeAliases[alias] = knownType;
+        rebuildTypeOptions();
     }
 
-    function lookupType(type) {
-        if (typeof(type) == typeof("")) {
-            // It's an alias.
-            return typeAliases[type];
-        } else if (type.module !== undefined && type.type !== undefined) {
-            return type;
-        } else {
-            return undefined;
+    function shortTypeName(key) {
+        if (typeof(key) !== typeof("")) {
+            key = typeKey(key);
         }
+        var type = knownTypes[key];
+        var name = null;
+        if (type.aliases.length > 0) {
+            name = type.aliases[0];
+        } else {
+            name = type.type;
+            // Remove any namespaces, if present.
+            var namespaces = name.split("::");
+            if (namespaces.length > 1) {
+                name = namespaces[namespaces.length - 1];
+            }
+        }
+        return name;
+    }
+
+    function typeKey(type) {
+        return type.module + "!" + type.type;
+    }
+
+    function rebuildTypeOptions() {
+        var typeOptions = [];
+        for (var key in knownTypes) {
+            var type = knownTypes[key];
+            var name = shortTypeName(key);
+
+            typeOptions.push({
+                module: type.module,
+                type: type.type,
+                name: name
+            });
+        }
+
+        typeOptions.sort(function (a, b) { return a.name.localeCompare(b.name); });
+
+        typeOptionHTML = typeOptions.map(function (option) {
+            return "<option data-module=\"" + option.module + "\" data-type=\"" + option.type + "\" value=\"" + typeKey(option) + "\">" + option.name + "</option>";
+        }).join("\n");
+
+        selectControls.forEach(function (select) { select.innerHTML = typeOptionHTML; });
     }
 
     function handleFieldException(ex) {
@@ -97,23 +137,22 @@ var FieldSupport = (function() {
         });
     }
 
-    function initialize(StoragePrefix, UserFields, DefaultTypeName, UpdateUI) {
+    function initialize(StoragePrefix, UserFields, DefaultType, UpdateUI) {
         var reinjectUserFields = (function() {
             var modifiedTypes = [];
             var addedFields = [];
 
             function inject() {
                 UserFields.forEach(function (field) {
-                    var type = lookupType(field.type);
-                    if (field.enabled && type !== undefined) {
+                    if (field.enabled) {
                         var renderThisField = function (dbgObject, element) {
                             renderField(field, dbgObject, element);
                         };
-                        Tree.AddField(type.module, type.type, renderThisField);
+                        Tree.AddField(field.fullType.module, field.fullType.type, renderThisField);
 
                         addedFields.push({
-                            module: type.module,
-                            type: type.type,
+                            module: field.fullType.module,
+                            type: field.fullType.type,
                             code: renderThisField
                         });
                     }
@@ -284,7 +323,7 @@ var FieldSupport = (function() {
 
             var label = document.createElement("label");
             label.setAttribute("for", "field-cb-" + f.id);
-            label.innerHTML = f.type + "." + f.fullname;
+            label.innerHTML = shortTypeName(f.fullType) + "." + f.fullname;
             container.appendChild(label);
 
             var edit = document.createElement("span");
@@ -296,7 +335,7 @@ var FieldSupport = (function() {
                 var remove = document.createElement("span");
                 remove.className = "remove button";
                 remove.addEventListener("mousedown", function() {
-                    if (confirm("Are you sure you want to remove " + f.type + "." + f.fullname + "?")) {
+                    if (confirm("Are you sure you want to remove " + label.innerHTML + "?")) {
                         removeField(f, container);
                     }
                 });
@@ -308,9 +347,10 @@ var FieldSupport = (function() {
             editor.className = "editor";
 
             var typeInput = document.createElement("select");
+            selectControls.push(typeInput);
             typeInput.className = "edit-type";
-            typeInput.innerHTML = typeSelectInnerHTML;
-            typeInput.value = f.type;
+            typeInput.innerHTML = typeOptionHTML;
+            typeInput.value = typeKey(f.fullType);
             typeInput.addEventListener("change", function() { updateField(f, container); });
             typeInput.setAttribute("tabIndex", "1");
 
@@ -381,9 +421,7 @@ var FieldSupport = (function() {
         function editField(f, container) {
             if (container.className.indexOf(" editing") >= 0) {
                 // Already being edited, so save.
-                if (checkField(f, container)) {
-                    container.className = container.className.replace(" editing", "");
-                }
+                container.className = container.className.replace(" editing", "");
             } else {
                 // Start editing.
                 container.className += " editing";
@@ -413,15 +451,12 @@ var FieldSupport = (function() {
 
                 storage.set(f.localstorageid, {
                     type: typeString,
+                    fullType: f.fullType,
                     name: nameString,
                     shortName: shortNameString,
                     codeString: codeString
                 });
             }
-        }
-
-        function checkField(f, container) {
-            return lookupType(container.querySelector(".edit-type").value) !== undefined;
         }
 
         function codeStringToFunction(codeString) {
@@ -431,23 +466,23 @@ var FieldSupport = (function() {
         }
 
         function updateField(f, container) {
-            var typeString = container.querySelector(".edit-type").value;
+            var typeSelect = container.querySelector(".edit-type");
+            var selectedTypeOption = typeSelect.options[typeSelect.selectedIndex];
             var nameString = container.querySelector(".edit-name").value;
             var shortNameString = container.querySelector(".edit-shortName").value;
             var codeString = container.querySelector(".edit-code").value;
 
-            if (lookupType(typeString) != undefined) {
-                f.type = typeString;
-                container.querySelector(".edit-type").style.color = "";
-            } else {
-                container.querySelector(".edit-type").style.color = "red";
-            }
+            f.fullType = {
+                module: selectedTypeOption.getAttribute("data-module"),
+                type: selectedTypeOption.getAttribute("data-type")
+            };
+            container.querySelector(".edit-type").style.color = "";
             f.fullname = nameString;
             f.shortname = shortNameString;
             f.html = codeStringToFunction(codeString);
             f.htmlString = codeString;
 
-            container.querySelector("label").innerHTML = f.type + "." + f.fullname;
+            container.querySelector("label").innerHTML = shortTypeName(f.fullType) + "." + f.fullname;
 
             if (f.enabled) {
                 refreshTreeUIAfterFieldChange();
@@ -463,20 +498,13 @@ var FieldSupport = (function() {
             } else if (f.localstorageid) {
                 key += f.localstorageid;
             } else {
-                key += f.type + "." + f.fullname;
+                key += shortTypeName(f.fullType) + "." + f.fullname;
             }
 
             return key;
         }
 
         var storage = Catalog.Load(StoragePrefix + ".UserFields");
-
-        var typeOptions = [];
-        for (var typeString in typeAliases) {
-            typeOptions.push(typeString);
-        }
-        typeOptions.sort();
-        var typeSelectInnerHTML = typeOptions.map(function(type) { return "<option value='" + type + "'>" + type + "</option>"; }).join("");
 
         // Check if there's anything stored in local storage, and if so, upgrade it to the persistent store.
         var resultsToSave = {};
@@ -531,7 +559,7 @@ var FieldSupport = (function() {
 
                 // Populate the UserFields array from localStorage.
                 UserFields.push({
-                    type: savedField.type,
+                    fullType: savedField.fullType,
                     enabled: false,
                     fullname: savedField.name,
                     localstorageid: key,
@@ -541,9 +569,15 @@ var FieldSupport = (function() {
                 });
             }
 
+            UserFields.forEach(function (f) {
+                addKnownType(f.fullType.module, f.fullType.type);
+            })
+
             var uniqueId = 0;
             UserFields
-                .sort(function(a, b) { return (a.type + "." + a.fullname).localeCompare((b.type + "." + b.fullname)); })
+                .sort(function(a, b) { 
+                    return (shortTypeName(a.fullType) + "." + a.fullname).localeCompare(shortTypeName(b.fullType) + "." + b.fullname);
+                })
                 .forEach(function(f) {
                     f.enabled = (window.sessionStorage.getItem(getSessionStorageKey(f)) == "true");
 
@@ -560,7 +594,7 @@ var FieldSupport = (function() {
             var addedFieldCounter = 0;
             addNew.addEventListener("click", function() {
                 var newField = {
-                    type: DefaultTypeName,
+                    fullType: DefaultType,
                     enabled:true,
                     id: ++uniqueId,
                     fullname: "Custom" + (++addedFieldCounter),
@@ -596,12 +630,12 @@ var FieldSupport = (function() {
                         return results;
                     },
                     "Select fields to add:",
-                    function(obj) { return [obj.user, obj.value.type, obj.value.name] },
+                    function(obj) { return [obj.user, shortTypeName(obj.value.fullType), obj.value.name] },
                     function(selected) {
                         selected.forEach(function (object) {
                             var field = object.value;
                             UserFields.push({
-                                type: field.type,
+                                fullType: field.fullType,
                                 id:++uniqueId,
                                 enabled: true,
                                 external: true,
@@ -619,7 +653,7 @@ var FieldSupport = (function() {
                         }
                     },
                     function(a) {
-                        return (a.user + "." + a.value.type + "." + a.value.name)
+                        return (a.user + "." + shortTypeName(a.value.fullType) + "." + a.value.name)
                     }
                 );
             });

@@ -259,7 +259,7 @@ var TreeInspector = (function() {
                 }));
             }
 
-            container.appendChild(createElement("div", "Click a " + namespace.BasicType + " to show its children.  Ctrl-Click to expand or collapse a subtree."));
+            container.appendChild(createElement("div", "Click a node to show its children.  Ctrl-Click to expand or collapse a subtree."));
 
             treeContainer = createElement("div");
             container.appendChild(treeContainer);
@@ -272,7 +272,7 @@ var TreeInspector = (function() {
             FieldSupport.Initialize(
                 namespace.Name, 
                 namespace.BuiltInFields, 
-                namespace.BasicType, 
+                namespace.DefaultFieldType, 
                 function() {
                     if (renderTreeRootPromise != null) {
                         return renderTreeRootPromise
