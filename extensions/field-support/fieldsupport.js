@@ -15,6 +15,18 @@ var FieldSupport = (function() {
     var typeAliases = {};
     var selectControls = [];
 
+    var requestRebuildTypeOptions = (function() {
+        var currentRebuildRequest = null;
+        return function() {
+            if (currentRebuildRequest == null) {
+                currentRebuildRequest = window.setTimeout(function() {
+                    rebuildTypeOptions();
+                    currentRebuildRequest = null;
+                }, 0);
+            }
+        }
+    })();
+
     function addKnownType(module, type) {
         var fullType = module + "!" + type;
         if (!(fullType in knownTypes)) {
@@ -30,7 +42,7 @@ var FieldSupport = (function() {
 
     Tree.AddTypeNotifier(function(module, type) {
         addKnownType(module, type);
-        rebuildTypeOptions();
+        requestRebuildTypeOptions();
     });
 
     function addTypeAlias(module, type, alias) {
@@ -41,7 +53,7 @@ var FieldSupport = (function() {
         var knownType = addKnownType(module, type);
         knownType.aliases.push(alias);
         typeAliases[alias] = knownType;
-        rebuildTypeOptions();
+        requestRebuildTypeOptions();
     }
 
     function shortTypeName(key) {
@@ -86,7 +98,11 @@ var FieldSupport = (function() {
             return "<option data-module=\"" + option.module + "\" data-type=\"" + option.type + "\" value=\"" + typeKey(option) + "\">" + option.name + "</option>";
         }).join("\n");
 
-        selectControls.forEach(function (select) { select.innerHTML = typeOptionHTML; });
+        selectControls.forEach(function (select) { 
+            var currentValue = select.value;
+            select.innerHTML = typeOptionHTML;
+            select.value = currentValue;
+        });
     }
 
     function handleFieldException(ex) {
@@ -138,6 +154,7 @@ var FieldSupport = (function() {
     }
 
     function initialize(StoragePrefix, UserFields, DefaultType, UpdateUI) {
+
         var reinjectUserFields = (function() {
             var modifiedTypes = [];
             var addedFields = [];
@@ -569,9 +586,9 @@ var FieldSupport = (function() {
                 });
             }
 
-            UserFields.forEach(function (f) {
-                addKnownType(f.fullType.module, f.fullType.type);
-            })
+            addKnownType(DefaultType.module, DefaultType.type);
+            UserFields.forEach(function (f) { addKnownType(f.fullType.module, f.fullType.type); })
+            rebuildTypeOptions();
 
             var uniqueId = 0;
             UserFields
