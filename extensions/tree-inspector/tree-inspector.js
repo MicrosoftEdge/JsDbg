@@ -44,8 +44,8 @@ var TreeInspector = (function() {
             }
 
             function render() {
-                var fullyExpand = window.sessionStorage.getItem(id("FullyExpand"));
-                renderTreeRootPromise = treeAlgorithm.BuildTree(treeContainer, treeRoot, fullyExpand !== "false");
+                var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
+                renderTreeRootPromise = Tree.RenderTreeNode(treeContainer, treeRoot, fullyExpand, treeAlgorithm);
                 return renderTreeRootPromise;
             }
 

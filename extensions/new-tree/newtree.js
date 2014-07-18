@@ -21,13 +21,18 @@ var Tree = (function() {
         return result;
     }
 
-    function TreeNode(dbgObject, basicDescription) {
+    function TreeNode(dbgObject, existingObjects) {
         this.dbgObject = dbgObject;
-        this.basicDescription = basicDescription === undefined || basicDescription === null ? this.dbgObject.htmlTypeDescription() : basicDescription;
         this.childrenPromise = null;
         this.matchingRegistrationsPromise = null;
         this.basicDescriptionPromise = null;
         this.recordedErrors = [];
+
+        this.existingObjects = existingObjects;
+        this.isDuplicate = (dbgObject.ptr() in existingObjects);
+        if (!this.isDuplicate) {
+            existingObjects[dbgObject.ptr()] = true;
+        }
     }
 
     TreeNode.prototype.getMatchingRegistrations = function() {
@@ -68,6 +73,10 @@ var Tree = (function() {
     }
 
     TreeNode.prototype.getChildren = function() {
+        if (this.isDuplicate) {
+            return Promise.as([]);
+        }
+
         if (this.childrenPromise == null) {
             var that = this;
             this.childrenPromise = this.getMatchingRegistrations(this.dbgObject)
@@ -89,7 +98,7 @@ var Tree = (function() {
             .then(function (children) {
                 return children
                 .filter(function (child) { return !child.isNull(); })
-                .map(function (child) { return new TreeNode(child); });
+                .map(function (child) { return new TreeNode(child, that.existingObjects); });
             })
             .then(null, function (error) {
                 that.recordedErrors.push(error);
@@ -121,7 +130,7 @@ var Tree = (function() {
                 }
             })
             .then(function (description) {
-                return description + " " + that.dbgObject.ptr();
+                return (that.isDuplicate ? "(DUPLICATE) " : "") + description + " " + that.dbgObject.ptr();
             })
         }
         return this.basicDescriptionPromise;
@@ -132,6 +141,10 @@ var Tree = (function() {
 
         return this.getBasicDescription().then(function (basicDescription) {
             var result = document.createElement("div");
+            if (that.isDuplicate) {
+                result.style.color = "#aaa";
+            }
+
             var description = document.createElement("div");
             description.textContent = basicDescription;
             result.appendChild(description);
@@ -242,7 +255,7 @@ var Tree = (function() {
                 return Promise.as(interpreter(address))
                 .then(
                     function (dbgObject) {
-                        return new TreeNode(dbgObject);
+                        return new TreeNode(dbgObject, {});
                     },
                     function (error) {
                         return null;
@@ -260,12 +273,12 @@ var Tree = (function() {
             })
         },
 
-        RenderTreeNode: function(container, treeNode, treeAlgorithm) {
+        RenderTreeNode: function(container, treeNode, fullyExpand, treeAlgorithm) {
             return Promise.as(treeNode)
             .then(function (treeNode) {
                 var innerElement = document.createElement("div");
                 container.appendChild(innerElement);
-                treeAlgorithm.BuildTree(innerElement, treeNode, true);
+                return treeAlgorithm.BuildTree(innerElement, treeNode, fullyExpand);
             })
         },
 
@@ -280,16 +293,7 @@ var Tree = (function() {
             .then(function (roots) {
                 return flatten(roots)
                 .map(function (root) {                     
-                    return new TreeNode(root);
-                })
-            });
-        },
-
-        Render: function(element) {
-            return Tree.GetRootTreeNodes()
-            .then(function (treeNodes) {
-                return treeNodes.forEach(function(treeNode) {
-                    Tree.RenderTreeNode(element, treeNode, TallTree);
+                    return new TreeNode(root, {});
                 })
             });
         }
