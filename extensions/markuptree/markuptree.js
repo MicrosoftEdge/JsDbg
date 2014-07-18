@@ -75,6 +75,9 @@ var MarkupTree = (function() {
         Tree.AddAddressInterpreter(function (address) {
             return new DbgObject(MSHTML.Module, "CTreeNode", address);
         });
+
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CTreeNode", "CTreeNode");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CTreeDataPos", "Text");
     }
 
     var builtInFields = [
@@ -153,7 +156,6 @@ var MarkupTree = (function() {
     return {
         Name: "MarkupTree",
         BasicType: "CTreeNode",
-        BuiltInFields: builtInFields,
-        TypeMap: { "CTreeNode": "CTreeNode", "Text":"CTreeDataPos" }
+        BuiltInFields: builtInFields
     }
 })();

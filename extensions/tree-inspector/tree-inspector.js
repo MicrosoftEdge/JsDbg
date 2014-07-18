@@ -273,7 +273,6 @@ var TreeInspector = (function() {
                 namespace.Name, 
                 namespace.BuiltInFields, 
                 namespace.BasicType, 
-                namespace.TypeMap, 
                 function() {
                     if (renderTreeRootPromise != null) {
                         return renderTreeRootPromise

@@ -5,6 +5,7 @@
     "headless": true,
     "dependencies": [
         "dbgobject",
+        "new-tree",
         "catalog",
         "catalog-viewer",
         "promise",

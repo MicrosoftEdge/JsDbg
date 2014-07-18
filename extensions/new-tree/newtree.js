@@ -4,6 +4,8 @@ var Tree = (function() {
     var registeredTypes = {};
     var registeredRoots = [];
     var registeredAddressInterpreters = [];
+    var registeredTypeNotifiers = [];
+    var knownTypes = {};
     var currentFields = {};
 
     function flatten(array, result) {
@@ -32,6 +34,13 @@ var Tree = (function() {
         this.isDuplicate = (dbgObject.ptr() in existingObjects);
         if (!this.isDuplicate) {
             existingObjects[dbgObject.ptr()] = true;
+        }
+
+        if (!(dbgObject.typeDescription() in knownTypes)) {
+            knownTypes[dbgObject.typeDescription()] = true;
+            registeredTypeNotifiers.forEach(function (notifier) {
+                notifier(dbgObject.module, dbgObject.typeDescription());
+            });
         }
     }
 
@@ -265,6 +274,10 @@ var Tree = (function() {
 
         AddAddressInterpreter: function(addressInterpreter) {
             registeredAddressInterpreters.push(addressInterpreter);
+        },
+
+        AddTypeNotifier: function (notifier) {
+            registeredTypeNotifiers.push(notifier);
         },
 
         InterpretAddress: function (address) {

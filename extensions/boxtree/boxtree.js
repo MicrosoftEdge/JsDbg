@@ -172,6 +172,40 @@ var BoxTree = (function() {
         Tree.AddType(null, MSHTML.Module, "Layout::SvgTextBox", null, function (object) {
             return collectChildrenInFlow(object.f("flow"));
         });
+
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::LayoutBox", "LayoutBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ContainerBox", "ContainerBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::FlowBox", "FlowBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::FieldsetBox", "FieldsetBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::TableBox", "TableBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::TableGridBox", "TableGridBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::GridBox", "GridBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::FlexBox", "FlexBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::MultiFragmentBox", "MultiFragmentBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::MultiColumnBox", "MultiColumnBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::LineBox", "LineBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBox", "ReplacedBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBoxIFrame", "ReplacedBoxIFrame");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBoxCLayout", "ReplacedBoxCLayout");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBoxCOleLayout", "ReplacedBoxCOleLayout");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBoxNative", "ReplacedBoxNative");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBoxNativeImage", "ReplacedBoxNativeImage");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBoxNativeGeneratedImage", "ReplacedBoxNativeGeneratedImage");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBoxNativeMSWebView", "ReplacedBoxNativeMSWebView");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBoxNativeCheckBoxValue", "ReplacedBoxNativeCheckBoxValue");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBoxNativeComboBoxValue", "ReplacedBoxNativeComboBoxValue");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::ReplacedBoxNativeInputFileAction", "ReplacedBoxNativeInputFileAction");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::BoxContainerBox", "BoxContainerBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::PageFrameBox", "PageFrameBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::SvgCssContainerBox", "SvgCssContainerBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::SvgBox", "SvgBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::SvgContainerBox", "SvgContainerBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::SvgTextBox", "SvgTextBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::SvgPrimitiveBox", "SvgPrimitiveBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::SvgLinePrimitiveBox", "SvgLinePrimitiveBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::SvgImagePrimitiveBox", "SvgImagePrimitiveBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::SvgGeometryBox", "SvgGeometryBox");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "Layout::SvgLineBox", "SvgLineBox");
     }
 
     var builtInFields = [
@@ -377,41 +411,6 @@ var BoxTree = (function() {
     return {
         Name: "BoxTree",
         BasicType: "LayoutBox",
-        BuiltInFields: builtInFields,
-        TypeMap: {
-            "LayoutBox": "Layout::LayoutBox",
-            "ContainerBox": "Layout::ContainerBox",
-            "FlowBox": "Layout::FlowBox",
-            "FieldsetBox": "Layout::FieldsetBox",
-            "TableBox": "Layout::TableBox",
-            "TableGridBox": "Layout::TableGridBox",
-            "GridBox": "Layout::GridBox",
-            "FlexBox": "Layout::FlexBox",
-            "MultiFragmentBox": "Layout::MultiFragmentBox",
-            "MultiColumnBox": "Layout::MultiColumnBox",
-            "LineBox": "Layout::LineBox",
-            "ReplacedBox": "Layout::ReplacedBox",
-            "ReplacedBoxIFrame": "Layout::ReplacedBoxIFrame",
-            "ReplacedBoxCLayout": "Layout::ReplacedBoxCLayout",
-            "ReplacedBoxCOleLayout": "Layout::ReplacedBoxCOleLayout",
-            "ReplacedBoxNative": "Layout::ReplacedBoxNative",
-            "ReplacedBoxNativeImage": "Layout::ReplacedBoxNativeImage",
-            "ReplacedBoxNativeGeneratedImage": "Layout::ReplacedBoxNativeGeneratedImage",
-            "ReplacedBoxNativeMSWebView": "Layout::ReplacedBoxNativeMSWebView",
-            "ReplacedBoxNativeCheckBoxValue": "Layout::ReplacedBoxNativeCheckBoxValue",
-            "ReplacedBoxNativeComboBoxValue": "Layout::ReplacedBoxNativeComboBoxValue",
-            "ReplacedBoxNativeInputFileAction": "Layout::ReplacedBoxNativeInputFileAction",
-            "BoxContainerBox": "Layout::BoxContainerBox",
-            "PageFrameBox": "Layout::PageFrameBox",
-            "SvgCssContainerBox": "Layout::SvgCssContainerBox",
-            "SvgBox": "Layout::SvgBox",
-            "SvgContainerBox": "Layout::SvgContainerBox",
-            "SvgTextBox": "Layout::SvgTextBox",
-            "SvgPrimitiveBox": "Layout::SvgPrimitiveBox",
-            "SvgLinePrimitiveBox": "Layout::SvgLinePrimitiveBox",
-            "SvgImagePrimitiveBox": "Layout::SvgImagePrimitiveBox",
-            "SvgGeometryBox": "Layout::SvgGeometryBox",
-            "SvgLineBox": "Layout::SvgLineBox"
-        }
+        BuiltInFields: builtInFields
     };
 })();

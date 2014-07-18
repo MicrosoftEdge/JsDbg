@@ -10,14 +10,54 @@
 //    - html: a method, called on the DbgObject, that takes the representation DOM element and returns undefined, HTML, or a DOM node
 
 var FieldSupport = (function() {
-    function initialize(StoragePrefix, UserFields, DefaultTypeName, TypeMap, UpdateUI) {
+    var knownTypes = {};
+    var typeAliases = {};
+
+    function addKnownType(module, type) {
+        var fullType = module + "!" + type;
+        if (!(fullType in knownTypes)) {
+            knownTypes[fullType] = {
+                module: module,
+                type: type,
+                aliases: []
+            };
+        }
+
+        return knownTypes[fullType];
+    }
+
+    Tree.AddTypeNotifier(addKnownType);
+
+    function addTypeAlias(module, type, alias) {
+        if (alias in typeAliases) {
+            throw new Error("A type with that alias already exists.");
+        }
+
+        var knownType = addKnownType(module, type);
+        knownType.aliases.push(alias);
+        typeAliases[alias] = knownType;
+    }
+
+    function lookupType(type) {
+        if (typeof(type) == typeof("")) {
+            // It's an alias.
+            return typeAliases[type];
+        } else if (type.module !== undefined && type.type !== undefined) {
+            return type;
+        } else {
+            return undefined;
+        }
+    }
+
+    function initialize(StoragePrefix, UserFields, DefaultTypeName, UpdateUI) {
         var reinjectUserFields = (function() {
             var modifiedTypes = [];
             var addedFields = [];
 
             function inject() {
                 UserFields.forEach(function (field) {
-                    if (field.enabled && field.type in TypeMap) {
+                    var type = lookupType(field.type);
+                    if (field.enabled && type !== undefined) {
                         var renderField = function(dbgObject, element) {
                             return Promise.as(null)
                             .then(function () {
@@ -46,11 +86,11 @@ var FieldSupport = (function() {
                             });
                         }
 
-                        Tree.AddField(MSHTML.Module, TypeMap[field.type], renderField);
+                        Tree.AddField(type.module, type.type, renderField);
 
                         addedFields.push({
-                            module: MSHTML.Module,
-                            type: TypeMap[field.type],
+                            module: type.module,
+                            type: type.type,
                             code: renderField
                         });
                     }
@@ -358,7 +398,7 @@ var FieldSupport = (function() {
         }
 
         function checkField(f, container) {
-            return container.querySelector(".edit-type").value in TypeMap;
+            return lookupType(container.querySelector(".edit-type").value) !== undefined;
         }
 
         function codeStringToFunction(codeString) {
@@ -373,7 +413,7 @@ var FieldSupport = (function() {
             var shortNameString = container.querySelector(".edit-shortName").value;
             var codeString = container.querySelector(".edit-code").value;
 
-            if (typeString in TypeMap) {
+            if (lookupType(typeString) != undefined) {
                 f.type = typeString;
                 container.querySelector(".edit-type").style.color = "";
             } else {
@@ -409,7 +449,7 @@ var FieldSupport = (function() {
         var storage = Catalog.Load(StoragePrefix + ".UserFields");
 
         var typeOptions = [];
-        for (var typeString in TypeMap) {
+        for (var typeString in typeAliases) {
             typeOptions.push(typeString);
         }
         typeOptions.sort();
@@ -640,6 +680,7 @@ var FieldSupport = (function() {
 
     return {
         Initialize: initialize,
-        RenderFields: renderFields
+        RenderFields: renderFields,
+        RegisterTypeAlias: addTypeAlias
     };
 })();

@@ -1,5 +1,5 @@
 {
     "name": "new-tree",
-    "dependencies": ["dbgobject", "mshtml-helpers", "tree-drawing", "promise", "field-support"],
+    "dependencies": ["dbgobject"],
     "includes": ["newtree.js", "newtree.css"]
 }

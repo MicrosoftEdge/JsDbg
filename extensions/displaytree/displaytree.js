@@ -54,6 +54,19 @@ var DisplayTree = (function() {
                 return node.f("_pNext").latestPatch()
             }).vcast();
         });
+
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispNode", "CDispNode");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispLeafNode", "CDispLeafNode");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispSVGLeafNode", "CDispSVGLeafNode");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispProxyNode", "CDispProxyNode");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispParentNode", "CDispParentNode");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispStructureNode", "CDispStructureNode");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispSVGStructureNode", "CDispSVGStructureNode");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispContainer", "CDispContainer");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispClipNode", "CDispClipNode");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispRoot", "CDispRoot");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispScroller", "CDispScroller");
+        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDispTopLevelScroller", "CDispTopLevelScroller");
     }
 
     var builtInFields = [
@@ -118,20 +131,6 @@ var DisplayTree = (function() {
     return {
         Name: "DisplayTree",
         BasicType: "CDispNode",
-        BuiltInFields: builtInFields,
-        TypeMap: {
-            "CDispNode": "CDispNode",
-            "CDispLeafNode": "CDispLeafNode",
-            "CDispSVGLeafNode": "CDispSVGLeafNode",
-            "CDispProxyNode": "CDispProxyNode",
-            "CDispParentNode": "CDispParentNode",
-            "CDispStructureNode": "CDispStructureNode",
-            "CDispSVGStructureNode": "CDispSVGStructureNode",
-            "CDispContainer": "CDispContainer",
-            "CDispClipNode": "CDispClipNode",
-            "CDispRoot": "CDispRoot",
-            "CDispScroller": "CDispScroller",
-            "CDispTopLevelScroller": "CDispTopLevelScroller"
-        }
+        BuiltInFields: builtInFields
     };
 })();
