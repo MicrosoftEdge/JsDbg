@@ -198,7 +198,7 @@ var Tree = (function() {
             registeredTypes[fullTypename].push({
                 module: module,
                 typename: typename,
-                name: name ? name : typename,
+                name: name ? name : null,
                 isMatched: discriminant ? discriminant : function() { return true; },
                 getChildren: getChildren ? getChildren : function() { return []; },
                 getBasicDescription: typeof(getBasicDescription) == typeof("") ? function() { return getBasicDescription; } : getBasicDescription

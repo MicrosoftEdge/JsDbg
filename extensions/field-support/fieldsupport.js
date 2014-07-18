@@ -11,7 +11,6 @@
 
 var FieldSupport = (function() {
     function initialize(StoragePrefix, UserFields, DefaultTypeName, TypeMap, UpdateUI) {
-
         var reinjectUserFields = (function() {
             var modifiedTypes = [];
             var addedFields = [];

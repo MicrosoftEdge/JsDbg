@@ -13,10 +13,6 @@
 //  - getChildren -> array of backing nodes
 //  - createRepresentation -> dom element
 var DisplayTree = (function() {
-    var DispNodeCache = {};
-    var DispNodeTypes = {};
-    var FieldTypeMap = {};
-
     // Add a type description for CDispNode to link to the DisplayTree.
     DbgObject.AddTypeDescription(MSHTML.Module, "CDispNode", function(dispNode) {
         if (dispNode.isNull()) {
@@ -26,18 +22,9 @@ var DisplayTree = (function() {
         }
     });
 
-    function createDisplayTree(pointer) {
-        if (pointer) {
-            var dispNode = new DbgObject(MSHTML.Module, "CDispNode", pointer);
-            DispNodeCache = {};
-            return CreateDispNode(dispNode);
-        }
-
-        return null;
-    }
-
-    function getRootDispNodes() {
-        return MSHTML.GetCDocs()
+    if (JsDbg.GetCurrentExtension() == "displaytree") {
+        Tree.AddRoot("Display Tree", function() {
+            return MSHTML.GetCDocs()
             .then(function(docs) {
                 return Promise.map(docs, function(doc) { return doc.f("_view._pDispRoot"); });
             })
@@ -48,7 +35,7 @@ var DisplayTree = (function() {
                 if (nonNullDispRoots.length == 0) {
                     return Promise.fail();
                 }
-                return nonNullDispRoots.map(function(root) { return root.ptr(); });
+                return nonNullDispRoots;
             })
             .then(
                 function(roots) { return roots; },
@@ -56,84 +43,18 @@ var DisplayTree = (function() {
                     return Promise.fail("No CDispRoots were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a CDispNode explicitly.");
                 }
             );
+        });
+
+        Tree.AddAddressInterpreter(function (address) {
+            return new DbgObject(MSHTML.Module, "CDispNode", address).vcast();
+        });
+
+        Tree.AddType(null, MSHTML.Module, "CDispParentNode", null, function (object) {
+            return object.f("_pFirstChild").latestPatch().list(function (node) {
+                return node.f("_pNext").latestPatch()
+            }).vcast();
+        });
     }
-
-    function CreateDispNode(obj) {
-        if (obj.ptr() in DispNodeCache) {
-            return DispNodeCache[obj.ptr()];
-        }
-
-        return obj.vtable()
-            .then(function(type) {
-                if (type in DispNodeTypes) {
-                    var result = new DispNodeTypes[type](obj);
-                } else {
-                    var result = new CDispNode(obj);
-                }
-
-                DispNodeCache[obj.ptr()] = result;
-                return result;
-            })
-    }
-
-    function MapDispNodeType(typename, type) {
-        DispNodeTypes[typename] = type;
-    }
-
-    function CreateDispNodeType(typename, superType) {
-        var name = typename.substr("CDisp".length);
-        var fieldName = typename;
-
-        var newType = function(dispNode, vtableType) {
-            superType.call(this, dispNode, vtableType);
-            this.dispNode = this.dispNode.as(typename);
-        }
-        newType.prototype = Object.create(superType.prototype);
-        newType.prototype.typename = function() { return name; }
-        newType.super = superType;
-        newType.prototype.rawTypename = typename;
-
-        MapDispNodeType(typename, newType);
-        FieldTypeMap[fieldName] = newType;
-        return newType;
-    }
-
-    function CDispNode(dispNode, vtableType) {
-        this.dispNode = dispNode;
-        this.childrenPromise = null;
-        this.vtableType = vtableType;
-    }
-    FieldTypeMap["CDispNode"] = CDispNode;
-
-    CDispNode.prototype.typename = function() { return this.vtableType; }
-
-    CDispNode.prototype.createRepresentation = function() {
-        var element = document.createElement("div");
-        element.innerHTML = "<p>" + this.typename() + "</p> <p>" + this.dispNode.ptr() + "</p> ";
-        return FieldSupport.RenderFields(this, this.dispNode, element);
-    }
-    CDispNode.prototype.getChildren = function() {
-        return Promise.as([]);
-    }
-    var CDispLeafNode = CreateDispNodeType("CDispLeafNode", CDispNode);
-    var CDispSVGLeafNode = CreateDispNodeType("CDispSVGLeafNode", CDispNode);
-    var CDispProxyNode = CreateDispNodeType("CDispProxyNode", CDispNode);
-
-    var CDispParentNode = CreateDispNodeType("CDispParentNode", CDispNode);
-    CDispParentNode.prototype.getChildren = function() {
-        return this.dispNode.f("_pFirstChild").latestPatch().list(function (node) {
-            return node.f("_pNext").latestPatch();
-        }).map(CreateDispNode);
-    }
-
-    var CDispStructureNode = CreateDispNodeType("CDispStructureNode", CDispParentNode);
-    var CDispSVGStructureNode = CreateDispNodeType("CDispSVGStructureNode", CDispParentNode);
-
-    var CDispContainer = CreateDispNodeType("CDispContainer", CDispParentNode);
-    var CDispClipNode = CreateDispNodeType("CDispClipNode", CDispContainer);
-    var CDispRoot = CreateDispNodeType("CDispRoot", CDispClipNode);
-    var CDispScroller = CreateDispNodeType("CDispScroller", CDispClipNode);
-    var CDispTopLevelScroller = CreateDispNodeType("CDispTopLevelScroller", CDispScroller);
 
     var builtInFields = [
         {
@@ -198,8 +119,19 @@ var DisplayTree = (function() {
         Name: "DisplayTree",
         BasicType: "CDispNode",
         BuiltInFields: builtInFields,
-        TypeMap: FieldTypeMap,
-        Create: createDisplayTree,
-        Roots: getRootDispNodes
+        TypeMap: {
+            "CDispNode": "CDispNode",
+            "CDispLeafNode": "CDispLeafNode",
+            "CDispSVGLeafNode": "CDispSVGLeafNode",
+            "CDispProxyNode": "CDispProxyNode",
+            "CDispParentNode": "CDispParentNode",
+            "CDispStructureNode": "CDispStructureNode",
+            "CDispSVGStructureNode": "CDispSVGStructureNode",
+            "CDispContainer": "CDispContainer",
+            "CDispClipNode": "CDispClipNode",
+            "CDispRoot": "CDispRoot",
+            "CDispScroller": "CDispScroller",
+            "CDispTopLevelScroller": "CDispTopLevelScroller"
+        }
     };
 })();
