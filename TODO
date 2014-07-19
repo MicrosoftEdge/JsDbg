@@ -29,6 +29,11 @@
 
 - make it more clear when content is loading (especially if it has been loading for more than ~0.5s)
 
+IDEA: everything should be dynamically editable
+    - code is data
+    - enables experimentation -- no environment necessary
+    - browser is the IDE for JsDbg extensions
+
 BUGS
 
 - GetLayoutAssociationFromCTreeNode -> doesn't work properly with non boxes because of linked list offset
