@@ -1,0 +1,10 @@
+{
+    "name": "DbgObject-Navigator",
+    "author": "Peter Salas",
+    "description": "Library for selecting fields from a DbgObject using UI.",
+    "headless": true,
+    "dependencies": ["dbgobject"],
+    "includes": [
+        "dbgobject-navigator.js"
+    ]
+}
