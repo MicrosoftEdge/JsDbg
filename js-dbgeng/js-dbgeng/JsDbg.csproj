@@ -89,8 +89,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(SolutionDir)references\dbgeng.dll $(TargetDir)dbgeng.dll
-copy $(SolutionDir)references\DbgModel.dll $(TargetDir)DbgModel.dll</PostBuildEvent>
+    <PostBuildEvent>copy $(SolutionDir)references\dbgeng\* $(TargetDir)</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
