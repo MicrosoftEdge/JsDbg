@@ -122,3 +122,10 @@
 .field-selection.collapsed .show-hide:before {
     content:"[show]";
 }
+
+.field-selection .navigator {
+    min-width:100%;
+    max-width:78ch;
+    max-height:30em;
+    overflow:auto;
+}
