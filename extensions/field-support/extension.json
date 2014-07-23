@@ -6,7 +6,6 @@
     "dependencies": [
         "dbgobject",
         "dbgobject-tree",
-        "dbgobject-navigator",
         "catalog",
         "catalog-viewer",
         "promise",
