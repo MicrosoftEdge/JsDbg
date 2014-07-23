@@ -5,7 +5,6 @@
     "headless": true,
     "dependencies": ["dbgobject"],
     "includes": [
-        "dbgobject-navigator.js",
-        "dbgobject-navigator.css"
+        "dbgobject-navigator.js"
     ]
 }

@@ -417,10 +417,6 @@ var FieldSupport = (function() {
                 "documentation: "
             ]
             codeDescription.innerHTML = lines.join("<br />");
-
-            var dbgObjectNavigator = document.createElement("div");
-            dbgObjectNavigator.classList.add("navigator");
-            DbgObjectNavigator.ProvideNavigation(new DbgObject(f.fullType.module, f.fullType.type, 0), dbgObjectNavigator, function() {});
             
             Help.List()
                 .map(Help.Link)
@@ -431,8 +427,7 @@ var FieldSupport = (function() {
                 [nameLabel, nameInput],
                 [shortNameLabel, shortNameInput],
                 [codeLabel, codeDescription],
-                [null, codeInput],
-                [null, dbgObjectNavigator]
+                [null, codeInput]
             ]));
 
             container.appendChild(editor);
