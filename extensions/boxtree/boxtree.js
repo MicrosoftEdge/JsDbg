@@ -117,7 +117,7 @@ var BoxTree = (function() {
                 } else if (items.typeDescription() == "Layout::BoxItem") {
                     return collectChildrenInFlow(items);
                 } else if (items.typeDescription() == "SArray<Layout::FlexBox::SFlexBoxItem>") {
-                    return items.collectChildrenInFlow(object.f("flow"));
+                    return collectChildrenInFlow(object.f("flow"));
                 } else {
                     throw new Error("Unexpected FlexBox child typename: " + items.typeDescription());
                 }
