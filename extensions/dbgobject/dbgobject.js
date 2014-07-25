@@ -98,6 +98,7 @@ var DbgObject = (function() {
         ]
     };
     DbgObject.AddTypeOverride = function(module, type, field, overriddenType) {
+        module = module.toLowerCase();
         var key = module + "!" + type + "." + field;
         typeOverrides[key] = overriddenType;
     }
@@ -122,6 +123,7 @@ var DbgObject = (function() {
         ]
     };
     DbgObject.AddTypeDescription = function(module, typeNameOrFn, description) {
+        module = module.toLowerCase();
         if (typeof(typeNameOrFn) == typeof("")) {
             descriptionTypes[module + "!" + typeNameOrFn] = description;
         } else if (typeof(typeNameOrFn) == typeof(function(){})) {
@@ -626,6 +628,7 @@ var DbgObject = (function() {
         ]
     }
     DbgObject.AddDynamicArrayType = function(module, typeNameOrFn, transformation) {
+        module = module.toLowerCase();
         if (typeof(typeNameOrFn) == typeof("")) {
              var typeName = typeNameOrFn;
              typeNameOrFn = function(typeNameToCheck) {
