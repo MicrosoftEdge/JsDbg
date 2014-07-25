@@ -9,7 +9,7 @@
 var DbgObject = (function() {
     // bitcount and bitoffset are optional.
     function DbgObject(module, type, pointer, bitcount, bitoffset, structSize) {
-        this.module = module;
+        this.module = module.toLowerCase();
         this._pointer = pointer;
         this.bitcount = bitcount;
         this.bitoffset = bitoffset;
