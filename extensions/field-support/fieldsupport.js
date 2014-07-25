@@ -95,7 +95,7 @@ var FieldSupport = (function() {
         typeOptions.sort(function (a, b) { return a.name.localeCompare(b.name); });
 
         typeOptionHTML = typeOptions.map(function (option) {
-            return "<option data-module=\"" + option.module + "\" data-type=\"" + option.type + "\" value=\"" + typeKey(option) + "\">" + option.name + "</option>";
+            return "<option data-module=\"" + option.module + "\" data-type=\"" + option.type + "\" value=\"" + typeKey(option) + "\">" + option.module + "!" + option.name + "</option>";
         }).join("\n");
 
         selectControls.forEach(function (select) { 
