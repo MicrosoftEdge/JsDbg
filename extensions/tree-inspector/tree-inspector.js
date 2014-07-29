@@ -277,12 +277,15 @@ var TreeInspector = (function() {
                 namespace.BuiltInFields, 
                 namespace.DefaultFieldType, 
                 function() {
-                    if (renderTreeRootPromise != null) {
-                        return renderTreeRootPromise
+                    var defer = window.setImmediate || window.msSetImmediate || (function (f) { window.setTimeout(f, 0); });
+                    defer(function() {
+                        if (renderTreeRootPromise != null) {
+                            return renderTreeRootPromise
                             .then(function updateRenderTree(renderTreeRoot) {
                                 return renderTreeRoot.updateRepresentation();
                             });
-                    }
+                        }
+                    })
                 }
             )
         }

@@ -33,16 +33,6 @@ var JsDbg = (function() {
     // Big hammer - makes every request synchronous.
     var everythingIsSynchronous = false;
 
-    var setImmediate = window.setImmediate || window.msSetImmediate || (function(f) { window.setTimeout(f, 0); });
-
-    function defer(f) {
-        if (everythingIsSynchronous) {
-            f();
-        } else {
-            setImmediate(f);
-        }
-    }
-
     // Progress indicator support.
     var loadingIndicator = null;
     var pendingAsynchronousRequests = 0;
@@ -159,11 +149,7 @@ var JsDbg = (function() {
             return;
         } else if (cacheType == CacheType.TransientCache && url in transientCache) {
             var transientCacheResult = transientCache[url];
-            requestStarted();
-            defer(function() { 
-                callback(transientCacheResult)
-                requestEnded();
-            });
+            callback(transientCacheResult);
             return;
         } else if (!everythingIsSynchronous && cacheType != CacheType.Uncached) {
             if (url in pendingCachedRequests) {
