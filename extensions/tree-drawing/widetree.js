@@ -104,7 +104,14 @@ var WideTree = (function() {
 
     DrawingTreeNode.prototype.updateRepresentation = function() {
         var that = this;
-        return enqueueWork(function() { return that._updateRepresentation(); });
+        return enqueueWork(function() {
+            var clock = Timer.Start();
+            return that._updateRepresentation()
+            .then(function(value) {
+                console.log("Tree update took " + clock.Elapsed() + "s");
+                return value;
+            });
+        });
     }
 
     DrawingTreeNode.prototype._updateRepresentation = function() {

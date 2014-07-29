@@ -112,7 +112,12 @@ var TallTree = (function() {
     DrawingTreeNode.prototype.updateRepresentation = function() {
         var that = this;
         return enqueueWork(function() {
-            return that._updateRepresentation();
+            var clock = Timer.Start();
+            return that._updateRepresentation()
+            .then(function(value) {
+                console.log("Tree update took " + clock.Elapsed() + "s");
+                return value;
+            });
         });
     }
 
