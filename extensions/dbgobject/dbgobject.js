@@ -9,7 +9,7 @@
 var DbgObject = (function() {
     // bitcount and bitoffset are optional.
     function DbgObject(module, type, pointer, bitcount, bitoffset, structSize) {
-        this.module = module.toLowerCase();
+        this.module = DbgObject.NormalizeModule(module);
         this._pointer = pointer;
         this.bitcount = bitcount;
         this.bitoffset = bitoffset;
@@ -98,7 +98,7 @@ var DbgObject = (function() {
         ]
     };
     DbgObject.AddTypeOverride = function(module, type, field, overriddenType) {
-        module = module.toLowerCase();
+        module = DbgObject.NormalizeModule(module);
         var key = module + "!" + type + "." + field;
         typeOverrides[key] = overriddenType;
     }
@@ -123,7 +123,7 @@ var DbgObject = (function() {
         ]
     };
     DbgObject.AddTypeDescription = function(module, typeNameOrFn, description) {
-        module = module.toLowerCase();
+        module = DbgObject.NormalizeModule(module);
         if (typeof(typeNameOrFn) == typeof("")) {
             descriptionTypes[module + "!" + typeNameOrFn] = description;
         } else if (typeof(typeNameOrFn) == typeof(function(){})) {
@@ -254,6 +254,35 @@ var DbgObject = (function() {
             }
         });
     }
+
+    DbgObject._help_AddModuleFilter = {
+        description: "Adds a transformation to be applied to modules names.",
+        arguments: [
+            {name:"filter", type:"function(string) -> string", description:"The filter to apply to each module name."}
+        ]
+    }
+
+    var moduleFilters = [];
+    DbgObject.AddModuleFilter = function(filter) {
+        moduleFilters.push(filter);
+    }
+
+    DbgObject._help_NormalizeModule = {
+        description: "Normalizes a module name to its canonical name to use for comparisons.",
+        returns: "A normalized module name.",
+        arguments: [
+            {name:"module", type:"string", description:"The non-normalized module name."}
+        ]
+    }
+    DbgObject.NormalizeModule = function(module) {
+        return moduleFilters.reduce(
+            function (name, transformation) {
+                return transformation(name);
+            },
+            module
+        );
+    }
+
 
     DbgObject._help_global = {
         description: "Evaluates a reference to a global symbol in the debuggee.",
@@ -643,7 +672,7 @@ var DbgObject = (function() {
         ]
     }
     DbgObject.AddDynamicArrayType = function(module, typeNameOrFn, transformation) {
-        module = module.toLowerCase();
+        module = DbgObject.NormalizeModule(module);
         if (typeof(typeNameOrFn) == typeof("")) {
              var typeName = typeNameOrFn;
              typeNameOrFn = function(typeNameToCheck) {
@@ -1001,6 +1030,8 @@ var DbgObject = (function() {
 
     return DbgObject;
 })();
+
+DbgObject.AddModuleFilter(function (module) { return module.toLowerCase(); });
 
 var PromisedDbgObject = Promise.CreatePromisedType(DbgObject);
 PromisedDbgObject.IncludePromisedMethod("f", PromisedDbgObject);

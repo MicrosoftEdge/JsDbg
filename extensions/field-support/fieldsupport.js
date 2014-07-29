@@ -28,6 +28,7 @@ var FieldSupport = (function() {
     })();
 
     function addKnownType(module, type) {
+        module = DbgObject.NormalizeModule(module);
         var fullType = module + "!" + type;
         if (!(fullType in knownTypes)) {
             knownTypes[fullType] = {
@@ -76,7 +77,7 @@ var FieldSupport = (function() {
     }
 
     function typeKey(type) {
-        return type.module + "!" + type.type;
+        return DbgObject.NormalizeModule(type.module) + "!" + type.type;
     }
 
     function rebuildTypeOptions() {
@@ -95,7 +96,7 @@ var FieldSupport = (function() {
         typeOptions.sort(function (a, b) { return a.name.localeCompare(b.name); });
 
         typeOptionHTML = typeOptions.map(function (option) {
-            return "<option data-module=\"" + option.module + "\" data-type=\"" + option.type + "\" value=\"" + typeKey(option) + "\">" + option.module + "!" + option.name + "</option>";
+            return "<option data-module=\"" + option.module + "\" data-type=\"" + option.type + "\" value=\"" + typeKey(option) + "\">" + option.name + "</option>";
         }).join("\n");
 
         selectControls.forEach(function (select) { 

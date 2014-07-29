@@ -35,5 +35,3 @@ IDEA: everything should be dynamically editable
     - browser is the IDE for JsDbg extensions
 
 BUGS
-
-- figure out cross-module issue in field-support

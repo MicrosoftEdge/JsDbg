@@ -232,7 +232,7 @@ var DbgObjectTree = (function() {
 
     return {
         AddType: function(name, module, typename, discriminant, getChildren, getBasicDescription) {
-            var fullTypename = module + "!" + typename;
+            var fullTypename = DbgObject.NormalizeModule(module) + "!" + typename;
             if (!(fullTypename in registeredTypes)) {
                 registeredTypes[fullTypename] = [];
             }
@@ -247,7 +247,7 @@ var DbgObjectTree = (function() {
         },
 
         AddField: function (module, typename, code) {
-            var fullTypename = module + "!" + typename;
+            var fullTypename = DbgObject.NormalizeModule(module) + "!" + typename;
             if (!(fullTypename in currentFields)) {
                 currentFields[fullTypename] = [];
             }
@@ -256,7 +256,7 @@ var DbgObjectTree = (function() {
         },
 
         RemoveField: function (module, typename, code) {
-            var fullTypename = module + "!" + typename;
+            var fullTypename = DbgObject.NormalizeModule(module) + "!" + typename;
             if (fullTypename in currentFields) {
                 var index = currentFields[fullTypename].indexOf(code);
                 if (index >= 0) {

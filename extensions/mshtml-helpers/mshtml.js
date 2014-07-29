@@ -12,9 +12,21 @@ var MSHTML = (function() {
         .then(
             function() {
                 moduleName = "edgehtml";
+                DbgObject.AddModuleFilter(function (module) {
+                    if (module == "mshtml") {
+                        return "edgehtml";
+                    }
+                    return module;
+                });
             },
             function() {
                 moduleName = "mshtml";
+                DbgObject.AddModuleFilter(function (module) {
+                    if (module == "edgehtml") {
+                        return "mshtml";
+                    }
+                    return module;
+                });
             }
         );
     });
