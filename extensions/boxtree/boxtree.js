@@ -14,6 +14,14 @@
 //  - createRepresentation -> dom element
 var BoxTree = (function() {
 
+    function collectChildrenInFlow(flow) {
+        return flow
+        .latestPatch()
+        .list(function (flowItem) { return flowItem.f("data.next").latestPatch(); })
+            .f("data.boxReference.m_pT")
+            .vcast();
+    }
+
     // Add a type description for LayoutBox to link to the BoxTree.
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBox", function(box) {
         if (box.isNull()) {
@@ -48,14 +56,6 @@ var BoxTree = (function() {
         DbgObjectTree.AddAddressInterpreter(function (address) {
             return new DbgObject(MSHTML.Module, "Layout::LayoutBox", address).vcast();
         })
-
-        function collectChildrenInFlow(flow) {
-            return flow
-            .latestPatch()
-            .list(function (flowItem) { return flowItem.f("data.next").latestPatch(); })
-                .f("data.boxReference.m_pT")
-                .vcast();
-        }
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::ContainerBox", null, function (object) {
             return object.f("PositionedItems.firstItem.m_pT").list("next.m_pT")
