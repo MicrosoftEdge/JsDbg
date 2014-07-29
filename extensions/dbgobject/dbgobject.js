@@ -689,7 +689,7 @@ var DbgObject = (function() {
     DbgObject.prototype._help_array = {
         description: "Provides an array of values or DbgObjects.",
         returns: "A promise to an array of numbers if the type is not a pointer type and can be treated as a scalar, or an array of DbgObjects.",
-        arguments: [{name:"count", type:"int", description:"The number of items to retrieve.  Optional if the object represents an inline array."}]
+        arguments: [{name:"count (optional)", type:"int", description:"The number of items to retrieve.  Optional if the object represents an inline array or is a known array type."}]
     }
     DbgObject.prototype.array = function(count) {
         var that = this;
@@ -820,6 +820,39 @@ var DbgObject = (function() {
 
             return Promise.as(collectRemainingNodes(firstNode));
         })
+    }
+
+    DbgObject.prototype._help_string = {
+        description: "Retrieves a length-specified or null-terminated string from memory.",
+        returns: "A promise to a string.",
+        arguments: [
+            {name: "length (optional)", type: "(a promise to an) integer", description: "The length of the string.  If unspecified, the string is assumed to be null-terminated."}
+        ]
+    }
+    DbgObject.prototype.string = function(length) {
+        var that = this;
+        return Promise.as(length)
+        .then(function (length) {
+            if (length === undefined) {
+                // Using a null-terminated string.
+                var getRestOfString = function(character, prefix) {
+                    return character.val()
+                    .then(function(v) {
+                        if (v == 0) {
+                            return prefix;
+                        } else {
+                            return getRestOfString(character.idx(1), prefix + String.fromCharCode(v));
+                        }
+                    })
+                };
+                return getRestOfString(that, "");
+            } else {
+                return that.array(length)
+                .then(function (chars) {
+                    return chars.map(String.fromCharCode).join("");
+                });
+            }
+        });
     }
 
     DbgObject.prototype._help_ptr = {

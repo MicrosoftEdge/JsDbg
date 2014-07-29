@@ -29,6 +29,8 @@
 
 - make it more clear when content is loading (especially if it has been loading for more than ~0.5s)
 
+- field-support: some way to refresh without having to click out of the box
+
 IDEA: everything should be dynamically editable
     - code is data
     - enables experimentation -- no environment necessary
