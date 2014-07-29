@@ -91,21 +91,30 @@ var JsDbg = (function() {
                     return;
                 }
 
-                var parts = splitFirstN(webSocketMessage.data, ";", 3);
-                if (parts.length != 3) {
-                    throw "Bad JsDbg WebSocket protocol!";
+                var result = null;
+                try {
+                    var parts = splitFirstN(webSocketMessage.data, ";", 3);
+                    if (parts.length != 3) {
+                        throw "Bad JsDbg WebSocket protocol!";
+                    }
+                    var responseId = parts[0];
+                    if (parts[1] != "200") {
+                        throw "Server failed on message id " + responseId;
+                    }
+                    result = parts[2];
+                } catch (error) {
+                    result = {
+                        error: error
+                    };
+                } finally {
+                    if (!(responseId in currentWebSocketCallbacks)) {
+                        throw "No registered callback for message id " + responseId;
+                    } else {
+                        // Fire the callback and remove it from the registry.
+                        currentWebSocketCallbacks[responseId](result);
+                        delete currentWebSocketCallbacks[requestId];
+                    }
                 }
-                var responseId = parts[0];
-                if (parts[1] != "200") {
-                    throw "Server failed on message id " + responseId;
-                }
-                if (!(responseId in currentWebSocketCallbacks)) {
-                    throw "No registered callback for message id " + responseId;
-                }
-
-                // Fire the callback and remove it from the registry.
-                currentWebSocketCallbacks[responseId](parts[2]);
-                delete currentWebSocketCallbacks[requestId];
             });
 
             currentWebSocket.addEventListener("close", function jsdbgWebSocketCloseHandler() {
@@ -121,7 +130,15 @@ var JsDbg = (function() {
         }
     }
 
-    function jsonRequest(url, callback, cacheType, method, data) {
+    function jsonRequest(url, originalCallback, cacheType, method, data) {
+        var callback = function(result) {
+            try {
+                originalCallback(result)
+            } catch (error) {
+                
+            }
+        };
+
         // If the transient cache isn't supported, downgrade to uncached.
         if (cacheType == CacheType.TransientCache && transientCache == null) {
             cacheType = CacheType.Uncached;

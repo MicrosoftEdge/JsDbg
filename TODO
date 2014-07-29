@@ -36,7 +36,5 @@ IDEA: everything should be dynamically editable
 
 BUGS
 
-- getting desc of void* causes hangs?
 - figure out cross-module issue in field-support
 - with full caching enabled, it feels sluggish because it is doing everything synchronously
-- bad request should still fire the callback
