@@ -333,7 +333,11 @@ var DbgObject = (function() {
     }
 
     DbgObject.prototype._off = function(offset) {
-        return new DbgObject(this.module, this.typename, this.isNull() ? 0 : this._pointer + offset, this.bitcount, this.bitoffset, this.structSize);
+        if (this.isNull()) {
+            return this;
+        } else {
+            return new DbgObject(this.module, this.typename, this._pointer + offset, this.bitcount, this.bitoffset, this.structSize);
+        }
     }
 
     DbgObject.prototype._isPointer = function() {
@@ -357,7 +361,9 @@ var DbgObject = (function() {
         returns: "A promise to a DbgObject."
     }
     DbgObject.prototype.deref = function() {
-        if (this.isNull()) {
+        if (this == DbgObject.NULL) {
+            return new PromisedDbgObject(this);
+        } else if (this.isNull()) {
             return new PromisedDbgObject(new DbgObject(this.module, this._getDereferencedTypeName(), 0));
         }
 
@@ -399,6 +405,8 @@ var DbgObject = (function() {
     DbgObject.prototype.f = function(field) {
         if (arguments.length < 0) {
             throw new Error("You must provide a field.");
+        } else if (this == DbgObject.NULL) {
+            return new PromisedDbgObject(this);
         } else if (arguments.length == 1) {
             return this._fHelper(field);
         } else {
@@ -477,6 +485,9 @@ var DbgObject = (function() {
         ]
     }
     DbgObject.prototype.unembed = function(type, field) {
+        if (this == DbgObject.NULL) {
+            return new PromisedDbgObject(DbgObject.NULL);
+        }
         var that = this;
         return jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, field)
         .then(function(result) { 
@@ -578,6 +589,10 @@ var DbgObject = (function() {
         returns: "A promise to a string."
     }
     DbgObject.prototype.constant = function() {
+        if (this.isNull()) {
+            return Promise.as(null);
+        }
+
         var that = this;
         return this.val()
         // Lookup the constant name...
@@ -901,6 +916,10 @@ var DbgObject = (function() {
     }
 
     DbgObject.prototype.baseTypes = function() {
+        if (this == DbgObject.NULL) {
+            return Promise.as([]);
+        }
+
         var that = this;
         return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, that.typename)
         .then(function (baseTypes) {
@@ -917,6 +936,10 @@ var DbgObject = (function() {
     DbgObject.prototype.fields = function() {
         if (this._isPointer()) {
             throw new Error("You cannot lookup fields on a pointer.");
+        }
+
+        if (this == DbgObject.NULL) {
+            return Promise.as([]);
         }
 
         var that = this;
