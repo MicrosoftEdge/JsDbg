@@ -37,3 +37,8 @@ IDEA: everything should be dynamically editable
 BUGS
 
 - GetLayoutAssociationFromCTreeNode -> doesn't work properly with non boxes because of linked list offset
+- getting desc of void* causes hangs?
+- figure out cross-module issue in field-support
+- with full caching enabled, it feels sluggish because it is doing everything synchronously
+- DbgObject.NULL leads to empty module
+- bad request should still fire the callback

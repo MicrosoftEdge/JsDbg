@@ -72,11 +72,19 @@ var MSHTML = (function() {
     }
 
     function GetLayoutAssociationFromCTreeNode(treeNode, flag) {
-        var type = ({
-            0x1: "Tree::ComputedBlock",
-            0x2: "Tree::TextBlock",
-            0x4: "Tree::SComputedStyle",
-            0x8: "Layout::LayoutBox"
+        var conversion = ({
+            0x1: function(pointer) {
+                return pointer.as("void*").unembed("Tree::ComputedBlock", "associationLink");
+            },
+            0x2: function(pointer) {
+                return pointer.as("AssociatedTextBlock").f("textBlock");
+            },
+            0x4: function(pointer) {
+                return pointer.as("AssociatedStyleCache").f("styleCache");
+            },
+            0x8: function(pointer) {
+                return pointer.as("Layout::LayoutBox");
+            }
         })[flag];
 
         var promise = treeNode.f("_fHasLayoutAssociationPtr").val()
@@ -94,7 +102,7 @@ var MSHTML = (function() {
                         layoutAssociationBits = layoutAssociationBits >>1;
                     }
 
-                    return pointer.as(type);
+                    return conversion(pointer);
                 } else {
                     return DbgObject.NULL;
                 }
