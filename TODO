@@ -37,4 +37,3 @@ IDEA: everything should be dynamically editable
 BUGS
 
 - figure out cross-module issue in field-support
-- with full caching enabled, it feels sluggish because it is doing everything synchronously

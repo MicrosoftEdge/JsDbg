@@ -163,7 +163,7 @@ var FieldSupport = (function() {
                 UserFields.forEach(function (field) {
                     if (field.enabled) {
                         var renderThisField = function (dbgObject, element) {
-                            renderField(field, dbgObject, element);
+                            return renderField(field, dbgObject, element);
                         };
                         DbgObjectTree.AddField(field.fullType.module, field.fullType.type, renderThisField);
 
