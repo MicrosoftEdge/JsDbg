@@ -36,4 +36,13 @@ IDEA: everything should be dynamically editable
     - enables experimentation -- no environment necessary
     - browser is the IDE for JsDbg extensions
 
+IDEA:
+    - when adding fields they become virtual fields on the type -- for example: CTreeNode.CharFormat
+    - pipeline
+        - dbgobject -> (array of) dbg objects
+        - dbgobject -> html/text  (visualizers)
+
+    - observation: tree view is just a watch window for a collection of objects
+
 BUGS
+    - browse other doesn't work
