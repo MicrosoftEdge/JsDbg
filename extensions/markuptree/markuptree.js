@@ -41,7 +41,15 @@ var MarkupTree = (function() {
     }
 
     if (JsDbg.GetCurrentExtension() == "markuptree") {
-        DbgObjectTree.AddRoot("Markup Tree", function() { return MSHTML.GetRootCTreeNodes(); });
+        DbgObjectTree.AddRoot("Markup Tree", function() { 
+            // Sort them by the length of the CMarkup's CAttrArray as a proxy for interesting-ness.
+            return Promise.sort(MSHTML.GetRootCTreeNodes(), function (treeNode) {
+                return treeNode.f("_pElement._pMarkup._pAA._c").val()
+                .then(function (value) {
+                    return 0 - value;
+                })
+            });
+        });
         DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
             return object.f("_tpBegin").f("_ptpThreadRight")
             .list(
