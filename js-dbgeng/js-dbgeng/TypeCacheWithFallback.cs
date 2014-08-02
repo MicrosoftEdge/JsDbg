@@ -26,6 +26,10 @@ namespace JsDbg
             return type;
         }
 
+        private void PrintDotOnDebugOutput(object sender, DebugOutputEventArgs e) {
+            Console.Out.Write('.');
+        }
+
         private Type GetTypeFromDebugSession(DebugClient client, DebugControl control, SymbolCache symbolCache, string module, string typename)
         {
             uint typeSize = 0;

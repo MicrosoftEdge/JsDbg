@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Debuggers.DbgEng;
 using Dia2Lib;
 using System.Diagnostics;
 using System.IO;
@@ -374,10 +373,6 @@ namespace JsDbg
 
             Process.Start(regsvr).WaitForExit();
         }              
-
-        public void PrintDotOnDebugOutput(object sender, DebugOutputEventArgs e) {
-            Console.Out.Write('.');
-        }
 
         // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
         protected static Dictionary<string, uint> BuiltInTypes = new Dictionary<string, uint>()
