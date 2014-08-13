@@ -793,10 +793,11 @@ var DbgObject = (function() {
         returns: "A promise to an array of DbgObjects.",
         arguments: [
             {name: "fieldOrFunction", type: "string/function(DbgObject) -> DbgObject", description: "The next field(s) to walk, or a function that walks from one node to the next."},
-            {name: "lastNodePromise (optional)", type: "(a promise to) a DbgObject", description: "A node to stop at."}
+            {name: "lastNodePromise (optional)", type: "(a promise to) a DbgObject", description: "A node to stop at."},
+            {name: "maxCount (optional)", type: "integer", description: "The maximum length list to return."}
         ]
     }
-    DbgObject.prototype.list = function(fieldOrFunction, lastNodePromise) {
+    DbgObject.prototype.list = function(fieldOrFunction, lastNodePromise, remainingLength) {
         var firstNode = this;
         return Promise.as(lastNodePromise)
         .then(function (lastNode) {
@@ -805,8 +806,10 @@ var DbgObject = (function() {
 
             var collectedNodes = [];
             function collectRemainingNodes(node) {
-                if (node.isNull() || (node.equals(stoppingNode) && !isFirstNode)) {
+                if (node.isNull() || (node.equals(stoppingNode) && !isFirstNode) || remainingLength <= 0) {
                     return collectedNodes;
+                } else if (remainingLength !== undefined) {
+                    --remainingLength;
                 }
                 isFirstNode = false;
 

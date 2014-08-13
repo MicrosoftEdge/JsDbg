@@ -3,6 +3,51 @@ var Promise = (function() {
     var nextPromiseId = 0;
     var allPromises = {};
 
+    var queue = (function() {
+        var entry = [];
+        var exit = [];
+
+        return {
+            enqueue: function(item) {
+                entry.push(item);
+            },
+            dequeue: function() {
+                if (exit.length == 0) {
+                    exit = entry;
+                    exit.reverse();
+                    entry = [];
+                }
+
+                if (exit.length > 0) {
+                    return exit.pop();
+                } else {
+                    return null;
+                }
+            },
+            length: function() {
+                return entry.length + exit.length;
+            }
+        };
+    })();
+
+    var fireCallbackDepth = 0;
+    function fireCallbacks(callbacks) {
+        var shouldFire = fireCallbackDepth == 0;
+        callbacks.forEach(function (f) { queue.enqueue(f); });
+
+        ++fireCallbackDepth;
+
+        try {
+            while (shouldFire && queue.length() > 0) {
+                queue.dequeue()();
+            }
+        } catch (ex) {
+
+        } finally {
+            --fireCallbackDepth;
+        }
+    }
+
     function Promise(doAsynchronousWork) {
         var that = this;
         this.isCompleted = false;
@@ -35,10 +80,7 @@ var Promise = (function() {
                 that.result = completedResult;
                 that.getPromisedValue = function getPromisedValue() { return completedResult; }
 
-                // Fire all the callbacks.
-                for (var i = 0; i < that.callbacks.length; ++i) {
-                    that.callbacks[i]();
-                }
+                fireCallbacks(that.callbacks);
             }, function workFailed(errorResult) {
                 if (that.isError || that.isCompleted) {
                     throw new Error("You cannot trigger an error on a promise that has already been completed.");
@@ -50,10 +92,7 @@ var Promise = (function() {
                     console.log("Promise #" + that.promiseId + " failed: " + JSON.stringify(errorResult));
                 }
 
-                // Fire all the callbacks.
-                for (var i = 0; i < that.callbacks.length; ++i) {
-                    that.callbacks[i]();
-                }
+                fireCallbacks(that.callbacks);
             },
             this
         );
