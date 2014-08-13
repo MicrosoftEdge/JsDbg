@@ -675,6 +675,8 @@ var FieldSupport = (function() {
                         }
                     },
                     function(a) {
+                        addKnownType(a.value.fullType.module, a.value.fullType.type);
+                        requestRebuildTypeOptions();
                         return (a.user + "." + shortTypeName(a.value.fullType) + "." + a.value.name)
                     }
                 );
