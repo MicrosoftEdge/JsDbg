@@ -445,7 +445,7 @@ var Promise = (function() {
 
     Promise.prototype._addCallback = function(callback) {
         if (this.isCompleted || this.isError) {
-            callback();
+            fireCallbacks([callback]);
         } else {
             this.callbacks.push(callback);
         }
