@@ -648,7 +648,11 @@ var FieldSupport = (function() {
                         return results;
                     },
                     "Select fields to add:",
-                    function(obj) { return [obj.user, shortTypeName(obj.value.fullType), obj.value.name] },
+                    function(obj) { 
+                        addKnownType(obj.value.fullType.module, obj.value.fullType.type);
+                        requestRebuildTypeOptions();
+                        return [obj.user, shortTypeName(obj.value.fullType), obj.value.name]
+                    },
                     function(selected) {
                         selected.forEach(function (object) {
                             var field = object.value;
