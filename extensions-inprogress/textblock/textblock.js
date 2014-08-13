@@ -18,50 +18,26 @@ var TextBlock = (function() {
         }
     });
 
-    function TextBlock(textBlock) {
-        this.textBlock = textBlock;
-        this.childrenPromise = null;
-        this.drawingTreeNodeIsExpanded = true;
-    }
+    if (JsDbg.GetCurrentExtension() == "textblock") {
+        DbgObjectTree.AddRoot("TextBlock", function() { 
+            return [];
+        });
+        DbgObjectTree.AddType(null, MSHTML.Module, "Tree::TextBlock", null, function (object) {
+            return object.f("_aryRuns").array();
+        });
 
-    TextBlock.prototype.getChildren = function() {
-        if (this.childrenPromise == null) {
-            this.childrenPromise = this.textBlock.f("_aryRuns").array()
-            .then(function (textBlockRuns) {
-                return textBlockRuns.map(function(run) {
-                    return new TextBlockRun(run);
-                })
-            });
-        }
-
-        return this.childrenPromise;
-    }
-
-    TextBlock.prototype.createRepresentation = function() {
-        var element = document.createElement("div");
-        
-        element.innerHTML = "<p>TextBlock</p> <p>" + this.textBlock.ptr() + "</p> ";
-        return FieldSupport.RenderFields(this, this.textBlock, element);
-    }
-
-    function TextBlockRun(textBlockRun) {
-        this.textBlockRun = textBlockRun;
-    }
-
-    TextBlockRun.prototype.getChildren = function() {
-        return Promise.as([]);
-    }
-
-    TextBlockRun.prototype.createRepresentation = function() {
-        var element = document.createElement("div");
-        
-        element.innerHTML = "<p>TextBlockRun</p> <p>" + this.textBlockRun.ptr() + "</p> ";
-        return FieldSupport.RenderFields(this, this.textBlockRun, element);
+        DbgObjectTree.AddAddressInterpreter(function (address) {
+            return new DbgObject(MSHTML.Module, "Tree::TextBlock", address).vcast();
+        });
     }
 
     var builtInFields = [
         {
             type: "TextBlock",
+            fullType: {
+                module: MSHTML.Module,
+                type: "Tree::TextBlock"
+            },
             fullname: "Flags",
             shortname: "",
             async:true,
@@ -77,11 +53,15 @@ var TextBlock = (function() {
         },
         {
             type: "TextBlockRun",
+            fullType: {
+                module: MSHTML.Module,
+                type: "Tree::TextBlockRun"
+            },
             fullname: "RunType",
             shortname: "type",
             async:true,
             html: function() {
-                return this.f("_runType").as("Tree::TextBlockRunTypeEnum").desc();
+                return this.f("_runType").as("Tree::TextBlockRunTypeEnum");
             }
         }
     ];
@@ -89,9 +69,10 @@ var TextBlock = (function() {
     return {
         Name: "TextBlock",
         BasicType: "TextBlock",
-        BuiltInFields: builtInFields,
-        TypeMap: {"TextBlock": TextBlock, "TextBlockRun": TextBlockRun },
-        Create: createTextBlock,
-        Roots: function() { return Promise.as([]); }
+        DefaultFieldType: {
+            module: MSHTML.Module,
+            type: "Tree::TextBlock"
+        },
+        BuiltInFields: builtInFields
     };
 })();

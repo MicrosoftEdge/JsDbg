@@ -2,7 +2,15 @@
     "name": "TextBlock",
     "description": "TextBlock and TextBlockRun viewer.",
     "author": "Peter Salas",
-    "dependencies": ["dbgobject", "tree-inspector"],
-    "includes": ["textblock.js"],
-    "augments": ["dbgobject"]
+    "dependencies": [
+        "dbgobject",
+        "mshtml-helpers",
+        "tree-inspector"
+    ],
+    "includes": [
+        "textblock.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ]
 }

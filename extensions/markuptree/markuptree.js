@@ -170,12 +170,7 @@ var MarkupTree = (function() {
             shortname: "tb",
             async:true,
             html: function() {
-                return this.f("_pTextBlock").ptr()
-                .then(function (ptr) {
-                    if (ptr != "NULL") {
-                        return "<a href=\"/textblock/#" + ptr + "\">" + ptr + "</a>";
-                    }
-                })
+                return this.f("_pTextBlock");
             }
         }
     ];
