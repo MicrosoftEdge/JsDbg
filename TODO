@@ -31,6 +31,8 @@
 
 - field-support: some way to refresh without having to click out of the box
 
+- replace "Expand Tree Automatically" with a slider for auto-expansion depth
+
 IDEA: everything should be dynamically editable
     - code is data
     - enables experimentation -- no environment necessary
@@ -43,6 +45,13 @@ IDEA:
         - dbgobject -> html/text  (visualizers)
 
     - observation: tree view is just a watch window for a collection of objects
+
+PERFORMANCE:
+    - should tree be virtualized?
+    - should transient cache be cleared periodically?
+    - maybe there is some work that can be done in a web worker so as to not block the UI thread?
+    - or maybe just time tree expansion out and present a message
+
 
 BUGS
     - browse other doesn't work
