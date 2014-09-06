@@ -23,12 +23,13 @@ var DbgObjectTree = (function() {
         return result;
     }
 
-    function TreeNode(dbgObject, existingObjects) {
+    function TreeNode(dbgObject, existingObjects, parent) {
         this.dbgObject = dbgObject;
         this.childrenPromise = null;
         this.matchingRegistrationsPromise = null;
         this.basicDescriptionPromise = null;
         this.recordedErrors = [];
+        this.parent = (parent === undefined ? null : parent);
 
         this.existingObjects = existingObjects;
         this.isDuplicate = (dbgObject.ptr() in existingObjects);
@@ -107,7 +108,7 @@ var DbgObjectTree = (function() {
             .then(function (children) {
                 return children
                 .filter(function (child) { return !child.isNull(); })
-                .map(function (child) { return new TreeNode(child, that.existingObjects); });
+                .map(function (child) { return new TreeNode(child, that.existingObjects, that); });
             })
             .then(null, function (error) {
                 that.recordedErrors.push(error);
@@ -141,7 +142,7 @@ var DbgObjectTree = (function() {
                 }
 
                 if (basicDescriptionRegistrations.length > 0) {
-                    return basicDescriptionRegistrations[basicDescriptionRegistrations.length - 1].getBasicDescription(that.dbgObject)
+                    return Promise.as(basicDescriptionRegistrations[basicDescriptionRegistrations.length - 1].getBasicDescription(that.dbgObject, that.parent ? that.parent.dbgObject : null))
                     .then(null, function (error) {
                         that.recordedErrors.push(error);
                         return backupDescription;
@@ -172,6 +173,7 @@ var DbgObjectTree = (function() {
             result.appendChild(document.createTextNode(" "));
 
             var pointer = document.createElement("div");
+            pointer.classList.add("pointer");
             pointer.innerHTML = that.dbgObject.ptr();
             result.appendChild(pointer);
             result.appendChild(document.createTextNode(" "));
@@ -215,7 +217,11 @@ var DbgObjectTree = (function() {
                         descriptions.className = "error-descriptions";
                         that.recordedErrors.forEach(function (error) {
                             var errorElement = document.createElement("div");
-                            errorElement.textContent = JSON.stringify(error);
+                            if (error instanceof Error) {
+                                errorElement.textContent = error.toString();
+                            } else {
+                                errorElement.textContent = JSON.stringify(error);
+                            }
                             descriptions.appendChild(errorElement);
                         })
                         errorContainer.appendChild(descriptions);

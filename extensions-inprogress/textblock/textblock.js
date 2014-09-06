@@ -2,20 +2,8 @@
 
 var TextBlock = (function() {
 
-    function createTextBlock(pointer) {
-        if (pointer) {
-            return new TextBlock(new DbgObject(MSHTML.Module, "Tree::TextBlock", pointer));
-        } else {
-            return null;
-        }
-    }
-
     DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextBlock", function(textBlock) {
-        if (textBlock.isNull()) {
-            return "null";
-        } else {
-            return "<a href=\"/textblock/#" + textBlock.ptr() + "\">" + textBlock.ptr() + "</a>";
-        }
+        return "<a href=\"/textblock/#" + textBlock.ptr() + "\">" + textBlock.ptr() + "</a>";
     });
 
     if (JsDbg.GetCurrentExtension() == "textblock") {

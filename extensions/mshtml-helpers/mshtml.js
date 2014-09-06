@@ -126,6 +126,21 @@ var MSHTML = (function() {
         return GetLayoutAssociationFromCTreeNode(treeNode, 0x8);
     }
 
+    function GetMarkupFromElement(element) {
+        var promise = Promise.join([element.f("_fHasLayoutPtr").val(), element.f("_fHasLayoutAry").val(), element.f("_fHasMarkupPtr").val()])
+        .then(function(bits) {
+            if (bits[0] || bits[1]) {
+                return element.f("_pLayoutInfo._pMarkup");
+            } else if (bits[2]) {
+                return element.f("_pMarkup");
+            } else {
+                return DbgObject.NULL;
+            }
+        });
+
+        return new PromisedDbgObject(promise);
+    }
+
     function GetThreadstateFromObject(object) {
         var promise = Promise.as(object)
         .then(function(object) {
@@ -134,14 +149,7 @@ var MSHTML = (function() {
             } else if (object.typeDescription() == "CTreeNode") {
                 return GetThreadstateFromObject(object.f("_pElement"));
             } else if (object.typeDescription() == "CElement") {
-                return Promise.join([object.f("_fHasLayoutPtr").val(), object.f("_fHasLayoutAry").val(), object.f("_fHasMarkupPtr").val()])
-                .then(function(bits) {
-                    if (bits[0] || bits[1]) {
-                        return GetThreadstateFromObject(object.f("_pLayoutInfo"));
-                    } else if (bits[2]) {
-                        return GetThreadstateFromObject(object.f("_pMarkup"));
-                    }
-                })
+                return GetThreadstateFromObject(GetMarkupFromElement(object));
             } else if (object.typeDescription() == "CLayoutInfo") {
                 return Promise.as(object.f("_fHasMarkupPtr").val())
                 .then(function(hasMarkupPtr) {
@@ -498,6 +506,8 @@ var MSHTML = (function() {
             returns: "(A promise to) a DbgObject."
         },
         GetCTreeNodeFromTreeElement: GetCTreeNodeFromTreeElement,
+
+        GetMarkupFromElement: GetMarkupFromElement,
 
         _help_GetLayoutAssociationFromCTreeNode: {
             description: "Gets a layout association from a CTreeNode.",

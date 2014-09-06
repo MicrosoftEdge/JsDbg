@@ -57,6 +57,19 @@ var TallTree = (function() {
             });
     }
 
+    function pad(number, digits) {
+        var prefix = "";
+        var numberString = number.toString();
+        var remainder = digits - numberString.length;
+
+        while (remainder > 0) {
+            prefix += "&nbsp;";
+            remainder--;
+        }
+
+        return prefix + numberString;
+    }
+
     DrawingTreeNode.prototype._createRepresentation = function() {
         var that = this;
         return this.innerNode.createRepresentation()
@@ -65,7 +78,7 @@ var TallTree = (function() {
 
                 var childrenCount = document.createElement("div");
                 childrenCount.className = "children";
-                childrenCount.innerHTML = that.nodeChildren.length;
+                childrenCount.innerHTML = pad(that.nodeChildren.length, 2);
                 if (that.representation.firstChild != null) {
                     that.representation.insertBefore(document.createTextNode(" "), that.representation.firstChild);
                     that.representation.insertBefore(childrenCount, that.representation.firstChild);

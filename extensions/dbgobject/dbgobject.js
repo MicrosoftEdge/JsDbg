@@ -589,7 +589,7 @@ var DbgObject = (function() {
             return Promise.as(this._pointer);
         }
 
-        if (this._isArray) {
+        if (this._isArray && this._arrayLength > 0) {
             throw new Error("You cannot get a value of an array.");
         }
 
@@ -763,7 +763,7 @@ var DbgObject = (function() {
                 return that._getStructSize()
 
                 // Read the array...
-                .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, that._isUnsigned, that._isFloat(), count); })
+                .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, that._isPointer() || that._isUnsigned, that._isFloat(), count); })
 
                 // Process the array into DbgObjects if necessary.
                 .then(function(result) {
@@ -834,6 +834,10 @@ var DbgObject = (function() {
     }
     DbgObject.prototype.string = function(length) {
         var that = this;
+        if (this.isNull()) {
+            return "???";
+        }
+
         return Promise.as(length)
         .then(function (length) {
             if (length === undefined) {
