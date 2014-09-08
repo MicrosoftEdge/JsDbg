@@ -50,7 +50,9 @@ var JsDbg = (function() {
 
     function requestStarted() {
         ++pendingAsynchronousRequests;
-        loadingIndicator.style.display = "block";
+        if (pendingAsynchronousRequests == 1) {
+            loadingIndicator.style.display = "block";
+        }
     }
 
     function requestEnded() {

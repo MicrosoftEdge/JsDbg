@@ -5,7 +5,6 @@ var StyleSheets = (function() {
     function getAtomFromAtomTable(atomTable, atom) {
         return atomTable.f("_phat")
         .then(function (hashtable) {
-            console.log(atomTable.ptr());
             if (!hashtable.isNull()) {
                 return hashtable.f("_aryId._pv");
             } else {
@@ -31,7 +30,6 @@ var StyleSheets = (function() {
         .then(function (atomTable) {
             return atomTable.f("_phat")
             .then(function (hashtable) {
-                console.log(atomTable.ptr());
                 if (!hashtable.isNull()) {
                     return hashtable.f("_aryId._pv");
                 } else {
