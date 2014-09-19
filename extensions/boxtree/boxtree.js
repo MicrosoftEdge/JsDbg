@@ -22,6 +22,24 @@ var BoxTree = (function() {
             .vcast();
     }
 
+    function collectChildrenInPositionedItems(positionedItemsList) {
+        return positionedItemsList.f("firstItem.m_pT").list("next.m_pT")
+        .vcast()
+        .map(function (listItem) {
+            if (listItem.typeDescription() == "Layout::PositionedBoxItem") {
+                return listItem
+                .f("boxItem", "flowItem")
+                .latestPatch()
+                .f("data.boxReference.m_pT")
+                .vcast();
+            } else if (listItem.typeDescription() == "Layout::PositionedInlineLayoutItem") {
+                return listItem.f("inlineLayoutReference.m_pT");
+            } else {
+                return null;
+            }
+        });
+    }
+
     // Add a type description for LayoutBox to link to the BoxTree.
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBox", function(box) {
         if (box.isNull()) {
@@ -58,15 +76,11 @@ var BoxTree = (function() {
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::ContainerBox", null, function (object) {
-            return object.f("PositionedItems.firstItem.m_pT").list("next.m_pT")
-                .vcast()
-                .filter(function (listItem) {
-                    return listItem.typeDescription() == "Layout::PositionedBoxItem";
-                })
-                .f("boxItem", "flowItem")
-                .latestPatch()
-                .f("data.boxReference.m_pT")
-                .vcast();
+            return collectChildrenInPositionedItems(object.f("PositionedItems"));
+        });
+
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::InlineLayout", null, function (object) {
+            return collectChildrenInPositionedItems(object.f("positionedItems"));
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
