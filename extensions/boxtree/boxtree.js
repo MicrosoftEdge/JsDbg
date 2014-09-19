@@ -35,7 +35,7 @@ var BoxTree = (function() {
             } else if (listItem.typeDescription() == "Layout::PositionedInlineLayoutItem") {
                 return listItem.f("inlineLayoutReference.m_pT");
             } else {
-                return null;
+                return DbgObject.NULL;
             }
         });
     }
