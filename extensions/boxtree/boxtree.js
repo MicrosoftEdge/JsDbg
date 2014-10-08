@@ -379,11 +379,10 @@ var BoxTree = (function() {
                                     runArray,
                                     function(run, runIndex) {
                                         // Get the run type...
-                                        return run.f("_runType").as("Tree::TextBlockRunTypeEnum").constant()
+                                        return run.f("_runType").as("Tree::TextBlockRunTypeEnum").desc()
 
                                         // If it's a CharacterRun, get the text it represents.  Otherwise return a placeholder.
                                         .then(function(runType) {
-                                            runType = runType.substr("TextBlockRunTypeEnum_".length);
                                             if (runType == "CharacterRun") {
                                                 // Get the text run...
                                                 return run.f("_u._pTextRun")

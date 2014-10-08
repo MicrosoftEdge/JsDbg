@@ -283,7 +283,7 @@ var MSHTML = (function() {
         var enumString = enumObj.typeDescription().replace(/^(Tree|Layout).*::(.*Enum)$/, "$2_");
         return Promise.as(enumObj.constant())
             .then(
-                function(k) { return k.substr(enumString.length); },
+                function(k) { return k.indexOf(enumString) == 0 ? k.substr(enumString.length) : k; },
                 function(err) {
                     return enumObj.val()
                     .then(function(v) { 
