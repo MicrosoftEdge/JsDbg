@@ -1,34 +1,7 @@
 
 
 DbgObject.AddTypeDescription(MSHTML.Module, "Layout::PendingCollection", function(collection) {
-    var items = [];
-    function collectRestOfItems(firstItem, item) {
-        return item.vcast().desc()
-        .then(function(desc) {
-            items.push(desc);
-            return item.f("next.m_pT");
-        })
-        .then(function (nextItem) {
-            if (nextItem.equals(firstItem)) {
-                return;
-            } else {
-                return collectRestOfItems(firstItem, nextItem);
-            }
-        })
-    }
-
-    if (collection.isNull()) {
-        return collection.ptr();
-    }
-
-
-    return collection.f("lastItem.m_pT")
-    .then(function (item) {
-        return collectRestOfItems(item, item);
-    })
-    .then(function() {
-        return items.join(", ");
-    });
+    return collection.f("lastItem.m_pT").list("next.m_pT").vcast().desc();
 });
 
 DbgObject.AddTypeDescription(MSHTML.Module, "Layout::ExportedCollection", function(collection) {
@@ -38,6 +11,9 @@ DbgObject.AddTypeDescription(MSHTML.Module, "Layout::ExportedCollection", functi
 DbgObject.AddTypeDescription(MSHTML.Module, "Layout::UnpositionedElement", function(unpositionedElement) {
     return unpositionedElement.f("PositionedElement.m_pT").desc()
     .then(function (desc) {
-        return "Unpositioned(" + desc + ")";
+        return unpositionedElement.f("autoPosition.staticPosition").desc()
+        .then(function (posDesc) {
+            return "Unpositioned(" + desc + ", " + posDesc + ")";
+        })
     })
 });

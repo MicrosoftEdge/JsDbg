@@ -57,6 +57,18 @@ return Promise.join(fieldNames.map(function(side) { return object.f(side).desc()
 });"
             });
 
+            descriptions.push({
+                name: "CRect",
+                module: MSHTML.Module,
+                type: "CRect",
+                code: "var fieldNames = [\"left\", \"top\", \"right\", \"bottom\"];\n\
+return Promise.join(fieldNames.map(function(side) { return object.f(side).desc(); }))\n\
+.then(function (values) {\n\
+    values = values.map(function (v, i) { return \"<span style=\\\"font-size:0.8em\\\">\" + fieldNames[i] + \":</span>\" + v; });\n\
+    return \"(\" + values.join(\", \") + \")\";\n\
+});"
+            });
+
 
             if (window.location.pathname.toLowerCase().indexOf("/customtypes/") == 0) {
                 setupEditor(descriptions);
