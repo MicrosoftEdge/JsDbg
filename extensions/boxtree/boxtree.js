@@ -176,11 +176,11 @@ var BoxTree = (function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::SvgCssContainerBox", null, function (object) {
-            return collectChildrenInFlow(object.f("firstSvgItem"));
+            return collectChildrenInFlow(object.f("firstSvgItem", "firstChildItem"));
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::SvgContainerBox", null, function (object) {
-            return collectChildrenInFlow(object.f("firstSvgItem"));
+            return collectChildrenInFlow(object.f("firstSvgItem", "firstChildItem"));
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::SvgTextBox", null, function (object) {
@@ -340,7 +340,7 @@ var BoxTree = (function() {
                                     textData = textRun.f("_characterSourceUnion._pchTransformedCharacters");
                                     offset = 0; // No offset when transformed.
                                 } else {
-                                    textData = textRun.f("_characterSourceUnion._pTextData._pText");
+                                    textData = textRun.f("_characterSourceUnion._pTextData").as("Tree::TextData").f("_pText");
                                 }
 
                                 var stringLength = textRunLength;

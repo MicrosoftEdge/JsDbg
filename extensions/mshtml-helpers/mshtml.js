@@ -127,10 +127,10 @@ var MSHTML = (function() {
     }
 
     function GetMarkupFromElement(element) {
-        var promise = Promise.join([element.f("_fHasLayoutPtr").val(), element.f("_fHasLayoutAry").val(), element.f("_fHasMarkupPtr").val()])
+        var promise = Promise.join([element.f("_fHasLayoutPtr").val(), element.f("_fHasLayoutAry", "_fHasLayoutPtr").val(), element.f("_fHasMarkupPtr").val()])
         .then(function(bits) {
             if (bits[0] || bits[1]) {
-                return element.f("_pLayoutInfo._pMarkup");
+                return element.f("_pLayoutInfo", "_pLayout").f("_pMarkup");
             } else if (bits[2]) {
                 return element.f("_pMarkup");
             } else {
@@ -160,7 +160,7 @@ var MSHTML = (function() {
                     }
                 });
             } else if (object.typeDescription() == "CMarkup") {
-                return GetThreadstateFromObject(object.f("_pSecCtx"));
+                return GetThreadstateFromObject(object.f("_pSecCtx", "_spSecCtx.m_pT"));
             } else if (object.typeDescription() == "CSecurityContext") {
                 return GetThreadstateFromObject(object.f("_pDoc"));
             } else if (object.typeDescription() == "CDoc") {
