@@ -333,9 +333,7 @@ var FieldSupport = (function() {
             container.appendChild(checkbox);
             checkbox.addEventListener("change", function() {
                 f.enabled = checkbox.checked;
-                if (!f.external) {
-                    window.sessionStorage.setItem(getSessionStorageKey(f), f.enabled);
-                }
+                window.sessionStorage.setItem(getSessionStorageKey(f), f.enabled);
                 refreshTreeUIAfterFieldChange();
             })
 
@@ -470,6 +468,7 @@ var FieldSupport = (function() {
                 storage.set(f.localstorageid, {
                     type: typeString,
                     fullType: f.fullType,
+                    isPrivate: f.isPrivate == true,
                     name: nameString,
                     shortName: shortNameString,
                     codeString: codeString
@@ -511,15 +510,17 @@ var FieldSupport = (function() {
 
         function getSessionStorageKey(f) {
             var key = StoragePrefix + ".UserFields.Enabled.";
-            if (f.external) {
-                return null;
-            } else if (f.localstorageid) {
+            if (f.localstorageid) {
                 key += f.localstorageid;
             } else {
                 key += shortTypeName(f.fullType) + "." + f.fullname;
             }
 
             return key;
+        }
+
+        function createLocalStorageId() {
+            return (new Date() - 0) + "-" + Math.round(Math.random() * 1000000);
         }
 
         var storage = Catalog.Load(StoragePrefix + ".UserFields");
@@ -579,6 +580,7 @@ var FieldSupport = (function() {
                 UserFields.push({
                     fullType: savedField.fullType,
                     enabled: false,
+                    isPrivate: savedField.isPrivate,
                     fullname: savedField.name,
                     localstorageid: key,
                     shortname: savedField.shortName,
@@ -614,9 +616,10 @@ var FieldSupport = (function() {
                 var newField = {
                     fullType: DefaultType,
                     enabled:true,
+                    isPrivate:false,
                     id: ++uniqueId,
                     fullname: "Custom" + (++addedFieldCounter),
-                    localstorageid: (new Date() - 0) + "-" + Math.round(Math.random() * 1000000),
+                    localstorageid: createLocalStorageId(),
                     shortname: "f" + addedFieldCounter,
                     html: function() { return "_"; }
                 };
@@ -638,12 +641,17 @@ var FieldSupport = (function() {
             container.appendChild(browse);
 
             browse.addEventListener("click", function() {
+                var currentKeys = {}
+                UserFields.forEach(function (field) { currentKeys[field.localstorageid] = true; });
+
                 CatalogViewer.Instantiate(
                     StoragePrefix + ".UserFields", 
                     function(store, user) {
                         var results = [];
                         for (var key in store) {
-                            results.push({key: key, value: store[key], user: user});
+                            if (!(key in currentKeys) && !store[key].isPrivate) {
+                                results.push({key: key, value: store[key], user: user});
+                            }
                         }
                         return results;
                     },
@@ -660,14 +668,19 @@ var FieldSupport = (function() {
                                 fullType: field.fullType,
                                 id:++uniqueId,
                                 enabled: true,
-                                external: true,
+                                localstorageid: createLocalStorageId(),
+                                isPrivate: true,
                                 fullname: field.name,
                                 shortname: field.shortName,
                                 html: codeStringToFunction(field.codeString),
                                 htmlString: field.codeString
                             });
 
-                            fields.appendChild(buildFieldUI(UserFields[UserFields.length - 1]));
+                            var importedField = UserFields[UserFields.length - 1];
+                            var fieldUI = buildFieldUI(importedField);
+                            fields.appendChild(fieldUI);
+                            saveField(importedField, fieldUI);
+                            window.sessionStorage.setItem(getSessionStorageKey(importedField), true);
                         });
 
                         if (selected.length > 0) {

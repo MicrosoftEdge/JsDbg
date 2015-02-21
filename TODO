@@ -4,7 +4,6 @@
 - better tree drawing
 
 - support past versions of IE in *Tree
-- "private" fields -- when grabbing fields from others, mark them as private?
 
 - type navigator
     - just click from one type to another and maintain history
