@@ -45,6 +45,9 @@ IDEA:
 
     - observation: tree view is just a watch window for a collection of objects
 
+IDEA:
+    map local variables onto the tree
+
 PERFORMANCE:
     - should tree be virtualized?
     - should transient cache be cleared periodically?

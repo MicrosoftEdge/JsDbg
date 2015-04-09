@@ -69,6 +69,28 @@ return Promise.join(fieldNames.map(function(side) { return object.f(side).desc()
 });"
             });
 
+            descriptions.push({
+                name: "CAttrValue",
+                module: MSHTML.Module,
+                type: "CAttrValue",
+                fn: function(object) {
+                    return object.f("_wFlags.fAA_Extra_HasDispId").val()
+                    .then(function (hasDispId) {
+                        if (hasDispId) {
+                            return object.f("_dispid").as("void*").deref().ptr();
+                        } else {
+                            return object.f("_pPropertyDesc.pstrName").string();
+                        }
+                    })
+                    .then(function (name) {
+                        return object.f("uVal._ulVal").desc()
+                        .then(function (val) {
+                            return name + "=" + val;
+                        })
+                    });
+                }
+            })
+
 
             if (window.location.pathname.toLowerCase().indexOf("/customtypes/") == 0) {
                 setupEditor(descriptions);
@@ -80,9 +102,13 @@ return Promise.join(fieldNames.map(function(side) { return object.f(side).desc()
 
     function injectDescriptions(descriptions) {
         descriptions.forEach(function (description) {
-            var implementation = function(value) {
-                return eval("(function(object) { " + description.code + "\n/**/})(value)");
-            };
+            if (description.code) {
+                var implementation = function(value) {
+                    return eval("(function(object) { " + description.code + "\n/**/})(value)");
+                };
+            } else {
+                var implementation = description.fn;
+            }
             DbgObject.AddTypeDescription(description.module, description.type, function (value) {
                 return implementation(value);
             });
