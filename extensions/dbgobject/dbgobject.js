@@ -497,7 +497,8 @@ var DbgObject = (function() {
             return target;
         })
         .then(function(target) {
-            if (target._isPointer()) {
+            // Objects that are pointers and arrays are really arrays of pointers, so don't dereference them.
+            if (target._isPointer() && !target._isArray) {
                 return target.deref();
             } else {
                 return target;
