@@ -132,7 +132,10 @@ var MSHTML = (function() {
             if (bits[0] || bits[1]) {
                 return element.f("_pLayoutInfo", "_pLayout").f("_pMarkup");
             } else if (bits[2]) {
-                return element.f("_pMarkup");
+                return element.f("_chain._pMarkup", "_pMarkup")
+                .then(function (markup) {
+                    return markup.as("char").idx(0 - (markup.pointerValue() % 4)).as("CMarkup");
+                })
             } else {
                 return DbgObject.NULL;
             }
