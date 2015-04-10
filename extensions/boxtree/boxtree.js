@@ -223,7 +223,7 @@ var BoxTree = (function() {
             shortname: "w",
             async:true,
             html: function() {
-                return this.f("contentBoxWidth");
+                return this.f("borderBoxModel.ContentBox.Width", "contentBoxWidth");
             }
         },
 
@@ -236,7 +236,7 @@ var BoxTree = (function() {
             shortname: "h",
             async:true,
             html: function() {
-                return this.f("contentBoxHeight");
+                return this.f("borderBoxModel.ContentBox.Height", "contentBoxHeight");
             }
         },
 
