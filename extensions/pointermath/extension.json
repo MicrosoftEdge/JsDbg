@@ -1,0 +1,7 @@
+{
+    "name": "pointermath",
+    "headless": true,
+    "author": "Peter Salas",
+    "description": "Provides operations for pointer arithmetic that is 64-bit safe.",
+    "includes": ["pointermath.js"]
+}
