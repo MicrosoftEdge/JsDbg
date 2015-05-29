@@ -56,3 +56,7 @@ PERFORMANCE:
     - should transient cache be cleared periodically?
     - maybe there is some work that can be done in a web worker so as to not block the UI thread?
     - or maybe just time tree expansion out and present a message
+
+PERFORMANCE IDEA:
+    DbgObject should support retrieving data from memory to optimize accessing many fields at once
+    potentially allows for snapshotting
