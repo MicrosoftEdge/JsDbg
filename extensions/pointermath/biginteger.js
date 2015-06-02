@@ -136,8 +136,26 @@ var BigInteger = (function() {
         }
 
         var numberInBase = this.convertToBase(base);
-        var isNegative = numberInBase.digits.reduce(function (previous, current) { return previous || current < 0}, false);
-        return (isNegative ? "-" : "") + numberInBase.digits.reverse().map(function (n) { return Math.abs(n).toString(base); }).join("");
+
+        // Prune any zeros from the end of the array.
+        var lastNonZeroIndex = numberInBase.digits.reduce(function (workingIndex, d, i) {
+            if (d == 0) {
+                return workingIndex;
+            } else {
+                return i;
+            }
+        }, -1);
+
+        if (lastNonZeroIndex < numberInBase.digits.length - 1) {
+            numberInBase.digits = numberInBase.digits.slice(0, lastNonZeroIndex + 1);
+        }
+
+        if (numberInBase.digits.length > 0) {
+            var isNegative = numberInBase.digits.reduce(function (previous, current) { return previous || current < 0}, false);
+            return (isNegative ? "-" : "") + numberInBase.digits.reverse().map(function (n) { return Math.abs(n).toString(base); }).join("");
+        } else {
+            return "0";
+        }
     }
 
     addTest("BigInteger.prototype.toString", function (assert) {
@@ -152,6 +170,10 @@ var BigInteger = (function() {
         assert.equals("ff", zero.add(255).toString(16), "255 in hex");
         assert.equals("-255", zero.add(-255).toString(), "-255 in decimal");
         assert.equals("-ff", zero.add(-255).toString(16), "255 in hex");
+
+        zero = new BigInteger(16);
+        assert.equals("0", zero.add(256).add(-256).toString(), "0 + 256 - 256 in hex");
+        assert.equals("0", zero.add(256).add(-256).toString(16), "0 + 256 - 256 in hex");
     });
 
     BigInteger.fromString = function (str, base, targetBase) {

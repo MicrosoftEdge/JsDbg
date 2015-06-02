@@ -38,7 +38,7 @@ var PointerMath = (function() {
 
     if (Tests) {
         var testSuite = Tests.CreateTestSuite("PointerMath.Pointer", "Tests for the PointerMath.Pointer type.");
-        
+
         Tests.AddTest(testSuite, "PointerMath.Pointer constructor", function (assert) {
             assert.equals("0xabc", (new Pointer("0xabc")).toString(), "0xabc");
             assert.equals("0x7", (new Pointer("0b111")).toString(), "0b111");
@@ -51,6 +51,18 @@ var PointerMath = (function() {
             assert.equals("0xabc", new Pointer("0xab0").add(0xc).toString(), "0xab0 + 0xc");
             assert.equals("0xffffffffffff1234", new Pointer("0xffffffffffff0000").add(0x1234).toString(), "0xffffffffffff0000 + 0x1234");
             assert.equals("0xffffffffffff0000", new Pointer("0xffffffffffff1234").add(-0x1234).toString(), "0xffffffffffff1234 - 0x1234");
+        });
+
+        Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.add", function (assert) {
+            assert.equals("0xabc", new Pointer("0xab0").add(0xc).toString(), "0xab0 + 0xc");
+            assert.equals("0xffffffffffff1234", new Pointer("0xffffffffffff0000").add(0x1234).toString(), "0xffffffffffff0000 + 0x1234");
+            assert.equals("0xffffffffffff0000", new Pointer("0xffffffffffff1234").add(-0x1234).toString(), "0xffffffffffff1234 - 0x1234");
+        });
+
+        Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.toString", function (assert) {
+            assert.equals("0x0", new Pointer("0xffffffffff").add(-0xffffffffff).toString(), "0xffffffffff - 0xffffffffff");
+            assert.equals("0x0", new Pointer(0).toString(), "0");
+            assert.equals("0x80", new Pointer("0o100").add(0o100).toString(), "0b100 + 0b100");
         });
     }
 
