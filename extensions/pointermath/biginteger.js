@@ -2,9 +2,9 @@
 
 var BigInteger = (function() {
     var testSuite = (Tests ? Tests.CreateTestSuite("BigInteger", "Tests for the BigInteger implementation in PointerMath.") : undefined);
-    var addTest = function(description, test, showTime) {
+    var addTest = function(description, test) {
         if (testSuite !== undefined) {
-            Tests.AddTest(testSuite, description, test, showTime);
+            Tests.AddTest(testSuite, description, test);
         }
     }
 
@@ -165,7 +165,7 @@ var BigInteger = (function() {
             str = str.substr(1);
         }
         var temp = new BigInteger(base);
-        temp.digits = str.split("").reverse().map(function (d) { return d * multiplier; });
+        temp.digits = str.split("").reverse().map(function (d) { return parseInt(d, base) * multiplier; });
 
         return temp.convertToBase(targetBase);
     }
@@ -173,6 +173,7 @@ var BigInteger = (function() {
     addTest("BigInteger.fromString", function (assert) {
         assert.arrayEquals([3, 2, 1], BigInteger.fromString("123", 10, 10).digits, "123 decimal");
         assert.arrayEquals([3, 2, 1], BigInteger.fromString("123", 16, 16).digits, "123 hex");
+        assert.arrayEquals([0xc, 0xb, 0xa], BigInteger.fromString("abc", 16, 16).digits, "abc hex");
         assert.arrayEquals([0xb, 0x7], BigInteger.fromString("123", 10, 16).digits, "123 decimal -> hex");
         assert.arrayEquals([-3, -2, -1], BigInteger.fromString("-123", 10, 10).digits, "-123 decimal");
         assert.arrayEquals([-3, -2, -1], BigInteger.fromString("-123", 16, 16).digits, "-123 hex");
@@ -185,7 +186,7 @@ var BigInteger = (function() {
             number = number.add(i);
         }
         assert.equals(number.toString(), "4999950000", "Sum all numbers from 1 to 100,000.");
-    }, true)
+    })
 
     addTest("Number add 100,000 times.", function (assert) {
         var number = 0;
@@ -193,7 +194,7 @@ var BigInteger = (function() {
             number += i;
         }
         assert.equals(number.toString(), "4999950000", "Sum all numbers from 1 to 100,000.");
-    }, true)
+    })
 
     return BigInteger;
 })();
