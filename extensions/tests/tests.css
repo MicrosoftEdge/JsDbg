@@ -42,8 +42,8 @@
     content: "Pass";
 }
 
-.test-case-status.failed::after, .test-case-status.passed::after {
-    content: " (" attr(data-runtime) ")";
+.test-case-status.passed::after {
+    content: " (" attr(data-asserts) " assertions in " attr(data-runtime) ")";
 }
 
 .test-case-status.failed {

@@ -51,22 +51,27 @@ var Tests = (function() {
     }
 
     function runTest(testCase, container) {
+        var assertsRun = 0;
         var assert = function(condition, message) {
+            ++assertsRun;
             if (!condition) {
                 throw new Error("Assertion failed: " + message);
             }
         };
         assert.equals = function(expected, actual, message) {
+            ++assertsRun;
             if (expected !== actual) {
                 throw new Error("Assertion failed: " + message + " Expected: " + expected + " of type " + typeof(expected) + ", got: " + actual + " of type " + typeof(actual));
             }
         }
         assert.notEquals = function (expectedNotEqualTo, actual, message) {
+            ++assertsRun;
             if (expectedNotEqualTo === actual) {
                 throw new Error("Assertion failed: " + message + " Expected not equal to " + expectedNotEqualTo + " of type " + typeof(expectedNotEqualTo) + ", but objects were equal.");
             }
         }
         assert.arrayEquals = function (expected, actual, message) {
+            ++assertsRun;
             var equals = true;
             if (expected.length != actual.length) {
                 equals = false;
@@ -105,6 +110,7 @@ var Tests = (function() {
                 function () {
                     // Test passed.
                     status.classList.add("passed");
+                    status.setAttribute("data-asserts", assertsRun);
                 },
                 function(err) {
                     // Test failed.
@@ -129,6 +135,7 @@ var Tests = (function() {
             try {
                 testCase.test(assert);
                 status.classList.add("passed");
+                status.setAttribute("data-asserts", assertsRun);
             } catch (err) {
                 status.classList.add("failed");
                 status.setAttribute("data-error", err.message);
