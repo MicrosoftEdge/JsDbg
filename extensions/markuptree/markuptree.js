@@ -44,13 +44,10 @@ var MarkupTree = (function() {
         DbgObjectTree.AddRoot("Markup Tree", function() { 
             // Sort them by the length of the CMarkup's CAttrArray as a proxy for interesting-ness.
             return Promise.sort(MSHTML.GetRootCTreeNodes(), function (treeNode) {
-                return treeNode.f("_pElement").f("_chain._pMarkup", "_pMarkup")
-                .then(function (markup) {
-                    return markup.as("char").idx(0 - (markup.pointerValue() % 4)).as("CMarkup").f("_pAA._c").val();
-                })
+                return MSHTML.GetMarkupFromElement(treeNode.f("_pElement")).f("_pAA._c").val()
                 .then(function (value) {
                     return 0 - value;
-                })
+                });
             });
         });
         DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {

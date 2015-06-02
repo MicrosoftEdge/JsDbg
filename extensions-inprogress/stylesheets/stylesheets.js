@@ -122,7 +122,7 @@ var StyleSheets = (function() {
                     suffix = "[" + props[7].htmlTypeDescription() + "]" + suffix;
                 }
 
-                if (props[1].pointerValue() != 0) {
+                if (!props[1].isNull()) {
                     return getClassSelectorDescription(props[1], stylesheet)
                     .then(function (classDescription) {
                         return prefix + classDescription + suffix;

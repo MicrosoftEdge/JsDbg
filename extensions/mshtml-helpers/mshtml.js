@@ -134,7 +134,10 @@ var MSHTML = (function() {
             } else if (bits[2]) {
                 return element.f("_chain._pMarkup", "_pMarkup")
                 .then(function (markup) {
-                    return markup.as("char").idx(0 - (markup.pointerValue() % 4)).as("CMarkup");
+                    var markupPtr = markup.ptr();
+                    var lastDigit = parseInt(markupPtr[markupPtr.length - 1], 16);
+                    var lowBits = lastDigit % 4;
+                    return markup.as("char").idx(0 - lowBits).as("CMarkup");
                 })
             } else {
                 return DbgObject.NULL;
@@ -510,6 +513,11 @@ var MSHTML = (function() {
         },
         GetCTreeNodeFromTreeElement: GetCTreeNodeFromTreeElement,
 
+        _help_GetMarkupFromElement: {
+            description: "Gets a CMarkup from a CElement.",
+            arguments: [{name:"element", type:"(Promise to a) DbgObject", description: "The CElement from which to retrieve the CMarkup."}],
+            returns: "(A promise to) a DbgObject."
+        },
         GetMarkupFromElement: GetMarkupFromElement,
 
         _help_GetLayoutAssociationFromCTreeNode: {

@@ -10,7 +10,7 @@ var DbgObject = (function() {
     // bitcount and bitoffset are optional.
     function DbgObject(module, type, pointer, bitcount, bitoffset, structSize) {
         this.module = DbgObject.NormalizeModule(module);
-        this._pointer = pointer;
+        this._pointer = new PointerMath.Pointer(pointer);
         this.bitcount = bitcount;
         this.bitoffset = bitoffset;
         this.structSize = structSize;
@@ -365,7 +365,7 @@ var DbgObject = (function() {
         if (this.isNull()) {
             return this;
         } else {
-            return new DbgObject(this.module, this.typename, this._pointer + offset, this.bitcount, this.bitoffset, this.structSize);
+            return new DbgObject(this.module, this.typename, this._pointer.add(offset), this.bitcount, this.bitoffset, this.structSize);
         }
     }
 
@@ -397,7 +397,7 @@ var DbgObject = (function() {
         }
 
         var that = this;
-        return jsDbgPromise(JsDbg.ReadPointer, that._pointer)
+        return jsDbgPromise(JsDbg.ReadPointer, that._pointer.toString())
         .then(function(result) {
             return new DbgObject(that.module, that._getDereferencedTypeName(), result.value);
         });
@@ -484,7 +484,7 @@ var DbgObject = (function() {
             var target = new DbgObject(
                 that.module, 
                 getFieldType(that.module, that.typename, field, result.type), 
-                that.isNull() ? 0 : that._pointer + result.offset, 
+                that.isNull() ? 0 : that._pointer.add(result.offset),
                 result.bitcount, 
                 result.bitoffset, 
                 result.size
@@ -521,7 +521,7 @@ var DbgObject = (function() {
         var that = this;
         return jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, field)
         .then(function(result) { 
-            return new DbgObject(that.module, type, that.isNull() ? 0 : that._pointer - result.offset); 
+            return new DbgObject(that.module, type, that.isNull() ? 0 : that._pointer.add(-result.offset)); 
         });
     }
 
@@ -601,7 +601,7 @@ var DbgObject = (function() {
 
         // Read the value...
         .then(function(structSize) {
-            return jsDbgPromise(JsDbg.ReadNumber, that._pointer, structSize, unsigned, that._isFloat());
+            return jsDbgPromise(JsDbg.ReadNumber, that._pointer.toString(), structSize, unsigned, that._isFloat());
         })
 
         // If we're a bit field, extract the bits.
@@ -727,7 +727,7 @@ var DbgObject = (function() {
 
                             if (registration.matchesType(baseType.type)) {
                                 // We found a match.  Cast it up to the matching base type.
-                                var castedType = new DbgObject(that.module, baseType.type, that._pointer + baseType.offset);
+                                var castedType = new DbgObject(that.module, baseType.type, that._pointer.add(baseType.offset));
                                 return registration.transformation(castedType)
                             }
                         }
@@ -764,7 +764,7 @@ var DbgObject = (function() {
                 return that._getStructSize()
 
                 // Read the array...
-                .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer, structSize, that._isPointer() || that._isUnsigned, that._isFloat(), count); })
+                .then(function(structSize) { return jsDbgPromise(JsDbg.ReadArray, that._pointer.toString(), structSize, that._isPointer() || that._isUnsigned, that._isFloat(), count); })
 
                 // Process the array into DbgObjects if necessary.
                 .then(function(result) {
@@ -868,26 +868,7 @@ var DbgObject = (function() {
         returns: "A string."
     }
     DbgObject.prototype.ptr = function() {
-        if (this._pointer == 0) {
-            return "NULL";
-        } else {
-            var hexString = this._pointer.toString(16);
-            var length = hexString.length;
-            var padding = "";
-            while (length < 8) {
-                padding += "0";
-                ++length;
-            }
-            return "0x" + padding + hexString;
-        }
-    }
-
-    DbgObject.prototype._help_pointerValue = {
-        description: "Returns the address of the object, as an integer.",
-        returns: "An integer."
-    }
-    DbgObject.prototype.pointerValue = function() {
-        return this._pointer;
+        return this._pointer.toFormattedString();
     }
 
     DbgObject.prototype._help_typeDescription = {
@@ -914,7 +895,7 @@ var DbgObject = (function() {
         if (this._pointer === undefined || other._pointer === undefined) {
             throw "The pointer values are undefined.";
         }
-        return this._pointer == other._pointer;
+        return this._pointer.equals(other._pointer);
     }
 
     DbgObject.prototype._help_vtable = {
@@ -926,10 +907,8 @@ var DbgObject = (function() {
             return Promise.as(this.typename);
         }
 
-        var pointer = this._pointer;
-
         // Read the value at the this pointer...
-        return jsDbgPromise(JsDbg.ReadPointer, pointer)
+        return jsDbgPromise(JsDbg.ReadPointer, this._pointer.toString())
 
         // Lookup the symbol at that value...
         .then(function(result) { 
@@ -967,7 +946,7 @@ var DbgObject = (function() {
             .then(function(baseTypes) {
                 for (var i = 0; i < baseTypes.length; ++i) {
                     if (baseTypes[i].type == that.typename) {
-                        return new DbgObject(that.module, vtableType, that._pointer - baseTypes[i].offset);
+                        return new DbgObject(that.module, vtableType, that._pointer.add(-baseTypes[i].offset));
                     }
                 }
 
@@ -976,7 +955,7 @@ var DbgObject = (function() {
                 .then(function(originalBaseTypes) {
                     for (var i = 0; i < originalBaseTypes.length; ++i) {
                         if (originalBaseTypes[i].type == vtableType) {
-                            return new DbgObject(that.module, vtableType, that._pointer + originalBaseTypes[i].offset);
+                            return new DbgObject(that.module, vtableType, that._pointer.add(originalBaseTypes[i].offset));
                         }
                     }
                     throw new Error("The DbgObject's type " + that.typename + " is not related to the vtable's type, " + vtableType);
@@ -994,7 +973,7 @@ var DbgObject = (function() {
         return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, that.typename)
         .then(function (baseTypes) {
             return baseTypes.map(function (typeAndOffset) {
-                return new DbgObject(that.module, typeAndOffset.type, that._pointer + typeAndOffset.offset);
+                return new DbgObject(that.module, typeAndOffset.type, that._pointer.add(typeAndOffset.offset));
             });
         });
     }
@@ -1027,7 +1006,7 @@ var DbgObject = (function() {
                     value: new DbgObject(
                         that.module, 
                         getFieldType(that.module, that.typename, field.name, field.type), 
-                        that._pointer == 0 ? 0 : that._pointer + field.offset, 
+                        that._pointer.isNull() ? 0 : that._pointer.add(field.offset),
                         field.bitcount, 
                         field.bitoffset, 
                         field.size
@@ -1058,7 +1037,7 @@ var DbgObject = (function() {
         returns: "A bool."
     }
     DbgObject.prototype.isNull = function() {
-        return this._pointer == 0;
+        return this._pointer.isNull();
     }
 
     DbgObject.prototype._help_isPointer = {

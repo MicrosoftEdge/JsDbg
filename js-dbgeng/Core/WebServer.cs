@@ -454,12 +454,32 @@ namespace JsDbg {
             respond(responseString);
         }
 
+        private static bool ParseInteger(string integerString, out ulong result) {
+            System.Globalization.NumberStyles numberStyle = System.Globalization.NumberStyles.None;
+            if (integerString != null && integerString.Length > 2 && integerString.IndexOf("0x") == 0) {
+                numberStyle = System.Globalization.NumberStyles.AllowHexSpecifier;
+                integerString = integerString.Substring(2);
+            }
+            result = 0;
+            return integerString != null && ulong.TryParse(integerString, numberStyle, null, out result);
+        }
+
+        private static bool ParseInteger(string integerString, out int result) {
+            System.Globalization.NumberStyles numberStyle = System.Globalization.NumberStyles.None;
+            if (integerString != null && integerString.Length > 2 && integerString.IndexOf("0x") == 0) {
+                numberStyle = System.Globalization.NumberStyles.AllowHexSpecifier;
+                integerString = integerString.Substring(2);
+            }
+            result = 0;
+            return integerString != null && int.TryParse(integerString, numberStyle, null, out result);
+        }
+
         private async void ServeMemory(NameValueCollection query, Action<string> respond, Action fail) {
             string type = query["type"];
             string pointerString = query["pointer"];
             ulong pointer;
 
-            if (type == null || pointerString == null || !UInt64.TryParse(pointerString, out pointer)) {
+            if (type == null || !WebServer.ParseInteger(pointerString, out pointer)) {
                 fail();
                 return;
             }
@@ -522,7 +542,7 @@ namespace JsDbg {
             ulong pointer;
             ulong length;
 
-            if (type == null || pointerString == null || !UInt64.TryParse(pointerString, out pointer) || !UInt64.TryParse(lengthString, out length)) {
+            if (type == null || !WebServer.ParseInteger(pointerString, out pointer) || !WebServer.ParseInteger(lengthString, out length)) {
                 fail();
                 return;
             }
@@ -616,7 +636,7 @@ namespace JsDbg {
             string pointerString = query["pointer"];
             
             ulong pointer;
-            if (pointerString == null || !UInt64.TryParse(pointerString, out pointer)) {
+            if (!WebServer.ParseInteger(pointerString, out pointer)) {
                 fail();
                 return;
             }
@@ -664,9 +684,7 @@ namespace JsDbg {
             }
 
             int maxCount;
-            if (maxCountString == null || !Int32.TryParse(maxCountString, out maxCount)) {
-                maxCount = 0;
-            }
+            WebServer.ParseInteger(maxCountString, out maxCount);
 
             string responseString;
             try {
@@ -693,7 +711,7 @@ namespace JsDbg {
             string type = query["type"];
             string constantString = query["constant"];
             ulong constant;
-            if (module == null || type == null || constantString == null || !UInt64.TryParse(constantString, out constant)) {
+            if (module == null || type == null || !WebServer.ParseInteger(constantString, out constant)) {
                 fail();
                 return;
             }

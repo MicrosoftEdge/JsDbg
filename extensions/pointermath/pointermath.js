@@ -30,6 +30,20 @@ var PointerMath = (function() {
 
     Pointer.prototype = {
         toString: function() { return "0x" + this.value.toString(16); },
+        toFormattedString: function() {
+            var hexString = this.value.toString(16);
+            if (hexString == "0") {
+                return "NULL";
+            } else {
+                var length = hexString.length;
+                var padding = "";
+                while (length < 8) {
+                    padding += "0";
+                    ++length;
+                }
+                return "0x" + padding + hexString;
+            }
+        },
         add: function(amount) {
             var result = new Pointer();
             result.value = this.value.add(amount);
@@ -37,10 +51,13 @@ var PointerMath = (function() {
         },
         equals: function(other) {
             return this.toString() == other.toString();
+        },
+        isNull: function() {
+            return this.equals(new Pointer(0));
         }
     }
 
-    if (Tests) {
+    if (typeof Tests !== "undefined") {
         var testSuite = Tests.CreateTestSuite("PointerMath.Pointer", "Tests for the PointerMath.Pointer type.");
 
         Tests.AddTest(testSuite, "PointerMath.Pointer constructor", function (assert) {

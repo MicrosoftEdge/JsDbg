@@ -31,7 +31,7 @@
             var duration = 5;
             var integer = DbgObject.sym(MSHTML.Module + "!g_pts").as("THREADSTATEUI").f("_paryDoc._c");
 
-            integer.pointerValue().then(function(pointer) {
+            integer.ptr().then(function(pointer) {
                 var request = "A;/jsdbg/memory?type=int&pointer=" + pointer;
                 pointer = pointer.toString();
                 var ws = new WebSocket("ws://localhost:50000/");

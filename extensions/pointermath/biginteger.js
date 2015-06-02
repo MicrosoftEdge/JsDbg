@@ -1,7 +1,7 @@
 "use strict";
 
 var BigInteger = (function() {
-    var testSuite = (Tests ? Tests.CreateTestSuite("BigInteger", "Tests for the BigInteger implementation in PointerMath.") : undefined);
+    var testSuite = (typeof Tests !== "undefined" ? Tests.CreateTestSuite("BigInteger", "Tests for the BigInteger implementation in PointerMath.") : undefined);
     var addTest = function(description, test) {
         if (testSuite !== undefined) {
             Tests.AddTest(testSuite, description, test);
