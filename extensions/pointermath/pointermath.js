@@ -19,6 +19,10 @@ var PointerMath = (function() {
             this.value = BigInteger.fromString(value, base);
         } else if (typeof(value) == typeof(0)) {
             this.value = (new BigInteger()).add(value);
+        } else if (value instanceof Pointer) {
+            this.value = value.value;
+        } else if (value instanceof BigInteger) {
+            this.value = value;
         } else {
             this.value = new BigInteger();
         }
@@ -45,6 +49,8 @@ var PointerMath = (function() {
             assert.equals("0x9", (new Pointer("0o11")).toString(), "0o11");
             assert.equals("0xb", (new Pointer("11")).toString(), "11");
             assert.equals("0xb", (new Pointer(11)).toString(), "11 as number");
+            assert.equals("0xb", (new Pointer(new Pointer(11))).toString(), "11 as Pointer");
+            assert.equals("0xb", (new Pointer(new BigInteger().add(11))).toString(), "11 as BigInteger");
         });
 
         Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.add", function (assert) {
