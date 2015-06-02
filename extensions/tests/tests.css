@@ -1,0 +1,55 @@
+
+.test-suite-title {
+    font-size:1.5em;
+}
+
+.test-suite-description {
+    margin:0.5em 0;
+    font-size:1.2em;
+}
+
+.test-suite-cases {
+    display:table;
+}
+
+.test-case {
+    display:table-row;
+}
+
+.test-case > * {
+    display:table-cell;
+    padding-right:10px;
+}
+
+.test-case-status:hover {
+    text-decoration: underline;
+    cursor:pointer;
+}
+
+.test-case-status::before {
+    content: "Run Test";
+}
+
+.test-case-status.running::before {
+    content: "Running...";
+}
+
+.test-case-status.failed::before {
+    content: attr(data-error);
+}
+
+.test-case-status.passed::before {
+    content: "Pass";
+}
+
+.test-case-status.failed::after, .test-case-status.passed::after {
+    content: " (" attr(data-runtime) ")";
+}
+
+.test-case-status.failed {
+    color:red;
+}
+
+.test-case-status.passed {
+    color:green;
+}

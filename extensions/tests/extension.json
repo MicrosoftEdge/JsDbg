@@ -1,0 +1,7 @@
+{
+    "name": "tests",
+    "headless": true,
+    "author": "Peter Salas",
+    "description": "Test harness for JsDbg tests.",
+    "includes": ["tests.js", "tests.css"]
+}
