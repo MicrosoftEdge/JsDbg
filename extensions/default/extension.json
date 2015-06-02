@@ -10,6 +10,7 @@
         "displaytree",
         "layoutbuilder",
         "struct-diff",
-        "documentation"
+        "documentation",
+        "tests"
     ]
 }
