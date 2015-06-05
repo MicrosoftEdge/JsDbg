@@ -134,10 +134,7 @@ var MSHTML = (function() {
             } else if (bits[2]) {
                 return element.f("_chain._pMarkup", "_pMarkup")
                 .then(function (markup) {
-                    var markupPtr = markup.ptr();
-                    var lastDigit = parseInt(markupPtr[markupPtr.length - 1], 16);
-                    var lowBits = lastDigit % 4;
-                    return markup.as("char").idx(0 - lowBits).as("CMarkup");
+                    return markup.as("char").idx(0 - markup.pointerValue().mod(4)).as("CMarkup");
                 })
             } else {
                 return DbgObject.NULL;

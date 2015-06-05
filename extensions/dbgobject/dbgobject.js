@@ -871,6 +871,14 @@ var DbgObject = (function() {
         return this._pointer.toFormattedString();
     }
 
+    DbgObject.prototype._help_pointerValue = {
+        description: "Returns the address of the object, as a bigInt.",
+        return: "A bigInt object."
+    }
+    DbgObject.prototype.pointerValue = function() {
+        return this._pointer.value();
+    }
+
     DbgObject.prototype._help_typeDescription = {
         description: "Returns the type of a DbgObject.",
         returns: "A string."
