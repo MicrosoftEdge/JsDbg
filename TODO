@@ -1,3 +1,12 @@
+POINTERMATH
+    - parsing in the textbox might be a little more finicky than before?
+    - negative pointer values?  CMarkupPointer 0x0000000-`27e11610
+        - caused by MarkupTree doing bit operations on a pointer which get treated as 32-bit
+        - need to use bigInteger for all 64-bit values that come from .val()
+        - jsdbgeng should serialize numbers as strings
+        - bigInteger should probably be its own package
+        - readpointer request should be working in strings
+
 BLOCKING EXPANSION BEYOND IE
     - proper 64-bit support (in progress)
     - configurable paths
