@@ -1,0 +1,7 @@
+{
+    "name": "MemoryCache",
+    "author": "Peter Salas",
+    "description": "Caches memory accesses for fast lookups.",
+    "headless": true,
+    "includes": ["memorycache.js"]
+}
