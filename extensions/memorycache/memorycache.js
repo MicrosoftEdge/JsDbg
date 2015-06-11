@@ -31,11 +31,11 @@ var MemoryCache = (function() {
     }
 
     function getPage(address) {
-        return address - (address % PAGE_SIZE);
+        return address.subtract(address.mod(PAGE_SIZE));
     }
 
     function getOffset(address, size) {
-        return (address % PAGE_SIZE) / size;
+        return address.mod(PAGE_SIZE).divide(size);
     }
 
     const floatArrays = [Float32Array, Float64Array];
@@ -109,6 +109,8 @@ var MemoryCache = (function() {
     }
 
     function readPointer(address, callback) {
+        address = new PointerMath.Pointer(address).value();
+
         if (pointerSize == undefined) {
             JsDbg.GetPointerSize(function (result) {
                 pointerSize = result.pointerSize;
@@ -122,6 +124,8 @@ var MemoryCache = (function() {
     }
 
     function readNumber(address, size, isUnsigned, isFloat, callback) {
+        address = new PointerMath.Pointer(address).value();
+
         var viewer = getArrayViewer(size, isUnsigned, isFloat);
         if (!loadPage(getPage(address), viewer, function(view) {
                 if (view.error) {
@@ -138,12 +142,12 @@ var MemoryCache = (function() {
 
     function calculatePagesForArray(address, itemSize, count) {
         // Determine the set of pages that an array spans.
-        var lastAddress = address + itemSize * count;
+        var lastAddress = address.add(itemSize * count);
         var pagesToRequest = [];
         var currentPage = getPage(address);
-        while (currentPage < lastAddress) {
+        while (currentPage.lt(lastAddress)) {
             pagesToRequest.push(currentPage);
-            currentPage += PAGE_SIZE;
+            currentPage = currentPage.add(PAGE_SIZE);
         }
 
         return pagesToRequest;
@@ -172,6 +176,8 @@ var MemoryCache = (function() {
     }
 
     function readArray(address, itemSize, isUnsigned, isFloat, count, callback) {
+        address = new PointerMath.Pointer(address).value();
+
         var viewer = getArrayViewer(itemSize, isUnsigned, isFloat);
         var pagesToRequest = calculatePagesForArray(address, itemSize, count);
         var canUseCache = requestPages(pagesToRequest, viewer, function (views) {

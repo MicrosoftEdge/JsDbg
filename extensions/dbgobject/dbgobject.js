@@ -397,7 +397,7 @@ var DbgObject = (function() {
         }
 
         var that = this;
-        return jsDbgPromise(MemoryCache.ReadPointer, that._pointer.toString())
+        return jsDbgPromise(MemoryCache.ReadPointer, that._pointer.value())
         .then(function(result) {
             return new DbgObject(that.module, that._getDereferencedTypeName(), result.value);
         });
@@ -601,7 +601,7 @@ var DbgObject = (function() {
 
         // Read the value...
         .then(function(structSize) {
-            return jsDbgPromise(MemoryCache.ReadNumber, that._pointer.toString(), structSize, unsigned, that._isFloat());
+            return jsDbgPromise(MemoryCache.ReadNumber, that._pointer.value(), structSize, unsigned, that._isFloat());
         })
 
         // If we're a bit field, extract the bits.
@@ -764,7 +764,7 @@ var DbgObject = (function() {
                 return that._getStructSize()
 
                 // Read the array...
-                .then(function(structSize) { return jsDbgPromise(MemoryCache.ReadArray, that._pointer.toString(), structSize, that._isPointer() || that._isUnsigned, that._isFloat(), count); })
+                .then(function(structSize) { return jsDbgPromise(MemoryCache.ReadArray, that._pointer.value(), structSize, that._isPointer() || that._isUnsigned, that._isFloat(), count); })
 
                 // Process the array into DbgObjects if necessary.
                 .then(function(result) {

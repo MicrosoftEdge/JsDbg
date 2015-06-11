@@ -3,5 +3,6 @@
     "author": "Peter Salas",
     "description": "Caches memory accesses for fast lookups.",
     "headless": true,
+    "dependencies": ["pointermath"],
     "includes": ["memorycache.js"]
 }
