@@ -11,6 +11,8 @@ var JsDbg = (function() {
     var browserSupportsWebSockets = (window.WebSocket !== undefined);
     var currentWebSocket = null;
     var currentWebSocketCallbacks = {};
+    var remainingAllowableWebSocketRequests = 30; // Throttle the WebSocket requests to avoid overwhelming the connection.
+    var pendingWebSocketMessages = []; // WebSocket requests that have not yet been sent due to throttling.
     var debuggerBrokeListeners = [];
 
     var CacheType = {
@@ -77,58 +79,81 @@ var JsDbg = (function() {
         return stringParts;
     }
 
-    function sendWebSocketMessage(requestId, messageToSend, callback) {
-        requestId = requestId.toString();
-        currentWebSocketCallbacks[requestId] = callback;
+    function handleWebSocketReply(webSocketMessage) {
+        // Check if it's a server-initiated break-in event.
+        if (webSocketMessage.data == "break") {
+            // Invalidate the transient cache.  This should probably be invalidated on "run" instead.
+            transientCache = {};
 
+            debuggerBrokeListeners.forEach(function (f) { f(webSocketMessage.data); });
+            return;
+        }
+
+        var result = null;
+        try {
+            var parts = splitFirstN(webSocketMessage.data, ";", 3);
+            if (parts.length != 3) {
+                throw "Bad JsDbg WebSocket protocol!";
+            }
+            var responseId = parts[0];
+            if (parts[1] != "200") {
+                throw "Server failed on message id " + responseId;
+            }
+            result = parts[2];
+        } catch (error) {
+            result = {
+                error: error
+            };
+        } finally {
+            if (!(responseId in currentWebSocketCallbacks)) {
+                throw "No registered callback for message id " + responseId;
+            } else {
+                // Fire the callback and remove it from the registry.
+                currentWebSocketCallbacks[responseId].callback(result);
+                delete currentWebSocketCallbacks[responseId];
+                ++remainingAllowableWebSocketRequests;
+
+                if (pendingWebSocketMessages.length > 0) {
+                    pendingWebSocketMessages[0]();
+                    pendingWebSocketMessages = pendingWebSocketMessages.slice(1);
+                }
+            }
+        }
+    }
+
+    function sendWebSocketMessage(requestId, messageToSend, callback) {
+        var retryWebSocketRequest = function retryWebSocketRequest() { sendWebSocketMessage(requestId, messageToSend, callback); }
         if (currentWebSocket == null || (currentWebSocket.readyState > WebSocket.OPEN)) {
             currentWebSocket = new WebSocket("ws://" + window.location.host);
-            currentWebSocket.addEventListener("message", function jsdbgWebSocketMessageHandler(webSocketMessage) {
-                // Check if it's a server-initiated break-in event.
-                if (webSocketMessage.data == "break") {
-                    // Invalidate the transient cache.  This should probably be invalidated on "run" instead.
-                    transientCache = {};
-
-                    debuggerBrokeListeners.forEach(function (f) { f(webSocketMessage.data); });
-                    return;
-                }
-
-                var result = null;
-                try {
-                    var parts = splitFirstN(webSocketMessage.data, ";", 3);
-                    if (parts.length != 3) {
-                        throw "Bad JsDbg WebSocket protocol!";
-                    }
-                    var responseId = parts[0];
-                    if (parts[1] != "200") {
-                        throw "Server failed on message id " + responseId;
-                    }
-                    result = parts[2];
-                } catch (error) {
-                    result = {
-                        error: error
-                    };
-                } finally {
-                    if (!(responseId in currentWebSocketCallbacks)) {
-                        throw "No registered callback for message id " + responseId;
-                    } else {
-                        // Fire the callback and remove it from the registry.
-                        currentWebSocketCallbacks[responseId](result);
-                        delete currentWebSocketCallbacks[requestId];
-                    }
-                }
-            });
+            currentWebSocket.addEventListener("message", handleWebSocketReply);
 
             currentWebSocket.addEventListener("close", function jsdbgWebSocketCloseHandler() {
                 currentWebSocket = null;
-                console.log("JsDbg web socket was closed.");
+                console.log("JsDbg web socket was closed...retrying in-flight requests.");
+
+                // Retry the in-flight messages.
+                var oldCallbacks = currentWebSocketCallbacks;
+                currentWebSocketCallbacks = {};
+                for (var key in oldCallbacks) {
+                    var value = oldCallbacks[key];
+                    sendWebSocketMessage(key, value.messageToSend, value.callback);
+                }
             })
         }
 
         if (currentWebSocket.readyState < WebSocket.OPEN) {
-            currentWebSocket.addEventListener("open", function retryWebSocketRequest() { sendWebSocketMessage(requestId, messageToSend, callback); });
+            currentWebSocket.addEventListener("open", retryWebSocketRequest);
         } else if (currentWebSocket.readyState == WebSocket.OPEN) {
-            currentWebSocket.send(requestId + ";" + messageToSend);
+            if (remainingAllowableWebSocketRequests > 0) {
+                --remainingAllowableWebSocketRequests;
+                currentWebSocketCallbacks[requestId.toString()] = {
+                    callback: callback,
+                    messageToSend: messageToSend
+                };
+                currentWebSocket.send(requestId + ";" + messageToSend);
+            } else {
+                pendingWebSocketMessages.push(retryWebSocketRequest);
+            }
         }
     }
 
