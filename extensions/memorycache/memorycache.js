@@ -38,8 +38,16 @@ var MemoryCache = (function() {
         return address.mod(PAGE_SIZE).divide(size);
     }
 
+    function Uint64Viewer(arrayBuffer) {
+        this.view = new Uint32Array(arrayBuffer);
+        this.length = this.view.length / 2;
+    }
+    Uint64Viewer.prototype.extract = function(i) {
+        return bigInt(this.view[i * 2 + 1]).multiply(0x100000000).add(this.view[i * 2]);
+    }
+
     const floatArrays = [Float32Array, Float64Array];
-    const unsignedArrays = [Uint8Array, Uint16Array, null, Uint32Array, null, null, null, null];
+    const unsignedArrays = [Uint8Array, Uint16Array, null, Uint32Array, null, null, null, Uint64Viewer];
     const signedArrays = [Int8Array, Int16Array, null, Int32Array, null, null, null, null];
 
     function getArrayViewer(size, isUnsigned, isFloat) {
@@ -49,6 +57,14 @@ var MemoryCache = (function() {
             return unsignedArrays[size - 1];
         } else {
             return signedArrays[size - 1];
+        }
+    }
+
+    function extract(view, index) {
+        if (view instanceof Uint64Viewer) {
+            return view.extract(index);
+        } else {
+            return view[index];
         }
     }
 
@@ -131,7 +147,7 @@ var MemoryCache = (function() {
                 if (view.error) {
                     callback(view);
                 } else {
-                    callback({value: view[getOffset(address, size)]});
+                    callback({value: extract(view, getOffset(address, size))});
                 }
             })
         ) {
@@ -199,7 +215,7 @@ var MemoryCache = (function() {
                 var remainingElements = count - result.length;
                 var lastIndexInCurrentPage = Math.min(indexInCurrentPage + remainingElements, view.length);
                 for (var i = indexInCurrentPage; i < lastIndexInCurrentPage; ++i) {
-                    result.push(view[i]);
+                    result.push(extract(view, i));
                 }
 
                 // Start from the beginning of the next page.

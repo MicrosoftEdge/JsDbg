@@ -119,7 +119,7 @@ var FieldSupport = (function() {
             return obj;
         } else if (typeof(obj.desc) == typeof(descify)) {
             return Promise.as(obj.desc());
-        } else if (typeof(obj) == typeof([])) {
+        } else if (obj instanceof Array) {
             return Promise.map(obj, descify);
         } else {
             return obj;
