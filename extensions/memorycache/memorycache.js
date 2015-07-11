@@ -15,7 +15,7 @@ var MemoryCache = (function() {
     }
 
     function getCacheEntry(page) {
-        var pageKey = page.toString(16);
+        var pageKey = page.toString();
         var cacheEntry = cache[pageKey];
         if (cacheEntry == undefined) {
             cacheEntry = {
