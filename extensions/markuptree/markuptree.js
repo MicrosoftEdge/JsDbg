@@ -42,15 +42,16 @@ var MarkupTree = (function() {
 
     if (JsDbg.GetCurrentExtension() == "markuptree") {
         DbgObjectTree.AddRoot("Markup Tree", function() { 
-            // Sort them by the length of the CMarkup's CAttrArray as a proxy for interesting-ness.
-            return Promise.sort(MSHTML.GetRootCTreeNodes(), function (treeNode) {
-                return treeNode.f("_pElement").f("_chain._pMarkup", "_pMarkup")
-                .then(function (markup) {
-                    return markup.as("char").idx(0 - (markup.pointerValue() % 4)).as("CMarkup").f("_pAA._c").val();
-                })
-                .then(function (value) {
-                    return 0 - value;
-                })
+            return MSHTML.GetCDocs()
+            .f("_pWindowPrimary._pCWindow._pMarkup")
+            .then(function (markups) {
+                // Sort them by the length of the CMarkup's CAttrArray as a proxy for interesting-ness.
+                return Promise.sort(markups, function (markup) {
+                    return markup.f("_pAA._c").val()
+                    .then(function (value) {
+                        return 0 - value;
+                    })
+                });
             });
         });
         DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
@@ -81,10 +82,69 @@ var MarkupTree = (function() {
                 return "&lt;" + tag + "&gt;";
             })
         });
+
+        DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
+            // Get the subordinate markup.
+            var element = object.f("_pElement");
+            return Promise.join([
+                element.f("_fHasLookasidePtr").val(),
+                DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE", "LOOKASIDE_SUBORDINATE"),
+                DbgObject.constantValue(MSHTML.Module, "CTreeNode", "LOOKASIDE_NODE_NUMBER")
+            ])
+            .then(function (results) {
+                var lookasides = results[0];
+                var lookasideSubordinate = results[1];
+                var lookasideNodeNumber = results[2];
+
+                if (lookasides & (1 << lookasideSubordinate)) {
+                    var hashtable = MSHTML.GetDocFromMarkup(MSHTML.GetMarkupFromElement(element)).f("_HtPvPv");
+                    // With the CTreeNode/CElement merger, CElement lookasides come after CTreeNode lookasides.
+                    return MSHTML.GetObjectLookasidePointer(element, lookasideSubordinate + lookasideNodeNumber, hashtable)
+                    .then(function (result) {
+                        if (result.isNull()) {
+                            // No result, but the lookaside bit was set...try the pre-merger behavior.
+                            return MSHTML.GetObjectLookasidePointer(element, lookasideSubordinate, hashtable);
+                        } else {
+                            return result;
+                        }
+                    })
+                    .then(function (result) {
+                        if (!result.isNull()) {
+                            return MSHTML.GetMarkupFromElement(result.as("CElement"))
+                        }
+                    });
+                }
+            })
+        });
+
         DbgObjectTree.AddType("Text", MSHTML.Module, "CTreeDataPos");
 
         DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "CTreeNode", address);
+            return new DbgObject(MSHTML.Module, "CMarkup", address).vcast()
+            .then(undefined, function (err) {
+                // Virtual-table cast failed, so presume a CTreeNode.
+                return new DbgObject(MSHTML.Module, "CTreeNode", address);
+            });
+        });
+
+        DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
+            return promoteTreePos(markup.f("_ptpFirst"));
+        }, function (markup) {
+            return markup.f("_pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
+            .then(function (str) {
+                 if (!str.isNull()) {
+                    return str.string();
+                 } else {
+                    return null;
+                 }
+            })
+            .then(function (url) {
+                if (url != null) {
+                    return "CMarkup (" + url + ")";
+                } else {
+                    return "CMarkup";
+                }
+            })
         });
 
         FieldSupport.RegisterTypeAlias(MSHTML.Module, "CTreeDataPos", "Text");
@@ -180,7 +240,7 @@ var MarkupTree = (function() {
 
     return {
         Name: "MarkupTree",
-        BasicType: "CTreeNode",
+        BasicType: "CMarkup",
         DefaultFieldType: {
             module: "edgehtml",
             type: "CTreeNode"
