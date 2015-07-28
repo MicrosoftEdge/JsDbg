@@ -517,6 +517,19 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/constantname?module=" + esc(module) + "&type=" + esc(type) + "&constant=" + esc(constant), callback, CacheType.Cached);
         },
 
+        _help_LookupConstantValue: {
+            description: "Looks up the value of a given constant (i.e. an enum value).",
+            arguments: [
+                {name:"module", type:"string", description:"The module of the enum type."},
+                {name:"type", type:"string", description:"The enum type."},
+                {name:"constantName", type:"string", description:"The constant name (i.e. enum name)."},
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        LookupConstantValue: function(module, type, constantName, callback) {
+            jsonRequest("/jsdbg/constantvalue?module=" + esc(module) + "&type=" + esc(type) + "&name=" + esc(constantName), callback, CacheType.Cached);
+        },
+
         _help_GetPointerSize: {
             description: "Looks up the size of a pointer.",
             arguments: [

@@ -342,6 +342,9 @@ namespace JsDbg {
             case "constantname":
                 this.ServeConstantName(query, respond, fail);
                 break;
+            case "constantvalue":
+                this.ServeConstantValue(query, respond, fail);
+                break;
             case "basetypes":
                 this.ServeBaseTypes(query, respond, fail);
                 break;
@@ -700,8 +703,28 @@ namespace JsDbg {
 
             string responseString;
             try {
-                string constantName = await this.debugger.LookupConstantName(module, type, constant);
-                responseString = String.Format("{{ \"name\": \"{0}\" }}", constantName);
+                SConstantResult constantResult = await this.debugger.LookupConstant(module, type, constant);
+                responseString = String.Format("{{ \"name\": \"{0}\" }}", constantResult.ConstantName);
+            } catch (JsDbg.DebuggerException ex) {
+                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+            }
+
+            respond(responseString);
+        }
+
+        private async void ServeConstantValue(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
+            string type = query["type"];
+            string constantName = query["name"];
+            if (module == null || type == null || constantName == null) {
+                fail();
+                return;
+            }
+
+            string responseString;
+            try {
+                SConstantResult constantResult = await this.debugger.LookupConstant(module, type, constantName);
+                responseString = String.Format("{{ \"value\": {0} }}", constantResult.Value); // TODO: requires 64-bit serialization
             } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }

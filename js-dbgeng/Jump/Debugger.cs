@@ -72,21 +72,30 @@ namespace Sushraja.Jump
         #endregion
 
         #region Other Services
-        public async System.Threading.Tasks.Task<string> LookupConstantName(string module, string type, ulong constant)
+        public async System.Threading.Tasks.Task<SConstantResult> LookupConstant(string module, string typename, ulong constant)
         {   
             await this.WaitForBreakIn();
-            string expression = "(" + module + ".dll!" + type + ")" + constant;
-            EnvDTE.Expression result = dte.Debugger.GetExpression(expression);
-            string constantName;
-            if (result.IsValidValue)
-            {
-                constantName = result.Value;
+
+            JsDbg.Type type = this.typeCache.GetType(module, typename);
+            foreach (SConstantResult constantResult in type.Constants) {
+                if (constantResult.Value == constant) {
+                    return constantResult;
+                }
             }
-            else
-            {
-                throw new DebuggerException(String.Format("LookupConstantName: Failed to evaluate expression {0}", expression));
+
+            throw new DebuggerException(String.Format("Failed to find constant {0} of type {1}", constant, typename));
+        }
+
+        public async System.Threading.Tasks.Task<SConstantResult> LookupConstant(string module, string typename, string constantName) {
+            await this.WaitForBreakIn();
+
+            JsDbg.Type type = this.typeCache.GetType(module, typename);
+            ulong constantValue;
+            if (type.GetConstantValue(constantName, out constantValue)) {
+                return new SConstantResult() { ConstantName = constantName, Value = constantValue };
+            } else {
+                throw new DebuggerException(String.Format("Unknown constant name: {0} in type: {0}", constantName, typename));
             }
-            return constantName;
         }
 
         public async Task<SSymbolResult> LookupSymbol(string symbol, bool isGlobal)

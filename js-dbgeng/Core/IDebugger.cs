@@ -35,6 +35,12 @@ namespace JsDbg
         }
     }
 
+    public struct SConstantResult
+    {
+        public ulong Value;
+        public string ConstantName;
+    }
+
     public struct SBaseTypeResult
     {
         public string TypeName;
@@ -48,7 +54,8 @@ namespace JsDbg
         Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename);
         Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typeName);
         bool IsPointer64Bit { get; }
-        Task<string> LookupConstantName(string module, string type, ulong constant);
+        Task<SConstantResult> LookupConstant(string module, string type, ulong constantValue);
+        Task<SConstantResult> LookupConstant(string module, string type, string constantName);
         Task<SFieldResult> LookupField(string module, string typename, string fieldName);
         Task<SSymbolResult> LookupSymbol(string symbol, bool isGlobal);
         Task<IEnumerable<SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbol, int maxCount);

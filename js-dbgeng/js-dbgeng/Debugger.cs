@@ -130,8 +130,17 @@ namespace JsDbg {
             return type.BaseTypes;
         }
 
-        public async Task<string> LookupConstantName(string module, string type, ulong constant) {
+        public async Task<SConstantResult> LookupConstant(string module, string typename, ulong constant) {
             await this.WaitForBreakIn();
+
+            Type type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename);
+            foreach (SConstantResult constantResult in type.Constants) {
+                if (constantResult.Value == constant) {
+                    return constantResult;
+                }
+            }
+
+            // TODO: fallback here for now, but this should be part of the type's fallback mechanism
 
             // Get the module.
             ulong moduleBase;
@@ -146,7 +155,7 @@ namespace JsDbg {
             System.Diagnostics.Debug.WriteLine(String.Format("getting type: {0}", type));
             uint typeId;
             try {
-                typeId = this.symbolCache.GetTypeId(moduleBase, type);
+                typeId = this.symbolCache.GetTypeId(moduleBase, typename);
             } catch {
                 throw new DebuggerException(String.Format("Invalid type name: {0}", type));
             }
@@ -158,7 +167,19 @@ namespace JsDbg {
             } catch {
                 throw new DebuggerException(String.Format("Invalid constant: {0}", constant));
             }
-            return result;
+            return new SConstantResult() { ConstantName = result, Value = constant };
+        }
+
+        public async Task<SConstantResult> LookupConstant(string module, string typename, string constantName) {
+            await this.WaitForBreakIn();
+
+            Type type = this.typeCache.GetType(this.client, this.control, this.symbolCache, module, typename);
+            ulong constantValue;
+            if (type.GetConstantValue(constantName, out constantValue)) {
+                return new SConstantResult() {ConstantName = constantName, Value = constantValue};
+            } else {
+                throw new DebuggerException(String.Format("Unknown constant name: {0} in type: {0}", constantName, typename));
+            }
         }
 
         public async Task<string> LookupSymbol(ulong pointer) {

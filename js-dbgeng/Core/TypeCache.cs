@@ -52,7 +52,7 @@ namespace JsDbg
     }
    
     public class Type {
-        public Type(string module, string name, uint size, Dictionary<string, SField> fields, List<SBaseType> baseTypes, List<SBaseTypeName> baseTypeNames) {
+        public Type(string module, string name, uint size, Dictionary<string, SField> fields, Dictionary<string, ulong> constants, List<SBaseType> baseTypes, List<SBaseTypeName> baseTypeNames) {
             this.module = module;
             this.name = name;
             this.size = size;
@@ -61,6 +61,13 @@ namespace JsDbg
                 this.caseInsensitiveFields = new Dictionary<string, string>();
                 foreach (string field in fields.Keys) {
                     this.caseInsensitiveFields[field.ToLowerInvariant()] = field;
+                }
+            }
+            this.constants = constants;
+            if (this.constants != null) {
+                this.caseInsensitiveConstants = new Dictionary<string, string>();
+                foreach (string constantName in constants.Keys) {
+                    this.caseInsensitiveConstants[constantName.ToLowerInvariant()] = constantName;
                 }
             }
             this.baseTypes = baseTypes;
@@ -99,6 +106,27 @@ namespace JsDbg
             }
 
             field = new SField();
+            return false;
+        }
+
+        public bool GetConstantValue(string name, out ulong value) {
+            if (this.constants != null) {
+                if (this.constants.ContainsKey(name)) {
+                    value = this.constants[name];
+                    return true;
+                } else if (this.caseInsensitiveConstants.ContainsKey(name.ToLowerInvariant())) {
+                    value = this.constants[this.caseInsensitiveConstants[name.ToLowerInvariant()]];
+                    return true;
+                } else if (this.baseTypes != null) {
+                    foreach (SBaseType baseType in this.baseTypes) {
+                        if (baseType.Type.GetConstantValue(name, out value)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            value = 0;
             return false;
         }
 
@@ -160,11 +188,31 @@ namespace JsDbg
             }
         }
 
+        public IEnumerable<SConstantResult> Constants {
+            get {
+                if (this.baseTypes != null) {
+                    foreach (SBaseType baseType in this.baseTypes) {
+                        foreach (SConstantResult innerBaseConstant in baseType.Type.Constants) {
+                            yield return innerBaseConstant;
+                        }
+                    }
+                }
+
+                if (this.constants != null) {
+                    foreach (string constantName in this.constants.Keys) {
+                        yield return new SConstantResult() { ConstantName = constantName, Value = this.constants[constantName] };
+                    }
+                }
+            }
+        }
+
         private readonly string module;
         private readonly string name;
         private readonly uint size;
         private readonly Dictionary<string, SField> fields;
         private readonly Dictionary<string, string> caseInsensitiveFields;
+        private readonly Dictionary<string, ulong> constants;
+        private readonly Dictionary<string, string> caseInsensitiveConstants;
         private readonly List<SBaseType> baseTypes;
         private readonly List<SBaseTypeName> baseTypeNames;
     }
@@ -271,6 +319,7 @@ namespace JsDbg
                     symbol.findChildren(SymTagEnum.SymTagData, null, 0, out dataSymbols);
                     uint typeSize = (uint)symbol.length;
                     Dictionary<string, SField> fields = new Dictionary<string, SField>();
+                    Dictionary<string, ulong> constants = new Dictionary<string, ulong>();
 
                     foreach (IDiaSymbol dataSymbol in dataSymbols) {
                         DiaHelpers.LocationType location = (DiaHelpers.LocationType)dataSymbol.locationType;
@@ -280,6 +329,33 @@ namespace JsDbg
                             fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), bitOffset, bitCount));
                         } else if (location == DiaHelpers.LocationType.LocIsThisRel) {
                             fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), 0, 0));
+                        } else if (location == DiaHelpers.LocationType.LocIsConstant) {
+                            try {
+                                constants.Add(dataSymbol.name, (ulong)dataSymbol.value);
+                            } catch {
+                                // If the cast failed, just ignore the constant for now.
+                            }
+                        }
+                    }
+
+                    IDiaEnumSymbols enumSymbols;
+                    symbol.findChildren(SymTagEnum.SymTagEnum, null, 0, out enumSymbols);
+                    List<string> names = new List<string>();
+                    foreach (IDiaSymbol enumSymbol in enumSymbols) {
+                        if (enumSymbol.name.IndexOf("<unnamed-enum") == 0) {
+                            // Anonymous enum.  Include the constants in the outer type.
+                            IDiaEnumSymbols anonymousEnumDataSymbols;
+                            enumSymbol.findChildren(SymTagEnum.SymTagData, null, 0, out anonymousEnumDataSymbols);
+                            foreach (IDiaSymbol dataSymbol in anonymousEnumDataSymbols) {
+                                DiaHelpers.LocationType location = (DiaHelpers.LocationType)dataSymbol.locationType;
+                                if (location == DiaHelpers.LocationType.LocIsConstant) {
+                                    try {
+                                        constants.Add(dataSymbol.name, (ulong)dataSymbol.value);
+                                    } catch {
+                                        // If the cast failed, just ignore the constant for now.
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -298,7 +374,7 @@ namespace JsDbg
                     }
 
                     // Construct the type.
-                    Type type = new Type(module, typename, typeSize, fields, baseTypes, null);
+                    Type type = new Type(module, typename, typeSize, fields, constants, baseTypes, null);
                     return type;
                 }
             }
@@ -395,9 +471,9 @@ namespace JsDbg
         private Type GetBuiltinType(string module, string typename) {
             string strippedType = typename.Replace("unsigned", "").Replace("signed", "").Trim();
             if (BuiltInTypes.ContainsKey(strippedType)) {
-                return new Type(module, typename, BuiltInTypes[strippedType], null, null, null);
+                return new Type(module, typename, BuiltInTypes[strippedType], null, null, null, null);
             } else if (strippedType.EndsWith("*")) {
-                return new Type(module, typename, this.isPointer64Bit ? 8u : 4u, null, null, null);
+                return new Type(module, typename, this.isPointer64Bit ? 8u : 4u, null, null, null, null);
             } else {
                 return null;
             }

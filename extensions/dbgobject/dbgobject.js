@@ -334,6 +334,13 @@ var DbgObject = (function() {
         );
     }
 
+    DbgObject.constantValue = function(module, type, constantName) {
+        return jsDbgPromise(JsDbg.LookupConstantValue, module, type, constantName)
+        .then(function (result) {
+            return result.value;
+        });
+    }
+
     DbgObject._help_NULL = {description: "A DbgObject that represents a null value."}
     DbgObject.NULL = new DbgObject("", "", 0, 0, 0);
 

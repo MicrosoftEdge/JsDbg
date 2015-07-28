@@ -132,7 +132,8 @@ namespace JsDbg
             }
 
             // Construct the type and add it to the cache.  We don't need to fill base types because this approach embeds base type information directly in the Type.
-            Type type = new Type(module, typename, typeSize, fields, null, baseTypeNames);
+            // TODO: get constants as well
+            Type type = new Type(module, typename, typeSize, fields, null, null, baseTypeNames);
             this.types.Add(TypeKey(module, typename), type);
             return type;
         }
