@@ -32,6 +32,8 @@ namespace JsDbg {
         internal DumpTypeParser() {
             this.ParsedBaseClasses = new List<SBaseClass>();
             this.ParsedFields = new List<SField>();
+            this.ParsedConstants = new List<SConstantResult>();
+            this.AnonymousEnums = new List<string>();
             this.buffer = new StringBuilder();
         }
 
@@ -41,8 +43,15 @@ namespace JsDbg {
 
         internal void Parse() {
             string[] lines = this.buffer.ToString().Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            bool isInEnum = false;
+            string thisclass = null;
+
             foreach (string line in lines) {
                 string[] parts = line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+
+                // Are we still in the enum?
+                isInEnum = (isInEnum && parts.Length == 3 && parts[1] == "=");
+
                 string offsetString = parts[0];
                 if (offsetString[0] == '+') {
                     // The line has an offset.
@@ -75,6 +84,24 @@ namespace JsDbg {
                             break;
                         }
                     }
+                } else if (parts[0] == "Enum") {
+                    // We're parsing an enum.
+                    isInEnum = true;
+                    if (parts[1].IndexOf("<unnamed-enum-") == 0 && thisclass != null) {
+                        // Strip the comma off the end.
+                        this.AnonymousEnums.Add(thisclass + "::" + parts[1].Substring(0, parts[1].Length - 1));
+                    }
+                } else if (isInEnum) {
+                    // Parse the constant.
+                    string name = parts[0];
+                    string number = parts[2].Substring(2).Replace("`", "");
+                    char baseSpecifier = parts[2][1];
+                    System.Globalization.NumberStyles style = (baseSpecifier == 'x' ? System.Globalization.NumberStyles.AllowHexSpecifier : System.Globalization.NumberStyles.None);
+                    ulong value = ulong.Parse(number, style);
+                    this.ParsedConstants.Add(new SConstantResult() { ConstantName = name, Value = value });
+                } else if (parts[0] == "thisclass" && parts.Length >= 3) {
+                    // Strip the comma off the end.
+                    thisclass = parts[2].Substring(0, parts[2].Length - 1);
                 }
             }
         }
@@ -215,8 +242,14 @@ namespace JsDbg {
             return false;
         }
 
+        internal void ClearBuffer() {
+            this.buffer.Clear();
+        }
+
         private StringBuilder buffer;
         internal List<SBaseClass> ParsedBaseClasses;
         internal List<SField> ParsedFields;
+        internal List<SConstantResult> ParsedConstants;
+        internal List<string> AnonymousEnums;
     }
 }

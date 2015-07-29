@@ -140,34 +140,7 @@ namespace JsDbg {
                 }
             }
 
-            // TODO: fallback here for now, but this should be part of the type's fallback mechanism
-
-            // Get the module.
-            ulong moduleBase;
-            System.Diagnostics.Debug.WriteLine(String.Format("getting module: {0}", module));
-            try {
-                moduleBase = this.symbolCache.GetModuleBase(module);
-            } catch {
-                throw new DebuggerException(String.Format("Invalid module name: {0}", module));
-            }
-
-            // Get the type id of the type.
-            System.Diagnostics.Debug.WriteLine(String.Format("getting type: {0}", type));
-            uint typeId;
-            try {
-                typeId = this.symbolCache.GetTypeId(moduleBase, typename);
-            } catch {
-                throw new DebuggerException(String.Format("Invalid type name: {0}", type));
-            }
-
-            // Lookup the constant name.
-            string result;
-            try {
-                result = this.symbolCache.GetConstantName(moduleBase, typeId, constant);
-            } catch {
-                throw new DebuggerException(String.Format("Invalid constant: {0}", constant));
-            }
-            return new SConstantResult() { ConstantName = result, Value = constant };
+            throw new DebuggerException(String.Format("Unknown constant value: {0} in type: {1}", constant, typename));
         }
 
         public async Task<SConstantResult> LookupConstant(string module, string typename, string constantName) {
@@ -178,7 +151,7 @@ namespace JsDbg {
             if (type.GetConstantValue(constantName, out constantValue)) {
                 return new SConstantResult() {ConstantName = constantName, Value = constantValue};
             } else {
-                throw new DebuggerException(String.Format("Unknown constant name: {0} in type: {0}", constantName, typename));
+                throw new DebuggerException(String.Format("Unknown constant name: {0} in type: {1}", constantName, typename));
             }
         }
 

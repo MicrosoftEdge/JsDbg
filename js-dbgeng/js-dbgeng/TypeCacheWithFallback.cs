@@ -76,8 +76,26 @@ namespace JsDbg
             client.DebugOutput -= PrintDotOnDebugOutput;
             client.DebugOutput -= parser.DumpTypeOutputHandler;
             System.Diagnostics.Debug.WriteLine(String.Format("Done executing.", command));
-            Console.Out.WriteLine();
             parser.Parse();
+
+            if (parser.AnonymousEnums.Count > 0) {
+                List<string> anonymousEnums = parser.AnonymousEnums;
+                parser.AnonymousEnums = new List<string>();
+                parser.ClearBuffer();
+                foreach (string enumType in anonymousEnums) {
+                    string enumCommand = String.Format("dt -v {0}!{1}", module, enumType);
+                    System.Diagnostics.Debug.WriteLine(String.Format("Executing command: {0}", enumCommand));
+                    client.DebugOutput += parser.DumpTypeOutputHandler;
+                    client.DebugOutput += PrintDotOnDebugOutput;
+                    control.Execute(OutputControl.ToThisClient, enumCommand, ExecuteOptions.NotLogged);
+                    client.FlushCallbacks();
+                    client.DebugOutput -= PrintDotOnDebugOutput;
+                    client.DebugOutput -= parser.DumpTypeOutputHandler;
+                    System.Diagnostics.Debug.WriteLine(String.Format("Done executing.", enumCommand));
+                }
+                parser.Parse();
+            }
+            Console.Out.WriteLine();
 
             // Construct the type and add it to the cache.
             Dictionary<string, SField> fields = new Dictionary<string, SField>();
@@ -131,9 +149,13 @@ namespace JsDbg
                 baseTypeNames.Add(new SBaseTypeName(parsedBaseClass.TypeName, (int)parsedBaseClass.Offset));
             }
 
+            Dictionary<string, ulong> constants = new Dictionary<string, ulong>();
+            foreach (SConstantResult constant in parser.ParsedConstants) {
+                constants.Add(constant.ConstantName, constant.Value);
+            }
+
             // Construct the type and add it to the cache.  We don't need to fill base types because this approach embeds base type information directly in the Type.
-            // TODO: get constants as well
-            Type type = new Type(module, typename, typeSize, fields, null, null, baseTypeNames);
+            Type type = new Type(module, typename, typeSize, fields, constants, null, baseTypeNames);
             this.types.Add(TypeKey(module, typename), type);
             return type;
         }
