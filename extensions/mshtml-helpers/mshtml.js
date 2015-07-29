@@ -156,9 +156,9 @@ var MSHTML = (function() {
         return firstEntry.idx(index).then(function(entry) {
             return entry.f("pvKey").pointerValue()
             .then(function (entryKey) {
-                if ((entryKey & ~1) == key) {
+                if ((entryKey - (entryKey % 2)) == key) {
                     return entry.f("pvVal");
-                } else if ((entryKey & 1) == 0) {
+                } else if ((entryKey % 2) == 0) {
                     // No more entries with this hash.
                     return DbgObject.NULL;
                 } else {
