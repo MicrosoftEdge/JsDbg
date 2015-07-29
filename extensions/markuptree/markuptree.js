@@ -44,6 +44,9 @@ var MarkupTree = (function() {
         DbgObjectTree.AddRoot("Markup Tree", function() { 
             return MSHTML.GetCDocs()
             .f("_pWindowPrimary._pCWindow._pMarkup")
+            .filter(function (markup) {
+                return !markup.isNull();
+            })
             .then(function (markups) {
                 // Sort them by the length of the CMarkup's CAttrArray as a proxy for interesting-ness.
                 return Promise.sort(markups, function (markup) {
