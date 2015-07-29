@@ -7,7 +7,6 @@ using Microsoft.Debuggers.DbgEng;
 
 namespace JsDbg {
     class Debugger : IDisposable, JsDbg.IDebugger {
-
         public event EventHandler DebuggerBroke;
        
         public Debugger(string connectionString) {
@@ -17,9 +16,10 @@ namespace JsDbg {
             this.isPointer64Bit = (this.control.EffectiveProcessorType == Processor.Amd64);
             this.exitDispatchClient = new DebugClient(connectionString);
             this.symbolCache = new SymbolCache(this.client);
-            this.typeCache = new TypeCacheWithFallback(this.isPointer64Bit, this.symbolCache.GetModuleSymbolPath);
             this.dataSpaces = new DebugDataSpaces(this.client);
             this.symbols = new DebugSymbols(this.client);
+            this.diaLoader = new Core.DiaSessionLoader(new Core.IDiaSessionSource[] { new DiaSessionPathSource(this.symbolCache), new DiaSessionModuleSource(this.symbolCache, this.dataSpaces) });
+            this.typeCache = new TypeCacheWithFallback(this.diaLoader, this.isPointer64Bit);
             this.isShuttingDown = false;
             this.didShutdown = true;
         }
@@ -47,7 +47,7 @@ namespace JsDbg {
                         // Invalidate the type cache.
                         Console.Out.WriteLine("Effective processor changed, so invalidating type cache.  You may need to refresh the browser window.");
                         this.isPointer64Bit = !this.isPointer64Bit;
-                        this.typeCache = new TypeCacheWithFallback(this.isPointer64Bit, this.symbolCache.GetModuleSymbolPath);
+                        this.typeCache = new TypeCacheWithFallback(this.diaLoader, this.isPointer64Bit);
                     }
                 } else if (args.Change == EngineStateChange.ExecutionStatus) {
                     bool insideWait = (args.Argument & (ulong)DebugStatus.InsideWait) == (ulong)DebugStatus.InsideWait;
@@ -387,7 +387,6 @@ namespace JsDbg {
             } while (true);
         }
 
-
         public bool IsPointer64Bit {
             get { return this.isPointer64Bit; }
         }
@@ -421,6 +420,7 @@ namespace JsDbg {
         private Microsoft.Debuggers.DbgEng.DebugSymbols symbols;
         private SymbolCache symbolCache;
         private TypeCacheWithFallback typeCache;
+        private Core.DiaSessionLoader diaLoader;
         private bool isPointer64Bit;
         private bool isShuttingDown;
         private bool didShutdown;

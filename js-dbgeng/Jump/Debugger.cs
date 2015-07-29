@@ -384,7 +384,8 @@ namespace Sushraja.Jump
                                                                 {
                                                                     this.isPointer64Bit = true;
                                                                 }
-                                                                this.typeCache = new TypeCache(this.isPointer64Bit, this.GetModuleSymbolPath);
+                                                                Core.DiaSessionLoader diaLoader = new Core.DiaSessionLoader(new Core.IDiaSessionSource[]{ new DiaSessionPathSource(this) });
+                                                                this.typeCache = new TypeCache(diaLoader, this.isPointer64Bit);
                                                             }
                                                         }
                                                     }

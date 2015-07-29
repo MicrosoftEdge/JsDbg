@@ -226,12 +226,11 @@ namespace JsDbg
 #endregion
 
     public class TypeCache {
-        public TypeCache(bool isPointer64Bit, GetModuleSymbolPathDelegate getModuleSymbolPath) {
+        public TypeCache(Core.DiaSessionLoader diaLoader, bool isPointer64Bit) {
             this.types = new Dictionary<string, Type>();
-            this.modules = new Dictionary<string, IDiaSession>();
+            this.fallbackModules = new HashSet<string>();
             this.isPointer64Bit = isPointer64Bit;
-            this.didAttemptDIARegistration = false;
-            this.GetModuleSymbolPath = getModuleSymbolPath;
+            this.diaLoader = diaLoader;
         }
 
         private static Regex ArrayIndexRegex = new Regex(@"\[[0-9]*\]");
@@ -383,72 +382,27 @@ namespace JsDbg
         }
 
         private bool IsInFallbackForModule(string module) {
-            return this.modules.ContainsKey(module) && this.modules[module] == null;
+            return this.fallbackModules.Contains(module);
         }
 
         private void SetInFallbackForModule(string module) {
-            this.modules[module] = null;
+            this.fallbackModules.Add(module);
         }
 
         private IDiaSession AttemptLoadDiaSession(string module) {
-            while (!this.IsInFallbackForModule(module)) {
-                try {
-                    IDiaSession diaSession;
-                    if (this.modules.ContainsKey(module)) {
-                        diaSession = this.modules[module];
-                    } else {
-                        // Get the symbol path.                
-                        DiaSource source = new DiaSource();
-                        source.loadDataFromPdb(this.GetModuleSymbolPath(module));
-                        source.openSession(out diaSession);
-                        this.modules[module] = diaSession;
-                    }
-
-                    return diaSession;
-                } catch (JsDbg.DebuggerException) {
-                    throw;
-                } catch (System.Runtime.InteropServices.COMException comException) {
-                    if ((uint)comException.ErrorCode == 0x80040154 && !this.didAttemptDIARegistration) {
-                        // The DLL isn't registered.
-                        this.didAttemptDIARegistration = true;
-                        try {
-                            this.AttemptDIARegistration();
-                        } catch (Exception ex) {
-                            // Go into fallback.
-                            Console.Out.WriteLine("Falling back due to DIA registration failure: {0}", ex.Message);
-                            this.SetInFallbackForModule(module);
-                        }
-                    } else {
-                        this.SetInFallbackForModule(module);
-                    }
-                } catch {
-                    this.SetInFallbackForModule(module);
+            if (!this.IsInFallbackForModule(module)) {
+                IDiaSession session = this.diaLoader.LoadDiaSession(module);
+                if (session != null) {
+                    return session;
                 }
+
+                this.SetInFallbackForModule(module);
             }
 
             return null;
         }
 
-        private void AttemptDIARegistration() {
-            string dllName = "msdia110.dll";
-            Console.WriteLine("Attempting to register {0}.  This will require elevation...", dllName);
-
-            // Copy it down to the support directory if needed.
-            string dllPath = Path.Combine(WebServer.LocalSupportDirectory, dllName);
-            if (!File.Exists(dllName)) {
-                if (!Directory.Exists(WebServer.LocalSupportDirectory)) {
-                    Directory.CreateDirectory(WebServer.LocalSupportDirectory);
-                }
-                string remotePath = Path.Combine(WebServer.SharedSupportDirectory, dllName);
-                File.Copy(remotePath, dllPath);
-            }
-
-            System.Threading.Thread.Sleep(1000);
-            ProcessStartInfo regsvr = new ProcessStartInfo("regsvr32", dllPath);
-            regsvr.Verb = "runas";
-
-            Process.Start(regsvr).WaitForExit();
-        }              
+                      
 
         // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
         protected static Dictionary<string, uint> BuiltInTypes = new Dictionary<string, uint>()
@@ -483,12 +437,9 @@ namespace JsDbg
             return String.Format("{0}!{1}", module, typename);
         }
 
-        public delegate string GetModuleSymbolPathDelegate(string moduleName);
-        private GetModuleSymbolPathDelegate GetModuleSymbolPath;
-
+        private Core.DiaSessionLoader diaLoader;
         protected Dictionary<string, Type> types;
-        private Dictionary<string, IDiaSession> modules;
+        private HashSet<string> fallbackModules;
         private bool isPointer64Bit;
-        private bool didAttemptDIARegistration;
     }
 }

@@ -13,8 +13,8 @@ namespace JsDbg
 {
     class TypeCacheWithFallback : TypeCache
     {
-        internal TypeCacheWithFallback(bool isPointer64Bit, GetModuleSymbolPathDelegate GetModuleSymbolPath)
-            : base(isPointer64Bit, GetModuleSymbolPath)
+        internal TypeCacheWithFallback(Core.DiaSessionLoader diaLoader, bool isPointer64Bit)
+            : base(diaLoader, isPointer64Bit)
         {
         }
 

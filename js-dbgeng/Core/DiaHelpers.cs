@@ -4,8 +4,33 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Dia2Lib;
+using System.Runtime.InteropServices;
 
 namespace JsDbg {
+    [ 
+         ComImport, 
+         Guid("8E3F80CA-7517-432a-BA07-285134AAEA8E"), 
+         InterfaceType(ComInterfaceType.InterfaceIsIUnknown), 
+         ComVisible(true)
+    ] 
+    public interface IDiaReadExeAtRVACallback {
+        void ReadExecutableAtRVA(uint relativeVirtualAddress, uint cbData, ref uint pcbData, [In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] data);
+    }
+
+    [
+         ComImport,
+         Guid("C32ADB82-73F4-421b-95D5-A4706EDF5DBE"),
+         InterfaceType(ComInterfaceType.InterfaceIsIUnknown),
+         ComVisible(true)
+    ] 
+    public interface IDiaLoadCallback {
+        void NotifyDebugDir(bool fExecutable, uint cbData, [In, Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 1)] byte[] data);
+        void NotifyOpenDBG([MarshalAs(UnmanagedType.LPWStr)]string dbgPath, uint resultCode);
+        void NotifyOpenPDB([MarshalAs(UnmanagedType.LPWStr)]string pdbPath, uint resultCode);
+        void RestrictRegistryAccess();
+        void RestrictSymbolServerAccess();
+    }
+
     static class DiaHelpers {
         public enum LocationType {
             LocIsNull = 0,
