@@ -24,6 +24,12 @@ namespace JsDbg {
             return moduleBase;
         }
 
+        internal void GetModule(ulong address, out ulong moduleBase, out string moduleName) {
+            uint index;
+            this.symbols.GetModuleByOffset(address, 0, out index, out moduleBase);
+            moduleName = this.symbols.GetModuleNameStringByIndex(Microsoft.Debuggers.DbgEng.ModuleName.Module, index);
+        }
+
         internal uint GetTypeId(ulong moduleBase, string typeName) {
             return this.symbols.GetTypeId(moduleBase, typeName);
         }

@@ -161,23 +161,63 @@ namespace JsDbg {
         public async Task<string> LookupSymbol(ulong pointer) {
             await this.WaitForBreakIn();
 
-            string name;
-            ulong displacement;
             try {
-                this.symbolCache.GetSymbolName(pointer, out name, out displacement);
-                if (displacement != 0) {
-                    throw new Exception();
+                string moduleName;
+                ulong moduleBase;
+                this.symbolCache.GetModule(pointer, out moduleBase, out moduleName);
+                Dia2Lib.IDiaSession session = this.diaLoader.LoadDiaSession(moduleName);
+
+                if (session != null) {
+                    // We have a DIA session; use it.
+                    Dia2Lib.IDiaSymbol symbol;
+                    int displacement;
+                    session.findSymbolByRVAEx((uint)(pointer - moduleBase), Dia2Lib.SymTagEnum.SymTagNull, out symbol, out displacement);
+                    string name;
+                    symbol.get_undecoratedNameEx(0x1000, out name);
+                    if (displacement != 0) {
+                        throw new Exception();
+                    }
+
+                    return moduleName + "!" + name;
+                } else {
+                    string name;
+                    ulong displacement;
+
+                    this.symbolCache.GetSymbolName(pointer, out name, out displacement);
+                    if (displacement != 0) {
+                        throw new Exception();
+                    }
+                    return name;
                 }
             } catch {
                 throw new DebuggerException(String.Format("Invalid symbol address: 0x{0:x8}", pointer));
             }
-            return name;
         }
 
         public async Task<SSymbolResult> LookupSymbol(string symbol, bool isGlobal) {
             await this.WaitForBreakIn();
             
             SSymbolResult result = new SSymbolResult();
+
+            string moduleName = symbol.Split('!')[0];
+            string symbolName = symbol.Split('!')[1];
+            
+            // TODO: this should only be global
+            Dia2Lib.IDiaSession session = this.diaLoader.LoadDiaSession(moduleName);
+            if (session != null) {
+                // We have a DIA session, use that.
+                try {
+                    Dia2Lib.IDiaEnumSymbols symbols;
+                    session.globalScope.findChildren(Dia2Lib.SymTagEnum.SymTagNull, symbolName, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out symbols);
+                    foreach (Dia2Lib.IDiaSymbol diaSymbol in symbols) {
+                        result.Module = moduleName;
+                        result.Pointer = this.symbolCache.GetModuleBase(moduleName) + diaSymbol.relativeVirtualAddress;
+                        result.Type = DiaHelpers.GetTypeName(diaSymbol.type);
+                        return result;
+                    }
+                } catch { }
+                throw new DebuggerException(String.Format("Invalid symbol: {0}", symbol));
+            }
 
             uint typeId = 0;
             ulong module = 0;
