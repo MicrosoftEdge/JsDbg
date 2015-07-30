@@ -152,6 +152,7 @@
   <ItemGroup>
     <Compile Include="Debugger.cs" />
     <Compile Include="DiaSessionPathSource.cs" />
+    <Compile Include="JumpConfiguration.cs" />
     <Compile Include="MyControl.xaml.cs">
       <DependentUpon>MyControl.xaml</DependentUpon>
     </Compile>

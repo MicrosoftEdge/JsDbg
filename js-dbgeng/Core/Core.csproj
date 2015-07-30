@@ -72,6 +72,7 @@
   <ItemGroup>
     <Compile Include="DiaHelpers.cs" />
     <Compile Include="DiaSessionLoader.cs" />
+    <Compile Include="IConfiguration.cs" />
     <Compile Include="IDebugger.cs" />
     <Compile Include="IDiaSessionSource.cs" />
     <Compile Include="PersistentStore.cs" />

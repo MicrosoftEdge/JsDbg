@@ -27,17 +27,19 @@ namespace JsDbg {
                 remoteString = args[0];
             }
 
+            JsDbgConfiguration configuration = JsDbgConfiguration.Load();
+
             string path;
             if (args.Length > 1) {
                 path = args[1];
             } else {
-                path = WebServer.SharedSupportDirectory;
+                path = configuration.SharedSupportDirectory;
             }
 
             Debugger debugger;
             try {
                 Console.Write("Connecting to a debug session at {0}...", remoteString);
-                debugger = new Debugger(remoteString);
+                debugger = new Debugger(remoteString, configuration);
                 Console.WriteLine("Connected.");
             } catch (Exception ex) {
                 Console.WriteLine("Failed: {0}", ex.Message);
@@ -48,7 +50,7 @@ namespace JsDbg {
 
             string webRoot = System.IO.Path.Combine(path, "wwwroot");
             string extensionRoot = System.IO.Path.Combine(path, "extensions");
-            PersistentStore persistentStore = new PersistentStore(WebServer.PersistentStoreDirectory);
+            PersistentStore persistentStore = new PersistentStore(configuration.PersistentStoreDirectory);
 
             Console.Out.WriteLine("Serving from {0}", webRoot);
             using (WebServer webServer = new WebServer(debugger, persistentStore, webRoot, extensionRoot)) {

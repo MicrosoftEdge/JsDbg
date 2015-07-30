@@ -9,7 +9,7 @@ namespace JsDbg {
     class Debugger : IDisposable, JsDbg.IDebugger {
         public event EventHandler DebuggerBroke;
        
-        public Debugger(string connectionString) {
+        public Debugger(string connectionString, Core.IConfiguration configuration) {
             this.client = new DebugClient(connectionString);
             this.client.OutputMask = OutputModes.Normal;
             this.control = new DebugControl(this.client);
@@ -18,7 +18,10 @@ namespace JsDbg {
             this.symbolCache = new SymbolCache(this.client);
             this.dataSpaces = new DebugDataSpaces(this.client);
             this.symbols = new DebugSymbols(this.client);
-            this.diaLoader = new Core.DiaSessionLoader(new Core.IDiaSessionSource[] { new DiaSessionPathSource(this.symbolCache), new DiaSessionModuleSource(this.symbolCache, this.dataSpaces) });
+            this.diaLoader = new Core.DiaSessionLoader(
+                configuration,
+                new Core.IDiaSessionSource[] { new DiaSessionPathSource(this.symbolCache), new DiaSessionModuleSource(this.symbolCache, this.dataSpaces) }
+            );
             this.typeCache = new TypeCacheWithFallback(this.diaLoader, this.isPointer64Bit);
             this.isShuttingDown = false;
             this.didShutdown = true;

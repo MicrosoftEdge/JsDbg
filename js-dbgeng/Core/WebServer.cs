@@ -11,6 +11,7 @@ using System.Net.WebSockets;
 using System.Collections.Specialized;
 using System.Threading;
 using System.IO;
+using Core;
 
 namespace JsDbg {
     
@@ -82,31 +83,7 @@ namespace JsDbg {
 
     public class WebServer : IDisposable {
 
-        private const string Version = "2014-07-23-01";
-
-        static public string LocalSupportDirectory
-        {
-            get
-            {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support", Version);
-            }
-        }
-
-        static public string SharedSupportDirectory
-        {
-            get
-            {
-                return Path.Combine(@"\\iefs\users\psalas\jsdbg\support\", Version);
-            }
-        }
-
-        static public string PersistentStoreDirectory
-        {
-            get
-            {
-                return @"\\iefs\users\psalas\jsdbg\support\persistent";
-            }
-        }
+        
 
         private const int StartPortNumber = 50000;
         private const int EndPortNumber = 50099;

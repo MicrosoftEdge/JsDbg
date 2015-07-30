@@ -13,8 +13,9 @@ namespace Sushraja.Jump
     {
         const int S_OK = 0;
 
-        internal Debugger()
+        internal Debugger(Core.IConfiguration configuration)
         {
+            this.configuration = configuration;
             IVsDebugger debugService = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsShellDebugger)) as IVsDebugger;
             if (debugService != null)
             {
@@ -384,7 +385,10 @@ namespace Sushraja.Jump
                                                                 {
                                                                     this.isPointer64Bit = true;
                                                                 }
-                                                                Core.DiaSessionLoader diaLoader = new Core.DiaSessionLoader(new Core.IDiaSessionSource[]{ new DiaSessionPathSource(this) });
+                                                                Core.DiaSessionLoader diaLoader = new Core.DiaSessionLoader(
+                                                                    this.configuration,
+                                                                    new Core.IDiaSessionSource[]{ new DiaSessionPathSource(this) }
+                                                                );
                                                                 this.typeCache = new TypeCache(diaLoader, this.isPointer64Bit);
                                                             }
                                                         }
@@ -529,6 +533,7 @@ namespace Sushraja.Jump
         IDebugThread2 currentThread;
         bool isPointer64Bit;
         EnvDTE80.DTE2 dte;
+        Core.IConfiguration configuration;
 
         static Guid debugModule3Guid = Guid.Parse("245F9D6A-E550-404D-82F1-FDB68281607A");
         static Guid startDebugEvent = Guid.Parse("2c2b15b7-fc6d-45b3-9622-29665d964a76");

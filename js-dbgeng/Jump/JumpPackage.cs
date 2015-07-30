@@ -94,11 +94,12 @@ namespace Sushraja.Jump
                 mcs.AddCommand( menuToolWin );
             }
 
-            debugger = new Sushraja.Jump.Debugger();
-            string path = JsDbg.WebServer.SharedSupportDirectory;
+            JumpConfiguration configuration = JumpConfiguration.Load();
+            debugger = new Sushraja.Jump.Debugger(configuration);
+            string path = configuration.SharedSupportDirectory;
             string webRoot = System.IO.Path.Combine(path, "wwwroot");
             string extensionRoot = System.IO.Path.Combine(path, "extensions");
-            JsDbg.PersistentStore persistentStore = new JsDbg.PersistentStore(JsDbg.WebServer.PersistentStoreDirectory);
+            JsDbg.PersistentStore persistentStore = new JsDbg.PersistentStore(configuration.PersistentStoreDirectory);
             webServer = new JsDbg.WebServer(debugger, persistentStore, webRoot, extensionRoot);
             webServer.LoadExtension("default");
 

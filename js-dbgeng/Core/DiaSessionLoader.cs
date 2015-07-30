@@ -9,7 +9,8 @@ using System.Diagnostics;
 
 namespace Core {
     public class DiaSessionLoader {
-        public DiaSessionLoader(IEnumerable<IDiaSessionSource> sources) {
+        public DiaSessionLoader(IConfiguration configuration, IEnumerable<IDiaSessionSource> sources) {
+            this.configuration = configuration;
             this.sources = sources;
             this.activeSessions = new Dictionary<string, IDiaSession>();
             this.didAttemptDiaRegistration = false;
@@ -56,8 +57,8 @@ namespace Core {
             Console.WriteLine("Attempting to register {0}.  This will require elevation...", dllName);
 
             // Copy it down to the support directory if needed.
-            string localSupportDirectory = JsDbg.WebServer.LocalSupportDirectory;
-            string sharedSupportDirectory = JsDbg.WebServer.SharedSupportDirectory;
+            string localSupportDirectory = configuration.LocalSupportDirectory;
+            string sharedSupportDirectory = configuration.SharedSupportDirectory;
 
             string dllPath = Path.Combine(localSupportDirectory, dllName);
             if (!File.Exists(dllPath)) {
@@ -78,6 +79,7 @@ namespace Core {
             System.Threading.Thread.Sleep(1000);
         }
 
+        private IConfiguration configuration;
         private Dictionary<string, IDiaSession> activeSessions;
         private IEnumerable<IDiaSessionSource> sources;
         private bool didAttemptDiaRegistration;
