@@ -158,7 +158,7 @@ namespace JsDbg {
             }
         }
 
-        public async Task<string> LookupSymbol(ulong pointer) {
+        public async Task<SSymbolNameResult> LookupSymbolName(ulong pointer) {
             await this.WaitForBreakIn();
 
             try {
@@ -178,16 +178,17 @@ namespace JsDbg {
                         throw new Exception();
                     }
 
-                    return moduleName + "!" + name;
+                    return new SSymbolNameResult() { Module = moduleName, Name = name };
                 } else {
-                    string name;
+                    string fullyQualifiedSymbolName;
                     ulong displacement;
 
-                    this.symbolCache.GetSymbolName(pointer, out name, out displacement);
-                    if (displacement != 0) {
+                    this.symbolCache.GetSymbolName(pointer, out fullyQualifiedSymbolName, out displacement);
+                    if (displacement != 0 || fullyQualifiedSymbolName.IndexOf("!") == -1) {
                         throw new Exception();
                     }
-                    return name;
+                    string[] parts = fullyQualifiedSymbolName.Split(new char[] { '!' }, 2);
+                    return new SSymbolNameResult() { Module = parts[0], Name = parts[1] };
                 }
             } catch {
                 throw new DebuggerException(String.Format("Invalid symbol address: 0x{0:x8}", pointer));

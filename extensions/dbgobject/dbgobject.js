@@ -932,7 +932,7 @@ var DbgObject = (function() {
 
         // And strip away the vftable suffix..
         .then(function(result) {
-            return result.symbolName.substring(result.symbolName.indexOf("!") + 1, result.symbolName.indexOf("::`vftable'"));
+            return result.name.substring(0, result.name.indexOf("::`vftable'"));
         });
     }
 

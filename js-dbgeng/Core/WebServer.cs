@@ -603,8 +603,8 @@ namespace JsDbg {
 
             string responseString;
             try {
-                string symbolName = await this.debugger.LookupSymbol(pointer);
-                responseString = String.Format("{{ \"symbolName\": \"{0}\" }}", symbolName);
+                SSymbolNameResult symbolName = await this.debugger.LookupSymbolName(pointer);
+                responseString = String.Format("{{ \"module\": \"{0}\", \"name\": \"{1}\" }}", symbolName.Module, symbolName.Name);
             } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }

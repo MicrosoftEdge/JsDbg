@@ -130,7 +130,7 @@ namespace Sushraja.Jump
             return symbolResult;
         }
 
-        public async System.Threading.Tasks.Task<string> LookupSymbol(ulong pointer)
+        public async System.Threading.Tasks.Task<SSymbolNameResult> LookupSymbolName(ulong pointer)
         {            
             await this.WaitForBreakIn();
             string type = "void";
@@ -151,6 +151,9 @@ namespace Sushraja.Jump
                     type = result.Value.Substring(start, stop - start + terminateString.Length);
                     // Remove const because windbg API does not return const.
                     type = type.Replace("const ", "");
+
+                    string[] parts = type.Split(new char[] { '!' }, 2);
+                    return new SSymbolNameResult() { Module = parts[0], Name = parts[1] };
                 }
                 else
                 {
@@ -161,7 +164,6 @@ namespace Sushraja.Jump
             {
                 throw new DebuggerException(String.Format("LookupSymbol (pointer): Failed to evaluate expression {0}", expression));
             }
-            return type;
         }
 
         public async System.Threading.Tasks.Task<byte[]> ReadByteArray(ulong pointer, ulong size)

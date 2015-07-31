@@ -12,6 +12,12 @@ namespace JsDbg
 
         }
     }
+
+    public struct SSymbolNameResult
+    {
+        public string Module;
+        public string Name;
+    }
     
     public struct SSymbolResult
     {
@@ -59,7 +65,7 @@ namespace JsDbg
         Task<SFieldResult> LookupField(string module, string typename, string fieldName);
         Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol);
         Task<IEnumerable<SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbol, int maxCount);
-        Task<string> LookupSymbol(ulong pointer);
+        Task<SSymbolNameResult> LookupSymbolName(ulong pointer);
         Task<uint> LookupTypeSize(string module, string typename);
         Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct;
         Task<T> ReadMemory<T>(ulong pointer) where T : struct;
