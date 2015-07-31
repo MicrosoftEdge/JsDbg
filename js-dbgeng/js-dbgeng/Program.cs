@@ -37,10 +37,10 @@ namespace JsDbg {
                 remoteString = args[0];
             }
 
-            Debugger debugger;
+            WinDbgDebuggerRunner runner;
             try {
                 Console.Write("Connecting to a debug session at {0}...", remoteString);
-                debugger = new Debugger(remoteString, configuration);
+                runner = new WinDbgDebuggerRunner(remoteString, configuration);
                 Console.WriteLine("Connected.");
             } catch (Exception ex) {
                 Console.WriteLine("Failed: {0}", ex.Message);
@@ -54,7 +54,7 @@ namespace JsDbg {
             PersistentStore persistentStore = new PersistentStore(configuration.PersistentStoreDirectory);
 
             Console.Out.WriteLine("Serving from {0}", webRoot);
-            using (WebServer webServer = new WebServer(debugger, persistentStore, webRoot, extensionRoot)) {
+            using (WebServer webServer = new WebServer(runner.Debugger, persistentStore, webRoot, extensionRoot)) {
                 webServer.LoadExtension("default");
 
                 SynchronizationContext previousContext = SynchronizationContext.Current;
@@ -65,7 +65,7 @@ namespace JsDbg {
                     System.Console.TreatControlCAsInput = true;
 
                     // Run the debugger.  If the debugger ends, kill the web server.
-                    debugger.Run().ContinueWith((Task result) => { 
+                    runner.Run().ContinueWith((Task result) => { 
                         webServer.Abort();
                     });
 
@@ -77,7 +77,7 @@ namespace JsDbg {
 
                     // The web server ending kills the debugger and completes our SynchronizationContext which allows us to exit.
                     webServer.Listen().ContinueWith(async (Task result) => {
-                        await debugger.Shutdown();
+                        await runner.Shutdown();
                         await Task.Delay(500);
                         syncContext.Complete();
                     });

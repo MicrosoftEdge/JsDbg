@@ -225,6 +225,68 @@ namespace JsDbg
     }
 #endregion
 
+    public class NewTypeCache {
+        public NewTypeCache(bool isPointer64Bit) {
+            this.types = new Dictionary<string, Type>();
+            this.isPointer64Bit = isPointer64Bit;
+        }
+
+        public Type GetCachedType(string module, string typename) {
+            string key = TypeKey(module, typename);
+            if (this.types.ContainsKey(key)) {
+                return this.types[key];
+            }
+
+            // Is it a built-in type?
+            Type builtinType = this.GetBuiltinType(module, typename);
+            if (builtinType != null) {
+                this.types.Add(key, builtinType);
+                return builtinType;
+            }
+
+            return null;
+        }
+
+        public void AddType(Type type) {
+            string key = TypeKey(type.Module, type.Name);
+            this.types.Add(key, type);
+        }
+        private static string TypeKey(string module, string typename) {
+            return String.Format("{0}!{1}", module, typename);
+        }
+        // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
+        protected static Dictionary<string, uint> BuiltInTypes = new Dictionary<string, uint>()
+            {
+                {"bool", 1},
+                {"char", 1},
+                {"__int8", 1},
+                {"short", 2},
+                {"__int16", 2},
+                {"int", 4},
+                {"long", 4},
+                {"__int32", 4},
+                {"float", 4},
+                {"double", 8},
+                {"long double", 8},
+                {"long long", 8},
+                {"__int64", 8}
+            };
+
+        private Type GetBuiltinType(string module, string typename) {
+            string strippedType = typename.Replace("unsigned", "").Replace("signed", "").Trim();
+            if (BuiltInTypes.ContainsKey(strippedType)) {
+                return new Type(module, typename, BuiltInTypes[strippedType], null, null, null, null);
+            } else if (strippedType.EndsWith("*")) {
+                return new Type(module, typename, this.isPointer64Bit ? 8u : 4u, null, null, null, null);
+            } else {
+                return null;
+            }
+        }
+
+        private Dictionary<string, Type> types;
+        private bool isPointer64Bit;
+    }
+
     public class TypeCache {
         public TypeCache(Core.DiaSessionLoader diaLoader, bool isPointer64Bit) {
             this.types = new Dictionary<string, Type>();
@@ -405,7 +467,7 @@ namespace JsDbg
                       
 
         // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
-        protected static Dictionary<string, uint> BuiltInTypes = new Dictionary<string, uint>()
+        public static Dictionary<string, uint> BuiltInTypes = new Dictionary<string, uint>()
             {
                 {"bool", 1},
                 {"char", 1},

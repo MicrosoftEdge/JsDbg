@@ -80,6 +80,8 @@
     <Compile Include="SingleThreadSynchronizationContext.cs" />
     <Compile Include="SymbolCache.cs" />
     <Compile Include="TypeCacheWithFallback.cs" />
+    <Compile Include="WinDbgDebuggerEngine.cs" />
+    <Compile Include="WinDbgDebuggerRunner.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

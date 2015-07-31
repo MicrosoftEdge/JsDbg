@@ -49,6 +49,9 @@ namespace Core {
                 }
             }
 
+            // The session load failed.
+            this.activeSessions[module] = null;
+
             return null;
         }
 
