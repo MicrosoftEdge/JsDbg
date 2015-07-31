@@ -6,7 +6,7 @@
     <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
     <script type="text/javascript">
         function runtest() {
-            var integer = DbgObject.sym(MSHTML.Module + "!g_pts").as("THREADSTATEUI").f("_paryDoc._c");
+            var integer = DbgObject.global(MSHTML.Module, "g_pts").as("THREADSTATEUI").f("_paryDoc._c");
             var timer = null;
             var ops = 0;
             var duration = 5;
@@ -29,7 +29,7 @@
             var timer = null;
             var ops = 0;
             var duration = 5;
-            var integer = DbgObject.sym(MSHTML.Module + "!g_pts").as("THREADSTATEUI").f("_paryDoc._c");
+            var integer = DbgObject.global(MSHTML.Module, "g_pts").as("THREADSTATEUI").f("_paryDoc._c");
 
             integer.pointerValue().then(function(pointer) {
                 var request = "A;/jsdbg/memory?type=int&pointer=" + pointer;

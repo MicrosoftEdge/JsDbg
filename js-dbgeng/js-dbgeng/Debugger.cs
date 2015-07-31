@@ -194,15 +194,11 @@ namespace JsDbg {
             }
         }
 
-        public async Task<SSymbolResult> LookupSymbol(string symbol, bool isGlobal) {
+        public async Task<SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName) {
             await this.WaitForBreakIn();
-            
+
             SSymbolResult result = new SSymbolResult();
 
-            string moduleName = symbol.Split('!')[0];
-            string symbolName = symbol.Split('!')[1];
-            
-            // TODO: this should only be global
             Dia2Lib.IDiaSession session = this.diaLoader.LoadDiaSession(moduleName);
             if (session != null) {
                 // We have a DIA session, use that.
@@ -216,51 +212,27 @@ namespace JsDbg {
                         return result;
                     }
                 } catch { }
-                throw new DebuggerException(String.Format("Invalid symbol: {0}", symbol));
+                throw new DebuggerException(String.Format("Invalid symbol: {0}!{1}", moduleName, symbolName));
             }
 
+            // No DIA session, fallback to the debugger.
+
             uint typeId = 0;
-            ulong module = 0;
-            bool isPointerToType = true;
+            ulong moduleBase = 0;
+            string fullyQualifiedSymbolName = moduleName + "!" + symbolName;
             try {
-                bool foundSymbolInScope = false;
-                if (!isGlobal) {
-                    DebugSymbolGroup group = this.symbols.GetScopeSymbolGroup(GroupScope.All);
-                    for (uint i = 0; i < group.NumberSymbols; ++i) {
-                        if (symbol == group.GetSymbolName(i)) {
-                            DebugSymbolEntry entry = group.GetSymbolEntryInformation(i);
-                            typeId = entry.TypeId;
-                            module = entry.ModuleBase;
-                            result.Pointer = entry.Offset;
-                            foundSymbolInScope = (entry.Offset != 0);
-
-                            isPointerToType = foundSymbolInScope && (Dia2Lib.SymTagEnum)entry.Tag == Dia2Lib.SymTagEnum.SymTagPointerType;
-                            break;
-                        }
-                    }
-                }
-
-                if (!foundSymbolInScope) {
-                    this.symbols.GetSymbolTypeId(symbol, out typeId, out module);
-                    this.symbols.GetOffsetByName(symbol, out result.Pointer);
-                }
+                this.symbols.GetSymbolTypeId(fullyQualifiedSymbolName, out typeId, out moduleBase);
+                this.symbols.GetOffsetByName(fullyQualifiedSymbolName, out result.Pointer);
             } catch {
-                throw new DebuggerException(String.Format("Invalid symbol: {0}", symbol));
+                throw new DebuggerException(String.Format("Invalid symbol: {0}", fullyQualifiedSymbolName));
             }
 
             // Now that we have type ids and an offset, we can resolve the names.
             try {
-                result.Type = this.symbolCache.GetTypeName(module, typeId);
-                if (!isPointerToType && result.Type.EndsWith("*")) {
-                    // Trim off the last * because the offset we were given is the value itself (i.e. it is the pointer, not the pointer
-                    // to the pointer).
-                    result.Type = result.Type.Substring(0, result.Type.Length - 1);
-                }
-
-                string imageName, loadedImageName;
-                this.symbols.GetModuleNamesByBaseAddress(module, out imageName, out result.Module, out loadedImageName);
+                result.Type = this.symbolCache.GetTypeName(moduleBase, typeId);
+                result.Module = this.symbols.GetModuleNameStringByBaseAddress(ModuleName.Module, moduleBase);
             } catch {
-                throw new DebuggerException(String.Format("public error with symbol: {0}", symbol));
+                throw new DebuggerException(String.Format("Internal error with symbol: {0}", fullyQualifiedSymbolName));
             }
 
             return result;

@@ -99,51 +99,33 @@ namespace Sushraja.Jump
             }
         }
 
-        public async Task<SSymbolResult> LookupSymbol(string symbol, bool isGlobal)
-        {
+        public async Task<SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName) {
             await this.WaitForBreakIn();
 
-            // Extract module from symbol and convert symbol to visual studio format.
-            string module;
-            int moduleIndex = symbol.IndexOf("!");
-            if (moduleIndex > 0 && moduleIndex < symbol.Length)
-            {
-                module = symbol.Substring(0, moduleIndex);
-                string symbolName = symbol.Substring(moduleIndex + 1);                
-                symbol = "{,," + module + ".dll}&" + symbolName;
-            }
-            else
-            {
-                throw new DebuggerException(String.Format("LookupSymbol: Failed to extract module {0}", symbol));
-            }
+            string fullyQualifiedSymbol = "{,," + moduleName + ".dll}&" + symbolName;
 
-            EnvDTE.Expression result = dte.Debugger.GetExpression(symbol);
+            EnvDTE.Expression result = dte.Debugger.GetExpression(fullyQualifiedSymbol);
             SSymbolResult symbolResult = new SSymbolResult();
-            if (result.IsValidValue)
-            {
-                symbolResult.Module = module;
+            if (result.IsValidValue) {
+                symbolResult.Module = moduleName;
                 string type = result.Type;
                 // Strip out terminating *, if we have <typename> * *
                 int index = type.LastIndexOf(" *");
-                if (index > 0)
-                {
+                if (index > 0) {
                     type = type.Substring(0, index);
                 }
-                
+
                 // Strip out the module name form the type.
                 index = type.IndexOf('!');
-                if (index > 0)
-                {
+                if (index > 0) {
                     type = type.Substring(index + 1);
                 }
 
                 symbolResult.Type = type;
                 string hexValue = result.Value.Substring(2);
                 symbolResult.Pointer = UInt64.Parse(hexValue, System.Globalization.NumberStyles.HexNumber);
-            }
-            else
-            {
-                throw new DebuggerException(String.Format("LookupSymbol: Failed to evaluate expression {0}", symbol));
+            } else {
+                throw new DebuggerException(String.Format("LookupSymbol: Failed to evaluate expression {0}!{1}", moduleName, symbolName));
             }
             return symbolResult;
         }

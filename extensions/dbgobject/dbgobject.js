@@ -285,30 +285,17 @@ var DbgObject = (function() {
 
 
     DbgObject._help_global = {
-        description: "Evaluates a reference to a global symbol in the debuggee.",
+        description: "Looks up a global symbol in the debuggee.",
         returns: "A promise to a DbgObject representing the symbol.",
         arguments: [
-            {name:"symbol", type:"string", description:"The module-prefixed global symbol to evaluate."}
+            {name:"module", type:"string", description:"The module containing the symbol."},
+            {name:"symbol", type:"string", description:"The global symbol to lookup."}
         ]
     }
-    DbgObject.global = function(symbol) {
+    DbgObject.global = function(module, symbol) {
         return new PromisedDbgObject(
-            jsDbgPromise(JsDbg.LookupSymbol, symbol, true).then(function(result) {
-                return new DbgObject(result.module, result.type, result.pointer);
-            })
-        );
-    }
-
-    DbgObject._help_sym = {
-        description: "Evaluates a reference to a symbol in the debuggee.",
-        returns: "A promise to a DbgObject representing the symbol.",
-        arguments: [
-            {name:"symbol", type:"string", description:"The symbol to evaluate."}
-        ]
-    }
-    DbgObject.sym = function(symbol) {
-        return new PromisedDbgObject(
-            jsDbgPromise(JsDbg.LookupSymbol, symbol, false).then(function(result) {
+            jsDbgPromise(JsDbg.LookupGlobalSymbol, module, symbol)
+            .then(function(result) {
                 return new DbgObject(result.module, result.type, result.pointer);
             })
         );

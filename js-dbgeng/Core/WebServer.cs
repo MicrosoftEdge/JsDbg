@@ -307,8 +307,8 @@ namespace JsDbg {
             case "symbolname":
                 this.ServeSymbolName(query, respond, fail);
                 break;
-            case "symbol":
-                this.ServeSymbol(query, respond, fail);
+            case "global":
+                this.ServeGlobalSymbol(query, respond, fail);
                 break;
             case "localsymbols":
                 this.ServeLocalSymbols(query, respond, fail);
@@ -612,18 +612,17 @@ namespace JsDbg {
             respond(responseString);
         }
 
-        private async void ServeSymbol(NameValueCollection query, Action<string> respond, Action fail) {
+        private async void ServeGlobalSymbol(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
             string symbol = query["symbol"];
-            string isGlobalString = query["isGlobal"];
 
-            bool isGlobal;
-            if (symbol == null || isGlobalString == null || !bool.TryParse(isGlobalString, out isGlobal)) {
+            if (module == null || symbol == null) {
                 fail();
                 return;
             }
             string responseString;
             try {
-                SSymbolResult result = await this.debugger.LookupSymbol(symbol, isGlobal);
+                SSymbolResult result = await this.debugger.LookupGlobalSymbol(module, symbol);
                 responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
             } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);

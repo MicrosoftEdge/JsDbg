@@ -540,16 +540,16 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/pointersize", callback, CacheType.Cached);
         },
 
-        _help_LookupSymbol: {
-            description: "Evaluates a symbolic expression and returns the type of and pointer to the value.",
+        _help_LookupGlobalSymbol: {
+            description: "Evaluates a global symbol and returns the type and address of the value.",
             arguments: [
-                {name:"symbol", type:"string", description:"The symbolic expression to evaluate."},
-                {name:"isGlobal", type:"bool", description:"A value indicating if the symbol is guaranteed to be a global symbol."},
+                {name:"module", type:"string", description:"The module containing the symbol."},
+                {name:"symbol", type:"string", description:"The symbol to evaluate."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        LookupSymbol: function(symbol, isGlobal, callback) {
-            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol) + "&isGlobal=" + esc(isGlobal), callback, isGlobal ? CacheType.Cached : CacheType.TransientCache);
+        LookupGlobalSymbol: function(module, symbol, callback) {
+            jsonRequest("/jsdbg/global?module=" + esc(module) + "&symbol=" + esc(symbol), callback, CacheType.Cached);
         },
 
         _help_LookupLocalSymbols: {
