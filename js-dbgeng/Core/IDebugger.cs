@@ -13,6 +13,13 @@ namespace JsDbg
         }
     }
 
+    public struct SStackFrame
+    {
+        public ulong InstructionAddress;
+        public ulong StackAddress;
+        public ulong FrameAddress;
+    }
+
     public struct SSymbolNameResult
     {
         public string Module;

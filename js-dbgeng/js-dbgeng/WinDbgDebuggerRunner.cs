@@ -13,7 +13,7 @@ namespace JsDbg {
             this.dataSpaces = new DebugDataSpaces(this.client);
             this.diaLoader = new Core.DiaSessionLoader(
                 configuration,
-                new Core.IDiaSessionSource[] { }// new DiaSessionPathSource(this.symbolCache), new DiaSessionModuleSource(this.symbolCache, this.dataSpaces) }
+                new Core.IDiaSessionSource[] { new DiaSessionPathSource(this.symbolCache), new DiaSessionModuleSource(this.symbolCache, this.dataSpaces) }
             );
             this.isShuttingDown = false;
             this.didShutdown = true;

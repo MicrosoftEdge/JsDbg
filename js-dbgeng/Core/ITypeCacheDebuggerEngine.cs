@@ -5,6 +5,11 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace Core {
+    public struct SStackFrameWithContext {
+        public JsDbg.SStackFrame StackFrame;
+        public object Context;
+    }
+
     public interface ITypeCacheDebuggerEngine {
 
         #region Debugger Primitives
@@ -16,9 +21,12 @@ namespace Core {
         bool IsPointer64Bit { get; }
 
         string GetModuleForAddress(ulong address, out ulong baseAddress);
+
         ulong GetBaseAddressForModule(string module);
 
         Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct;
+
+        IEnumerable<SStackFrameWithContext> GetCurrentCallStack();
 
         event EventHandler DebuggerBroke;
         event EventHandler BitnessChanged;
@@ -30,9 +38,9 @@ namespace Core {
 
         Task<JsDbg.SSymbolResult> LookupGlobalSymbol(string module, string symbol);
 
-        Task<IEnumerable<JsDbg.SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbol, int maxCount);
+        IEnumerable<JsDbg.SSymbolResult> LookupLocalsInStackFrame(SStackFrameWithContext stackFrameWithContext, string symbolName);
 
-        Task<JsDbg.SSymbolNameResult> LookupSymbolName(ulong pointer);
+        JsDbg.SSymbolNameResult LookupSymbolName(ulong pointer, out ulong displacement);
 
         #endregion
     }

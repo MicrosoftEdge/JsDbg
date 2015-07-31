@@ -81,6 +81,24 @@ namespace JsDbg {
             } while (true);
         }
 
+        public IEnumerable<Core.SStackFrameWithContext> GetCurrentCallStack() {
+            List<Core.SStackFrameWithContext> stackFrames = new List<Core.SStackFrameWithContext>();
+
+            DebugStackTrace stack = this.control.GetStackTrace(128);
+            foreach (DebugStackFrame frame in stack) {
+                stackFrames.Add(new Core.SStackFrameWithContext() {
+                    Context = frame,
+                    StackFrame = new SStackFrame() {
+                        FrameAddress = frame.FrameOffset,
+                        StackAddress = frame.StackOffset,
+                        InstructionAddress = frame.InstructionOffset
+                    }
+                });
+            }
+
+            return stackFrames;
+        }
+
         public event EventHandler DebuggerBroke;
 
         public event EventHandler BitnessChanged;
@@ -223,18 +241,54 @@ namespace JsDbg {
             }
         }
 
-        public Task<IEnumerable<SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbol, int maxCount) {
-            throw new NotImplementedException();
+        public IEnumerable<SSymbolResult> LookupLocalsInStackFrame(Core.SStackFrameWithContext stackFrameWithContext, string symbolName) {
+            List<SSymbolResult> results = new List<SSymbolResult>();
+
+            // Save the previous scope.
+            ulong previousInstructionOffset;
+            DebugStackFrame previousStackFrame;
+            this.symbols.GetScope(out previousInstructionOffset, out previousStackFrame, null);
+
+            // Jump to the scope in the context, and see if the symbol is there.
+            this.symbols.SetScope(0, (DebugStackFrame)stackFrameWithContext.Context, null);
+            DebugSymbolGroup symbolGroup = this.symbols.GetScopeSymbolGroup(GroupScope.Arguments | GroupScope.Locals);
+            for (uint i = 0; i < symbolGroup.NumberSymbols; ++i) {
+                if (symbolName == symbolGroup.GetSymbolName(i)) {
+                    DebugSymbolEntry entry = symbolGroup.GetSymbolEntryInformation(i);
+
+                    SSymbolResult result = new SSymbolResult();
+                    result.Module = this.symbols.GetModuleNameStringByBaseAddress(ModuleName.Module, entry.ModuleBase);
+                    result.Type = this.symbolCache.GetTypeName(entry.ModuleBase, entry.TypeId);
+
+                    if (entry.Offset != 0) {
+                        // The variable is located in memory.
+                        result.Pointer = entry.Offset;
+                    } else {
+                        // The variable is located in a register.  If the variable is a pointer, we can automatically dereference it, but otherwise we don't currently have a way to express the location.
+                        if (result.Type.EndsWith("*")) {
+                            // Trim off the last * because the offset we were given is the value itself (i.e. it is the pointer, not the pointer to the pointer).
+                            result.Type = result.Type.Substring(0, result.Type.Length - 1);
+                            this.symbols.GetOffsetByName(symbolName, out result.Pointer);
+                        } else {
+                            // Don't include it.  In the future, we could perhaps express this object as living in its own address space so that the client can at least dereference it.
+                            break;
+                        }
+                    }
+                    results.Add(result);
+                    break;
+                }
+            }
+
+            // Restore the previous scope.
+            this.symbols.SetScope(0, previousStackFrame, null);
+
+            return results;
         }
 
-        public async Task<SSymbolNameResult> LookupSymbolName(ulong pointer) {
-            await this.WaitForBreakIn(); // TODO: redundant
-
+        public SSymbolNameResult LookupSymbolName(ulong pointer, out ulong displacement) {
             string fullyQualifiedSymbolName;
-            ulong displacement;
-
             this.symbolCache.GetSymbolName(pointer, out fullyQualifiedSymbolName, out displacement);
-            if (displacement != 0 || fullyQualifiedSymbolName.IndexOf("!") == -1) {
+            if (fullyQualifiedSymbolName.IndexOf("!") == -1) {
                 throw new Exception();
             }
             string[] parts = fullyQualifiedSymbolName.Split(new char[] { '!' }, 2);

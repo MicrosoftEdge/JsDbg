@@ -10,9 +10,15 @@ namespace Core {
     public class TypeCacheDebugger : JsDbg.IDebugger {
         public TypeCacheDebugger(ITypeCacheDebuggerEngine debuggerEngine) {
             this.debuggerEngine = debuggerEngine;
-            this.debuggerEngine.DebuggerBroke += this.DebuggerBroke;
+            this.debuggerEngine.DebuggerBroke += debuggerEngine_DebuggerBroke;
             this.typeCache = new JsDbg.NewTypeCache(this.debuggerEngine.IsPointer64Bit);
             this.debuggerEngine.BitnessChanged += debuggerEngine_BitnessChanged;
+        }
+
+        void debuggerEngine_DebuggerBroke(object sender, EventArgs e) {
+            if (this.DebuggerBroke != null) {
+                this.DebuggerBroke(sender, e);
+            }
         }
 
         void debuggerEngine_BitnessChanged(object sender, EventArgs e) {
@@ -221,13 +227,110 @@ namespace Core {
             }
         }
 
-        public async Task<IEnumerable<JsDbg.SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbol, int maxCount) {
-            return await this.debuggerEngine.LookupLocalSymbols(module, methodName, symbol, maxCount);
+        public async Task<IEnumerable<JsDbg.SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbolName, int maxCount) {
+            await this.debuggerEngine.WaitForBreakIn();
+
+            bool foundStackFrame = false;
+            List<JsDbg.SSymbolResult> results = new List<SSymbolResult>();
+
+            IEnumerable<SStackFrameWithContext> stackFrames = this.debuggerEngine.GetCurrentCallStack();
+            foreach (SStackFrameWithContext stackFrameWithContext in stackFrames) {
+                SSymbolNameResult stackFrameName;
+                ulong moduleBaseAddress;
+                string stackFrameModule = this.debuggerEngine.GetModuleForAddress(stackFrameWithContext.StackFrame.InstructionAddress, out moduleBaseAddress);
+                if (stackFrameModule != module) {
+                    // Check the module before looking up the name to avoid loading symbols for modules we're not interested in.
+                    continue;
+                }
+
+                try {
+                    ulong displacement;
+                    stackFrameName = this.LookupSymbolNameWithDisplacement(stackFrameWithContext.StackFrame.InstructionAddress, out displacement);
+                } catch {
+                    continue;
+                }
+
+                if (stackFrameName.Module == module && stackFrameName.Name == methodName) {
+                    foundStackFrame = true;
+
+                    // This is the stack frame that we're being asked about.
+                    IList<SLocalVariable> localsFromDia = this.GetLocalsFromDia(module, methodName, (uint)(stackFrameWithContext.StackFrame.InstructionAddress - moduleBaseAddress), symbolName);
+                    if (localsFromDia != null) {
+                        if (localsFromDia.Count > 0) {
+                            // We might get multiple local variables with the same name.  Just use the first one.
+                            ulong address = localsFromDia[0].IsOffsetFromBottom ? stackFrameWithContext.StackFrame.StackAddress : stackFrameWithContext.StackFrame.FrameAddress;
+                            address = (ulong)((long)address + localsFromDia[0].FrameOffset);
+                            results.Add(new SSymbolResult() { Module = module, Pointer = address, Type = localsFromDia[0].Type });
+                        }
+                    } else {
+                        // Unable to get any locals from DIA.  Try the debugger engine.
+                        IEnumerable<JsDbg.SSymbolResult> localsFromDebugger = this.debuggerEngine.LookupLocalsInStackFrame(stackFrameWithContext, symbolName);
+                        if (localsFromDebugger != null) {
+                            results.AddRange(localsFromDebugger);
+                        }
+                    }
+                }
+            }
+
+            if (!foundStackFrame) {
+                throw new DebuggerException(String.Format("Could not find stack frame: {0}", methodName));
+            } else if (results.Count == 0) {
+                throw new DebuggerException(String.Format("Could not find local symbol: {0}", symbolName));
+            } else {
+                return results;
+            }
+        }
+
+        public IList<SLocalVariable> GetLocalsFromDia(string module, string method, uint rva, string symbolName) {
+            IDiaSession diaSession = this.debuggerEngine.DiaLoader.LoadDiaSession(module);
+            if (diaSession == null) {
+                return null;
+            }
+
+            List<SLocalVariable> results = new List<SLocalVariable>();
+            IDiaEnumSymbols symbols;
+            diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagFunction, method, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out symbols);
+
+            foreach (IDiaSymbol symbol in symbols) {
+                List<IDiaSymbol> symbolResults = new List<IDiaSymbol>();
+                this.AccumulateChildLocalSymbols(symbol, symbolName, rva, symbolResults);
+                foreach (IDiaSymbol resultSymbol in symbolResults) {
+                    if ((DiaHelpers.LocationType)resultSymbol.locationType == DiaHelpers.LocationType.LocIsRegRel) {
+                        // If the register id is %rsp or %esp, the offset is from the bottom.
+                        bool offsetFromBottom = (resultSymbol.registerId == 335 || resultSymbol.registerId == 21);
+                        results.Add(new SLocalVariable() { FrameOffset = resultSymbol.offset, Type = DiaHelpers.GetTypeName(resultSymbol.type), IsOffsetFromBottom = offsetFromBottom });
+                    }
+                }
+            }
+
+            return results;
+        }
+
+        private void AccumulateChildLocalSymbols(IDiaSymbol symbol, string symbolName, uint rva, List<IDiaSymbol> results) {
+            IDiaEnumSymbols dataSymbols;
+            symbol.findChildrenExByRVA(SymTagEnum.SymTagData, symbolName, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, rva, out dataSymbols);
+            foreach (IDiaSymbol dataSymbol in dataSymbols) {
+                results.Add(dataSymbol);
+            }
+
+            IDiaEnumSymbols blockSymbols;
+            symbol.findChildrenExByRVA(SymTagEnum.SymTagBlock, null, (uint)DiaHelpers.NameSearchOptions.nsNone, rva, out blockSymbols);
+            foreach (IDiaSymbol blockSymbol in blockSymbols) {
+                AccumulateChildLocalSymbols(blockSymbol, symbolName, rva, results);
+            }
         }
 
         public async Task<JsDbg.SSymbolNameResult> LookupSymbolName(ulong pointer) {
             await this.debuggerEngine.WaitForBreakIn();
+            ulong displacement;
+            SSymbolNameResult result = this.LookupSymbolNameWithDisplacement(pointer, out displacement);
+            if (displacement != 0) {
+                throw new DebuggerException(String.Format("Invalid symbol address: 0x{0:x8}", pointer));
+            }
+            return result;
+        }
 
+        private JsDbg.SSymbolNameResult LookupSymbolNameWithDisplacement(ulong pointer, out ulong displacement) {
             try {
                 ulong moduleBase;
                 string moduleName = this.debuggerEngine.GetModuleForAddress(pointer, out moduleBase);
@@ -236,17 +339,21 @@ namespace Core {
                 if (session != null) {
                     // We have a DIA session; use it.
                     Dia2Lib.IDiaSymbol symbol;
-                    int displacement;
-                    session.findSymbolByRVAEx((uint)(pointer - moduleBase), Dia2Lib.SymTagEnum.SymTagNull, out symbol, out displacement);
+                    ulong rva = pointer - moduleBase;
+                    session.findSymbolByRVA((uint)rva, Dia2Lib.SymTagEnum.SymTagNull, out symbol);
+
+                    // Blocks don't have names.  Walk up to the nearest non-block parent.
+                    while ((Dia2Lib.SymTagEnum)symbol.symTag == Dia2Lib.SymTagEnum.SymTagBlock) {
+                        symbol = symbol.lexicalParent;
+                    }
+                    displacement = (ulong)(rva - symbol.relativeVirtualAddress);
+                    
                     string name;
                     symbol.get_undecoratedNameEx(0x1000, out name);
-                    if (displacement != 0) {
-                        throw new Exception();
-                    }
 
                     return new SSymbolNameResult() { Module = moduleName, Name = name };
                 } else {
-                    return await this.debuggerEngine.LookupSymbolName(pointer);
+                    return this.debuggerEngine.LookupSymbolName(pointer, out displacement); ;
                 }
             } catch {
                 throw new DebuggerException(String.Format("Invalid symbol address: 0x{0:x8}", pointer));
