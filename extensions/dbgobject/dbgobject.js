@@ -334,10 +334,6 @@ var DbgObject = (function() {
     DbgObject.prototype._getStructSize = function() {
         if (this.structSize !== undefined) {
             return Promise.as(this.structSize);
-        } else if (this._isPointer()) {
-            return jsDbgPromise(JsDbg.GetPointerSize).then(function(result) {
-                return result.pointerSize;
-            });
         } else if (this == DbgObject.NULL) {
             return Promise.as(0);
         } else {
@@ -391,9 +387,9 @@ var DbgObject = (function() {
         }
 
         var that = this;
-        return jsDbgPromise(MemoryCache.ReadPointer, that._pointer)
+        return this.uval()
         .then(function(result) {
-            return new DbgObject(that.module, that._getDereferencedTypeName(), result.value);
+            return new DbgObject(that.module, that._getDereferencedTypeName(), result);
         });
     }
 
@@ -923,11 +919,11 @@ var DbgObject = (function() {
         var pointer = this._pointer;
 
         // Read the value at the this pointer...
-        return jsDbgPromise(MemoryCache.ReadPointer, pointer)
+        return this.as("void*").uval()
 
         // Lookup the symbol at that value...
         .then(function(result) { 
-            return jsDbgPromise(JsDbg.LookupSymbolName, result.value);
+            return jsDbgPromise(JsDbg.LookupSymbolName, result);
         })
 
         // And strip away the vftable suffix..

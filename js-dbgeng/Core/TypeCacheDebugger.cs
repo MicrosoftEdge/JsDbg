@@ -27,15 +27,16 @@ namespace Core {
         }
 
         private async Task<JsDbg.Type> LoadType(string module, string typename) {
-            JsDbg.Type type = this.typeCache.GetCachedType(module, typename);
+            // Try to load the type from DIA.
+            IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(module);
+
+            JsDbg.Type type = this.typeCache.GetCachedType(session, module, typename);
             if (type != null) {
                 return type;
             }
 
             Console.Out.WriteLine("Loading type information for {0}!{1}...", module, typename);
 
-            // Try to load the type from DIA.
-            IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(module);
             if (session != null) {
                 type = await this.LoadTypeFromDiaSession(session, module, typename, DiaHelpers.NameSearchOptions.nsCaseSensitive);
                 if (type == null) {

@@ -425,17 +425,6 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/basetypes?module=" + esc(module) + "&type=" + esc(type), callback, CacheType.Cached);
         },
 
-        _help_ReadPointer: {
-            description: "Reads a pointer sized value from memory.",
-            arguments: [
-                {name:"pointer", type:"integer", description:"The pointer to the pointer."},
-                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
-            ]
-        },
-        ReadPointer: function(pointer, callback) {
-            jsonRequest("/jsdbg/memory?type=pointer&pointer=" + esc(pointer), callback, CacheType.TransientCache);
-        },
-
         _help_ReadNumber: {
             description: "Reads a number value from memory.",
             arguments: [
@@ -528,16 +517,6 @@ var JsDbg = (function() {
         },
         LookupConstantValue: function(module, type, constantName, callback) {
             jsonRequest("/jsdbg/constantvalue?module=" + esc(module) + "&type=" + esc(type) + "&name=" + esc(constantName), callback, CacheType.Cached);
-        },
-
-        _help_GetPointerSize: {
-            description: "Looks up the size of a pointer.",
-            arguments: [
-                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
-            ]
-        },
-        GetPointerSize: function(callback) {
-            jsonRequest("/jsdbg/pointersize", callback, CacheType.Cached);
         },
 
         _help_LookupGlobalSymbol: {

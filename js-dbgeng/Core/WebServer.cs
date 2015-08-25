@@ -313,9 +313,6 @@ namespace JsDbg {
             case "localsymbols":
                 this.ServeLocalSymbols(query, respond, fail);
                 break;
-            case "pointersize":
-                this.ServePointerSize(query, respond, fail);
-                break;
             case "constantname":
                 this.ServeConstantName(query, respond, fail);
                 break;
@@ -448,13 +445,6 @@ namespace JsDbg {
             try {
                 object value = null;
                 switch (type) {
-                    case "pointer":
-                        if (this.debugger.IsPointer64Bit) {
-                            value = await this.debugger.ReadMemory<ulong>(pointer);
-                        } else {
-                            value = await this.debugger.ReadMemory<uint>(pointer);
-                        }
-                        break;
                     case "byte":
                         value = await this.debugger.ReadMemory<byte>(pointer);
                         break;
@@ -511,13 +501,6 @@ namespace JsDbg {
             try {
                 string arrayString;
                 switch (type) {
-                case "pointer":
-                    if (this.debugger.IsPointer64Bit) {
-                        arrayString = await ReadJsonArray<ulong>(pointer, length);
-                    } else {
-                        arrayString = await ReadJsonArray<uint>(pointer, length);
-                    }
-                    break;
                 case "byte":
                     arrayString = await ReadJsonArray<byte>(pointer, length);
                     break;
@@ -661,10 +644,6 @@ namespace JsDbg {
             }
 
             respond(responseString);
-        }
-
-        private void ServePointerSize(NameValueCollection query, Action<string> respond, Action fail) {
-            respond(String.Format("{{ \"pointerSize\": \"{0}\" }}", (this.debugger.IsPointer64Bit ? 8 : 4)));
         }
 
         private async void ServeConstantName(NameValueCollection query, Action<string> respond, Action fail) {

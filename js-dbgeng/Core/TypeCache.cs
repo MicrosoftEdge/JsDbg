@@ -228,17 +228,18 @@ namespace JsDbg
     public class TypeCache {
         public TypeCache(bool isPointer64Bit) {
             this.types = new Dictionary<string, Type>();
+            this.modulePointerSizes = new Dictionary<string, uint>();
             this.isPointer64Bit = isPointer64Bit;
         }
 
-        public Type GetCachedType(string module, string typename) {
+        public Type GetCachedType(IDiaSession session, string module, string typename) {
             string key = TypeKey(module, typename);
             if (this.types.ContainsKey(key)) {
                 return this.types[key];
             }
 
             // Is it a built-in type?
-            Type builtinType = this.GetBuiltinType(module, typename);
+            Type builtinType = this.GetBuiltinType(session, module, typename);
             if (builtinType != null) {
                 this.types.Add(key, builtinType);
                 return builtinType;
@@ -272,18 +273,37 @@ namespace JsDbg
                 {"__int64", 8}
             };
 
-        private Type GetBuiltinType(string module, string typename) {
+        private Type GetBuiltinType(IDiaSession session, string module, string typename) {
             string strippedType = typename.Replace("unsigned", "").Replace("signed", "").Trim();
             if (BuiltInTypes.ContainsKey(strippedType)) {
                 return new Type(module, typename, BuiltInTypes[strippedType], null, null, null, null);
             } else if (strippedType.EndsWith("*")) {
-                return new Type(module, typename, this.isPointer64Bit ? 8u : 4u, null, null, null, null);
+                uint pointerSize = this.isPointer64Bit ? 8u : 4u;
+
+                if (this.modulePointerSizes.ContainsKey(module)) {
+                    uint cachedPointerSize = this.modulePointerSizes[module];
+                    if (cachedPointerSize != 0) {
+                        pointerSize = cachedPointerSize;
+                    }
+                } else if (session != null) {
+                    // Try to infer the pointer size from the DIA Session.
+                    IDiaEnumSymbols pointerSymbols;
+                    session.findChildren(session.globalScope, SymTagEnum.SymTagPointerType, null, 0, out pointerSymbols);
+                    foreach (IDiaSymbol symbol in pointerSymbols) {
+                        pointerSize = (uint)symbol.length;
+                        break;
+                    }
+                    this.modulePointerSizes[module] = pointerSize;
+                }
+
+                return new Type(module, typename, pointerSize, null, null, null, null);
             } else {
                 return null;
             }
         }
 
         private Dictionary<string, Type> types;
+        private Dictionary<string, uint> modulePointerSizes;
         private bool isPointer64Bit;
     }
 }
