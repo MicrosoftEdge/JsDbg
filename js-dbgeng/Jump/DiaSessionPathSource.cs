@@ -13,6 +13,10 @@ namespace Sushraja.Jump {
 
         #region IDiaSessionSource Members
 
+        public Task WaitUntilReady() {
+            return null;
+        }
+
         public IDiaSession LoadSessionForModule(string moduleName) {
             DiaSource source = new DiaSource();
             source.loadDataFromPdb(this.debugger.GetModuleSymbolPath(moduleName));

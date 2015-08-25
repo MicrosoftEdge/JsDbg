@@ -25,6 +25,12 @@ namespace JsDbg
         public string Module;
         public string Name;
     }
+
+    public struct SSymbolNameResultAndDisplacement
+    {
+        public SSymbolNameResult Symbol;
+        public ulong Displacement;
+    }
     
     public struct SSymbolResult
     {

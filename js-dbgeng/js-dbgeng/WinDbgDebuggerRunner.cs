@@ -9,15 +9,16 @@ namespace JsDbg {
     class WinDbgDebuggerRunner : IDisposable {
         public WinDbgDebuggerRunner(string connectionString, Core.IConfiguration configuration) {
             this.client = new DebugClient(connectionString);
+            this.control = new DebugControl(this.client);
             this.symbolCache = new SymbolCache(this.client);
             this.dataSpaces = new DebugDataSpaces(this.client);
             this.diaLoader = new Core.DiaSessionLoader(
                 configuration,
-                new Core.IDiaSessionSource[] { new DiaSessionPathSource(this.symbolCache), new DiaSessionModuleSource(this.symbolCache, this.dataSpaces) }
+                new Core.IDiaSessionSource[] { new DiaSessionPathSource(this, this.symbolCache), new DiaSessionModuleSource(this, this.symbolCache, this.dataSpaces) }
             );
             this.isShuttingDown = false;
             this.didShutdown = true;
-            this.engine = new WinDbgDebuggerEngine(this.client, this.diaLoader);
+            this.engine = new WinDbgDebuggerEngine(this, this.client, this.control, this.diaLoader);
             this.debugger = new Core.TypeCacheDebugger(this.engine);
         }
 
@@ -30,6 +31,15 @@ namespace JsDbg {
 
         public IDebugger Debugger {
             get { return this.debugger; }
+        }
+
+        public async Task WaitForBreakIn() {
+            if (this.control.ExecutionStatus != DebugStatus.Break) {
+                Console.Out.WriteLine("Debugger is busy, waiting for break in.");
+                while (this.control.ExecutionStatus != DebugStatus.Break) {
+                    await Task.Delay(1000);
+                }
+            }
         }
 
         public async Task Run() {
@@ -94,6 +104,7 @@ namespace JsDbg {
         }
 
         private Microsoft.Debuggers.DbgEng.DebugClient client;
+        private Microsoft.Debuggers.DbgEng.DebugControl control;
         private Microsoft.Debuggers.DbgEng.DebugDataSpaces dataSpaces;
         private WinDbgDebuggerEngine engine;
         private Core.TypeCacheDebugger debugger;

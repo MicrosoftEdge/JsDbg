@@ -28,7 +28,7 @@ namespace JsDbg {
             uint index;
             // TODO: Why is this crashing under stress?
             this.symbols.GetModuleByOffset(address, 0, out index, out moduleBase);
-            moduleName = this.symbols.GetModuleNameStringByIndex(Microsoft.Debuggers.DbgEng.ModuleName.Module, index);
+            moduleName = this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.Module, moduleBase);
         }
 
         internal uint GetTypeId(ulong moduleBase, string typeName) {

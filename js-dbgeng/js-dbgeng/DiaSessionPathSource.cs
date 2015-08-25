@@ -7,15 +7,27 @@ using Dia2Lib;
 
 namespace JsDbg {
     internal class DiaSessionPathSource : Core.IDiaSessionSource {
-        internal DiaSessionPathSource(SymbolCache symbolCache) {
+        internal DiaSessionPathSource(WinDbgDebuggerRunner runner, SymbolCache symbolCache) {
+            this.runner = runner;
             this.symbolCache = symbolCache;
         }
 
         #region IDiaSessionLoader Members
 
+        public Task WaitUntilReady() {
+            return this.runner.WaitForBreakIn();
+        }
+
         public Dia2Lib.IDiaSession LoadSessionForModule(string moduleName) {
             DiaSource source = new DiaSource();
-            source.loadDataFromPdb(this.symbolCache.GetModuleSymbolPath(moduleName));
+
+            string symbolPath;
+            try {
+                symbolPath = this.symbolCache.GetModuleSymbolPath(moduleName);
+            } catch (InvalidOperationException) {
+                throw new Core.DiaSourceNotReadyException();
+            }
+            source.loadDataFromPdb(symbolPath);
             IDiaSession session;
             source.openSession(out session);
             return session;
@@ -23,6 +35,7 @@ namespace JsDbg {
 
         #endregion
 
+        private WinDbgDebuggerRunner runner;
         private SymbolCache symbolCache;
     }
 }

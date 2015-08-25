@@ -10,23 +10,26 @@ namespace Core {
         public object Context;
     }
 
+    public struct SModule {
+        public string Name;
+        public ulong BaseAddress;
+    }
+
     public interface ITypeCacheDebuggerEngine {
 
         #region Debugger Primitives
-
-        Task WaitForBreakIn();
         
         DiaSessionLoader DiaLoader { get; }
 
         bool IsPointer64Bit { get; }
 
-        string GetModuleForAddress(ulong address, out ulong baseAddress);
+        Task<SModule> GetModuleForAddress(ulong address);
 
-        ulong GetBaseAddressForModule(string module);
+        Task<SModule> GetModuleForName(string module);
 
         Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct;
 
-        IEnumerable<SStackFrameWithContext> GetCurrentCallStack();
+        Task<IEnumerable<SStackFrameWithContext>> GetCurrentCallStack();
 
         event EventHandler DebuggerBroke;
         event EventHandler BitnessChanged;
@@ -34,13 +37,13 @@ namespace Core {
 
         #region Optional Fallback Implementations
 
-        JsDbg.Type GetTypeFromDebugger(string module, string typename);
+        Task<JsDbg.Type> GetTypeFromDebugger(string module, string typename);
 
         Task<JsDbg.SSymbolResult> LookupGlobalSymbol(string module, string symbol);
 
-        IEnumerable<JsDbg.SSymbolResult> LookupLocalsInStackFrame(SStackFrameWithContext stackFrameWithContext, string symbolName);
+        Task<IEnumerable<JsDbg.SSymbolResult>> LookupLocalsInStackFrame(SStackFrameWithContext stackFrameWithContext, string symbolName);
 
-        JsDbg.SSymbolNameResult LookupSymbolName(ulong pointer, out ulong displacement);
+        Task<JsDbg.SSymbolNameResultAndDisplacement> LookupSymbolName(ulong pointer);
 
         #endregion
     }

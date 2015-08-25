@@ -11,7 +11,7 @@ namespace Core {
         public TypeCacheDebugger(ITypeCacheDebuggerEngine debuggerEngine) {
             this.debuggerEngine = debuggerEngine;
             this.debuggerEngine.DebuggerBroke += debuggerEngine_DebuggerBroke;
-            this.typeCache = new JsDbg.NewTypeCache(this.debuggerEngine.IsPointer64Bit);
+            this.typeCache = new JsDbg.TypeCache(this.debuggerEngine.IsPointer64Bit);
             this.debuggerEngine.BitnessChanged += debuggerEngine_BitnessChanged;
         }
 
@@ -23,10 +23,10 @@ namespace Core {
 
         void debuggerEngine_BitnessChanged(object sender, EventArgs e) {
             Console.Out.WriteLine("Effective processor changed, so invalidating the type cache.  You may need to refresh the browser window.");
-            this.typeCache = new JsDbg.NewTypeCache(debuggerEngine.IsPointer64Bit);
+            this.typeCache = new JsDbg.TypeCache(debuggerEngine.IsPointer64Bit);
         }
 
-        private JsDbg.Type LoadType(string module, string typename) {
+        private async Task<JsDbg.Type> LoadType(string module, string typename) {
             JsDbg.Type type = this.typeCache.GetCachedType(module, typename);
             if (type != null) {
                 return type;
@@ -35,11 +35,11 @@ namespace Core {
             Console.Out.WriteLine("Loading type information for {0}!{1}...", module, typename);
 
             // Try to load the type from DIA.
-            IDiaSession session = this.debuggerEngine.DiaLoader.LoadDiaSession(module);
+            IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(module);
             if (session != null) {
-                type = this.LoadTypeFromDiaSession(session, module, typename, DiaHelpers.NameSearchOptions.nsCaseSensitive);
+                type = await this.LoadTypeFromDiaSession(session, module, typename, DiaHelpers.NameSearchOptions.nsCaseSensitive);
                 if (type == null) {
-                    type = this.LoadTypeFromDiaSession(session, module, typename, DiaHelpers.NameSearchOptions.nsCaseInsensitive);
+                    type = await this.LoadTypeFromDiaSession(session, module, typename, DiaHelpers.NameSearchOptions.nsCaseInsensitive);
                 }
 
                 if (type != null) {
@@ -50,7 +50,7 @@ namespace Core {
 
             Console.Out.WriteLine("WARNING: Unable to load {0}!{1} from PDBs. Falling back to the debugger, which could be slow...", module, typename);
 
-            type = this.debuggerEngine.GetTypeFromDebugger(module, typename);
+            type = await this.debuggerEngine.GetTypeFromDebugger(module, typename);
             if (type != null) {
                 this.typeCache.AddType(type);
                 return type;
@@ -59,7 +59,7 @@ namespace Core {
             throw new DebuggerException(String.Format("Unable to load type: {0}!{1}", module, typename));
         }
 
-        private JsDbg.Type LoadTypeFromDiaSession(IDiaSession diaSession, string module, string typename, DiaHelpers.NameSearchOptions options) {
+        private async Task<JsDbg.Type> LoadTypeFromDiaSession(IDiaSession diaSession, string module, string typename, DiaHelpers.NameSearchOptions options) {
             IDiaEnumSymbols symbols;
             diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagNull, typename, (uint)options, out symbols);
             foreach (IDiaSymbol symbol in symbols) {
@@ -116,7 +116,7 @@ namespace Core {
                     symbol.findChildren(SymTagEnum.SymTagBaseClass, null, 0, out baseClassSymbols);
                     foreach (IDiaSymbol baseClassSymbol in baseClassSymbols) {
                         string baseTypename = DiaHelpers.GetTypeName(baseClassSymbol.type);
-                        JsDbg.Type baseType = this.LoadType(module, baseTypename);
+                        JsDbg.Type baseType = await this.LoadType(module, baseTypename);
                         if (baseType != null) {
                             baseTypes.Add(new SBaseType(baseType, baseClassSymbol.offset));
                         } else {
@@ -140,13 +140,11 @@ namespace Core {
         public void Dispose() { }
 
         public async Task<IEnumerable<JsDbg.SFieldResult>> GetAllFields(string module, string typename) {
-            await this.debuggerEngine.WaitForBreakIn();
-            return this.LoadType(module, typename).Fields;
+            return (await this.LoadType(module, typename)).Fields;
         }
 
         public async Task<IEnumerable<JsDbg.SBaseTypeResult>> GetBaseTypes(string module, string typename) {
-            await this.debuggerEngine.WaitForBreakIn();
-            return this.LoadType(module, typename).BaseTypes;
+            return (await this.LoadType(module, typename)).BaseTypes;
         }
 
         public bool IsPointer64Bit {
@@ -154,9 +152,7 @@ namespace Core {
         }
 
         public async Task<JsDbg.SConstantResult> LookupConstant(string module, string typename, ulong constantValue) {
-            await this.debuggerEngine.WaitForBreakIn();
-
-            var type = this.LoadType(module, typename);
+            var type = await this.LoadType(module, typename);
             foreach (SConstantResult constantResult in type.Constants) {
                 if (constantResult.Value == constantValue) {
                     return constantResult;
@@ -167,9 +163,7 @@ namespace Core {
         }
 
         public async Task<JsDbg.SConstantResult> LookupConstant(string module, string typename, string constantName) {
-            await this.debuggerEngine.WaitForBreakIn();
-
-            var type = this.LoadType(module, typename);
+            var type = await this.LoadType(module, typename);
             ulong constantValue;
             if (type.GetConstantValue(constantName, out constantValue)) {
                 return new SConstantResult() { ConstantName = constantName, Value = constantValue };
@@ -179,11 +173,9 @@ namespace Core {
         }
 
         public async Task<JsDbg.SFieldResult> LookupField(string module, string typename, string fieldName) {
-            await this.debuggerEngine.WaitForBreakIn();
-
             SFieldResult result = new SFieldResult();
 
-            var type = this.LoadType(module, typename);
+            var type = await this.LoadType(module, typename);
             SField field;
             if (type.GetField(fieldName, out field)) {
                 result.Offset += field.Offset;
@@ -199,16 +191,13 @@ namespace Core {
         }
 
         public async Task<uint> LookupTypeSize(string module, string typename) {
-            await this.debuggerEngine.WaitForBreakIn();
-            return this.LoadType(module, typename).Size;
+            return (await this.LoadType(module, typename)).Size;
         }
 
         public async Task<JsDbg.SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName) {
-            await this.debuggerEngine.WaitForBreakIn();
-
             SSymbolResult result = new SSymbolResult();
 
-            Dia2Lib.IDiaSession session = this.debuggerEngine.DiaLoader.LoadDiaSession(moduleName);
+            Dia2Lib.IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(moduleName);
             if (session != null) {
                 // We have a DIA session, use that.
                 try {
@@ -216,7 +205,7 @@ namespace Core {
                     session.globalScope.findChildren(Dia2Lib.SymTagEnum.SymTagNull, symbolName, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out symbols);
                     foreach (Dia2Lib.IDiaSymbol diaSymbol in symbols) {
                         result.Module = moduleName;
-                        result.Pointer = this.debuggerEngine.GetBaseAddressForModule(moduleName) + diaSymbol.relativeVirtualAddress;
+                        result.Pointer = (await this.debuggerEngine.GetModuleForName(moduleName)).BaseAddress + diaSymbol.relativeVirtualAddress;
                         result.Type = DiaHelpers.GetTypeName(diaSymbol.type);
                         return result;
                     }
@@ -228,33 +217,37 @@ namespace Core {
         }
 
         public async Task<IEnumerable<JsDbg.SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbolName, int maxCount) {
-            await this.debuggerEngine.WaitForBreakIn();
+            ulong requestedModuleBase = (await this.debuggerEngine.GetModuleForName(module)).BaseAddress;
 
             bool foundStackFrame = false;
             List<JsDbg.SSymbolResult> results = new List<SSymbolResult>();
 
-            IEnumerable<SStackFrameWithContext> stackFrames = this.debuggerEngine.GetCurrentCallStack();
+            IEnumerable<SStackFrameWithContext> stackFrames = await this.debuggerEngine.GetCurrentCallStack();
             foreach (SStackFrameWithContext stackFrameWithContext in stackFrames) {
                 SSymbolNameResult stackFrameName;
-                ulong moduleBaseAddress;
-                string stackFrameModule = this.debuggerEngine.GetModuleForAddress(stackFrameWithContext.StackFrame.InstructionAddress, out moduleBaseAddress);
-                if (stackFrameModule != module) {
+                SModule stackFrameModule;
+                try {
+                    stackFrameModule = await this.debuggerEngine.GetModuleForAddress(stackFrameWithContext.StackFrame.InstructionAddress);
+                } catch {
+                    // No module found.  Could be a JIT stack so just keep going.
+                    continue;
+                }
+                if (requestedModuleBase != stackFrameModule.BaseAddress) {
                     // Check the module before looking up the name to avoid loading symbols for modules we're not interested in.
                     continue;
                 }
 
                 try {
-                    ulong displacement;
-                    stackFrameName = this.LookupSymbolNameWithDisplacement(stackFrameWithContext.StackFrame.InstructionAddress, out displacement);
+                    stackFrameName = (await this.LookupSymbolNameWithDisplacement(stackFrameWithContext.StackFrame.InstructionAddress)).Symbol;
                 } catch {
                     continue;
                 }
 
-                if (stackFrameName.Module == module && stackFrameName.Name == methodName) {
+                if (stackFrameName.Name == methodName) {
                     foundStackFrame = true;
 
                     // This is the stack frame that we're being asked about.
-                    IList<SLocalVariable> localsFromDia = this.GetLocalsFromDia(module, methodName, (uint)(stackFrameWithContext.StackFrame.InstructionAddress - moduleBaseAddress), symbolName);
+                    IList<SLocalVariable> localsFromDia = await this.GetLocalsFromDia(module, methodName, (uint)(stackFrameWithContext.StackFrame.InstructionAddress - stackFrameModule.BaseAddress), symbolName);
                     if (localsFromDia != null) {
                         if (localsFromDia.Count > 0) {
                             // We might get multiple local variables with the same name.  Just use the first one.
@@ -264,7 +257,7 @@ namespace Core {
                         }
                     } else {
                         // Unable to get any locals from DIA.  Try the debugger engine.
-                        IEnumerable<JsDbg.SSymbolResult> localsFromDebugger = this.debuggerEngine.LookupLocalsInStackFrame(stackFrameWithContext, symbolName);
+                        IEnumerable<JsDbg.SSymbolResult> localsFromDebugger = await this.debuggerEngine.LookupLocalsInStackFrame(stackFrameWithContext, symbolName);
                         if (localsFromDebugger != null) {
                             results.AddRange(localsFromDebugger);
                         }
@@ -281,8 +274,8 @@ namespace Core {
             }
         }
 
-        public IList<SLocalVariable> GetLocalsFromDia(string module, string method, uint rva, string symbolName) {
-            IDiaSession diaSession = this.debuggerEngine.DiaLoader.LoadDiaSession(module);
+        public async Task<IList<SLocalVariable>> GetLocalsFromDia(string module, string method, uint rva, string symbolName) {
+            IDiaSession diaSession = await this.debuggerEngine.DiaLoader.LoadDiaSession(module);
             if (diaSession == null) {
                 return null;
             }
@@ -321,39 +314,36 @@ namespace Core {
         }
 
         public async Task<JsDbg.SSymbolNameResult> LookupSymbolName(ulong pointer) {
-            await this.debuggerEngine.WaitForBreakIn();
-            ulong displacement;
-            SSymbolNameResult result = this.LookupSymbolNameWithDisplacement(pointer, out displacement);
-            if (displacement != 0) {
+            SSymbolNameResultAndDisplacement result = await this.LookupSymbolNameWithDisplacement(pointer);
+            if (result.Displacement != 0) {
                 throw new DebuggerException(String.Format("Invalid symbol address: 0x{0:x8}", pointer));
             }
-            return result;
+            return result.Symbol;
         }
 
-        private JsDbg.SSymbolNameResult LookupSymbolNameWithDisplacement(ulong pointer, out ulong displacement) {
+        private async Task<JsDbg.SSymbolNameResultAndDisplacement> LookupSymbolNameWithDisplacement(ulong pointer) {
             try {
-                ulong moduleBase;
-                string moduleName = this.debuggerEngine.GetModuleForAddress(pointer, out moduleBase);
-                Dia2Lib.IDiaSession session = this.debuggerEngine.DiaLoader.LoadDiaSession(moduleName);
+                SModule module = await this.debuggerEngine.GetModuleForAddress(pointer);
+                Dia2Lib.IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(module.Name);
 
                 if (session != null) {
                     // We have a DIA session; use it.
                     Dia2Lib.IDiaSymbol symbol;
-                    ulong rva = pointer - moduleBase;
+                    ulong rva = pointer - module.BaseAddress;
                     session.findSymbolByRVA((uint)rva, Dia2Lib.SymTagEnum.SymTagNull, out symbol);
 
                     // Blocks don't have names.  Walk up to the nearest non-block parent.
                     while ((Dia2Lib.SymTagEnum)symbol.symTag == Dia2Lib.SymTagEnum.SymTagBlock) {
                         symbol = symbol.lexicalParent;
                     }
-                    displacement = (ulong)(rva - symbol.relativeVirtualAddress);
+                    ulong displacement = (ulong)(rva - symbol.relativeVirtualAddress);
                     
                     string name;
                     symbol.get_undecoratedNameEx(0x1000, out name);
 
-                    return new SSymbolNameResult() { Module = moduleName, Name = name };
+                    return new SSymbolNameResultAndDisplacement() { Symbol = new SSymbolNameResult() { Module = module.Name, Name = name }, Displacement = displacement };
                 } else {
-                    return this.debuggerEngine.LookupSymbolName(pointer, out displacement); ;
+                    return await this.debuggerEngine.LookupSymbolName(pointer);
                 }
             } catch {
                 throw new DebuggerException(String.Format("Invalid symbol address: 0x{0:x8}", pointer));
@@ -372,6 +362,6 @@ namespace Core {
         #endregion
 
         private ITypeCacheDebuggerEngine debuggerEngine;
-        private JsDbg.NewTypeCache typeCache;
+        private JsDbg.TypeCache typeCache;
     }
 }

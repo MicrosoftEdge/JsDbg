@@ -373,7 +373,7 @@ namespace Sushraja.Jump
                                                                     this.configuration,
                                                                     new Core.IDiaSessionSource[]{ new DiaSessionPathSource(this) }
                                                                 );
-                                                                this.typeCache = new TypeCache(diaLoader, this.isPointer64Bit);
+                                                                //this.typeCache = new TypeCache(diaLoader, this.isPointer64Bit);
                                                             }
                                                         }
                                                     }
@@ -508,9 +508,9 @@ namespace Sushraja.Jump
                 // Assumes the current class implements IVsDebuggerEvents.
                 debugService.UnadviseDebugEventCallback(this);
             }
-        }       
+        }
 
-        TypeCache typeCache;
+        dynamic typeCache;
         IDebugProgram2 currentDebugProgram;
         IDebugMemoryContext2 memoryContext;
         IDebugMemoryBytes2 memoryBytes;
