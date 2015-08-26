@@ -13,7 +13,8 @@ namespace Sushraja.Jump {
 
         public string SharedSupportDirectory {
             get {
-                return Path.Combine(@"\\iefs\users\psalas\jsdbg\support\", Version);
+                // TODO: Figure out configuration story for Jump.
+                return @"C:\My\Dev";
             }
         }
         public string PersistentStoreDirectory {
@@ -24,10 +25,8 @@ namespace Sushraja.Jump {
 
         public string LocalSupportDirectory {
             get {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support", Version);
+                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support");
             }
         }
-
-        private const string Version = "2014-07-23-01";
     }
 }

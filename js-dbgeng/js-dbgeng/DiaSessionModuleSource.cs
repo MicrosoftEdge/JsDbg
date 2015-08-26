@@ -46,14 +46,14 @@ namespace JsDbg {
             #endregion
         }
 
-        internal DiaSessionModuleSource(SymbolCache symbolCache, DebugDataSpaces dataSpaces) {
+        internal DiaSessionModuleSource(WinDbgDebuggerRunner runner, SymbolCache symbolCache, DebugDataSpaces dataSpaces) {
+            this.runner = runner;
             this.symbolCache = symbolCache;
             this.dataSpaces = dataSpaces;
         }
 
         private string SymPath {
             get {
-                //CACHE*;CACHE*C:\Symbols;CACHE*C:\debuggers\wow64\sym;CACHE*C:\debuggers\sym;SRV*;SRV*http://symweb/
                 string[] caches = { "", @"C:\symbols", @"C:\debuggers\wow64\sym", @"C:\debuggers\sym" };
                 string[] servers = { "", "http://symweb/" };
                 return String.Format("CACHE*{0};SRV*{1}", string.Join(";CACHE*", caches), string.Join(";SRV*", servers));
@@ -62,9 +62,17 @@ namespace JsDbg {
 
         #region IDiaSessionSource Members
 
+        public Task WaitUntilReady() {
+            return this.runner.WaitForBreakIn();
+        }
+
         public IDiaSession LoadSessionForModule(string moduleName) {
             DiaSource source = new DiaSource();
-            source.loadDataForExe(moduleName, this.SymPath, new ModuleReader(this.symbolCache, this.dataSpaces, moduleName));
+            try {
+                source.loadDataForExe(moduleName, this.SymPath, new ModuleReader(this.symbolCache, this.dataSpaces, moduleName));
+            } catch (InvalidOperationException) {
+                throw new Core.DiaSourceNotReadyException();
+            }
             IDiaSession session;
             source.openSession(out session);
             return session;
@@ -72,6 +80,7 @@ namespace JsDbg {
 
         #endregion
 
+        private WinDbgDebuggerRunner runner;
         private SymbolCache symbolCache;
         private DebugDataSpaces dataSpaces;
     }

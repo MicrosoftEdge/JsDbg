@@ -150,7 +150,6 @@
     </COMReference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Debugger.cs" />
     <Compile Include="DiaSessionPathSource.cs" />
     <Compile Include="JumpConfiguration.cs" />
     <Compile Include="MyControl.xaml.cs">
@@ -167,6 +166,8 @@
     <Compile Include="JumpPackage.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="PkgCmdID.cs" />
+    <Compile Include="VsDebuggerEngine.cs" />
+    <Compile Include="VsDebuggerRunner.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources.resx">

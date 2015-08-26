@@ -307,14 +307,11 @@ namespace JsDbg {
             case "symbolname":
                 this.ServeSymbolName(query, respond, fail);
                 break;
-            case "symbol":
-                this.ServeSymbol(query, respond, fail);
+            case "global":
+                this.ServeGlobalSymbol(query, respond, fail);
                 break;
             case "localsymbols":
                 this.ServeLocalSymbols(query, respond, fail);
-                break;
-            case "pointersize":
-                this.ServePointerSize(query, respond, fail);
                 break;
             case "constantname":
                 this.ServeConstantName(query, respond, fail);
@@ -448,13 +445,6 @@ namespace JsDbg {
             try {
                 object value = null;
                 switch (type) {
-                    case "pointer":
-                        if (this.debugger.IsPointer64Bit) {
-                            value = await this.debugger.ReadMemory<ulong>(pointer);
-                        } else {
-                            value = await this.debugger.ReadMemory<uint>(pointer);
-                        }
-                        break;
                     case "byte":
                         value = await this.debugger.ReadMemory<byte>(pointer);
                         break;
@@ -511,13 +501,6 @@ namespace JsDbg {
             try {
                 string arrayString;
                 switch (type) {
-                case "pointer":
-                    if (this.debugger.IsPointer64Bit) {
-                        arrayString = await ReadJsonArray<ulong>(pointer, length);
-                    } else {
-                        arrayString = await ReadJsonArray<uint>(pointer, length);
-                    }
-                    break;
                 case "byte":
                     arrayString = await ReadJsonArray<byte>(pointer, length);
                     break;
@@ -603,8 +586,8 @@ namespace JsDbg {
 
             string responseString;
             try {
-                string symbolName = await this.debugger.LookupSymbol(pointer);
-                responseString = String.Format("{{ \"symbolName\": \"{0}\" }}", symbolName);
+                SSymbolNameResult symbolName = await this.debugger.LookupSymbolName(pointer);
+                responseString = String.Format("{{ \"module\": \"{0}\", \"name\": \"{1}\" }}", symbolName.Module, symbolName.Name);
             } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
@@ -612,18 +595,17 @@ namespace JsDbg {
             respond(responseString);
         }
 
-        private async void ServeSymbol(NameValueCollection query, Action<string> respond, Action fail) {
+        private async void ServeGlobalSymbol(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
             string symbol = query["symbol"];
-            string isGlobalString = query["isGlobal"];
 
-            bool isGlobal;
-            if (symbol == null || isGlobalString == null || !bool.TryParse(isGlobalString, out isGlobal)) {
+            if (module == null || symbol == null) {
                 fail();
                 return;
             }
             string responseString;
             try {
-                SSymbolResult result = await this.debugger.LookupSymbol(symbol, isGlobal);
+                SSymbolResult result = await this.debugger.LookupGlobalSymbol(module, symbol);
                 responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
             } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
@@ -662,10 +644,6 @@ namespace JsDbg {
             }
 
             respond(responseString);
-        }
-
-        private void ServePointerSize(NameValueCollection query, Action<string> respond, Action fail) {
-            respond(String.Format("{{ \"pointerSize\": \"{0}\" }}", (this.debugger.IsPointer64Bit ? 8 : 4)));
         }
 
         private async void ServeConstantName(NameValueCollection query, Action<string> respond, Action fail) {

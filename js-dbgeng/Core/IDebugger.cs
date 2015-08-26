@@ -12,6 +12,25 @@ namespace JsDbg
 
         }
     }
+
+    public struct SStackFrame
+    {
+        public ulong InstructionAddress;
+        public ulong StackAddress;
+        public ulong FrameAddress;
+    }
+
+    public struct SSymbolNameResult
+    {
+        public string Module;
+        public string Name;
+    }
+
+    public struct SSymbolNameResultAndDisplacement
+    {
+        public SSymbolNameResult Symbol;
+        public ulong Displacement;
+    }
     
     public struct SSymbolResult
     {
@@ -57,9 +76,9 @@ namespace JsDbg
         Task<SConstantResult> LookupConstant(string module, string type, ulong constantValue);
         Task<SConstantResult> LookupConstant(string module, string type, string constantName);
         Task<SFieldResult> LookupField(string module, string typename, string fieldName);
-        Task<SSymbolResult> LookupSymbol(string symbol, bool isGlobal);
+        Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol);
         Task<IEnumerable<SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbol, int maxCount);
-        Task<string> LookupSymbol(ulong pointer);
+        Task<SSymbolNameResult> LookupSymbolName(ulong pointer);
         Task<uint> LookupTypeSize(string module, string typename);
         Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct;
         Task<T> ReadMemory<T>(ulong pointer) where T : struct;

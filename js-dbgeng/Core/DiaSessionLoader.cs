@@ -16,38 +16,55 @@ namespace Core {
             this.didAttemptDiaRegistration = false;
         }
 
-        public IDiaSession LoadDiaSession(string module) {
+        public async Task<IDiaSession> LoadDiaSession(string module) {
             if (this.activeSessions.ContainsKey(module)) {
                 return this.activeSessions[module];
             }
 
             // Try each of the sources until we're able to get one.
             foreach (IDiaSessionSource source in this.sources) {
-                try {
-                    IDiaSession session = source.LoadSessionForModule(module);
-                    if (session != null) {
-                        this.activeSessions[module] = session;
-                        return session;
+                int attempts = 1;
+                while (attempts <= 3) {
+                    if (attempts > 1) {
+                        await source.WaitUntilReady();
                     }
-                } catch (JsDbg.DebuggerException) {
-                    throw;
-                } catch (System.Runtime.InteropServices.COMException comException) {
-                    if ((uint)comException.ErrorCode == 0x80040154 && !this.didAttemptDiaRegistration) {
-                        // The DLL isn't registered.
-                        this.didAttemptDiaRegistration = true;
-                        try {
-                            this.AttemptDiaRegistration();
-                            // Retry the load attempts.
-                            return this.LoadDiaSession(module);
-                        } catch (Exception ex) {
-                            Console.Out.WriteLine("Unable to register DIA: {0}", ex.Message);
-                            return null;
+                    ++attempts;
+
+                    try {
+                        IDiaSession session = source.LoadSessionForModule(module);
+                        if (session != null) {
+                            this.activeSessions[module] = session;
+                            return session;
                         }
+                        break;
+                    } catch (JsDbg.DebuggerException) {
+                        throw;
+                    } catch (DiaSourceNotReadyException) {
+                        // Try again.
+                        continue;
+                    } catch (System.Runtime.InteropServices.COMException comException) {
+                        if ((uint)comException.ErrorCode == 0x80040154 && !this.didAttemptDiaRegistration) {
+                            // The DLL isn't registered.
+                            this.didAttemptDiaRegistration = true;
+                            try {
+                                this.AttemptDiaRegistration();
+                                // Try again.
+                                continue;
+                            } catch (Exception ex) {
+                                Console.Out.WriteLine("Unable to register DIA: {0}", ex.Message);
+                                return null;
+                            }
+                        }
+                        break;
+                    } catch {
+                        // Try the next source.
+                        break;
                     }
-                } catch {
-                    // Try the next source.
                 }
             }
+
+            // The session load failed.
+            this.activeSessions[module] = null;
 
             return null;
         }

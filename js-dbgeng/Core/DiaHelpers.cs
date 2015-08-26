@@ -31,7 +31,7 @@ namespace JsDbg {
         void RestrictSymbolServerAccess();
     }
 
-    static class DiaHelpers {
+    public static class DiaHelpers {
         public enum LocationType {
             LocIsNull = 0,
             LocIsStatic = 1,

@@ -8,7 +8,7 @@ var MSHTML = (function() {
     // Figure out which module to use.
     var moduleName = null;
     JsDbg.RunSynchronously(function() {
-        DbgObject.global("edgehtml!g_pts")
+        DbgObject.global("edgehtml", "g_pts")
         .then(
             function() {
                 moduleName = "edgehtml";
@@ -32,7 +32,7 @@ var MSHTML = (function() {
     });
 
     function GetDocsAndThreadstates(){
-        return DbgObject.global(moduleName + "!g_pts").deref()
+        return DbgObject.global(moduleName, "g_pts").deref()
         .list("ptsNext")
         .map(function (threadstate) {
             return threadstate.as("THREADSTATEUI").f("_paryDoc")
@@ -374,15 +374,15 @@ var MSHTML = (function() {
             }
 
             function getSystemColor(index) {
-                return DbgObject.global("user32!gpsi").deref().f("argbSystem").idx(index).val();
+                return DbgObject.global("user32", "gpsi").deref().f("argbSystem").idx(index).val();
             }
 
             var indirectColorRefs = {
                 "CT_NAMEDHTML" : function() {
-                    return DbgObject.global(moduleName + "!g_HtmlColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
+                    return DbgObject.global(moduleName, "g_HtmlColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
                 },
                 "CT_NAMEDSYS" : function() {
-                    return Promise.as(DbgObject.global(moduleName + "!g_SystemColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())
+                    return Promise.as(DbgObject.global(moduleName, "g_SystemColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())
                         .then(function(x) {
                             return x & 0xFFFFFF;
                         })

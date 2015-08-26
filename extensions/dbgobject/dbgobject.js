@@ -285,30 +285,17 @@ var DbgObject = (function() {
 
 
     DbgObject._help_global = {
-        description: "Evaluates a reference to a global symbol in the debuggee.",
+        description: "Looks up a global symbol in the debuggee.",
         returns: "A promise to a DbgObject representing the symbol.",
         arguments: [
-            {name:"symbol", type:"string", description:"The module-prefixed global symbol to evaluate."}
+            {name:"module", type:"string", description:"The module containing the symbol."},
+            {name:"symbol", type:"string", description:"The global symbol to lookup."}
         ]
     }
-    DbgObject.global = function(symbol) {
+    DbgObject.global = function(module, symbol) {
         return new PromisedDbgObject(
-            jsDbgPromise(JsDbg.LookupSymbol, symbol, true).then(function(result) {
-                return new DbgObject(result.module, result.type, result.pointer);
-            })
-        );
-    }
-
-    DbgObject._help_sym = {
-        description: "Evaluates a reference to a symbol in the debuggee.",
-        returns: "A promise to a DbgObject representing the symbol.",
-        arguments: [
-            {name:"symbol", type:"string", description:"The symbol to evaluate."}
-        ]
-    }
-    DbgObject.sym = function(symbol) {
-        return new PromisedDbgObject(
-            jsDbgPromise(JsDbg.LookupSymbol, symbol, false).then(function(result) {
+            jsDbgPromise(JsDbg.LookupGlobalSymbol, module, symbol)
+            .then(function(result) {
                 return new DbgObject(result.module, result.type, result.pointer);
             })
         );
@@ -347,10 +334,6 @@ var DbgObject = (function() {
     DbgObject.prototype._getStructSize = function() {
         if (this.structSize !== undefined) {
             return Promise.as(this.structSize);
-        } else if (this._isPointer()) {
-            return jsDbgPromise(JsDbg.GetPointerSize).then(function(result) {
-                return result.pointerSize;
-            });
         } else if (this == DbgObject.NULL) {
             return Promise.as(0);
         } else {
@@ -404,9 +387,9 @@ var DbgObject = (function() {
         }
 
         var that = this;
-        return jsDbgPromise(MemoryCache.ReadPointer, that._pointer)
+        return this.uval()
         .then(function(result) {
-            return new DbgObject(that.module, that._getDereferencedTypeName(), result.value);
+            return new DbgObject(that.module, that._getDereferencedTypeName(), result);
         });
     }
 
@@ -938,16 +921,16 @@ var DbgObject = (function() {
         var pointer = this._pointer;
 
         // Read the value at the this pointer...
-        return jsDbgPromise(MemoryCache.ReadPointer, pointer)
+        return this.as("void*").uval()
 
         // Lookup the symbol at that value...
         .then(function(result) { 
-            return jsDbgPromise(JsDbg.LookupSymbolName, result.value);
+            return jsDbgPromise(JsDbg.LookupSymbolName, result);
         })
 
         // And strip away the vftable suffix..
         .then(function(result) {
-            return result.symbolName.substring(result.symbolName.indexOf("!") + 1, result.symbolName.indexOf("::`vftable'"));
+            return result.name.substring(0, result.name.indexOf("::`vftable'"));
         });
     }
 

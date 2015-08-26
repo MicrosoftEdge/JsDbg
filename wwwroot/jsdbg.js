@@ -425,17 +425,6 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/basetypes?module=" + esc(module) + "&type=" + esc(type), callback, CacheType.Cached);
         },
 
-        _help_ReadPointer: {
-            description: "Reads a pointer sized value from memory.",
-            arguments: [
-                {name:"pointer", type:"integer", description:"The pointer to the pointer."},
-                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
-            ]
-        },
-        ReadPointer: function(pointer, callback) {
-            jsonRequest("/jsdbg/memory?type=pointer&pointer=" + esc(pointer), callback, CacheType.TransientCache);
-        },
-
         _help_ReadNumber: {
             description: "Reads a number value from memory.",
             arguments: [
@@ -530,26 +519,16 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/constantvalue?module=" + esc(module) + "&type=" + esc(type) + "&name=" + esc(constantName), callback, CacheType.Cached);
         },
 
-        _help_GetPointerSize: {
-            description: "Looks up the size of a pointer.",
+        _help_LookupGlobalSymbol: {
+            description: "Evaluates a global symbol and returns the type and address of the value.",
             arguments: [
+                {name:"module", type:"string", description:"The module containing the symbol."},
+                {name:"symbol", type:"string", description:"The symbol to evaluate."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        GetPointerSize: function(callback) {
-            jsonRequest("/jsdbg/pointersize", callback, CacheType.Cached);
-        },
-
-        _help_LookupSymbol: {
-            description: "Evaluates a symbolic expression and returns the type of and pointer to the value.",
-            arguments: [
-                {name:"symbol", type:"string", description:"The symbolic expression to evaluate."},
-                {name:"isGlobal", type:"bool", description:"A value indicating if the symbol is guaranteed to be a global symbol."},
-                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
-            ]
-        },
-        LookupSymbol: function(symbol, isGlobal, callback) {
-            jsonRequest("/jsdbg/symbol?symbol=" + esc(symbol) + "&isGlobal=" + esc(isGlobal), callback, isGlobal ? CacheType.Cached : CacheType.TransientCache);
+        LookupGlobalSymbol: function(module, symbol, callback) {
+            jsonRequest("/jsdbg/global?module=" + esc(module) + "&symbol=" + esc(symbol), callback, CacheType.Cached);
         },
 
         _help_LookupLocalSymbols: {
