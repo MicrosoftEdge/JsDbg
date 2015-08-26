@@ -822,7 +822,9 @@ var DbgObject = (function() {
                 isFirstNode = false;
 
                 collectedNodes.push(node);
-                if (typeof(fieldOrFunction) == typeof("")) {
+                if (Array.isArray(fieldOrFunction)) {
+                    return node.f.apply(node, fieldOrFunction).then(collectRemainingNodes);
+                } else if (typeof(fieldOrFunction) == typeof("")) {
                     return node.f(fieldOrFunction).then(collectRemainingNodes);
                 } else if (typeof(fieldOrFunction) == typeof(collectRemainingNodes)) {
                     return Promise.as(fieldOrFunction(node)).then(collectRemainingNodes);

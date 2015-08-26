@@ -52,7 +52,7 @@ var BoxTree = (function() {
     if (JsDbg.GetCurrentExtension() == "boxtree") {
         DbgObjectTree.AddRoot("Box Tree", function() {
             return Promise.map(MSHTML.GetRootCTreeNodes(), function(treeNode) {
-                return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode).as("Layout::ContainerBox").list("associatedBoxLink").vcast();
+                return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode).as("Layout::ContainerBox").list(["nextLayoutBox", "associatedBoxLink"]).vcast();
             })
             .then(function(boxes) {
                 var flattenedArray = [];

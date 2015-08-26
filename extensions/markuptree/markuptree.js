@@ -23,7 +23,7 @@ var MarkupTree = (function() {
 
     function promoteTreePos(treePos) {
         // What kind of tree pos is this?
-        return treePos.f("_cElemLeftAndFlags").val()
+        return treePos.f("_elementTypeAndFlags", "_cElemLeftAndFlags").val()
         .then(function (treePosFlags) {
             if (treePosFlags & 0x01) {
                 return treePos.unembed("CTreeNode", "_tpBegin")
@@ -62,7 +62,7 @@ var MarkupTree = (function() {
             .list(
                 function (treePos) {
                     // What kind of tree pos is this?
-                    return treePos.f("_cElemLeftAndFlags").val()
+                    return treePos.f("_elementTypeAndFlags", "_cElemLeftAndFlags").val()
                     .then(function (treePosFlags) {
                         if (treePosFlags & 0x01) {
                             // Node begin, skip to the end.

@@ -73,11 +73,19 @@ var MSHTML = (function() {
             element.f("placeholder")
             .then(
                 function() {
-                    // We're in chk, offset by the size of a void*.
+                    // We're in legacy chk, offset by the size of a void*.
                     return element.as("void*").idx(1).as("CTreeNode");
                 }, function() {
-                    // We're in fre, cast to CTreeNode.
-                    return element.as("CTreeNode");
+                    return new DbgObject(MSHTML.Module, "CTreeNode", 0).baseTypes()
+                    .then(function (baseTypes) {
+                        if (baseTypes.filter(function (b) { return b.typename == "CBase"; }).length > 0) {
+                            // CBase is in CTreeNode's ancestry, unembed.
+                            return element.as("CTreePos").unembed("CTreeNode", "_tpBegin");
+                        } else {
+                            // Not in the ancestry, just cast it.
+                            return element.as("CTreeNode");
+                        }
+                    })
                 }
             )
         );
