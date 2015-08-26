@@ -445,14 +445,18 @@ var JsDbg = (function() {
             if (isFloat) {
                 var originalCallback = callback;
                 callback = function(result) {
-                    result.value = readJsonFloat(result.value);
+                    if (typeof(result.value) != typeof(undefined)) {
+                        result.value = readJsonFloat(result.value);
+                    }
                     originalCallback(result);
                 }
             } else {
                 // Make it a bigInt.
                 var originalCallback = callback;
                 callback = function(result) {
-                    result.value = bigInt(result.value);
+                    if (typeof(result.value) != typeof(undefined)) {
+                        result.value = bigInt(result.value);
+                    }
                     originalCallback(result);
                 };
             }
@@ -481,14 +485,18 @@ var JsDbg = (function() {
             if (isFloat) {
                 var originalCallback = callback;
                 callback = function(result) {
-                    result.array = result.array.map(readJsonFloat);
+                    if (typeof(result.array) != typeof(undefined)) {
+                        result.array = result.array.map(readJsonFloat);
+                    }
                     originalCallback(result);
                 }
             } else {
                 // Make the numbers bigInts.
                 var originalCallback = callback;
                 callback = function(result) {
-                    result.array = result.array.map(function (n) { return bigInt(n); });
+                    if (typeof(result.array) != typeof(undefined)) {
+                        result.array = result.array.map(function (n) { return bigInt(n); });
+                    }
                     originalCallback(result);
                 };
             }
