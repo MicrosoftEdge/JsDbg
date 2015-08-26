@@ -16,6 +16,7 @@ var TreeInspector = (function() {
             function createAndRender() {
                 if (lastRenderedPointer != pointerField.value) {
                     // Don't re-render if we've already rendered.
+                    pointerField.value = pointerField.value.trim();
                     Promise.as(DbgObjectTree.InterpretAddress(new PointerMath.Pointer(pointerField.value, 16)))
                     .then(function(createdRoot) {
                         lastRenderedPointer = pointerField.value;
