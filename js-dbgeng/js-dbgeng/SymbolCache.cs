@@ -26,7 +26,6 @@ namespace JsDbg {
 
         internal void GetModule(ulong address, out ulong moduleBase, out string moduleName) {
             uint index;
-            // TODO: Why is this crashing under stress?
             this.symbols.GetModuleByOffset(address, 0, out index, out moduleBase);
             moduleName = this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.Module, moduleBase);
         }
