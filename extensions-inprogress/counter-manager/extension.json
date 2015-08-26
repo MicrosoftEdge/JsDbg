@@ -1,0 +1,11 @@
+{
+    "name": "counter-manager",
+    "author": "Peter Salas",
+    "description": "Inspect Counter Managers",
+    "dependencies": [
+        "dbgobject",
+        "mshtml-helpers",
+        "tree-inspector"
+    ],
+    "includes": ["counter-manager.js"]
+}

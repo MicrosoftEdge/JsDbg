@@ -52,7 +52,7 @@ namespace JsDbg
     }
    
     public class Type {
-        public Type(string module, string name, uint size, Dictionary<string, SField> fields, List<SBaseType> baseTypes, List<SBaseTypeName> baseTypeNames) {
+        public Type(string module, string name, uint size, Dictionary<string, SField> fields, Dictionary<string, ulong> constants, List<SBaseType> baseTypes, List<SBaseTypeName> baseTypeNames) {
             this.module = module;
             this.name = name;
             this.size = size;
@@ -61,6 +61,13 @@ namespace JsDbg
                 this.caseInsensitiveFields = new Dictionary<string, string>();
                 foreach (string field in fields.Keys) {
                     this.caseInsensitiveFields[field.ToLowerInvariant()] = field;
+                }
+            }
+            this.constants = constants;
+            if (this.constants != null) {
+                this.caseInsensitiveConstants = new Dictionary<string, string>();
+                foreach (string constantName in constants.Keys) {
+                    this.caseInsensitiveConstants[constantName.ToLowerInvariant()] = constantName;
                 }
             }
             this.baseTypes = baseTypes;
@@ -99,6 +106,27 @@ namespace JsDbg
             }
 
             field = new SField();
+            return false;
+        }
+
+        public bool GetConstantValue(string name, out ulong value) {
+            if (this.constants != null) {
+                if (this.constants.ContainsKey(name)) {
+                    value = this.constants[name];
+                    return true;
+                } else if (this.caseInsensitiveConstants.ContainsKey(name.ToLowerInvariant())) {
+                    value = this.constants[this.caseInsensitiveConstants[name.ToLowerInvariant()]];
+                    return true;
+                } else if (this.baseTypes != null) {
+                    foreach (SBaseType baseType in this.baseTypes) {
+                        if (baseType.Type.GetConstantValue(name, out value)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            value = 0;
             return false;
         }
 
@@ -160,11 +188,31 @@ namespace JsDbg
             }
         }
 
+        public IEnumerable<SConstantResult> Constants {
+            get {
+                if (this.baseTypes != null) {
+                    foreach (SBaseType baseType in this.baseTypes) {
+                        foreach (SConstantResult innerBaseConstant in baseType.Type.Constants) {
+                            yield return innerBaseConstant;
+                        }
+                    }
+                }
+
+                if (this.constants != null) {
+                    foreach (string constantName in this.constants.Keys) {
+                        yield return new SConstantResult() { ConstantName = constantName, Value = this.constants[constantName] };
+                    }
+                }
+            }
+        }
+
         private readonly string module;
         private readonly string name;
         private readonly uint size;
         private readonly Dictionary<string, SField> fields;
         private readonly Dictionary<string, string> caseInsensitiveFields;
+        private readonly Dictionary<string, ulong> constants;
+        private readonly Dictionary<string, string> caseInsensitiveConstants;
         private readonly List<SBaseType> baseTypes;
         private readonly List<SBaseTypeName> baseTypeNames;
     }
@@ -178,204 +226,37 @@ namespace JsDbg
 #endregion
 
     public class TypeCache {
-        public TypeCache(bool isPointer64Bit, GetModuleSymbolPathDelegate getModuleSymbolPath) {
+        public TypeCache(bool isPointer64Bit) {
             this.types = new Dictionary<string, Type>();
-            this.modules = new Dictionary<string, IDiaSession>();
+            this.modulePointerSizes = new Dictionary<string, uint>();
             this.isPointer64Bit = isPointer64Bit;
-            this.didAttemptDIARegistration = false;
-            this.GetModuleSymbolPath = getModuleSymbolPath;
         }
 
-        private static Regex ArrayIndexRegex = new Regex(@"\[[0-9]*\]");
-        public Type GetType(string module, string typename) {
-            typename = ArrayIndexRegex.Replace(typename, "");
-
+        public Type GetCachedType(IDiaSession session, string module, string typename) {
             string key = TypeKey(module, typename);
             if (this.types.ContainsKey(key)) {
                 return this.types[key];
             }
 
             // Is it a built-in type?
-            Type builtinType = this.GetBuiltinType(module, typename);
+            Type builtinType = this.GetBuiltinType(session, module, typename);
             if (builtinType != null) {
                 this.types.Add(key, builtinType);
                 return builtinType;
             }
 
-            Console.Out.WriteLine("Loading type information for {0}!{1}...", module, typename);
-
-            IDiaSession diaSession = this.AttemptLoadDiaSession(module);
-            if (diaSession != null) {
-                Type type = this.GetTypeFromDiaSession(diaSession, module, typename, DiaHelpers.NameSearchOptions.nsCaseSensitive);
-                if (type == null) {
-                    type = this.GetTypeFromDiaSession(diaSession, module, typename, DiaHelpers.NameSearchOptions.nsCaseInsensitive);
-                }
-                if (type != null) {
-                    this.types.Add(key, type);
-                }
-                return type;
-            }
-
-            // Something prevented us from using DIA for type discovery.  Fall back to getting type info from the debugger session.
-            Console.Out.WriteLine("WARNING: Unable to load {0}!{1} from PDBs. Falling back to the debugger, which could be slow...", module, typename);
             return null;
         }
 
-        public IList<SLocalVariable> GetLocals(string module, string method, uint rva, string symbolName) {
-            IDiaSession diaSession = this.AttemptLoadDiaSession(module);
-            if (diaSession == null) {
-                return null;
-            }
-
-            List<SLocalVariable> results = new List<SLocalVariable>();
-            IDiaEnumSymbols symbols;
-            diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagFunction, method, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out symbols);
-            
-            foreach (IDiaSymbol symbol in symbols) {
-                List<IDiaSymbol> symbolResults = new List<IDiaSymbol>();
-                this.AccumulateChildLocalSymbols(symbol, symbolName, rva, symbolResults);
-                foreach (IDiaSymbol resultSymbol in symbolResults) {
-                    if ((DiaHelpers.LocationType)resultSymbol.locationType == DiaHelpers.LocationType.LocIsRegRel) {
-                        // If the register id is %rsp or %esp, the offset is from the bottom.
-                        bool offsetFromBottom = (resultSymbol.registerId == 335 || resultSymbol.registerId == 21);
-                        results.Add(new SLocalVariable() { FrameOffset = resultSymbol.offset, Type = DiaHelpers.GetTypeName(resultSymbol.type), IsOffsetFromBottom=offsetFromBottom });
-                    }
-                }
-            }
-
-            return results;
+        public void AddType(Type type) {
+            string key = TypeKey(type.Module, type.Name);
+            this.types.Add(key, type);
         }
-
-        private void AccumulateChildLocalSymbols(IDiaSymbol symbol, string symbolName, uint rva, List<IDiaSymbol> results) {
-            IDiaEnumSymbols dataSymbols;
-            symbol.findChildrenExByRVA(SymTagEnum.SymTagData, symbolName, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, rva, out dataSymbols);
-            foreach (IDiaSymbol dataSymbol in dataSymbols) {
-                results.Add(dataSymbol);
-            }
-
-            IDiaEnumSymbols blockSymbols;
-            symbol.findChildrenExByRVA(SymTagEnum.SymTagBlock, null, (uint)DiaHelpers.NameSearchOptions.nsNone, rva, out blockSymbols);
-            foreach (IDiaSymbol blockSymbol in blockSymbols) {
-                AccumulateChildLocalSymbols(blockSymbol, symbolName, rva, results);
-            }
+        private static string TypeKey(string module, string typename) {
+            return String.Format("{0}!{1}", module, typename);
         }
-
-        private Type GetTypeFromDiaSession(IDiaSession diaSession, string module, string typename, DiaHelpers.NameSearchOptions options) {
-            IDiaEnumSymbols symbols;
-            diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagNull, typename, (uint)options, out symbols);
-            foreach (IDiaSymbol symbol in symbols) {
-                SymTagEnum symTag = (SymTagEnum)symbol.symTag;
-                if (symTag == SymTagEnum.SymTagUDT || symTag == SymTagEnum.SymTagBaseType || symTag == SymTagEnum.SymTagEnum) {
-                    // Get the fields for this class.
-                    IDiaEnumSymbols dataSymbols;
-                    symbol.findChildren(SymTagEnum.SymTagData, null, 0, out dataSymbols);
-                    uint typeSize = (uint)symbol.length;
-                    Dictionary<string, SField> fields = new Dictionary<string, SField>();
-
-                    foreach (IDiaSymbol dataSymbol in dataSymbols) {
-                        DiaHelpers.LocationType location = (DiaHelpers.LocationType)dataSymbol.locationType;
-                        if (location == DiaHelpers.LocationType.LocIsBitField) {
-                            byte bitOffset = (byte)dataSymbol.bitPosition;
-                            byte bitCount = (byte)dataSymbol.length;
-                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), bitOffset, bitCount));
-                        } else if (location == DiaHelpers.LocationType.LocIsThisRel) {
-                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), 0, 0));
-                        }
-                    }
-
-                    // Get the base types.
-                    List<SBaseType> baseTypes = new List<SBaseType>();
-                    IDiaEnumSymbols baseClassSymbols;
-                    symbol.findChildren(SymTagEnum.SymTagBaseClass, null, 0, out baseClassSymbols);
-                    foreach (IDiaSymbol baseClassSymbol in baseClassSymbols) {
-                        string baseTypename = DiaHelpers.GetTypeName(baseClassSymbol.type);
-                        Type baseType = this.GetType(module, baseTypename);
-                        if (baseType != null) {
-                            baseTypes.Add(new SBaseType(baseType, baseClassSymbol.offset));
-                        } else {
-                            System.Diagnostics.Debug.WriteLine("Unable to retrieve base type: {0}", baseTypename);
-                        }
-                    }
-
-                    // Construct the type.
-                    Type type = new Type(module, typename, typeSize, fields, baseTypes, null);
-                    return type;
-                }
-            }
-
-            return null;
-        }
-
-        private bool IsInFallbackForModule(string module) {
-            return this.modules.ContainsKey(module) && this.modules[module] == null;
-        }
-
-        private void SetInFallbackForModule(string module) {
-            this.modules[module] = null;
-        }
-
-        private IDiaSession AttemptLoadDiaSession(string module) {
-            while (!this.IsInFallbackForModule(module)) {
-                try {
-                    IDiaSession diaSession;
-                    if (this.modules.ContainsKey(module)) {
-                        diaSession = this.modules[module];
-                    } else {
-                        // Get the symbol path.                
-                        DiaSource source = new DiaSource();
-                        source.loadDataFromPdb(this.GetModuleSymbolPath(module));
-                        source.openSession(out diaSession);
-                        this.modules[module] = diaSession;
-                    }
-
-                    return diaSession;
-                } catch (JsDbg.DebuggerException) {
-                    throw;
-                } catch (System.Runtime.InteropServices.COMException comException) {
-                    if ((uint)comException.ErrorCode == 0x80040154 && !this.didAttemptDIARegistration) {
-                        // The DLL isn't registered.
-                        this.didAttemptDIARegistration = true;
-                        try {
-                            this.AttemptDIARegistration();
-                        } catch (Exception ex) {
-                            // Go into fallback.
-                            Console.Out.WriteLine("Falling back due to DIA registration failure: {0}", ex.Message);
-                            this.SetInFallbackForModule(module);
-                        }
-                    } else {
-                        this.SetInFallbackForModule(module);
-                    }
-                } catch {
-                    this.SetInFallbackForModule(module);
-                }
-            }
-
-            return null;
-        }
-
-        private void AttemptDIARegistration() {
-            string dllName = "msdia110.dll";
-            Console.WriteLine("Attempting to register {0}.  This will require elevation...", dllName);
-
-            // Copy it down to the support directory if needed.
-            string dllPath = Path.Combine(WebServer.LocalSupportDirectory, dllName);
-            if (!File.Exists(dllName)) {
-                if (!Directory.Exists(WebServer.LocalSupportDirectory)) {
-                    Directory.CreateDirectory(WebServer.LocalSupportDirectory);
-                }
-                string remotePath = Path.Combine(WebServer.SharedSupportDirectory, dllName);
-                File.Copy(remotePath, dllPath);
-            }
-
-            System.Threading.Thread.Sleep(1000);
-            ProcessStartInfo regsvr = new ProcessStartInfo("regsvr32", dllPath);
-            regsvr.Verb = "runas";
-
-            Process.Start(regsvr).WaitForExit();
-        }              
-
         // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
-        protected static Dictionary<string, uint> BuiltInTypes = new Dictionary<string, uint>()
+        public static Dictionary<string, uint> BuiltInTypes = new Dictionary<string, uint>()
             {
                 {"bool", 1},
                 {"char", 1},
@@ -392,27 +273,37 @@ namespace JsDbg
                 {"__int64", 8}
             };
 
-        private Type GetBuiltinType(string module, string typename) {
+        private Type GetBuiltinType(IDiaSession session, string module, string typename) {
             string strippedType = typename.Replace("unsigned", "").Replace("signed", "").Trim();
             if (BuiltInTypes.ContainsKey(strippedType)) {
-                return new Type(module, typename, BuiltInTypes[strippedType], null, null, null);
+                return new Type(module, typename, BuiltInTypes[strippedType], null, null, null, null);
             } else if (strippedType.EndsWith("*")) {
-                return new Type(module, typename, this.isPointer64Bit ? 8u : 4u, null, null, null);
+                uint pointerSize = this.isPointer64Bit ? 8u : 4u;
+
+                if (this.modulePointerSizes.ContainsKey(module)) {
+                    uint cachedPointerSize = this.modulePointerSizes[module];
+                    if (cachedPointerSize != 0) {
+                        pointerSize = cachedPointerSize;
+                    }
+                } else if (session != null) {
+                    // Try to infer the pointer size from the DIA Session.
+                    IDiaEnumSymbols pointerSymbols;
+                    session.findChildren(session.globalScope, SymTagEnum.SymTagPointerType, null, 0, out pointerSymbols);
+                    foreach (IDiaSymbol symbol in pointerSymbols) {
+                        pointerSize = (uint)symbol.length;
+                        break;
+                    }
+                    this.modulePointerSizes[module] = pointerSize;
+                }
+
+                return new Type(module, typename, pointerSize, null, null, null, null);
             } else {
                 return null;
             }
         }
 
-        protected static string TypeKey(string module, string typename) {
-            return String.Format("{0}!{1}", module, typename);
-        }
-
-        public delegate string GetModuleSymbolPathDelegate(string moduleName);
-        private GetModuleSymbolPathDelegate GetModuleSymbolPath;
-
-        protected Dictionary<string, Type> types;
-        private Dictionary<string, IDiaSession> modules;
+        private Dictionary<string, Type> types;
+        private Dictionary<string, uint> modulePointerSizes;
         private bool isPointer64Bit;
-        private bool didAttemptDIARegistration;
     }
 }

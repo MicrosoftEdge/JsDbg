@@ -71,10 +71,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DiaHelpers.cs" />
+    <Compile Include="DiaSessionLoader.cs" />
+    <Compile Include="IConfiguration.cs" />
     <Compile Include="IDebugger.cs" />
+    <Compile Include="IDiaSessionSource.cs" />
+    <Compile Include="ITypeCacheDebuggerEngine.cs" />
     <Compile Include="PersistentStore.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TypeCache.cs" />
+    <Compile Include="TypeCacheDebugger.cs" />
     <Compile Include="WebServer.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

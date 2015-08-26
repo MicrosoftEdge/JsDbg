@@ -11,6 +11,7 @@ using System.Net.WebSockets;
 using System.Collections.Specialized;
 using System.Threading;
 using System.IO;
+using Core;
 
 namespace JsDbg {
     
@@ -82,31 +83,7 @@ namespace JsDbg {
 
     public class WebServer : IDisposable {
 
-        private const string Version = "2015-06-02-01";
 
-        static public string LocalSupportDirectory
-        {
-            get
-            {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support", Version);
-            }
-        }
-
-        static public string SharedSupportDirectory
-        {
-            get
-            {
-                return Path.Combine(@"\\iefs\users\psalas\jsdbg\support\", Version);
-            }
-        }
-
-        static public string PersistentStoreDirectory
-        {
-            get
-            {
-                return @"\\iefs\users\psalas\jsdbg\support\persistent";
-            }
-        }
 
         private const int StartPortNumber = 50000;
         private const int EndPortNumber = 50099;
@@ -330,17 +307,17 @@ namespace JsDbg {
             case "symbolname":
                 this.ServeSymbolName(query, respond, fail);
                 break;
-            case "symbol":
-                this.ServeSymbol(query, respond, fail);
+            case "global":
+                this.ServeGlobalSymbol(query, respond, fail);
                 break;
             case "localsymbols":
                 this.ServeLocalSymbols(query, respond, fail);
                 break;
-            case "pointersize":
-                this.ServePointerSize(query, respond, fail);
-                break;
             case "constantname":
                 this.ServeConstantName(query, respond, fail);
+                break;
+            case "constantvalue":
+                this.ServeConstantValue(query, respond, fail);
                 break;
             case "basetypes":
                 this.ServeBaseTypes(query, respond, fail);
@@ -488,13 +465,6 @@ namespace JsDbg {
             try {
                 object value = null;
                 switch (type) {
-                    case "pointer":
-                        if (this.debugger.IsPointer64Bit) {
-                            value = await this.debugger.ReadMemory<ulong>(pointer);
-                        } else {
-                            value = await this.debugger.ReadMemory<uint>(pointer);
-                        }
-                        break;
                     case "byte":
                         value = await this.debugger.ReadMemory<byte>(pointer);
                         break;
@@ -551,13 +521,6 @@ namespace JsDbg {
             try {
                 string arrayString;
                 switch (type) {
-                case "pointer":
-                    if (this.debugger.IsPointer64Bit) {
-                        arrayString = await ReadJsonArray<ulong>(pointer, length);
-                    } else {
-                        arrayString = await ReadJsonArray<uint>(pointer, length);
-                    }
-                    break;
                 case "byte":
                     arrayString = await ReadJsonArray<byte>(pointer, length);
                     break;
@@ -643,8 +606,8 @@ namespace JsDbg {
 
             string responseString;
             try {
-                string symbolName = await this.debugger.LookupSymbol(pointer);
-                responseString = String.Format("{{ \"symbolName\": \"{0}\" }}", symbolName);
+                SSymbolNameResult symbolName = await this.debugger.LookupSymbolName(pointer);
+                responseString = String.Format("{{ \"module\": \"{0}\", \"name\": \"{1}\" }}", symbolName.Module, symbolName.Name);
             } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
@@ -652,18 +615,17 @@ namespace JsDbg {
             respond(responseString);
         }
 
-        private async void ServeSymbol(NameValueCollection query, Action<string> respond, Action fail) {
+        private async void ServeGlobalSymbol(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
             string symbol = query["symbol"];
-            string isGlobalString = query["isGlobal"];
 
-            bool isGlobal;
-            if (symbol == null || isGlobalString == null || !bool.TryParse(isGlobalString, out isGlobal)) {
+            if (module == null || symbol == null) {
                 fail();
                 return;
             }
             string responseString;
             try {
-                SSymbolResult result = await this.debugger.LookupSymbol(symbol, isGlobal);
+                SSymbolResult result = await this.debugger.LookupGlobalSymbol(module, symbol);
                 responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
             } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
@@ -702,10 +664,6 @@ namespace JsDbg {
             respond(responseString);
         }
 
-        private void ServePointerSize(NameValueCollection query, Action<string> respond, Action fail) {
-            respond(String.Format("{{ \"pointerSize\": \"{0}\" }}", (this.debugger.IsPointer64Bit ? 8 : 4)));
-        }
-
         private async void ServeConstantName(NameValueCollection query, Action<string> respond, Action fail) {
             string module = query["module"];
             string type = query["type"];
@@ -718,8 +676,28 @@ namespace JsDbg {
 
             string responseString;
             try {
-                string constantName = await this.debugger.LookupConstantName(module, type, constant);
-                responseString = String.Format("{{ \"name\": \"{0}\" }}", constantName);
+                SConstantResult constantResult = await this.debugger.LookupConstant(module, type, constant);
+                responseString = String.Format("{{ \"name\": \"{0}\" }}", constantResult.ConstantName);
+            } catch (JsDbg.DebuggerException ex) {
+                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+            }
+
+            respond(responseString);
+        }
+
+        private async void ServeConstantValue(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
+            string type = query["type"];
+            string constantName = query["name"];
+            if (module == null || type == null || constantName == null) {
+                fail();
+                return;
+            }
+
+            string responseString;
+            try {
+                SConstantResult constantResult = await this.debugger.LookupConstant(module, type, constantName);
+                responseString = String.Format("{{ \"value\": {0} }}", constantResult.Value); // TODO: requires 64-bit serialization
             } catch (JsDbg.DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }

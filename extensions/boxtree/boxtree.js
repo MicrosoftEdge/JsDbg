@@ -52,7 +52,7 @@ var BoxTree = (function() {
     if (JsDbg.GetCurrentExtension() == "boxtree") {
         DbgObjectTree.AddRoot("Box Tree", function() {
             return Promise.map(MSHTML.GetRootCTreeNodes(), function(treeNode) {
-                return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode).as("Layout::ContainerBox").list("associatedBoxLink").vcast();
+                return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode).as("Layout::ContainerBox").list(["nextLayoutBox", "associatedBoxLink"]).vcast();
             })
             .then(function(boxes) {
                 var flattenedArray = [];
@@ -198,7 +198,7 @@ var BoxTree = (function() {
             shortname: "e",
             async:true,
             html: function() {
-                return this.f("element.m_pT");
+                return this.f("elementInternal", "element.m_pT");
             }
         },
 
@@ -211,7 +211,7 @@ var BoxTree = (function() {
             shortname: "tag",
             async:true,
             html: function() {
-                return MSHTML.GetCTreeNodeFromTreeElement(this.f("element.m_pT")).f("_etag");
+                return MSHTML.GetCTreeNodeFromTreeElement(this.f("elementInternal", "element.m_pT")).f("_etag");
             }
         },
         {

@@ -94,12 +94,13 @@ namespace Sushraja.Jump
                 mcs.AddCommand( menuToolWin );
             }
 
-            debugger = new Sushraja.Jump.Debugger();
-            string path = JsDbg.WebServer.SharedSupportDirectory;
+            JumpConfiguration configuration = JumpConfiguration.Load();
+            VsDebuggerRunner runner = new Sushraja.Jump.VsDebuggerRunner(configuration);
+            string path = configuration.SharedSupportDirectory;
             string webRoot = System.IO.Path.Combine(path, "wwwroot");
             string extensionRoot = System.IO.Path.Combine(path, "extensions");
-            JsDbg.PersistentStore persistentStore = new JsDbg.PersistentStore(JsDbg.WebServer.PersistentStoreDirectory);
-            webServer = new JsDbg.WebServer(debugger, persistentStore, webRoot, extensionRoot);
+            JsDbg.PersistentStore persistentStore = new JsDbg.PersistentStore(configuration.PersistentStoreDirectory);
+            webServer = new JsDbg.WebServer(runner.Debugger, persistentStore, webRoot, extensionRoot);
             webServer.LoadExtension("default");
 
             MyToolWindow window = (MyToolWindow)this.FindToolWindow(typeof(MyToolWindow), 0, true);
@@ -125,7 +126,6 @@ namespace Sushraja.Jump
             get { return this.webServer; }
         }
 
-        Debugger debugger;
         JsDbg.WebServer webServer;
     }
 }

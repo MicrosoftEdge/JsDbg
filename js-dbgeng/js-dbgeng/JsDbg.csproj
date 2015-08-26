@@ -70,13 +70,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Debugger.cs" />
+    <Compile Include="DiaSessionModuleSource.cs" />
     <Compile Include="DumpTypeParser.cs" />
+    <Compile Include="DiaSessionPathSource.cs" />
+    <Compile Include="JsDbgConfiguration.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SingleThreadSynchronizationContext.cs" />
     <Compile Include="SymbolCache.cs" />
-    <Compile Include="TypeCacheWithFallback.cs" />
+    <Compile Include="WinDbgDebuggerEngine.cs" />
+    <Compile Include="WinDbgDebuggerRunner.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

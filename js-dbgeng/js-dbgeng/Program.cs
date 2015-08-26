@@ -10,6 +10,16 @@ namespace JsDbg {
 
         [STAThread]
         static int Main(string[] args) {
+            JsDbgConfiguration configuration = null;
+            try {
+                configuration = JsDbgConfiguration.Load();
+            } catch {
+                Console.WriteLine("The configuration.json file could not be read.  Please ensure that it is present in\n\n    {1}\n\nand has the following schema:\n\n{0}\n", JsDbgConfiguration.Schema, Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location));
+                Console.Write("Press any key to exit...");
+                Console.ReadKey();
+                return -1;
+            }
+
             string remoteString;
             if (args.Length < 1 || args[0] == "/ask") {
                 // A debugger string wasn't specified.  Prompt for a debug string instead.
@@ -27,17 +37,10 @@ namespace JsDbg {
                 remoteString = args[0];
             }
 
-            string path;
-            if (args.Length > 1) {
-                path = args[1];
-            } else {
-                path = WebServer.SharedSupportDirectory;
-            }
-
-            Debugger debugger;
+            WinDbgDebuggerRunner runner;
             try {
                 Console.Write("Connecting to a debug session at {0}...", remoteString);
-                debugger = new Debugger(remoteString);
+                runner = new WinDbgDebuggerRunner(remoteString, configuration);
                 Console.WriteLine("Connected.");
             } catch (Exception ex) {
                 Console.WriteLine("Failed: {0}", ex.Message);
@@ -46,12 +49,12 @@ namespace JsDbg {
                 return -1;
             }
 
-            string webRoot = System.IO.Path.Combine(path, "wwwroot");
-            string extensionRoot = System.IO.Path.Combine(path, "extensions");
-            PersistentStore persistentStore = new PersistentStore(WebServer.PersistentStoreDirectory);
+            string webRoot = System.IO.Path.Combine(configuration.SharedSupportDirectory, "wwwroot");
+            string extensionRoot = System.IO.Path.Combine(configuration.SharedSupportDirectory, "extensions");
+            PersistentStore persistentStore = new PersistentStore(configuration.PersistentStoreDirectory);
 
             Console.Out.WriteLine("Serving from {0}", webRoot);
-            using (WebServer webServer = new WebServer(debugger, persistentStore, webRoot, extensionRoot)) {
+            using (WebServer webServer = new WebServer(runner.Debugger, persistentStore, webRoot, extensionRoot)) {
                 webServer.LoadExtension("default");
 
                 SynchronizationContext previousContext = SynchronizationContext.Current;
@@ -62,7 +65,7 @@ namespace JsDbg {
                     System.Console.TreatControlCAsInput = true;
 
                     // Run the debugger.  If the debugger ends, kill the web server.
-                    debugger.Run().ContinueWith((Task result) => { 
+                    runner.Run().ContinueWith((Task result) => { 
                         webServer.Abort();
                     });
 
@@ -74,7 +77,7 @@ namespace JsDbg {
 
                     // The web server ending kills the debugger and completes our SynchronizationContext which allows us to exit.
                     webServer.Listen().ContinueWith(async (Task result) => {
-                        await debugger.Shutdown();
+                        await runner.Shutdown();
                         await Task.Delay(500);
                         syncContext.Complete();
                     });

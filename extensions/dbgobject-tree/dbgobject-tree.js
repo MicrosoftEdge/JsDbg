@@ -10,6 +10,7 @@ var DbgObjectTree = (function() {
 
     function flatten(array, result) {
         if (result === undefined) {
+            // Allow flatten to be called with one argument.
             result = [];
         }
         for (var i = 0; i < array.length; ++i) {
@@ -107,7 +108,7 @@ var DbgObjectTree = (function() {
             .then(flatten)
             .then(function (children) {
                 return children
-                .filter(function (child) { return !child.isNull(); })
+                .filter(function (child) { return child !== undefined && child !== null && !child.isNull(); })
                 .map(function (child) { return new TreeNode(child, that.existingObjects, that); });
             })
             .then(null, function (error) {

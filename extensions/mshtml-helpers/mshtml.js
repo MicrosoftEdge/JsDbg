@@ -8,7 +8,7 @@ var MSHTML = (function() {
     // Figure out which module to use.
     var moduleName = null;
     JsDbg.RunSynchronously(function() {
-        DbgObject.global("edgehtml!g_pts")
+        DbgObject.global("edgehtml", "g_pts")
         .then(
             function() {
                 moduleName = "edgehtml";
@@ -32,7 +32,7 @@ var MSHTML = (function() {
     });
 
     function GetDocsAndThreadstates(){
-        return DbgObject.global(moduleName + "!g_pts").deref()
+        return DbgObject.global(moduleName, "g_pts").deref()
         .list("ptsNext")
         .map(function (threadstate) {
             return threadstate.as("THREADSTATEUI").f("_paryDoc")
@@ -73,11 +73,19 @@ var MSHTML = (function() {
             element.f("placeholder")
             .then(
                 function() {
-                    // We're in chk, offset by the size of a void*.
+                    // We're in legacy chk, offset by the size of a void*.
                     return element.as("void*").idx(1).as("CTreeNode");
                 }, function() {
-                    // We're in fre, cast to CTreeNode.
+                    return new DbgObject(MSHTML.Module, "CTreeNode", 0).baseTypes()
+                    .then(function (baseTypes) {
+                        if (baseTypes.filter(function (b) { return b.typename == "CBase"; }).length > 0) {
+                            // CBase is in CTreeNode's ancestry, unembed.
+                            return element.as("CTreePos").unembed("CTreeNode", "_tpBegin");
+                        } else {
+                            // Not in the ancestry, just cast it.
                     return element.as("CTreeNode");
+                }
+                    })
                 }
             )
         );
@@ -144,6 +152,53 @@ var MSHTML = (function() {
         return new PromisedDbgObject(promise);
     }
 
+    function GetDocFromMarkup(markup) {
+        return markup.f("_pSecCtx", "_spSecCtx.m_pT").f("_pDoc");
+    }
+
+    function searchForHtPvPvMatch(firstEntry, entryCount, index, stride, key) {
+        if (index > entryCount) {
+            index = index % entryCount;
+        }
+
+        return firstEntry.idx(index).then(function(entry) {
+            return entry.f("pvKey").pointerValue()
+            .then(function (entryKey) {
+                if ((entryKey - (entryKey % 2)) == key) {
+                    return entry.f("pvVal");
+                } else if ((entryKey % 2) == 0) {
+                    // No more entries with this hash.
+                    return DbgObject.NULL;
+                } else {
+                    return searchForHtPvPvMatch(firstEntry, entryCount, index + stride, stride, key);
+            }
+            })
+        });
+    }
+
+    function LookupHtPvPvValue(htpvpv, key) {
+        var promise = Promise.join([htpvpv.f("_cEntMax").val(), htpvpv.f("_cStrideMask").val(), htpvpv.f("_pEnt"), key])
+        .then(function (values) {
+            var entryCount = values[0];
+            var strideMask = values[1];
+            var firstEntry = values[2];
+            var key = values[3];
+
+            var probe = key % entryCount;
+            var stride = (strideMask & (key >> 2)) + 1
+
+            return searchForHtPvPvMatch(firstEntry, entryCount, probe, stride, key);
+        });
+        return new PromisedDbgObject(promise);
+    }
+
+    function GetObjectLookasidePointer(lookasideObject, lookasideNumber, hashtable) {
+        return lookasideObject.as("int").idx(lookasideNumber).pointerValue()
+        .then(function (lookasideKey) {
+            return MSHTML.LookupHtPvPvValue(hashtable, lookasideKey);
+        });
+    }
+
     function GetThreadstateFromObject(object) {
         var promise = Promise.as(object)
         .then(function(object) {
@@ -163,9 +218,7 @@ var MSHTML = (function() {
                     }
                 });
             } else if (object.typeDescription() == "CMarkup") {
-                return GetThreadstateFromObject(object.f("_pSecCtx", "_spSecCtx.m_pT"));
-            } else if (object.typeDescription() == "CSecurityContext") {
-                return GetThreadstateFromObject(object.f("_pDoc"));
+                return GetThreadstateFromObject(GetDocFromMarkup(object));
             } else if (object.typeDescription() == "CDoc") {
                 // Once we have a Doc, we can walk the threadstate pointers to find the corresponding threadstate.
                 return Promise.as(GetDocsAndThreadstates())
@@ -321,15 +374,15 @@ var MSHTML = (function() {
             }
 
             function getSystemColor(index) {
-                return DbgObject.global("user32!gpsi").deref().f("argbSystem").idx(index).val();
+                return DbgObject.global("user32", "gpsi").deref().f("argbSystem").idx(index).val();
             }
 
             var indirectColorRefs = {
                 "CT_NAMEDHTML" : function() {
-                    return DbgObject.global(moduleName + "!g_HtmlColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
+                    return DbgObject.global(moduleName, "g_HtmlColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
                 },
                 "CT_NAMEDSYS" : function() {
-                    return Promise.as(DbgObject.global(moduleName + "!g_SystemColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())
+                    return Promise.as(DbgObject.global(moduleName, "g_SystemColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())
                         .then(function(x) {
                             return x & 0xFFFFFF;
                         })
@@ -511,11 +564,18 @@ var MSHTML = (function() {
         GetCTreeNodeFromTreeElement: GetCTreeNodeFromTreeElement,
 
         _help_GetMarkupFromElement: {
-            description: "Gets a CMarkup from a CElement.",
+            description:"Gets a CMarkup from a CElement.",
             arguments: [{name:"element", type:"(Promise to a) DbgObject", description: "The CElement from which to retrieve the CMarkup."}],
-            returns: "(A promise to) a DbgObject."
+            returns: "A promise to a DbgObject representing the CMarkup."
         },
         GetMarkupFromElement: GetMarkupFromElement,
+
+        _help_GetDocFromMarkup: {
+            description:"Gets a CDoc from a CMarkup.",
+            arguments: [{name:"markup", type:"(Promise to a) DbgObject", description: "The CMarkup from which to retrieve a CDoc."}],
+            returns: "A promise to a DbgObject representing the CDoc."
+        },
+        GetDocFromMarkup: GetDocFromMarkup,
 
         _help_GetLayoutAssociationFromCTreeNode: {
             description: "Gets a layout association from a CTreeNode.",
@@ -563,7 +623,28 @@ var MSHTML = (function() {
         _help_Module: {
             description: "The name of the Trident DLL (e.g. \"mshtml\" or \"edgehtml\")"
         },
-        Module: moduleName
+        Module: moduleName,
+
+        _help_LookupHtPvPvValue: {
+            description: "Looks up an object in an HtPvPv hashtable.",
+            arguments: [
+                {name:"htpvpv", type:"(Promise to a) DbgObject.", description: "The hashtable."},
+                {name:"key", type:"(Promise to an) integer.", description:"The hashtable key."}
+            ],
+            returns: "A promised DbgObject representing the stored object or null if it is not present."
+        },
+        LookupHtPvPvValue: LookupHtPvPvValue,
+
+        _help_GetObjectLookasidePointer: {
+            description: "Gets a lookaside pointer from an object.",
+            arguments: [
+                {name:"lookasideObject", type:"(Promise to a) DbgObject.", description: "The object whose lookaside pointer will be retrieved."},
+                {name:"lookasideNumber", type:"(Promise to an) integer.", description:"The lookaside index."},
+                {name:"hashtable", type:"(Promise to a) DbgObject.", description:"The hashtable containing the lookaside pointer."}
+            ],
+            returns: "A promised DbgObject representing the stored object or null if it is not present."
+        },
+        GetObjectLookasidePointer: GetObjectLookasidePointer
     }
 })();
 

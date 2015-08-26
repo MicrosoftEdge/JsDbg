@@ -5,8 +5,6 @@ var MemoryCache = (function() {
     const RETRIEVAL_SIZE = 4; // The size of the element that the page is broken down to.
     const CACHE_TRIGGER = 1; // Number of hits required on a given page before caching.  Lower is more aggressive.
 
-    var pointerSize = undefined;
-
     // Holds hit counters and pages.
     var cache = {};
 
@@ -124,21 +122,6 @@ var MemoryCache = (function() {
         return true;
     }
 
-    function readPointer(address, callback) {
-        address = new PointerMath.Pointer(address).value();
-
-        if (pointerSize == undefined) {
-            JsDbg.GetPointerSize(function (result) {
-                pointerSize = result.pointerSize;
-
-                // Try again now that we've set the pointer size.
-                readPointer(address, callback);
-            })
-        } else {
-            readNumber(address, pointerSize, /*isUnsigned*/true, /*isFloat*/false, callback);
-        }
-    }
-
     function readNumber(address, size, isUnsigned, isFloat, callback) {
         address = new PointerMath.Pointer(address).value();
 
@@ -239,7 +222,6 @@ var MemoryCache = (function() {
     JsDbg.RegisterOnBreakListener(clearCache);
 
     return {
-        ReadPointer: readPointer,
         ReadNumber: readNumber,
         ReadArray: readArray
     };
