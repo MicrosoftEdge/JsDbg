@@ -3,6 +3,6 @@
     "headless": true,
     "author": "Peter Salas",
     "description": "Provides operations for pointer arithmetic that is 64-bit safe.",
-    "includes": ["pointermath.js", "biginteger.js"],
+    "includes": ["pointermath.js"],
     "augments": ["tests"]
 }

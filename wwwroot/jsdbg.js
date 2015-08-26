@@ -448,6 +448,13 @@ var JsDbg = (function() {
                     result.value = readJsonFloat(result.value);
                     originalCallback(result);
                 }
+            } else {
+                // Make it a bigInt.
+                var originalCallback = callback;
+                callback = function(result) {
+                    result.value = bigInt(result.value);
+                    originalCallback(result);
+                };
             }
 
             jsonRequest("/jsdbg/memory?type=" + esc(sizeName) + "&pointer=" + esc(pointer), callback, CacheType.TransientCache);
@@ -477,6 +484,13 @@ var JsDbg = (function() {
                     result.array = result.array.map(readJsonFloat);
                     originalCallback(result);
                 }
+            } else {
+                // Make the numbers bigInts.
+                var originalCallback = callback;
+                callback = function(result) {
+                    result.array = result.array.map(function (n) { return bigInt(n); });
+                    originalCallback(result);
+                };
             }
 
             jsonRequest("/jsdbg/array?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&length=" + count, callback, CacheType.TransientCache);
@@ -632,6 +646,9 @@ var JsDbg = (function() {
     }
 
     if (loadDependencies) {
+        // jsdbg.js requires biginteger.js.
+        document.write("<script src=\"/biginteger.js\" type=\"text/javascript\"></script>");
+        
         // Include the common css file.
         document.write("<link rel=\"stylesheet\" type=\"text/css\" href=\"/common.css\">");
 

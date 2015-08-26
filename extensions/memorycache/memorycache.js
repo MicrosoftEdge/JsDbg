@@ -62,7 +62,7 @@ var MemoryCache = (function() {
         if (view instanceof Uint64Viewer) {
             return view.extract(index);
         } else {
-            return view[index];
+            return bigInt(view[index]);
         }
     }
 

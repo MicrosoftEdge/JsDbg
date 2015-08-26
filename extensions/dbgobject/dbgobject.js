@@ -598,7 +598,7 @@ var DbgObject = (function() {
         .then(function(result) {
             var value = result.value;
             if (that.bitcount && that.bitoffset !== undefined) {
-                value = (value >> that.bitoffset) & ((1 << that.bitcount) - 1);
+                value = value.shiftRight(that.bitoffset).and(bigInt.one.shiftLeft(that.bitcount).minus(1));
             }
             return value;
         })
@@ -733,7 +733,7 @@ var DbgObject = (function() {
 
         // Once we have the real count we can get the array.
         .then(function(arrayOrCount) {
-            if (typeof(arrayOrCount) == typeof([])) {
+            if (Array.isArray(arrayOrCount)) {
                 return arrayOrCount;
             } else {
                 var count = arrayOrCount;

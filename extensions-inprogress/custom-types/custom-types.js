@@ -26,7 +26,7 @@
             if ("descriptions" in catalogValues) {
                 // Validate the schema.
                 var isValid = true;
-                if (typeof(catalogValues.descriptions) == typeof([])) {
+                if (Array.isArray(catalogValues.descriptions)) {
                     catalogValues.descriptions.forEach(function (description) {
                         if (typeof(description.name) != typeof("") ||
                             typeof(description.module) != typeof("") ||

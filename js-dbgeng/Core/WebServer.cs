@@ -475,7 +475,7 @@ namespace JsDbg {
                         value = await this.debugger.ReadMemory<int>(pointer);
                         break;
                     case "long":
-                        value = await this.debugger.ReadMemory<long>(pointer);
+                        value = ToJsonNumber(await this.debugger.ReadMemory<long>(pointer));
                         break;
                     case "ushort":
                         value = await this.debugger.ReadMemory<ushort>(pointer);
@@ -484,7 +484,7 @@ namespace JsDbg {
                         value = await this.debugger.ReadMemory<uint>(pointer);
                         break;
                     case "ulong":
-                        value = await this.debugger.ReadMemory<ulong>(pointer);
+                        value = ToJsonNumber(await this.debugger.ReadMemory<ulong>(pointer));
                         break;
                     case "float":
                         value = ToJsonNumber(await this.debugger.ReadMemory<float>(pointer));
@@ -571,8 +571,14 @@ namespace JsDbg {
 
         private static string ToJsonNumber(object value) {
             string resultString = value.ToString();
+
             // JSON doesn't allow NaN and Infinity, so quote them.
-            if (resultString == "NaN" || resultString == "Infinity" || resultString == "-Infinity") {
+            if (resultString == "NaN" || 
+                resultString == "Infinity" ||
+                resultString == "-Infinity" ||
+                typeof(System.Int64) == value.GetType() ||
+                typeof(System.UInt64) == value.GetType()
+            ) {
                 resultString = "\"" + resultString + "\"";
             }
             return resultString;
