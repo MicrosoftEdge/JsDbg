@@ -17,6 +17,8 @@ namespace Core {
         }
 
         public async Task<IDiaSession> LoadDiaSession(string module) {
+            module = module.ToLowerInvariant();
+
             if (this.activeSessions.ContainsKey(module)) {
                 return this.activeSessions[module];
             }

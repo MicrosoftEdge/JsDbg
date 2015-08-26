@@ -66,7 +66,17 @@ namespace JsDbg {
         }
 
         internal string GetModuleSymbolPath(ulong moduleBase) {
-            return this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.SymbolFile, moduleBase);
+            string symbolFile, imageName, moduleName, loadedImageName;
+            this.symbols.GetModuleNamesByBaseAddress(moduleBase, out imageName, out moduleName, out loadedImageName);
+            symbolFile = this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.SymbolFile, moduleBase);
+
+            if (symbolFile == imageName) {
+                // We don't have a proper symbol file, try forcing a reload.
+                this.symbols.Reload("/f " + imageName);
+                symbolFile = this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.SymbolFile, moduleBase);
+            }
+
+            return symbolFile;
         }
         
         internal string GetModuleSymbolPath(string module)
