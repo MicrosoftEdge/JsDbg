@@ -1,7 +1,6 @@
 BLOCKING EXPANSION BEYOND IE
-    - proper 64-bit support (in progress)
-    - configurable paths
-        - JSON file next to JsDbg.exe? What about Jump?
+    - test 64-bit support
+    - test configurable paths
 
 IE-SPECIFIC
     - support past versions of IE in *Tree
