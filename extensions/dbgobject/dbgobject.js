@@ -396,7 +396,7 @@ var DbgObject = (function() {
         }
 
         var that = this;
-        return this.ubigval()
+        return this.as("void*").ubigval()
         .then(function(result) {
             return new DbgObject(that.module, that._getDereferencedTypeName(), result);
         });
