@@ -211,7 +211,7 @@ var DbgObject = (function() {
                             return value == 1 ? "true" : "false";
                         });
                     } else if (x.typename in scalarTypes) {
-                        return x.val(); 
+                        return x.bigval().then(function (bigint) { return bigint.toString(); }); 
                     } else if (x.isPointer()) {
                         return Promise.as(x.deref())
                         .then(function (dereferenced) {
@@ -321,6 +321,15 @@ var DbgObject = (function() {
         );
     }
 
+    DbgObject._help_constantValue = {
+        description: "Evaluates a constant's name to its underlying value.",
+        returns: "A promise to an integer.",
+        arguments: [
+            {name:"module", type:"string", description:"The module containing the method."},
+            {name:"type", type:"string", description:"The type (e.g. enum) containing the constant."},
+            {name:"constantName", type:"string", description:"The constant name."}
+        ]
+    }
     DbgObject.constantValue = function(module, type, constantName) {
         return jsDbgPromise(JsDbg.LookupConstantValue, module, type, constantName)
         .then(function (result) {
@@ -387,7 +396,7 @@ var DbgObject = (function() {
         }
 
         var that = this;
-        return this.uval()
+        return this.ubigval()
         .then(function(result) {
             return new DbgObject(that.module, that._getDereferencedTypeName(), result);
         });
@@ -552,7 +561,7 @@ var DbgObject = (function() {
         returns: "A promise to a number."
     }
     DbgObject.prototype.val = function() {
-        return this._val(this._isUnsigned);
+        return this._val(this._isUnsigned, false);
     }
 
     DbgObject.prototype._help_uval = {
@@ -560,7 +569,7 @@ var DbgObject = (function() {
         returns: "A promise to an unsigned number."
     }
     DbgObject.prototype.uval = function() {
-        return this._val(true);
+        return this._val(true, false);
     }
 
     DbgObject.prototype._help_sval = {
@@ -568,10 +577,37 @@ var DbgObject = (function() {
         returns: "A promise to a signed number."
     }
     DbgObject.prototype.sval = function() {
-        return this._val(false);
+        return this._val(false, false);
     }
 
-    DbgObject.prototype._val = function(unsigned) {
+    DbgObject.prototype._help_bigval = {
+        description: "Retrieves a scalar value held by a DbgObject as a bigInt.",
+        returns: "A promise to a bigInt.",
+        notes: "JavaScript does not have 64-bit integers, so this should be used whenever the value may be a 64-bit integer."
+    }
+    DbgObject.prototype.bigval = function() {
+        return this._val(this._isUnsigned, true);
+    }
+
+    DbgObject.prototype._help_ubigval = {
+        description: "Retrieves an unsigned scalar value held by a DbgObject as a bigInt.",
+        returns: "A promise to an unsigned bigInt.",
+        notes: "JavaScript does not have 64-bit integers, so this should be used whenever the value may be a 64-bit integer."
+    }
+    DbgObject.prototype.ubigval = function() {
+        return this._val(true, true);
+    }
+
+    DbgObject.prototype._help_sbigval = {
+        description: "Retrieves a signed scalar value held by a DbgObject as a bigInt.",
+        returns: "A promise to a signed bigInt.",
+        notes: "JavaScript does not have 64-bit integers, so this should be used whenever the value may be a 64-bit integer."
+    }
+    DbgObject.prototype.sbigval = function() {
+        return this._val(false, true);
+    }
+
+    DbgObject.prototype._val = function(unsigned, useBigInt) {
         if (this.isNull()) {
             return Promise.as(null);
         }
@@ -600,7 +636,11 @@ var DbgObject = (function() {
             if (that.bitcount && that.bitoffset !== undefined) {
                 value = value.shiftRight(that.bitoffset).and(bigInt.one.shiftLeft(that.bitcount).minus(1));
             }
-            return value;
+            if (!useBigInt) {
+                return value.toJSNumber();
+            } else {
+                return value;
+            }
         })
     }
 
@@ -614,7 +654,7 @@ var DbgObject = (function() {
         }
 
         var that = this;
-        return this.val()
+        return this.bigval()
         // Lookup the constant name...
         .then(function(value) { return jsDbgPromise(JsDbg.LookupConstantName, that.module, that.typename, value); })
 
@@ -692,7 +732,7 @@ var DbgObject = (function() {
                 if (count.isNull()) {
                     return 0;
                 } else {
-                    return count.val();
+                    return count.bigval();
                 }
             } else {
                 return count;
@@ -908,7 +948,7 @@ var DbgObject = (function() {
         }
 
         // Read the value at the this pointer...
-        return this.as("void*").uval()
+        return this.as("void*").ubigval()
 
         // Lookup the symbol at that value...
         .then(function(result) { 

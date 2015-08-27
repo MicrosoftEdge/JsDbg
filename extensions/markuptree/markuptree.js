@@ -30,7 +30,7 @@ var MarkupTree = (function() {
             } else if (treePosFlags & 0x04) {
                 return treePos.as("CTreeDataPos");
             } else if (treePosFlags & 0x08) {
-                return treePos.as("CTreeDataPos").f("p._dwPointerAndGravityAndCling").val()
+                return treePos.as("CTreeDataPos").f("p._dwPointerAndGravityAndCling").bigval()
                 .then(function (pointerandGravityAndCling) {
                     return new DbgObject(MSHTML.Module, "CMarkupPointer", pointerandGravityAndCling.or(3).minus(3));
                 })
