@@ -311,7 +311,7 @@ var BoxTree = (function() {
                         this.f("characterIndexInTextBlockRunAtStartOfLine").val(),
                         this.f("textBlockRunIndexAfterLine").val(),
                         this.f("characterIndexInTextBlockRunAfterLine").val(),
-                        this.f("textBlock.m_pT")
+                        this.f("textBlockOrNode", "textBlock.m_pT")
                     ])
                     .then(function(fields) {
                         // Unpack the fields we just retrieved.
