@@ -128,7 +128,8 @@ var MemoryCache = (function() {
         var viewer = getArrayViewer(size, isUnsigned, isFloat);
         if (!loadPage(getPage(address), viewer, function(view) {
                 if (view.error) {
-                    callback(view);
+                    // Got an error, fallback to an uncached read.
+                    JsDbg.ReadNumber(address, size, isUnsigned, isFloat, callback);
                 } else {
                     callback({value: extract(view, getOffset(address, size))});
                 }
@@ -206,7 +207,8 @@ var MemoryCache = (function() {
             });
 
             if (firstError != null) {
-                callback(firstError);
+                // Got an error, fall back to the uncached request.
+                JsDbg.ReadArray(address, itemSize, isUnsigned, isFloat, count, callback);
             } else {
                 callback({ array: result });
             }
