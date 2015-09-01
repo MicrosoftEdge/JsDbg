@@ -92,7 +92,7 @@ var MarkupTree = (function() {
             return Promise.join([
                 element.f("_fHasLookasidePtr").val(),
                 DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE", "LOOKASIDE_SUBORDINATE"),
-                DbgObject.constantValue(MSHTML.Module, "CTreeNode", "LOOKASIDE_NODE_NUMBER")
+                DbgObject.constantValue(MSHTML.Module, "CTreeNode", "LOOKASIDE_NODE_NUMBER").then(null, function() { return 0; })
             ])
             .then(function (results) {
                 var lookasides = results[0];
