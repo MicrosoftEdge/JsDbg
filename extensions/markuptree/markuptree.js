@@ -80,7 +80,31 @@ var MarkupTree = (function() {
                 return children.filter(function(child) { return child != null; });
             })
         }, function (treeNode) {
-            return treeNode.f("_etag").desc()
+            // Get the tag representation.
+            return treeNode.f("_etag").constant()
+            .then(function (etagValue) {
+                if (etagValue == "ETAG_GENERIC") {
+                    // For generic elements, get the tag name/namespace.
+                    return treeNode.f("_pElement").vcast()
+                    .then(function (element) {
+                        return Promise.join([element.f("_cstrTagName._pch").string(), element.f("_cstrNamespace._pch").string(), element.f("_cstrNamespace._pch").isNull()])
+                    })
+                    .then(function (tagAndNamespace) {
+                        var tag = tagAndNamespace[0];
+                        var namespace = tagAndNamespace[1];
+                        var namespaceIsNull = tagAndNamespace[2];
+
+                        if (namespaceIsNull) {
+                            return tag;
+                        } else {
+                            return namespace + ":" + tag;
+                        }
+                    })
+                } else {
+                    // Non-generic elements: just strip the tag identifier.
+                    return etagValue.substr("ETAG_".length).toLowerCase();
+                }
+            })
             .then(function (tag) {
                 return "&lt;" + tag + "&gt;";
             })
