@@ -100,6 +100,8 @@ var MarkupTree = (function() {
                             return namespace + ":" + tag;
                         }
                     })
+                } else if (etagValue == "ETAG_ROOT") {
+                    return "$ROOT";
                 } else {
                     // Non-generic elements: just strip the tag identifier.
                     return etagValue.substr("ETAG_".length).toLowerCase();
