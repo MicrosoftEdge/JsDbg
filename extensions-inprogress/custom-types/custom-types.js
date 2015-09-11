@@ -77,16 +77,27 @@ return Promise.join(fieldNames.map(function(side) { return object.f(side).desc()
                     return object.f("_wFlags.fAA_Extra_HasDispId").val()
                     .then(function (hasDispId) {
                         if (hasDispId) {
-                            return object.f("_dispid").as("void*").deref().ptr();
+                            return object.f("_dispid").uval().then(function (dispid) { return "DISPID(0x" + dispid.toString(16) + ")"; });
                         } else {
                             return object.f("_pPropertyDesc.pstrName").string();
                         }
                     })
                     .then(function (name) {
-                        return object.f("uVal._ulVal").desc()
-                        .then(function (val) {
-                            return name + "=" + val;
+                        return object.f("_wFlags._aaVTType").as("VARENUM").constant()
+                        .then(function (variantType) {
+                            if (variantType == "VT_LPWSTR") {
+                                return object.f("uVal._lpstrVal").string();
+                            } else if (variantType == "VT_BSTR") {
+                                return object.f("uVal._bstrVal").string();
+                            } else {
+                                return object.f("uVal._ulVal").uval();
+                            }
+                        }, function (err) {
+                            return object.f("uVal._ulVal").uval();
                         })
+                        .then(function (value) {
+                             return name + "=\"" + value + "\"";
+                        }, function (err) { return err; })
                     });
                 }
             })
