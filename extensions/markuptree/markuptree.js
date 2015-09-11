@@ -101,7 +101,12 @@ var MarkupTree = (function() {
                         }
                     })
                 } else if (etagValue == "ETAG_ROOT") {
-                    return "$ROOT";
+                    return "$root";
+                } else if (etagValue == "ETAG_GENERATED") {
+                    return treeNode.as("CGeneratedTreeNode").f("_gctype").constant()
+                    .then(function (gcType) {
+                        return "::" + gcType.substr("GC_".length).toLowerCase();
+                    });
                 } else {
                     // Non-generic elements: just strip the tag identifier.
                     return etagValue.substr("ETAG_".length).toLowerCase();
