@@ -106,7 +106,7 @@ var BoxTree = (function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::TableGridBox", null, function (object) {
-            return collectChildrenInFlow(object.f("collapsedCells"));
+            return collectChildrenInFlow(object.f("collapsedCells")).then(null, function() { return []; });
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::TableGridBox", null, function (object) {
