@@ -10,6 +10,7 @@ GENERAL
     - toolbar at top should include extensions
     - see how expensive dependency loading is?
     - make it more clear when content is loading (especially if it has been loading for more than ~0.5s)
+    - if the debugger is running, make it obvious to the user
     - IDEA: everything should be dynamically editable
         - code is data
         - enables experimentation -- no environment necessary
