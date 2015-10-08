@@ -431,22 +431,29 @@ namespace JsDbg {
             respond(responseString);
         }
 
-        private static bool ParseInteger(string integerString, out ulong result) {
+        private static System.Globalization.NumberStyles NumberStylesForIntegerString(ref string integerString) {
             System.Globalization.NumberStyles numberStyle = System.Globalization.NumberStyles.None;
             if (integerString != null && integerString.Length > 2 && integerString.IndexOf("0x") == 0) {
                 numberStyle = System.Globalization.NumberStyles.AllowHexSpecifier;
                 integerString = integerString.Substring(2);
             }
+            return numberStyle | System.Globalization.NumberStyles.AllowLeadingSign;
+        }
+
+        private static bool ParseInteger(string integerString, out ulong result) {
+            var numberStyle = WebServer.NumberStylesForIntegerString(ref integerString);
             result = 0;
             return integerString != null && ulong.TryParse(integerString, numberStyle, null, out result);
         }
 
+        private static bool ParseInteger(string integerString, out long result) {
+            var numberStyle = WebServer.NumberStylesForIntegerString(ref integerString);
+            result = 0;
+            return integerString != null && long.TryParse(integerString, numberStyle, null, out result);
+        }
+
         private static bool ParseInteger(string integerString, out int result) {
-            System.Globalization.NumberStyles numberStyle = System.Globalization.NumberStyles.None;
-            if (integerString != null && integerString.Length > 2 && integerString.IndexOf("0x") == 0) {
-                numberStyle = System.Globalization.NumberStyles.AllowHexSpecifier;
-                integerString = integerString.Substring(2);
-            }
+            var numberStyle = WebServer.NumberStylesForIntegerString(ref integerString);
             result = 0;
             return integerString != null && int.TryParse(integerString, numberStyle, null, out result);
         }
@@ -675,9 +682,17 @@ namespace JsDbg {
             string type = query["type"];
             string constantString = query["constant"];
             ulong constant;
-            if (module == null || type == null || !WebServer.ParseInteger(constantString, out constant)) {
+            if (module == null || type == null) {
                 fail();
                 return;
+            }
+
+            if (!WebServer.ParseInteger(constantString, out constant)) {
+                long signedConstant;
+                if (!WebServer.ParseInteger(constantString, out signedConstant)) {
+                    fail();
+                }
+                constant = (ulong)signedConstant;
             }
 
             string responseString;
