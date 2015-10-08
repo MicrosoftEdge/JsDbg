@@ -67,7 +67,22 @@ var BoxTree = (function() {
                 }
             })
             .then(null, function(error) {
-                return Promise.fail("No root CTreeNodes with LayoutBoxes were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The docmode is < 8.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a LayoutBox explicitly.");
+                var errorMessage =
+                    "No root CTreeNodes with LayoutBoxes were found.\
+                    Possible reasons:\
+                    <ul>\
+                        <li>The debuggee is not IE 11 or Edge.</li>\
+                        <li>No page is loaded.</li>\
+                        <li>The docmode is < 8.</li>\
+                        <li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li>\
+                        <li>Symbols aren't available.</li>\
+                    </ul>\
+                    Refresh the page to try again, or specify a LayoutBox explicitly.";
+
+                if (error) {
+                    errorMessage = "<h4>" + error.toString() + "</h4>" + errorMessage;
+                }
+                return Promise.fail(errorMessage);
             });
         });
 

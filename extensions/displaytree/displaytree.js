@@ -37,12 +37,23 @@ var DisplayTree = (function() {
                 }
                 return nonNullDispRoots;
             })
-            .then(
-                function(roots) { return roots; },
-                function(error) {
-                    return Promise.fail("No CDispRoots were found. Possible reasons:<ul><li>The debuggee is not IE 11.</li><li>No page is loaded.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a CDispNode explicitly.");
+            .then(null, function(error) {
+                var errorMessage =
+                    "No CDispRoots were found.\
+                    Possible reasons:\
+                    <ul>\
+                        <li>The debuggee is not IE 11 or Edge.</li>\
+                        <li>No page is loaded.</li>\
+                        <li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li>\
+                        <li>Symbols aren't available.</li>\
+                    </ul>\
+                    Refresh the page to try again, or specify a CDispNode explicitly.";
+
+                if (error) {
+                    errorMessage = "<h4>" + error.toString() + "</h4>" + errorMessage;
                 }
-            );
+                return Promise.fail(errorMessage);
+            });
         });
 
         DbgObjectTree.AddAddressInterpreter(function (address) {

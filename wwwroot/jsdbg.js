@@ -93,17 +93,15 @@ var JsDbg = (function() {
         try {
             var parts = splitFirstN(webSocketMessage.data, ";", 3);
             if (parts.length != 3) {
-                throw "Bad JsDbg WebSocket protocol!";
+                throw "Got an unexpected response from the server: " + webSocketMessage.data;
             }
             var responseId = parts[0];
             if (parts[1] != "200") {
-                throw "Server failed on message id " + responseId;
+                throw "JsDbg server failed with response (" + webSocketMessage.data + ")";
             }
             result = parts[2];
         } catch (error) {
-            result = {
-                error: error
-            };
+            result = JSON.stringify({ error: error });
         } finally {
             if (!(responseId in currentWebSocketCallbacks)) {
                 throw "No registered callback for message id " + responseId;
@@ -192,7 +190,13 @@ var JsDbg = (function() {
         requestStarted();
 
         function handleJsonResponse(jsonText) {
-            var result = JSON.parse(jsonText);
+            try {
+                var result = JSON.parse(jsonText);
+            } catch (exception) {
+                result = {
+                    error: "Failed to parse JSON reponse: " + jsonText
+                };
+            }
             var otherCallbacks = [];
             if (cacheType != CacheType.Uncached && !everythingIsSynchronous) {
                 otherCallbacks = pendingCachedRequests[url];
