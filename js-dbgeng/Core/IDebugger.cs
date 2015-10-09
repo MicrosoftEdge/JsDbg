@@ -11,6 +11,10 @@ namespace JsDbg
         {
 
         }
+
+        public string JSONError {
+            get { return String.Format("{{ \"error\": \"{0}\" }}", this.Message); }
+        }
     }
 
     public struct SStackFrame
@@ -73,6 +77,7 @@ namespace JsDbg
         Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename);
         Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typeName);
         bool IsPointer64Bit { get; }
+        Task<bool> IsTypeEnum(string module, string type);
         Task<SConstantResult> LookupConstant(string module, string type, ulong constantValue);
         Task<SConstantResult> LookupConstant(string module, string type, string constantName);
         Task<SFieldResult> LookupField(string module, string typename, string fieldName);

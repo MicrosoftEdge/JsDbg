@@ -292,69 +292,72 @@ namespace JsDbg {
             }
 
             switch (segments[2].TrimEnd('/')) {
-            case "typesize":
-                this.ServeTypeSize(query, respond, fail);
-                break;
-            case "fieldoffset":
-                this.ServeFieldOffset(query, respond, fail);
-                break;
-            case "memory":
-                this.ServeMemory(query, respond, fail);
-                break;
-            case "array":
-                this.ServeArray(query, respond, fail);
-                break;
-            case "symbolname":
-                this.ServeSymbolName(query, respond, fail);
-                break;
-            case "global":
-                this.ServeGlobalSymbol(query, respond, fail);
-                break;
-            case "localsymbols":
-                this.ServeLocalSymbols(query, respond, fail);
-                break;
-            case "constantname":
-                this.ServeConstantName(query, respond, fail);
-                break;
-            case "constantvalue":
-                this.ServeConstantValue(query, respond, fail);
-                break;
-            case "basetypes":
-                this.ServeBaseTypes(query, respond, fail);
-                break;
-            case "typefields":
-                this.ServeTypeFields(query, respond, fail);
-                break;
-            case "loadextension":
-                this.LoadExtension(query, respond, fail);
-                break;
-            case "unloadextension":
-                this.UnloadExtension(query, respond, fail);
-                break;
-            case "extensions":
-                this.ServeExtensions(query, respond, fail);
-                break;
-            case "persistentstorage":
-                // Persistent Storage requests require an HttpContext.
-                if (context == null) {
-                    goto default;
-                } else {
-                    this.ServePersistentStorage(segments, context);
+                case "typesize":
+                    this.ServeTypeSize(query, respond, fail);
                     break;
-                }
-            case "extensionpath":
-                if (context == null) {
-                    goto default;
-                } else {
-                    this.ServeDefaultExtensionPath(segments, context);
-                }
-                break;
-            case "persistentstorageusers":
-                this.ServePersistentStorageUsers(query, respond, fail);
-                break;
-            default:
-                fail();
-                break;
+                case "fieldoffset":
+                    this.ServeFieldOffset(query, respond, fail);
+                    break;
+                case "memory":
+                    this.ServeMemory(query, respond, fail);
+                    break;
+                case "array":
+                    this.ServeArray(query, respond, fail);
+                    break;
+                case "symbolname":
+                    this.ServeSymbolName(query, respond, fail);
+                    break;
+                case "global":
+                    this.ServeGlobalSymbol(query, respond, fail);
+                    break;
+                case "localsymbols":
+                    this.ServeLocalSymbols(query, respond, fail);
+                    break;
+                case "isenum":
+                    this.ServeIsEnum(query, respond, fail);
+                    break;
+                case "constantname":
+                    this.ServeConstantName(query, respond, fail);
+                    break;
+                case "constantvalue":
+                    this.ServeConstantValue(query, respond, fail);
+                    break;
+                case "basetypes":
+                    this.ServeBaseTypes(query, respond, fail);
+                    break;
+                case "typefields":
+                    this.ServeTypeFields(query, respond, fail);
+                    break;
+                case "loadextension":
+                    this.LoadExtension(query, respond, fail);
+                    break;
+                case "unloadextension":
+                    this.UnloadExtension(query, respond, fail);
+                    break;
+                case "extensions":
+                    this.ServeExtensions(query, respond, fail);
+                    break;
+                case "persistentstorage":
+                    // Persistent Storage requests require an HttpContext.
+                    if (context == null) {
+                        goto default;
+                    } else {
+                        this.ServePersistentStorage(segments, context);
+                        break;
+                    }
+                case "extensionpath":
+                    if (context == null) {
+                        goto default;
+                    } else {
+                        this.ServeDefaultExtensionPath(segments, context);
+                    }
+                    break;
+                case "persistentstorageusers":
+                    this.ServePersistentStorageUsers(query, respond, fail);
+                    break;
+                default:
+                    fail();
+                    break;
             }
         }
 
@@ -399,7 +402,7 @@ namespace JsDbg {
                     responseString = String.Format("{{ \"type\": \"{0}\", \"offset\": {1}, \"size\": {2} }}", result.TypeName, result.Offset, result.Size);
                 }
             } catch (JsDbg.DebuggerException ex) {
-                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+                responseString = ex.JSONError;
             }
 
             respond(responseString);
@@ -425,7 +428,7 @@ namespace JsDbg {
                 }
                 responseString = "[" + String.Join(",", jsonFragments) + "]";
             } catch (JsDbg.DebuggerException ex) {
-                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+                responseString = ex.JSONError;
             }
 
             respond(responseString);
@@ -506,7 +509,7 @@ namespace JsDbg {
 
                 responseString = String.Format("{{ \"value\": {0} }}", value);
             } catch (JsDbg.DebuggerException ex) {
-                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+                responseString = ex.JSONError;
             }
 
             respond(responseString);
@@ -562,7 +565,7 @@ namespace JsDbg {
 
                 responseString = String.Format("{{ \"array\": {0} }}", arrayString);
             } catch (JsDbg.DebuggerException ex) {
-                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+                responseString = ex.JSONError;
             }
 
             respond(responseString);
@@ -622,7 +625,7 @@ namespace JsDbg {
                 SSymbolNameResult symbolName = await this.debugger.LookupSymbolName(pointer);
                 responseString = String.Format("{{ \"module\": \"{0}\", \"name\": \"{1}\" }}", symbolName.Module, symbolName.Name);
             } catch (JsDbg.DebuggerException ex) {
-                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+                responseString = ex.JSONError;
             }
 
             respond(responseString);
@@ -641,7 +644,7 @@ namespace JsDbg {
                 SSymbolResult result = await this.debugger.LookupGlobalSymbol(module, symbol);
                 responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
             } catch (JsDbg.DebuggerException ex) {
-                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+                responseString = ex.JSONError;
             }
 
             respond(responseString);
@@ -671,7 +674,26 @@ namespace JsDbg {
                 }
                 responseString = "[" + String.Join(",", jsonFragments) + "]";
             } catch (JsDbg.DebuggerException ex) {
-                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+                responseString = ex.JSONError;
+            }
+
+            respond(responseString);
+        }
+
+        private async void ServeIsEnum(NameValueCollection query, Action<string> respond, Action fail) {
+            string module = query["module"];
+            string type = query["type"];
+            if (module == null || type == null) {
+                fail();
+                return;
+            }
+
+            string responseString;
+            try {
+                bool isEnum = await this.debugger.IsTypeEnum(module, type);
+                responseString = String.Format("{{ \"isEnum\": {0} }}", isEnum ? "true" : "false");
+            } catch (JsDbg.DebuggerException ex) {
+                responseString = ex.JSONError;
             }
 
             respond(responseString);
@@ -700,7 +722,7 @@ namespace JsDbg {
                 SConstantResult constantResult = await this.debugger.LookupConstant(module, type, constant);
                 responseString = String.Format("{{ \"name\": \"{0}\" }}", constantResult.ConstantName);
             } catch (JsDbg.DebuggerException ex) {
-                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+                responseString = ex.JSONError;
             }
 
             respond(responseString);
@@ -720,7 +742,7 @@ namespace JsDbg {
                 SConstantResult constantResult = await this.debugger.LookupConstant(module, type, constantName);
                 responseString = String.Format("{{ \"value\": {0} }}", constantResult.Value); // TODO: requires 64-bit serialization
             } catch (JsDbg.DebuggerException ex) {
-                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+                responseString = ex.JSONError;
             }
 
             respond(responseString);
@@ -759,7 +781,7 @@ namespace JsDbg {
                 builder.Append("\n] }");
                 responseString = builder.ToString();
             } catch (JsDbg.DebuggerException ex) {
-                responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
+                responseString = ex.JSONError;
             }
 
             respond(responseString);

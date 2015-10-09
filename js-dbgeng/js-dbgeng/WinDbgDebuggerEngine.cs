@@ -213,7 +213,10 @@ namespace JsDbg {
                     }
 
                     SField field = new SField(parsedField.Offset, resolvedTypeSize, resolvedTypeName, parsedField.BitField.BitOffset, parsedField.BitField.BitLength);
-                    fields.Add(parsedField.FieldName, field);
+                    // A superclass can have a field with the same name as a field in the subclass.  We currently use the first one.
+                    if (!fields.ContainsKey(parsedField.FieldName)) {
+                        fields.Add(parsedField.FieldName, field);
+                    }
                 }
 
                 List<SBaseTypeName> baseTypeNames = new List<SBaseTypeName>();
@@ -227,7 +230,7 @@ namespace JsDbg {
                 }
 
                 // Construct the type.  We don't need to fill base types because this approach embeds base type information directly in the Type.
-                return new Type(module, typename, typeSize, fields, constants, null, baseTypeNames);
+                return new Type(module, typename, typeSize, parser.IsEnum, fields, constants, null, baseTypeNames);
             }, String.Format("Unable to lookup type from debugger: {0}!{1}", module, typename));
         }
 

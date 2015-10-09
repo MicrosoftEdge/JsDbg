@@ -44,9 +44,13 @@ namespace JsDbg {
         internal void Parse() {
             string[] lines = this.buffer.ToString().Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
             bool isInEnum = false;
+            bool hasSeenFirstLine = false;
             string thisclass = null;
 
             foreach (string line in lines) {
+                bool isFirstLine = !hasSeenFirstLine;
+                hasSeenFirstLine = true;
+
                 string[] parts = line.Split(new char[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
 
                 // Are we still in the enum?
@@ -87,6 +91,9 @@ namespace JsDbg {
                 } else if (parts[0] == "Enum") {
                     // We're parsing an enum.
                     isInEnum = true;
+                    if (isFirstLine) {
+                        this.IsEnum = true;
+                    }
                     if (parts[1].IndexOf("<unnamed-enum-") == 0 && thisclass != null) {
                         // Strip the comma off the end.
                         this.AnonymousEnums.Add(thisclass + "::" + parts[1].Substring(0, parts[1].Length - 1));
@@ -97,7 +104,14 @@ namespace JsDbg {
                     string number = parts[2].Substring(2).Replace("`", "");
                     char baseSpecifier = parts[2][1];
                     System.Globalization.NumberStyles style = (baseSpecifier == 'x' ? System.Globalization.NumberStyles.AllowHexSpecifier : System.Globalization.NumberStyles.None);
-                    ulong value = ulong.Parse(number, style);
+                    ulong value;
+                    if (number.Length > 0 && number[0] == '-') {
+                        style = System.Globalization.NumberStyles.AllowLeadingSign;
+                        long signedValue = long.Parse(number, style);
+                        value = (ulong)signedValue;
+                    } else {
+                        value = ulong.Parse(number, style);
+                    }
                     this.ParsedConstants.Add(new SConstantResult() { ConstantName = name, Value = value });
                 } else if (parts[0] == "thisclass" && parts.Length >= 3) {
                     // Strip the comma off the end.
@@ -251,5 +265,6 @@ namespace JsDbg {
         internal List<SField> ParsedFields;
         internal List<SConstantResult> ParsedConstants;
         internal List<string> AnonymousEnums;
+        internal bool IsEnum;
     }
 }

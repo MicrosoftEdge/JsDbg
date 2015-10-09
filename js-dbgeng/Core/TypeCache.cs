@@ -52,11 +52,12 @@ namespace JsDbg
     }
    
     public class Type {
-        public Type(string module, string name, uint size, Dictionary<string, SField> fields, Dictionary<string, ulong> constants, List<SBaseType> baseTypes, List<SBaseTypeName> baseTypeNames) {
+        public Type(string module, string name, uint size, bool isEnum, Dictionary<string, SField> fields, Dictionary<string, ulong> constants, List<SBaseType> baseTypes, List<SBaseTypeName> baseTypeNames) {
             this.module = module;
             this.name = name;
             this.size = size;
             this.fields = fields;
+            this.isEnum = isEnum;
             if (fields != null) {
                 this.caseInsensitiveFields = new Dictionary<string, string>();
                 foreach (string field in fields.Keys) {
@@ -84,6 +85,10 @@ namespace JsDbg
 
         public uint Size {
             get { return this.size; }
+        }
+
+        public bool IsEnum {
+            get { return this.isEnum; }
         }
 
         public bool GetField(string name, out SField field) {
@@ -215,6 +220,7 @@ namespace JsDbg
         private readonly Dictionary<string, string> caseInsensitiveConstants;
         private readonly List<SBaseType> baseTypes;
         private readonly List<SBaseTypeName> baseTypeNames;
+        private readonly bool isEnum;
     }
 
 
@@ -276,7 +282,7 @@ namespace JsDbg
         private Type GetBuiltinType(IDiaSession session, string module, string typename) {
             string strippedType = typename.Replace("unsigned", "").Replace("signed", "").Trim();
             if (BuiltInTypes.ContainsKey(strippedType)) {
-                return new Type(module, typename, BuiltInTypes[strippedType], null, null, null, null);
+                return new Type(module, typename, BuiltInTypes[strippedType], false, null, null, null, null);
             } else if (strippedType.EndsWith("*")) {
                 uint pointerSize = this.isPointer64Bit ? 8u : 4u;
 
@@ -296,7 +302,7 @@ namespace JsDbg
                     this.modulePointerSizes[module] = pointerSize;
                 }
 
-                return new Type(module, typename, pointerSize, null, null, null, null);
+                return new Type(module, typename, pointerSize, false, null, null, null, null);
             } else {
                 return null;
             }

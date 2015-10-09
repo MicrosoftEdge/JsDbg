@@ -126,7 +126,7 @@ namespace Core {
                     }
 
                     // Construct the type.
-                    JsDbg.Type type = new JsDbg.Type(module, typename, typeSize, fields, constants, baseTypes, null);
+                    JsDbg.Type type = new JsDbg.Type(module, typename, typeSize, symTag == SymTagEnum.SymTagEnum, fields, constants, baseTypes, null);
                     return type;
                 }
             }
@@ -150,6 +150,11 @@ namespace Core {
 
         public bool IsPointer64Bit {
             get { return this.debuggerEngine.IsPointer64Bit; }
+        }
+
+        public async Task<bool> IsTypeEnum(string module, string typename) {
+            var type = await this.LoadType(module, typename);
+            return type.IsEnum;
         }
 
         public async Task<JsDbg.SConstantResult> LookupConstant(string module, string typename, ulong constantValue) {

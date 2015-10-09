@@ -519,6 +519,19 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/symbolname?pointer=" + esc(pointer), callback, CacheType.TransientCache);
         },
 
+        _help_IsTypeEnum: {
+            description: "Indicates if a given type is an enum.",
+            arguments: [
+                {name: "module", type:"string", description: "The module of the type."},
+                {name: "type", type:"string", description: "The type."},
+                {name: "callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        IsTypeEnum: function(module, type, callback) {
+            jsonRequest("/jsdbg/isenum?module=" + esc(module) + "&type=" + esc(type), callback, CacheType.Cached);
+        },
+
+        
         _help_LookupConstantName: {
             description: "Looks up the name of a given constant (i.e. an enum value).",
             arguments: [

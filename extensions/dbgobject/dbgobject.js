@@ -218,7 +218,17 @@ var DbgObject = (function() {
                             return dereferenced.htmlTypeDescription() + " " + dereferenced.ptr();
                         });
                     } else {
-                        return x.htmlTypeDescription() + " " + x.ptr();
+                        return x.isEnum()
+                        .then(function (isEnum) {
+                            if (isEnum) {
+                                return x.constant();
+                            } else {
+                                return Promise.fail();
+                            }
+                        })
+                        .then(null, function () {
+                            return x.htmlTypeDescription() + " " + x.ptr();
+                        })
                     }
                 };
             }
@@ -642,6 +652,15 @@ var DbgObject = (function() {
                 return value;
             }
         })
+    }
+
+    DbgObject.prototype._help_isEnum = {
+        description: "Indicates if the type of the DbgObject is an enum.",
+        returns: "A promise to a bool."
+    }
+    DbgObject.prototype.isEnum = function() {
+        return jsDbgPromise(JsDbg.IsTypeEnum, this.module, this.typename)
+        .then(function (result) { return result.isEnum; })
     }
 
     DbgObject.prototype._help_constant = {
