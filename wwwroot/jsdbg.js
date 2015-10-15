@@ -273,7 +273,88 @@ var JsDbg = (function() {
         }
     }
 
+    function updateExtensionList() {
+        var content = document.querySelector(".jsdbg-extensions-pane-content");
+        content.innerHTML = "";
+
+        JsDbg.GetExtensions(function (extensions) {
+            var currentExtension = JsDbg.GetCurrentExtension();
+            extensions = extensions.extensions.filter(function (e) { 
+                if (e.name.toLowerCase() == currentExtension) {
+                    document.querySelector(".jsdbg-title").textContent = e.name;
+                    return false;
+                } else {
+                    return !e.headless;
+                }
+            });
+            extensions.sort(function (e1, e2) { return e1.name.localeCompare(e2.name); });
+
+            extensions.forEach(function (e) {
+                var link = document.createElement("a");
+                link.setAttribute("href", "/" + e.name.toLowerCase());
+
+                var name = document.createElement("span");
+                name.classList.add("jsdbg-extension-name");
+                name.appendChild(document.createTextNode(e.name));
+                link.appendChild(name);
+
+                if (e.description != null) {
+                    var description = document.createElement("span");
+                    description.classList.add("jsdbg-extension-description");
+                    description.appendChild(document.createTextNode(" " + e.description));
+                    link.appendChild(description);
+                }
+                content.appendChild(link);
+                content.appendChild(document.createTextNode(" "));
+            });
+
+            // Configure the drop-down pane so that it has the proper height.
+            document.querySelector(".jsdbg-toolbar").style.display = "";
+            content.parentNode.style.height = content.offsetHeight + "px";
+        });
+    }
+
+    function buildToolbar() {
+        // Insert the toolbar.
+        var toolbar = document.createElement("div");
+        toolbar.classList.add("jsdbg-toolbar");
+        toolbar.style.display = "none";
+
+        var title = document.createElement("div");
+        title.classList.add("jsdbg-title");
+        title.textContent = "JsDbg";
+        toolbar.appendChild(title);
+        toolbar.appendChild(document.createTextNode(" "));
+
+        var extensions = document.createElement("div");
+        extensions.classList.add("jsdbg-extensions-list");
+
+        var extensionsPane = document.createElement("div");
+        extensionsPane.classList.add("jsdbg-extensions-pane");
+
+        var paneContent = document.createElement("div");
+        paneContent.classList.add("jsdbg-extensions-pane-content");
+        extensionsPane.appendChild(paneContent);
+
+        extensions.appendChild(document.createTextNode("Other Extensions \u25BE"));
+        extensions.appendChild(extensionsPane);
+        toolbar.appendChild(extensions);
+
+        var feedback = document.createElement("a");
+        feedback.setAttribute("href", "#feedback");
+        feedback.appendChild(document.createTextNode("Send Feedback"));
+        feedback.addEventListener("click", function (e) {
+            e.preventDefault();
+        })
+        toolbar.appendChild(feedback);
+
+        document.documentElement.insertBefore(toolbar, document.documentElement.firstChild);
+        
+        updateExtensionList();
+    }
+
     initializeProgressIndicator();
+    document.addEventListener("DOMContentLoaded", buildToolbar);
 
     return {
         _help: {
@@ -335,7 +416,10 @@ var JsDbg = (function() {
             ]
         },
         LoadExtension: function(path, callback) {
-            jsonRequest("/jsdbg/loadextension?path=" + esc(path), callback, CacheType.Uncached);
+            jsonRequest("/jsdbg/loadextension?path=" + esc(path), function (result) {
+                updateExtensionList();
+                callback(result);
+            }, CacheType.Uncached);
         },
 
         _help_UnloadExtension: {
@@ -346,7 +430,10 @@ var JsDbg = (function() {
             ]
         },
         UnloadExtension: function(name, callback) {
-            jsonRequest("/jsdbg/unloadextension?name=" + esc(name), callback, CacheType.Uncached);
+            jsonRequest("/jsdbg/unloadextension?name=" + esc(name), function (result) {
+                updateExtensionList();
+                callback(result);
+            }, CacheType.Uncached);
         },
 
         _help_GetExtensions: {

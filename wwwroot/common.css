@@ -1,6 +1,70 @@
-body {
+:root {
     font-family:Segoe UI;
     font-size:10pt;
+}
+
+.jsdbg-toolbar {
+    font-size:12pt;
+    padding:3px 5px;
+}
+
+.jsdbg-toolbar > * {
+    display:inline-block;
+    color:white;
+    margin:0 20px 0 10px;
+}
+
+.jsdbg-extensions-list:not(:hover) .jsdbg-extensions-pane {
+    /* When not being hovered, this will override the inline style rule that script will set to the animated height. */
+    height:0px !important;
+}
+
+.jsdbg-extensions-pane {
+    position:absolute;
+    z-index:100;
+    transition: height 0.1s ease-in-out 0.1s;
+    overflow:hidden;
+    pointer-events: none;
+}
+
+.jsdbg-toolbar, .jsdbg-extensions-pane {
+    background:#333338;
+}
+
+.jsdbg-extensions-pane-content {
+    padding:5px;
+    font-size:10pt;
+    max-width:400px;
+    pointer-events: auto;
+}
+
+.jsdbg-extensions-pane-content a {
+    display:block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.jsdbg-toolbar a {
+    color:white;
+    text-decoration:none;
+}
+
+.jsdbg-toolbar > a:hover {
+    text-decoration: underline;
+}
+
+.jsdbg-extensions-pane-content a:hover .jsdbg-extension-name {
+    text-decoration: underline;
+}
+
+.jsdbg-extension-description::before {
+    content:" - ";
+}
+
+.jsdbg-extension-description {
+    font-style:italic;
+    color:#ccc;
 }
 
 #jsdbg-loading-indicator {
