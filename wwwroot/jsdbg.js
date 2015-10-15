@@ -314,6 +314,16 @@ var JsDbg = (function() {
         });
     }
 
+    var queuedExtensionListUpdates = 0;
+    function queueExtensionListUpdate() {
+        setTimeout(function () {
+            if (--queuedExtensionListUpdates == 0) {
+                updateExtensionList();
+            }
+        }, 200);
+        ++queuedExtensionListUpdates;
+    }
+
     function buildToolbar() {
         // Insert the toolbar.
         var toolbar = document.createElement("div");
@@ -417,7 +427,7 @@ var JsDbg = (function() {
         },
         LoadExtension: function(path, callback) {
             jsonRequest("/jsdbg/loadextension?path=" + esc(path), function (result) {
-                updateExtensionList();
+                queueExtensionListUpdate();
                 callback(result);
             }, CacheType.Uncached);
         },
@@ -431,7 +441,7 @@ var JsDbg = (function() {
         },
         UnloadExtension: function(name, callback) {
             jsonRequest("/jsdbg/unloadextension?name=" + esc(name), function (result) {
-                updateExtensionList();
+                queueExtensionListUpdate();
                 callback(result);
             }, CacheType.Uncached);
         },

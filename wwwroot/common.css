@@ -17,14 +17,20 @@
 .jsdbg-extensions-list:not(:hover) .jsdbg-extensions-pane {
     /* When not being hovered, this will override the inline style rule that script will set to the animated height. */
     height:0px !important;
+
+    /* When we move the mouse off, we want to delay the transition slightly. */
+    transition-delay: 0.2s;
+}
+
+.jsdbg-extensions-list {
+    cursor:default;
 }
 
 .jsdbg-extensions-pane {
     position:absolute;
     z-index:100;
-    transition: height 0.1s ease-in-out 0.1s;
+    transition: height 0.1s ease-in-out 0s;
     overflow:hidden;
-    pointer-events: none;
 }
 
 .jsdbg-toolbar, .jsdbg-extensions-pane {
@@ -35,7 +41,6 @@
     padding:5px;
     font-size:10pt;
     max-width:400px;
-    pointer-events: auto;
 }
 
 .jsdbg-extensions-pane-content a {
