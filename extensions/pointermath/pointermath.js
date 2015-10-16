@@ -8,9 +8,6 @@ var PointerMath = (function() {
             if (value.indexOf("0x") == 0) {
                 base = 16;
                 value = value.substr(2);
-            } else if (value.indexOf("0o") == 0) {
-                base = 8;
-                value = value.substr(2);
             } else if (value.indexOf("0b") == 0) {
                 base = 2;
                 value = value.substr(2);
@@ -69,7 +66,6 @@ var PointerMath = (function() {
         Tests.AddTest(testSuite, "PointerMath.Pointer constructor", function (assert) {
             assert.equals("0xabc", (new Pointer("0xabc")).toString(), "0xabc");
             assert.equals("0x7", (new Pointer("0b111")).toString(), "0b111");
-            assert.equals("0x9", (new Pointer("0o11")).toString(), "0o11");
             assert.equals("0xb", (new Pointer("11")).toString(), "11");
             assert.equals("0xb", (new Pointer(11)).toString(), "11 as number");
             assert.equals("0xb", (new Pointer(new Pointer(11))).toString(), "11 as Pointer");
@@ -91,7 +87,6 @@ var PointerMath = (function() {
         Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.toString", function (assert) {
             assert.equals("0x0", new Pointer("0xffffffffff").add(-0xffffffffff).toString(), "0xffffffffff - 0xffffffffff");
             assert.equals("0x0", new Pointer(0).toString(), "0");
-            assert.equals("0x80", new Pointer("0o100").add(0o100).toString(), "0o100 + 0o100");
         });
 
         Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.toFormattedString", function (assert) {
