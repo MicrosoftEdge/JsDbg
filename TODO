@@ -1,13 +1,8 @@
-BLOCKING EXPANSION BEYOND IE
-    - test 64-bit support
-    - test configurable paths
-
 IE-SPECIFIC
     - support past versions of IE in *Tree
     - automatic latest patch use for type hooking?
 
 GENERAL
-    - toolbar at top should include extensions
     - see how expensive dependency loading is?
     - make it more clear when content is loading (especially if it has been loading for more than ~0.5s)
     - if the debugger is running, make it obvious to the user
@@ -39,18 +34,8 @@ TREE INSPECTOR
 DBGOBJECT
     - default description should be clickable to dump fields
 
-JSDBGENG
-    - more aggressive symbol hunting when remote debugging?
-
 PERFORMANCE:
     - should tree be virtualized?
     - should transient cache be cleared periodically?
     - maybe there is some work that can be done in a web worker so as to not block the UI thread?
     - or maybe just time tree expansion out and present a message
-    - IDEA: Memory cache to optimize accessing many fields at once (e.g. load 4k pages into JS heap)
-        - potentially allows for snapshotting
-
-
-
-
-
