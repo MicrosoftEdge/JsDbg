@@ -1,0 +1,4 @@
+{
+    "name": "gc",
+    "dependencies": ["dbgobject"]
+}

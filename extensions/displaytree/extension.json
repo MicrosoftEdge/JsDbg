@@ -1,0 +1,16 @@
+{
+    "name": "DisplayTree",
+    "author": "Peter Salas",
+    "description": "Navigate and inspect a display tree.",
+    "dependencies": [
+        "dbgobject",
+        "mshtml-helpers",
+        "tree-inspector"
+    ],
+    "includes": [
+        "displaytree.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ]
+}

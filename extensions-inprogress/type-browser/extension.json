@@ -1,0 +1,7 @@
+{
+    "name": "TypeBrowser",
+    "author": "Peter Salas",
+    "description": "Navigate types.",
+    "dependencies": ["dbgobject"],
+    "includes": ["type-browser.js"]
+}

@@ -1,0 +1,18 @@
+{
+    "name": "field-support",
+    "author": "Peter Salas",
+    "description": "Support for injecting fields into DbgObject-backed visualizations",
+    "headless": true,
+    "dependencies": [
+        "dbgobject",
+        "dbgobject-tree",
+        "catalog",
+        "catalog-viewer",
+        "promise",
+        "help"
+    ],
+    "includes": [
+        "fieldsupport.css",
+        "fieldsupport.js"
+    ]
+}

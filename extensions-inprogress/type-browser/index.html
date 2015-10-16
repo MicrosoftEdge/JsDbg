@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>Type Browser</title>
+    <script src="/jsdbg.js" data-include-dependencies></script>
+    <script type="text/javascript">
+        function init() {
+            document.getElementById("loadTypeButton").addEventListener("click", loadEnteredType);
+            document.getElementById("typeInput").addEventListener("keydown", function(e) {
+                if (e.keyCode == 13) {
+                    loadEnteredType();
+                }
+            })            
+        }
+        document.addEventListener("DOMContentLoaded", init);
+
+        function loadEnteredType() {
+            var moduleAndType = document.getElementById("typeInput").value;
+            if (moduleAndType.indexOf("!") >= 0) {
+                var module = moduleAndType.split("!")[0];
+                var type = moduleAndType.split("!")[1];
+            } else {
+                var module = MSHTML.Module;
+                var type = moduleAndType;
+            }
+            loadType(module, type, null);
+        }
+
+        function loadType(module, type, loader) {
+            var dummyObject = new DbgObject(module, type, 0);
+            if (dummyObject.isPointer()) {
+                loadType(module, dummyObject._getDereferencedTypeName(), loader);
+            } else {
+                dummyObject.fields()
+                .then(function (fields) {
+                    fields = fields.map(function (f) {
+                        return {
+                            name: f.name,
+                            type: f.value.typeDescription()
+                        }
+                    });
+                    showFields(module, type, fields, loader);
+                });
+            }
+        }
+
+        function showFields(module, type, fields, loader) {
+            var element = document.createElement("code");
+            var content = fields.map(function(field) {
+                var fieldElement = document.createElement("div");
+                fieldElement.className = "field";
+
+                var typeElement = document.createElement("span");
+                typeElement.className = "type";
+                typeElement.textContent = field.type;
+
+                typeElement.addEventListener("click", function () {
+                    loadType(module, field.type, element);
+                });
+
+                var nameElement  = document.createElement("span");
+                nameElement.className = "name";
+                nameElement.textContent = field.name;
+
+                fieldElement.appendChild(typeElement);
+                fieldElement.appendChild(nameElement);
+                return fieldElement;
+            });
+
+            // TODO: add this API to DbgObject.
+            JsDbg.LookupBaseTypes(module, type, function(baseTypes) {
+                var header = document.createElement("h3");
+                header.textContent = type;
+                element.appendChild(header);
+                
+                if (baseTypes.length > 0) {
+                    var baseTypesElement = document.createElement("h4");
+                    baseTypesElement.textContent = ": " + baseTypes.map(function (baseType) { return baseType.type; }).join(" : ");
+                    element.appendChild(baseTypesElement);
+                }
+
+                content.forEach(function (e) { element.appendChild(e); });
+
+                var container = document.getElementById("types");
+                if (loader != null) {
+                    while (loader.previousSibling != null) {
+                        loader.parentNode.removeChild(loader.previousSibling);
+                    }
+                    container.insertBefore(element, loader);
+                } else {
+                    while (container.childNodes.length > 0) {
+                        container.removeChild(container.childNodes[0]);
+                    }
+                    container.appendChild(element);
+                }
+            });
+        }
+    </script>
+    <style type="text/css">
+        #typeInput {
+            width:40em;
+        }
+
+        #types {
+            white-space: nowrap;
+            padding:2em;
+        }
+
+        code {
+            display:inline-block;
+            vertical-align: top;
+            padding:0 2em;
+            border-left:thin solid #eee;
+            font-size:8pt;
+        }
+
+        code:first-child {
+            border:none;
+        }
+
+        code > h3, code > h4 {
+            text-align: center;
+            margin:0 0 0.5em 0;
+        }
+
+        div.field {
+            display:table-row;
+        }
+        div.field > * {
+            display:table-cell;
+        }
+
+        span.type {
+            cursor:pointer;
+            color:blue;
+        }
+        span.type:hover {
+            text-decoration: underline;
+        }
+
+        div.field > :first-child {
+            text-align:right;
+            padding-right:0.5em;
+        }
+
+    </style>
+</head>
+<body>
+    <input id="typeInput" type="text" /> <button id="loadTypeButton">Load</button>
+    <div id="types">
+
+    </div>
+</body>
+</html>

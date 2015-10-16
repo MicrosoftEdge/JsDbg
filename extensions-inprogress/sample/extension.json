@@ -1,0 +1,9 @@
+{
+	"name": "sample-extension",
+	"description": "A sample extension.",
+	"author": "Peter Salas",
+    "includes": [
+        "sample.css",
+        "sample.js"
+    ]
+}

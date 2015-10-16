@@ -1,0 +1,4 @@
+{
+    "name": "dbgobject-test",
+    "dependencies": ["dbgobject"]
+}

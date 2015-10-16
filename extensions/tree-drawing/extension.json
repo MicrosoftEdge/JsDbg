@@ -1,0 +1,17 @@
+{
+    "name": "tree-drawing",
+    "author": "Peter Salas",
+    "description": "A tree drawing library.",
+    "headless": true,
+    "dependencies": [
+        "timer",
+        "promise"
+    ],
+    "includes": [
+        "talltree.css",
+        "talltree.js",
+        "widetree.css",
+        "widetree.js",
+        "treesaver.js"
+    ]
+}

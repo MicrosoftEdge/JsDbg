@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>Dump Type</title>
+    <script src="/jsdbg.js" data-include-dependencies></script>
+    <script type="text/javascript">
+        function dumpType() {
+            var input = document.querySelector("input").value;
+            var moduleAndType = input.split(" ")[0];
+            var address = parseInt(input.split(" ")[1]);
+            var module = moduleAndType.split("!")[0];
+            var type = moduleAndType.split("!")[1];
+
+            // Dump the type...
+            var dbgObject = new DbgObject(module, type, address);
+            dbgObject.fields()
+            .then(function(fields) {
+                Promise.map(fields, function(f) { return f.value.desc(); })
+                .then(function (descs) {
+                    var html = fields.map(function(f, i) {
+                        return f.name + " = " + descs[i];
+                    }).join("<br />");
+                    document.getElementById("results").innerHTML = html;
+                })
+                
+            })
+        }
+    </script>
+    <style type="text/css">
+        body {
+            font:10pt Consolas;
+        }
+
+        input {
+            width:500px;
+        }
+    </style>
+</head>
+<body>
+    <input type="text" placeholder="e.g. edgehtml!CFancyFormat 0xabcd1234">
+    <button onclick="dumpType()">Dump Type</button>
+    <div id="results"></div>
+</body>
+</html>

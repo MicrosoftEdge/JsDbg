@@ -1,0 +1,16 @@
+{
+    "name": "tree-inspector",
+    "author": "Peter Salas",
+    "description": "UI for the tree inspectors.",
+    "headless": true,
+    "dependencies": [
+        "dbgobject-tree",
+        "field-support",
+        "tree-drawing",
+        "promise"
+    ],
+    "includes": [
+        "tree-inspector.css",
+        "tree-inspector.js"
+    ]
+}

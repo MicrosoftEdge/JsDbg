@@ -1,0 +1,6 @@
+{
+    "name": "struct-viz",
+    "author": "Peter Salas",
+    "description": "A structure visualizer.",
+    "dependencies": ["dbgobject"]
+}

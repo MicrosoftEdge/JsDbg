@@ -1,0 +1,124 @@
+.field-selection {
+    position: fixed;
+    right: 0px;
+    top: 0px;
+    overflow: auto;
+    padding-left: 1em;
+    max-height: 100%;
+    box-sizing: border-box;
+    z-index: 10;
+    background: white;
+    border: thin solid #eee;
+    border-right: none;
+    border-top: none;
+}
+
+.field-selection .fields {
+    clear:both;
+    margin-top:1em;
+    margin-right:1em;
+}
+
+.field-selection .edit {
+    margin-left:1em;
+}
+
+.field-selection .remove {
+    margin-left:0.2em;
+}
+
+.field-selection .add:before {
+    content:"[new]";
+}
+
+.field-selection .browse:before {
+    content:"[browse all users]";
+}
+
+.field-selection .browse:after {
+    display:block;
+    margin-top:1em;
+    content:"";
+}
+
+.field-selection .edit:before {
+    content:"[edit]";
+}
+
+.field-selection .remove:before {
+    content:"[remove]";
+}
+
+.field-selection .field .editor {
+    display:none;
+}
+
+.field-selection .editor td:first-child {
+    text-align: right;
+    vertical-align: top;
+}
+
+.field-selection .editor .code-description {
+    font-size:8pt;
+}
+
+.field-selection .editor .code-description a {
+    margin-right:0.5em;
+}
+
+.field-selection .editor ul.code-description {
+    margin:0;
+    padding-left:0em;
+}
+
+.field-selection .editor textarea {
+    font-family:Consolas;
+    font-size:8pt;
+    min-height:20em;
+    min-width:78ch;
+    width:100%;
+}
+
+.field-selection .field.editing .editor {
+    display:block;
+}
+
+.field-selection .field.editing .edit:before {
+    content:"[done]";
+}
+
+.field-selection .button {
+    font-size:8pt;
+    color:gray;
+    cursor:pointer;
+}
+
+.field-selection .button:hover {
+    color:blue;
+}
+
+.field-selection.collapsed {
+    background:none;
+    border:none;
+}
+
+.field-selection.collapsed .fields {
+    display:none;
+}
+
+.field-selection.collapsed .add, .field-selection.collapsed .browse {
+    display:none;
+}
+
+.field-selection .show-hide {
+    float:right;
+    margin:0.5em;
+}
+
+.field-selection .show-hide:before {
+    content:"[hide]";
+}
+
+.field-selection.collapsed .show-hide:before {
+    content:"[show]";
+}

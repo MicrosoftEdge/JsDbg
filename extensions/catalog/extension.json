@@ -1,0 +1,9 @@
+{
+    "name": "catalog",
+    "author": "Peter Salas",
+    "description": "Provides a convenient model for persistent data storage.",
+    "headless": true,
+    "dependencies": ["help"],
+    "includes": ["catalog.js"],
+    "augments": ["documentation"]
+}

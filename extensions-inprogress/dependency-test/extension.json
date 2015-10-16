@@ -1,0 +1,6 @@
+{
+    "name": "dependency-test",
+    "description": "this is a test of the dependencies feature",
+    "headless": true,
+    "dependencies": ["c:\\my\\dev\\extensions\\sample"]
+}

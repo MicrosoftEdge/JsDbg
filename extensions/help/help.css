@@ -1,0 +1,77 @@
+.help-summary > * {
+    display:inline;
+}
+
+.help-summary .name {
+    font-weight:bold;
+}
+
+.help-summary .description {
+    margin-left:1em;
+    font-style:italic;
+}
+
+.help-div .description {
+    font-style:italic;
+}
+
+.help-div .name {
+    font-weight:600;
+}
+
+.help-div .field {
+    margin-left:1em;
+    padding:0.3em 6px;
+    cursor:pointer;
+    background-color:transparent;
+    transition:background-color 0.1s;
+}
+
+.help-div .field:hover {
+    background-color:#f5f5f5;
+}
+
+.help-div .field > .name {
+    display:run-in;
+    margin-right:0.5em;
+}
+.help-div .field .returns, .help-div .field .arguments, .help-div .field .notes {
+    display:none;
+}
+
+.help-div .field.expanded {
+    border-left:thin solid #ccc;
+    padding-left:5px;
+}
+
+.help-div .field.expanded > * {
+    display:block;
+}
+
+.help-div .field > * {
+    margin-bottom:0.25em;
+}
+
+.help-div ul.arguments {
+    margin-top:0;
+}
+
+.help-div ul.arguments div {
+    display:inline;
+    margin-left:1em;
+}
+
+.help-div ul.arguments div:first-child {
+    margin-left:0;
+}
+
+.help-div ul.arguments .type::before {
+    content:"(";
+}
+.help-div ul.arguments .type::after {
+    content:")";
+}
+
+.help-div .field .returns::before {
+    content: "returns: ";
+}

@@ -1,0 +1,9 @@
+{
+    "name": "mshtml-helpers",
+    "author": "Peter Salas",
+    "description": "Helper functions for mshtml.dll",
+    "headless": true,
+    "dependencies": ["dbgobject", "help"],
+    "includes": ["mshtml.js"],
+    "augments": ["dbgobject"]
+}

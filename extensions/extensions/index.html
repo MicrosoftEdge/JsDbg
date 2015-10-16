@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<!-- saved from url=(0016)http://localhost -->
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>Extension Manager</title>
+    <script src="/jsdbg.js" data-include-dependencies></script>
+</head>
+<body>
+    <h3>Extension Manager</h3>
+    <p>Load an extension from a path or from the catalog of published extensions.</p>
+    <p>Any extensions you load will be loaded automatically in the future until you unload them.</p>
+    <div id="loader"><input id="extensionToLoad" type="text" placeholder="Specify the path to an extension to load..." />&nbsp;<button id="loadExtension">Load</button>&nbsp;<button id="loadPublishedExtension">Browse...</button></div>
+    <div id="headers">
+        <h4 class="displayed" data-section="recent">My Extensions</h4>
+        <h4 data-section="published">My Published Extensions</h4>
+        <h4 data-section="loaded">All Loaded Extensions</h4>
+    </div>
+
+    <div id="sections">
+        <div id="published"></div>
+        <div class="displayed" id="recent"></div>    
+        <div id="loaded">
+            <div class="instructions">
+                Looking to edit an extension?
+                <ol>
+                    <li>Copy the extension's directory locally.</li>
+                    <li>If the extension is loaded, unload it below.</li>
+                    <li>Load your local copy by entering the path above.</li>
+                    <li>Contact the extension author to contribute your changes.</li>
+                </ol>
+                If you want to edit multiple built-in extensions, it may be easier to work from a local copy of the entire extension root:
+                <ol>
+                    <li>Get a synced enlistment to the <a href="http://sharepoint/sites/IE/Resources/wiki/Wiki%20Pages/CommonTools%20Branch.aspx">CommonTools depot</a>, or copy the default extension root (below) to your local machine.</li>
+                    <li>Change the extension root below to your local copy.  In CommonTools, this is <code>//depot/CommonTools/users/psalas/jsdbg/extensions</code>.</li>
+                    <li>Files will now be served from your private copy, where you can edit them freely (you may need to <code>sd edit</code> first).</li>
+                    <li>Once you are satisfied with your changes, feel free to contribute your changes to the team via <code>sd submit</code>!</li>
+                </ol>
+            </div>
+            <div id="path">Extension Root: <input id="currentPath" type="text"> <button id="changePath">Change</button></div>
+            <div id="loadedContent"></div>
+        </div>
+    </div>
+</body>
+</html>

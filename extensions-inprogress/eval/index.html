@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title></title>
+    <script src="/jsdbg.js" type="text/javascript" data-include-dependencies></script>
+    <script type="text/javascript">
+        function init() {
+            var input = document.getElementById("input");
+            var stage = document.getElementById("stage");
+
+            input.addEventListener("input", function() {
+                Eval.evaluate(input, stage);
+                window.location.hash = escape(input.value);
+            })
+
+            if (window.location.hash) {
+                input.value = unescape(window.location.hash.substr(1));
+                Eval.evaluate(input, stage);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", init);
+    </script>
+    <style type="text/css">
+        body, input {
+            font-family: Consolas;
+            font-size:10pt;
+        }
+
+        input {
+            display:block;
+            width:100%;
+        }
+    </style>
+</head>
+<body>
+    <input id="input" type="text" autofocus/>
+    <div id="stage">
+
+    </div>
+</body>
+</html>

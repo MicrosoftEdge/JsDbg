@@ -1,0 +1,48 @@
+
+.namespace {
+    font-size:0;
+}
+
+.error-container {
+    position:absolute;
+    right:0.25em;
+    left:0px;
+    bottom:0.25em;
+    text-align:right;
+}
+
+.error-icon {
+    text-align:center;
+    display:inline-block;
+    background:red;
+    border-radius:50%;
+    color:white;
+    cursor:default;
+    font-weight:bold;
+    line-height:1.0;
+    width:1em;
+}
+
+.error-container > .error-descriptions {
+    display:none;
+}
+
+.error-icon:hover + .error-descriptions {
+    background: white;
+    border:thin solid;
+    color:red;
+    display:block;
+    margin:0.5em;
+    position:fixed;
+    text-align: left;
+    padding:1em 1em 1em 2em;
+
+    bottom:0px;
+    left:0px;
+    z-index:1;
+    white-space: normal;
+}
+
+.error-descriptions > div {
+    display: list-item;
+}

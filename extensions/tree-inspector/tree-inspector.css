@@ -1,0 +1,30 @@
+
+.tree-inspector-root .error {
+    color:red;
+}
+
+.tree-inspector-root .roots {
+    margin-bottom:1em;
+}
+
+.tree-inspector-root .invalid-tree {
+    background:#fee;
+    border:thin solid red;
+    float:left;
+    margin:1em;
+    padding:1em;
+}
+
+.tree-inspector-root .invalid-tree li {
+    font-size:1.2em;
+}
+
+.tree-inspector-root .invalid-tree h3 {
+    margin-top:0;
+}
+
+.tree-inspector-root .invalid-tree code {
+    display:block;
+    margin:2em;
+    white-space: pre;
+}
