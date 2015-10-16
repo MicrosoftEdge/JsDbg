@@ -193,6 +193,7 @@ var JsDbg = (function() {
             try {
                 var result = JSON.parse(jsonText);
             } catch (exception) {
+                alert(jsonText);
                 result = {
                     error: "Failed to parse JSON reponse: " + jsonText
                 };
@@ -350,12 +351,44 @@ var JsDbg = (function() {
         extensions.appendChild(extensionsPane);
         toolbar.appendChild(extensions);
 
-        var feedback = document.createElement("a");
-        feedback.setAttribute("href", "#feedback");
-        feedback.appendChild(document.createTextNode("Send Feedback"));
-        feedback.addEventListener("click", function (e) {
+        var feedback = document.createElement("div");
+        feedback.classList.add("jsdbg-feedback-container");
+
+        var feedbackLink = document.createElement("a");
+        feedbackLink.setAttribute("href", "#feedback");
+        feedbackLink.appendChild(document.createTextNode("Send Feedback"));
+        feedbackLink.addEventListener("click", function (e) {
             e.preventDefault();
+            feedback.classList.toggle("showing-pane");
+            feedbackPane.querySelector("textarea").focus();
         })
+        feedback.appendChild(feedbackLink);
+
+        var feedbackPane = document.createElement("div");
+        feedbackPane.classList.add("jsdbg-feedback-pane");
+        feedbackPane.innerHTML = "<textarea placeholder=\"Please report any bugs, suggestions, or other feedback here.\"></textarea><br><button>Send Feedback</submit>";
+
+        feedbackPane.querySelector("button").addEventListener("click", function() {
+            var feedbackMessage = feedbackPane.querySelector("textarea").value.trim();
+            if (feedbackMessage.length > 0) {
+                JsDbg.SendFeedback(feedbackMessage, function (result) {
+                    if (result.success) {
+                        feedbackPane.querySelector("textarea").value = "";
+                        feedback.classList.toggle("showing-pane");
+                        feedbackLink.textContent = "Thank you for your feedback!";
+                        setTimeout(function () {
+                            feedbackLink.textContent = "Send Feedback";
+                        }, 3000);
+                    } else {
+                        alert(result.error);
+                    }
+                })
+            } else {
+                feedback.classList.toggle("showing-pane");
+            }
+        })
+        feedback.appendChild(feedbackPane);
+
         toolbar.appendChild(feedback);
 
         document.documentElement.insertBefore(toolbar, document.documentElement.firstChild);
@@ -712,6 +745,23 @@ var JsDbg = (function() {
         },
         GetPersistentDataUsers: function(callback) {
             jsonRequest("/jsdbg/persistentstorageusers", callback, CacheType.Uncached);
+        },
+
+        _help_SendFeedback: {
+            description: "Sends feedback for JsDbg.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        SendFeedback: function (message, callback) {
+            // Include some diagnostics data as well.
+            var feedbackObject = {
+                userAgent: window.navigator.userAgent,
+                extension: JsDbg.GetCurrentExtension(),
+                message: message
+            };
+
+            jsonRequest("/jsdbg/feedback", callback, CacheType.Uncached, "PUT", JSON.stringify(feedbackObject, null, '  '));
         },
 
         _help_RegisterOnBreakListener: {

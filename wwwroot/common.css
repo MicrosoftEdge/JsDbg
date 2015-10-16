@@ -28,12 +28,11 @@
 
 .jsdbg-extensions-pane {
     position:absolute;
-    z-index:100;
     transition: height 0.1s ease-in-out 0s;
     overflow:hidden;
 }
 
-.jsdbg-toolbar, .jsdbg-extensions-pane {
+.jsdbg-toolbar, .jsdbg-extensions-pane, .jsdbg-feedback-pane {
     background:#333338;
 }
 
@@ -55,10 +54,6 @@
     text-decoration:none;
 }
 
-.jsdbg-toolbar > a:hover {
-    text-decoration: underline;
-}
-
 .jsdbg-extensions-pane-content a:hover .jsdbg-extension-name {
     text-decoration: underline;
 }
@@ -72,12 +67,36 @@
     color:#ccc;
 }
 
+.jsdbg-feedback-pane {
+    display:none;
+}
+
+.showing-pane > .jsdbg-feedback-pane {
+    display:block;
+}
+
+.jsdbg-feedback-container a:hover, .jsdbg-feedback-container.showing-pane a {
+    text-decoration: underline;
+}
+
+.jsdbg-feedback-pane {
+    position:absolute;
+    padding:10px;
+    text-align: right;
+}
+
+.jsdbg-feedback-pane textarea {
+    font-family: Calibri;
+    font-size:11pt;
+    width:300px;
+    height:150px;
+}
+
 #jsdbg-loading-indicator {
     position:fixed;
     bottom:0;
     right:0;
     text-align: center;
-    z-index:200;
     display:none;
 }
 
@@ -88,3 +107,8 @@
 code {
     font-family:Consolas;
 }
+
+/* Z-ordering */
+.jsdbg-feedback-pane { z-index:99; }
+.jsdbg-extensions-pane { z-index:100; }
+#jsdbg-loading-indicator { z-index:200; }

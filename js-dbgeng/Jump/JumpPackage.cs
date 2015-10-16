@@ -100,7 +100,8 @@ namespace Sushraja.Jump
             string webRoot = System.IO.Path.Combine(path, "wwwroot");
             string extensionRoot = System.IO.Path.Combine(path, "extensions");
             JsDbg.PersistentStore persistentStore = new JsDbg.PersistentStore(configuration.PersistentStoreDirectory);
-            webServer = new JsDbg.WebServer(runner.Debugger, persistentStore, webRoot, extensionRoot);
+            JsDbg.UserFeedback userFeedback = new JsDbg.UserFeedback(System.IO.Path.Combine(configuration.PersistentStoreDirectory, "feedback"));
+            webServer = new JsDbg.WebServer(runner.Debugger, persistentStore, userFeedback, webRoot, extensionRoot);
             webServer.LoadExtension("default");
 
             MyToolWindow window = (MyToolWindow)this.FindToolWindow(typeof(MyToolWindow), 0, true);
