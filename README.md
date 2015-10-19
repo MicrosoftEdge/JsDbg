@@ -38,44 +38,15 @@ The code you write is automatically saved so that it will be available the next 
 
 An extension is a directory that contains an `extension.json` file and some web content.  An `extension.json` is made up of a few fields, of which only `name` is required:
 
-<table>
-    <tr><th>Name</th><th>Type</th><th>Description</th></tr>
-    <tr>
-        <td><code>name</code> <strong>(required)</strong></td>
-        <td>string</td>
-        <td>The name of the extension.  Content will be served from /[extension-name]/ when the extension is loaded.  The extension name should be unique, since JsDbg will not load multiple extensions with the same name.</td>
-    </tr>
-    <tr>
-        <td><code>description</code></td>
-        <td>string</td>
-        <td>A description of the extension.</td>
-    </tr>
-    <tr>
-        <td><code>author</code></td>
-        <td>string</td>
-        <td>The name of the author(s) or maintainer(s).</td>
-    </tr>
-    <tr>
-        <td><code>dependencies</code></td>
-        <td>array of strings</td>
-        <td>An array of paths to other extensions that this extension depends on.  Paths are relative to the default extension directory, so built-in extensions can typically be referred to by name (e.g. <code>dbgobject</code>).  These extensions will be automatically loaded when the extension is loaded.</td>
-    </tr>
-    <tr>
-        <td><code>includes</code></td>
-        <td>array of strings</td>
-        <td>An array of JS or CSS filenames in this extension's directory that should be included whenever this extension is used.  If other extensions take a dependency on this extension, these files will be included automatically.</td>
-    </tr>
-    <tr>
-        <td><code>augments</code></td>
-        <td>array of strings</td>
-        <td>An array extension names that this extension augments.  Specifying an extension name here means that whenever that extension is used, this extension will be loaded as well.</td>
-    </tr>
-    <tr>
-        <td><code>headless</code></td>
-        <td>bool</td>
-        <td>Indicates if the extension should not be listed on the launch page when loaded.  Used for extensions do not present UI of their own but are consumed by other extensions.</td>
-    </tr>
-</table>
+Name | Type | Description
+-----|------|------------
+`name` **(required)** | string | The name of the extension.  Content will be served from /[extension-name]/ when the extension is loaded.  The extension name should be unique, since JsDbg will not load multiple extensions with the same name.
+`description` | string | A description of the extension.
+`author` | string | The name of the author(s) or maintainer(s).
+`dependencies` | array of strings | An array of paths to other extensions that this extension depends on.  Paths are relative to the default extension directory, so built-in extensions can typically be referred to by name (e.g. `dbgobject`).  These extensions will be automatically loaded when the extension is loaded.
+`includes` | array of strings | An array of JS or CSS filenames in this extension's directory that should be included whenever this extension is used.  If other extensions take a dependency on this extension, these files will be included automatically.
+`augments` | array of strings | An array extension names that this extension augments.  Specifying an extension name here means that whenever that extension is used, this extension will be loaded as well.
+`headless` | bool | Indicates if the extension should not be listed on the launch page when loaded.  Used for extensions do not present UI of their own but are consumed by other extensions.
 
 Extensions can be loaded, unloaded, and shared with the built-in "Extensions" extension.
 
