@@ -61,8 +61,8 @@ var MSHTML = (function() {
 
     function GetRootCTreeNodes() {
         return GetCDocs()
-            .f("_pWindowPrimary._pCWindow._pMarkup._ptpFirst")
-            .unembed("CTreeNode", "_tpBegin")
+        .f("_pWindowPrimary._pCWindow._pMarkup._ptpFirst")
+        .unembed("CTreeNode", "_tpBegin")
         .filter(function (treeNode) {
             return !treeNode.isNull();
         })
@@ -83,8 +83,8 @@ var MSHTML = (function() {
                             return element.as("CTreePos").unembed("CTreeNode", "_tpBegin");
                         } else {
                             // Not in the ancestry, just cast it.
-                    return element.as("CTreeNode");
-                }
+                            return element.as("CTreeNode");
+                        }
                     })
                 }
             )
@@ -171,7 +171,7 @@ var MSHTML = (function() {
                     return DbgObject.NULL;
                 } else {
                     return searchForHtPvPvMatch(firstEntry, entryCount, index + stride, stride, key);
-            }
+                }
             })
         });
     }
