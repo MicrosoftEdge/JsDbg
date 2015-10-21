@@ -46,6 +46,9 @@ namespace Core {
                 if (type != null) {
                     this.typeCache.AddType(type);
                     return type;
+                } else {
+                    // We have a DIA session but couldn't find the type.  Assume the type is invalid rather than falling back to the debugger.
+                    throw new DebuggerException(String.Format("Unable to load type: {0}!{1}", module, typename));
                 }
             }
 
@@ -55,9 +58,9 @@ namespace Core {
             if (type != null) {
                 this.typeCache.AddType(type);
                 return type;
+            } else {
+                throw new DebuggerException(String.Format("Unable to load type: {0}!{1}", module, typename));
             }
-
-            throw new DebuggerException(String.Format("Unable to load type: {0}!{1}", module, typename));
         }
 
         private async Task<JsDbg.Type> LoadTypeFromDiaSession(IDiaSession diaSession, string module, string typename, DiaHelpers.NameSearchOptions options) {
