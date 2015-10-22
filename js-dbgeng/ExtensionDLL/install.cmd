@@ -1,10 +1,17 @@
 @echo OFF
 
-set defaultPath=C:\debuggers
-if exist %defaultPath% goto :UseDefaultLocation
-set /p debuggerPath=Specify the path of your WinDbg installation:%=%
+if "%1"=="" goto TryDefaultLocation
+set defaultPath=%1
+goto UseDefaultLocation
 
+:AskForPath
+set /p debuggerPath=Please enter the path to your WinDbg installation:%=%
 goto InstallFiles
+
+:TryDefaultLocation
+set defaultPath=C:\debuggers
+if exist %defaultPath% goto UseDefaultLocation
+goto AskForPath
 
 :UseDefaultLocation
 set debuggerPath=%defaultPath%
@@ -31,8 +38,8 @@ goto Done
 
 :Success
 echo.
-echo You may now launch JsDbg by running "!jsdbg.launch" in WinDbg
+echo You may now launch JsDbg by running "!jsdbg.launch" in WinDbg.
 echo.
 
 :Done
-set /p=Press ENTER to exit...
+set /p=Press any key to exit...
