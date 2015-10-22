@@ -3,3 +3,5 @@ js-dbgeng/*/bin/*
 *.user
 *.suo
 *.sublime-workspace
+*.opensdf
+*.sdf
