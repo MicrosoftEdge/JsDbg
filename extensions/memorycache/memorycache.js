@@ -3,7 +3,7 @@
 var MemoryCache = (function() {
     const PAGE_SIZE = 4096; // The cacheable unit size.
     const RETRIEVAL_SIZE = 4; // The size of the element that the page is broken down to.
-    const CACHE_TRIGGER = 1; // Number of hits required on a given page before caching.  Lower is more aggressive.
+    const CACHE_TRIGGER = 16; // Number of hits required on a given page before caching.  Lower is more aggressive.
 
     // Holds hit counters and pages.
     var cache = {};
