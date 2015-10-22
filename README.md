@@ -7,9 +7,26 @@ Goals:
 - Make sharing easy
 
 ### How do I use it?
-1. Since the current set of extensions target the web platform, attach WinDbg to Microsoft Edge, IE 11, or any process hosting mshtml or edgehtml.
-2. In WinDbg, run the following command: `$$><\\iefs\users\psalas\jsdbg\jsdbg.script`
-3. The JsDbg server will launch and will open your default browser to [http://localhost:50000/](http://localhost:50000/).  The first time you run JsDbg, you may be prompted for elevation to register [DIA](https://msdn.microsoft.com/en-us/library/x93ctkx8.aspx).
+1. **(Optional)** Install the JsDbg launcher using
+    ```
+    \\iefs\users\psalas\jsdbg\install.cmd
+    ```
+
+    which will copy an extension to your local WinDbg installation.
+2. Attach WinDbg to Microsoft Edge, IE 11, or any process hosting `mshtml.dll` or `edgehtml.dll` (any process will work, but the current set of extensions target `mshtml.dll` and `edgehtml.dll`).
+3. If you installed the launcher in step 1, in WinDbg, run
+
+    ```
+    !jsdbg.launch
+    ```
+
+    If the launcher is not installed, instead run
+
+    ```
+    $$><\\iefs\users\psalas\jsdbg\jsdbg.script
+    ```
+
+4. The JsDbg server will launch and will open your default browser to [http://localhost:50000/](http://localhost:50000/).  The first time you run JsDbg, you may be prompted for elevation to register [DIA](https://msdn.microsoft.com/en-us/library/x93ctkx8.aspx).
 
 **Note:** Since it's difficult to use and debug the same process, if you are trying to debug your default browser, you should open [http://localhost:50000/](http://localhost:50000/) in a separate browser.
 
