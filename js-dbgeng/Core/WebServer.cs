@@ -59,15 +59,26 @@ namespace JsDbg {
             set { this._augments = value; }
         }
 
+        // Even though this isn't parsed meaningfully, we do want to serialize it for the client's benefit.
         [DataMember(IsRequired = false)]
         public string path {
             get { return this._path; }
             set { this._path = value; }
         }
 
+        public string OriginalPath {
+            get { return this._originalPath; }
+            set { this._originalPath = value; }
+        }
+
         public bool WasLoadedRelativeToExtensionRoot {
             get { return this._wasLoadedRelativeToExtensionRoot; }
             set { this._wasLoadedRelativeToExtensionRoot = value; }
+        }
+
+        public FileSystemWatcher Watcher {
+            get { return this._watcher; }
+            set { this._watcher = value; }
         }
 
         private string _name;
@@ -77,8 +88,10 @@ namespace JsDbg {
         private string[] _includes;
         private string[] _augments;
         private string _path;
+        private string _originalPath;
         private bool _headless;
         private bool _wasLoadedRelativeToExtensionRoot;
+        private FileSystemWatcher _watcher;
     }
 
     public class WebServer : IDisposable {
@@ -798,37 +811,97 @@ namespace JsDbg {
         private static DataContractJsonSerializer ExtensionSerializer = new DataContractJsonSerializer(typeof(JsDbgExtension));
 
         public bool LoadExtension(string extensionPath) {
-            List<JsDbgExtension> extensionsToLoad = new List<JsDbgExtension>();
             List<string> failedExtensions = new List<string>();
             string name;
-            if (this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions, out name)) {
-                this.loadedExtensions.AddRange(extensionsToLoad);
+            return this.LoadExtensionAndDependencies(extensionPath, failedExtensions, out name);
+        }
+
+        private bool LoadExtensionAndDependencies(string extensionPath, List<string> failedExtensions, out string extensionName) {
+            List<JsDbgExtension> extensionsToLoad = new List<JsDbgExtension>();
+            if (this.LoadExtensionAndDependenciesHelper(extensionPath, extensionsToLoad, failedExtensions, out extensionName)) {
+                // Listen for file changes on the newly loaded extensions.
+                foreach (JsDbgExtension extensionToLoad in extensionsToLoad) {
+                    extensionToLoad.Watcher = new FileSystemWatcher(extensionToLoad.path, "extension.json");
+                    extensionToLoad.Watcher.NotifyFilter = NotifyFilters.LastWrite;
+                    extensionToLoad.Watcher.Changed += ExtensionChanged;
+                    extensionToLoad.Watcher.EnableRaisingEvents = true;
+                    this.loadedExtensions.Add(extensionToLoad);
+                }
                 return true;
-            } else {
-                return false;
+            }
+            return false;
+        }
+
+        private void ExtensionChanged(object sender, FileSystemEventArgs e) {
+            // Find the extension with the path and reload it.
+            JsDbgExtension extensionToReload = null;
+            foreach (JsDbgExtension extension in this.loadedExtensions) {
+                if (extension.Watcher == sender) {
+                    extensionToReload = extension;
+                }
+            }
+
+            if (extensionToReload != null) {
+                Console.WriteLine("Reloading extension {0} due to a filesystem change.", extensionToReload.name, extensionToReload.OriginalPath);
+                this.UnloadExtension(extensionToReload.name);
+                List<string> failedExtensions = new List<string>();
+                string extensionName;
+                if (this.LoadExtensionAndDependencies(extensionToReload.OriginalPath, failedExtensions, out extensionName)) {
+                    Console.WriteLine("Successfully loaded {0}", extensionName);
+                } else {
+                    Console.WriteLine("Failed to load extensions: {0}.  Please fix the extension.json file and reload the extension manually.", String.Join(" -> ", failedExtensions));
+                }
             }
         }
 
-        private bool LoadExtensionAndDependencies(string extensionPath, List<JsDbgExtension> extensionsToLoad, List<string> failedExtensions, out string extensionName) {
+        private static string NormalizePath(string path) {
+            return Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar).ToLowerInvariant();
+        }
+
+        private static bool ArePathsEquivalent(string path1, string path2) {
+            return NormalizePath(path1) == NormalizePath(path2);
+        }
+
+        private static bool AreExtensionsEquivalent(JsDbgExtension existingExtension, JsDbgExtension newExtension) {
+            return (
+                existingExtension.name.ToLowerInvariant() == newExtension.name.ToLowerInvariant() ||
+                ArePathsEquivalent(existingExtension.path, newExtension.path)
+            );
+        }
+
+        private bool LoadExtensionAndDependenciesHelper(string extensionPath, List<JsDbgExtension> extensionsToLoad, List<string> failedExtensions, out string extensionName) {
             bool isRelativePath = false;
-            if (!System.IO.Path.IsPathRooted(extensionPath)) {
-                extensionPath = System.IO.Path.Combine(this.defaultExtensionPath, extensionPath);
+
+            string originalExtensionPath = extensionPath;
+            if (!Path.IsPathRooted(extensionPath)) {
+                extensionPath = Path.Combine(this.defaultExtensionPath, extensionPath);
                 isRelativePath = true;
             }
 
-            if (!System.IO.Directory.Exists(extensionPath)) {
+            if (!Directory.Exists(extensionPath)) {
                 failedExtensions.Add(extensionPath);
                 extensionName = null;
                 return false;
             }
 
-            JsDbgExtension extension;
-            string jsonPath = System.IO.Path.Combine(extensionPath, "extension.json");
+            JsDbgExtension extension = null;
+            string jsonPath = Path.Combine(extensionPath, "extension.json");
             try {
-                using (System.IO.FileStream file = System.IO.File.Open(jsonPath, System.IO.FileMode.Open, System.IO.FileAccess.Read)) {
-                    extension = (JsDbgExtension)ExtensionSerializer.ReadObject(file);
+                int remainingFileInUseAttempts = 20;
+                while (true) {
+                    try {
+                        using (FileStream file = File.Open(jsonPath, FileMode.Open, FileAccess.Read)) {
+                            extension = (JsDbgExtension)ExtensionSerializer.ReadObject(file);
+                        }
+                        break;
+                    } catch (IOException ex) when (ex.HResult == -2147024864 && remainingFileInUseAttempts > 0) { // E_SHARING_VIOLATION
+                        Thread.Sleep(100);
+                        --remainingFileInUseAttempts;
+                    }
                 }
+
                 extension.path = extensionPath;
+                extension.OriginalPath = originalExtensionPath;
                 extension.WasLoadedRelativeToExtensionRoot = isRelativePath;
             } catch {
                 failedExtensions.Add(extensionPath);
@@ -839,15 +912,9 @@ namespace JsDbg {
             extensionName = extension.name;
 
             // Check if the extension has already been loaded.
-            foreach (JsDbgExtension existingExtension in this.loadedExtensions) {
+            foreach (JsDbgExtension existingExtension in this.loadedExtensions.Concat(extensionsToLoad)) {
                 // If any existing extension has the same name, it's already loaded.
-                if (existingExtension.name == extension.name) {
-                    return true;
-                }
-            }
-            foreach (JsDbgExtension existingExtension in extensionsToLoad) {
-                if (existingExtension.name == extension.name) {
-                    // If any existing extension has the same name, it's already loaded.
+                if (AreExtensionsEquivalent(existingExtension, extension)) {
                     return true;
                 }
             }
@@ -859,7 +926,7 @@ namespace JsDbg {
                 for (int i = 0; i < extension.dependencies.Length; ++i) {
                     string dependencyPath = extension.dependencies[i];
                     string dependencyName;
-                    if (!this.LoadExtensionAndDependencies(dependencyPath, extensionsToLoad, failedExtensions, out dependencyName)) {
+                    if (!this.LoadExtensionAndDependenciesHelper(dependencyPath, extensionsToLoad, failedExtensions, out dependencyName)) {
                         failedExtensions.Add(extensionPath);
                         return false;
                     }
@@ -880,14 +947,12 @@ namespace JsDbg {
                 return;
             }
 
-            List<JsDbgExtension> extensionsToLoad = new List<JsDbgExtension>();
             List<string> failedExtensions = new List<string>();
             string name;
-            if (!this.LoadExtensionAndDependencies(extensionPath, extensionsToLoad, failedExtensions, out name)) {
+            if (!this.LoadExtensionAndDependencies(extensionPath, failedExtensions, out name)) {
                 respond("{ \"error\": \"Extensions failed to load:" + String.Join(" -> ", failedExtensions).Replace("\\", "\\\\") + "\" }");
                 return;
             } else {
-                this.loadedExtensions.AddRange(extensionsToLoad);
                 respond("{ \"success\": true }");
             }
         }
@@ -900,15 +965,33 @@ namespace JsDbg {
                 return;
             }
 
+            if (this.UnloadExtension(extensionName)) {
+                respond("{ \"success\": true }");
+            } else {
+                respond("{ \"error\": \"Unknown extension.\" }");
+            }
+        }
+
+        private bool UnloadExtension(string extensionName) {
             for (int i = 0; i < this.loadedExtensions.Count; ++i) {
                 if (this.loadedExtensions[i].name == extensionName) {
+                    this.loadedExtensions[i].Watcher.EnableRaisingEvents = false;
+                    this.loadedExtensions[i].Watcher.Dispose();
                     this.loadedExtensions.RemoveAt(i);
-                    respond("{ \"success\": true }");
-                    return;
+                    return true;
                 }
             }
+            return false;
+        }
 
-            respond("{ \"error\": \"Unknown extension.\" }");
+        private void UnloadRelativeExtensions() {
+            for (int i = this.loadedExtensions.Count - 1; i >= 0; --i) {
+                if (this.loadedExtensions[i].WasLoadedRelativeToExtensionRoot) {
+                    this.loadedExtensions[i].Watcher.EnableRaisingEvents = false;
+                    this.loadedExtensions[i].Watcher.Dispose();
+                    this.loadedExtensions.RemoveAt(i);
+                }
+            }
         }
 
         private void ServeExtensions(NameValueCollection query, Action<string> respond, Action fail) {
@@ -970,11 +1053,7 @@ namespace JsDbg {
                 } else {
                     if (data != this.defaultExtensionPath) {
                         // Unload every extension that was loaded relative to the extension root.
-                        for (int i = this.loadedExtensions.Count - 1; i >= 0; --i) {
-                            if (this.loadedExtensions[i].WasLoadedRelativeToExtensionRoot) {
-                                this.loadedExtensions.RemoveAt(i);
-                            }
-                        }
+                        this.UnloadRelativeExtensions();
 
                         this.defaultExtensionPath = data;
 
