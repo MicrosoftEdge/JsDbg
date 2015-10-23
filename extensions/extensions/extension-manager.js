@@ -157,6 +157,21 @@ function reloadLoadedExtensions(callback) {
 function reloadRecentlyLoaded() {
     var recentDiv = document.getElementById("recent");
     recentDiv.innerHTML = "";
+
+    // Clean up the data for any loaded recentExtensions.
+    recentExtensions.forEach(function (e) {
+        loadedExtensions.forEach(function (le) {
+            if (le.path == e.path) {
+                e.name = le.name;
+                e.description = le.description;
+                e.author = le.author;
+                e.augments = le.augments;
+                e.dependencies = le.dependencies;
+                e.headless = le.headless;
+            }
+        })
+    });
+
     recentExtensions.map(function (e, i) {
         var extensionDiv = createExtensionDescription(e);
 
