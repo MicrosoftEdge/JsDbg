@@ -103,10 +103,10 @@ var MarkupTree = (function() {
                 } else if (etagValue == "ETAG_ROOT") {
                     return "$root";
                 } else if (etagValue == "ETAG_GENERATED") {
-                    return treeNode.as("CGeneratedTreeNode").f("_gctype").constant()
+                    return treeNode.as("Tree::GeneratedElementNode").f("_gctype").constant()
                     .then(null, function() {
-                        // CGeneratedTreeNode and CGeneratedElement became Tree::GeneratedElementNode in the RS1 milestone.
-                        return treeNode.as("Tree::GeneratedElementNode").f("_gctype").constant();
+                        // Tree::GeneratedElementNode replaced CGeneratedTreeNode in the RS1 milestone.
+                        return treeNode.as("CGeneratedTreeNode").f("_gctype").constant();
                     })
                     .then(function (gcType) {
                         return "::" + gcType.substr("GC_".length).toLowerCase();
