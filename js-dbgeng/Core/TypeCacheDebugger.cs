@@ -10,14 +10,14 @@ namespace Core {
     public class TypeCacheDebugger : JsDbg.IDebugger {
         public TypeCacheDebugger(ITypeCacheDebuggerEngine debuggerEngine) {
             this.debuggerEngine = debuggerEngine;
-            this.debuggerEngine.DebuggerBroke += debuggerEngine_DebuggerBroke;
+            this.debuggerEngine.DebuggerChange += debuggerEngine_DebuggerChange;
             this.typeCache = new JsDbg.TypeCache(this.debuggerEngine.IsPointer64Bit);
             this.debuggerEngine.BitnessChanged += debuggerEngine_BitnessChanged;
         }
 
-        void debuggerEngine_DebuggerBroke(object sender, EventArgs e) {
-            if (this.DebuggerBroke != null) {
-                this.DebuggerBroke(sender, e);
+        void debuggerEngine_DebuggerChange(object sender, JsDbg.DebuggerChangeEventArgs e) {
+            if (this.DebuggerChange != null) {
+                this.DebuggerChange(sender, e);
             }
         }
 
@@ -139,7 +139,7 @@ namespace Core {
 
         #region IDebugger Members
 
-        public event EventHandler DebuggerBroke;
+        public event JsDbg.DebuggerChangeEventHandler DebuggerChange;
 
         public void Dispose() { }
 

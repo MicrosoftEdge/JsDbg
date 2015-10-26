@@ -36,6 +36,7 @@ var JsDbg = (function() {
     var everythingIsSynchronous = false;
 
     // Progress indicator support.
+    var waitingForDebugger = false;
     var loadingIndicator = null;
     var pendingAsynchronousRequests = 0;
 
@@ -53,12 +54,14 @@ var JsDbg = (function() {
     function requestStarted() {
         ++pendingAsynchronousRequests;
         if (pendingAsynchronousRequests == 1) {
+            waitingForDebugger = false;
             loadingIndicator.style.display = "block";
         }
     }
 
     function requestEnded() {
         if (--pendingAsynchronousRequests == 0) {
+            waitingForDebugger = false;
             loadingIndicator.style.display = "none";
         }
     }
@@ -82,10 +85,15 @@ var JsDbg = (function() {
     function handleWebSocketReply(webSocketMessage) {
         // Check if it's a server-initiated break-in event.
         if (webSocketMessage.data == "break") {
+            waitingForDebugger = false;
+
             // Invalidate the transient cache.  This should probably be invalidated on "run" instead.
             transientCache = {};
 
             debuggerBrokeListeners.forEach(function (f) { f(webSocketMessage.data); });
+            return;
+        } else if (webSocketMessage.data == "waiting") {
+            waitingForDebugger = true;
             return;
         }
 

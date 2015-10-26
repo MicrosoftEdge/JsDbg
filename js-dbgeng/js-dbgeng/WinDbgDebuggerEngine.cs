@@ -19,17 +19,13 @@ namespace JsDbg {
             this.diaLoader = diaLoader;
         }
 
-        internal void NotifyDebuggerBroke() {
-            if (this.DebuggerBroke != null) {
-                this.DebuggerBroke(this, new EventArgs());
+        internal void NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus status) {
+            if (this.DebuggerChange != null) {
+                this.DebuggerChange(this, new DebuggerChangeEventArgs(status));
             }
         }
 
         #region ITypeCacheDebuggerEngine Members
-
-        public Task WaitForBreakIn() {
-            return this.runner.WaitForBreakIn();
-        }
 
         public Core.DiaSessionLoader DiaLoader {
             get { return this.diaLoader; }
@@ -62,7 +58,7 @@ namespace JsDbg {
                     throw new DebuggerException(errorMessage);
                 }
 
-                await this.WaitForBreakIn();
+                await this.runner.WaitForBreakIn();
             } while (true);
         }
 
@@ -112,7 +108,7 @@ namespace JsDbg {
             }, "Unable to get callstack.");
         }
 
-        public event EventHandler DebuggerBroke;
+        public event DebuggerChangeEventHandler DebuggerChange;
 
         public event EventHandler BitnessChanged;
 

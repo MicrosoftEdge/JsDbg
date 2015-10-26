@@ -70,9 +70,21 @@ namespace JsDbg
         public int Offset;
     }
 
+    public class DebuggerChangeEventArgs {
+        public enum DebuggerStatus {
+            Break,
+            Waiting
+        }
+
+        public DebuggerChangeEventArgs(DebuggerStatus status) { Status = status; }
+        public DebuggerStatus Status { get; private set; }
+    }
+
+    public delegate void DebuggerChangeEventHandler(object sender, DebuggerChangeEventArgs e);
+
     public interface IDebugger
     {
-        event EventHandler DebuggerBroke;
+        event DebuggerChangeEventHandler DebuggerChange;
         void Dispose();
         Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename);
         Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typeName);

@@ -31,7 +31,7 @@ namespace Core {
 
         Task<IEnumerable<SStackFrameWithContext>> GetCurrentCallStack();
 
-        event EventHandler DebuggerBroke;
+        event JsDbg.DebuggerChangeEventHandler DebuggerChange;
         event EventHandler BitnessChanged;
         #endregion
 
