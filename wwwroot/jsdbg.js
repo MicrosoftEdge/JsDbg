@@ -43,9 +43,15 @@ var JsDbg = (function() {
     function initializeProgressIndicator() {
         loadingIndicator = document.createElement("div")
         loadingIndicator.setAttribute("id", "jsdbg-loading-indicator");
+
+        var loadingPanel = document.createElement("div");
+        loadingPanel.classList.add("jsdbg-loading-panel");
+
+        loadingIndicator.appendChild(loadingPanel);
+
         var progress = document.createElement("progress");
         progress.indeterminate = true;
-        loadingIndicator.appendChild(progress);
+        loadingPanel.appendChild(progress);
         document.addEventListener("DOMContentLoaded", function() {
             document.body.appendChild(loadingIndicator);
         });
@@ -54,14 +60,14 @@ var JsDbg = (function() {
     function requestStarted() {
         ++pendingAsynchronousRequests;
         if (pendingAsynchronousRequests == 1) {
-            waitingForDebugger = false;
+            // If we get blocked waiting for something, we'll be notified.
+            loadingIndicator.classList.remove("waiting");
             loadingIndicator.style.display = "block";
         }
     }
 
     function requestEnded() {
         if (--pendingAsynchronousRequests == 0) {
-            waitingForDebugger = false;
             loadingIndicator.style.display = "none";
         }
     }
@@ -85,7 +91,7 @@ var JsDbg = (function() {
     function handleWebSocketReply(webSocketMessage) {
         // Check if it's a server-initiated break-in event.
         if (webSocketMessage.data == "break") {
-            waitingForDebugger = false;
+            loadingIndicator.classList.remove("waiting");
 
             // Invalidate the transient cache.  This should probably be invalidated on "run" instead.
             transientCache = {};
@@ -93,7 +99,7 @@ var JsDbg = (function() {
             debuggerBrokeListeners.forEach(function (f) { f(webSocketMessage.data); });
             return;
         } else if (webSocketMessage.data == "waiting") {
-            waitingForDebugger = true;
+            loadingIndicator.classList.add("waiting");
             return;
         }
 
