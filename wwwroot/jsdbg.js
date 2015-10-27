@@ -32,6 +32,11 @@ var JsDbg = (function() {
     // A counter of the total number of requests made to the server.
     var requestCounter = 0;
 
+    // Extension load handlers
+    var loadHandlers = [];
+    var readyHandlers = [];
+    var isFinishedLoading = false;
+
     // Big hammer - makes every request synchronous.
     var everythingIsSynchronous = false;
 
@@ -410,10 +415,122 @@ var JsDbg = (function() {
         updateExtensionList();
     }
 
-    initializeProgressIndicator();
-    document.addEventListener("DOMContentLoaded", buildToolbar);
+    function fireReadyHandlers() {
+        if (document.readyState != "loading") {
+            readyHandlers.forEach(function (f) { f(); })
+        } else {
+            document.addEventListener("DOMContentLoaded", function () {
+                readyHandlers.forEach(function (f) { f(); })
+            })
+        }
+    }
 
-    return {
+    function extensionsFinishedLoading() {
+        isFinishedLoading = true;
+        if (loadHandlers.length == 0) {
+            fireReadyHandlers();
+        }
+    }
+
+    function loadDependencies() {
+        function collectIncludes(lowerExtensionName, collectedIncludes, collectedExtensions, nameMap) {
+            if (lowerExtensionName in collectedExtensions) {
+                // Already collected includes.
+                return;
+            }
+
+            var extension = nameMap[lowerExtensionName];
+            if (extension.dependencies != null) {
+                extension.dependencies.forEach(function(d) {
+                    collectIncludes(d.toLowerCase(), collectedIncludes, collectedExtensions, nameMap);
+                });
+            }
+
+            if (extension.includes != null) {
+                extension.includes.forEach(function (include) { collectedIncludes.push(lowerExtensionName + "/" + include); });
+            }
+
+            collectedExtensions[lowerExtensionName] = true;
+        }
+
+        var pendingResourcesRemaining = 1;
+        function addPendingResource() {
+            if (pendingResourcesRemaining == 0) {
+                throw new Error("Tried to add a pending resource after all resources were loaded.");
+            }
+            ++pendingResourcesRemaining;
+        }
+
+        function pendingResourceFinished() {
+            if (--pendingResourcesRemaining == 0) {
+                extensionsFinishedLoading();
+            }
+        }
+
+        function insertScript(filename) {
+            var script = document.createElement("script");
+            script.async = false;
+            script.src = filename;
+            script.type = "text/javascript";
+            addPendingResource();
+            script.addEventListener("load", pendingResourceFinished);
+            document.querySelector("head").appendChild(script);
+        }
+
+        function insertCSS(filename) {
+            var link = document.createElement("link");
+            link.rel = "stylesheet";
+            link.type = "text/css";
+            link.href = filename;
+            document.querySelector("head").appendChild(link);
+        }
+
+        // jsdbg.js requires biginteger.js.
+        insertScript("/biginteger.js");
+        
+        // Include the common css file.
+        insertCSS("/common.css");
+
+        JsDbg.GetExtensions(function(result) { 
+            var extensions = result.extensions; 
+
+            var nameMap = {};
+            extensions.forEach(function(e) { nameMap[e.name.toLowerCase()] = e; });
+
+            // Find the current extension.
+            var currentExtension = JsDbg.GetCurrentExtension();
+            if (currentExtension != null) {
+                var includes = [];
+                var collectedExtensions = {};
+                collectIncludes(currentExtension, includes, collectedExtensions, nameMap);
+
+                // Find any extensions that augment any loaded extensions.
+                extensions.forEach(function(e) {
+                    if (e.augments && e.augments.length > 0) {
+                        for (var i = 0; i < e.augments.length; ++i) {
+                            if (e.augments[i].toLowerCase() in collectedExtensions) {
+                                collectIncludes(e.name.toLowerCase(), includes, collectedExtensions, nameMap);
+                            }
+                        }
+                    }
+                });
+
+                includes.forEach(function(file) {
+                    if (file.match(/\.js$/)) {
+                        insertScript("/" + file);
+                    } else if (file.match(/\.css$/)) {
+                        insertCSS("/" + file);
+                    } else {
+                        console.log("Unknown dependency type: " + file);
+                    }
+                });
+            }
+
+            pendingResourceFinished();
+        });
+    }
+
+    var JsDbg = {
         _help: {
             name:"JsDbg",
             description: "JsDbg core interfaces.",
@@ -463,6 +580,52 @@ var JsDbg = (function() {
                 }
                 return result;
             }
+        },
+
+        _help_OnLoad: {
+            description: "Enqueues a function to run after all dependencies have been fully loaded.",
+            arguments: [{name:"onload", type:"function()", description: "The event handler."}]
+        },
+        OnLoad: function (onload) {
+            JsDbg.OnLoadAsync(function (completed) {
+                onload();
+                completed();
+            });
+        },
+
+        _help_OnLoadAsync: {
+            description: "Enqueues an async function to run after all dependencies have been full loaded.  Used by extensions that require asynchronous initialization.",
+            arguments: [{name:"onload", type:"function(function())", description: "The event handler.  The first argument is a callback to indicate completion."}]
+        },
+        OnLoadAsync: function (onload) {
+            if (isFinishedLoading) {
+                throw new Error("You may not add a load handler after the page has finished loading.");
+            }
+
+            function processNextLoadHandler() {
+                loadHandlers.shift();
+                if (loadHandlers.length > 0) {
+                    loadHandlers[0](processNextLoadHandler);
+                } else if (isFinishedLoading) {
+                    fireReadyHandlers();
+                }
+            }
+
+            loadHandlers.push(onload);
+            if (loadHandlers.length == 1) {
+                loadHandlers[0](processNextLoadHandler);
+            }
+        },
+
+        _help_OnPageReady: {
+            description: "Enqueues a function to run after all extension have been loaded and the DOMContentLoaded event has fired.",
+            arguments: [{name:"onready", type:"function()", description: "The event handler."}]
+        },
+        OnPageReady: function (onready) {
+            if (isFinishedLoading) {
+                throw new Error("You may not add a ready handler after the page has finished loading.");
+            }
+            readyHandlers.push(onready);
         },
 
         _help_LoadExtension: {
@@ -793,87 +956,27 @@ var JsDbg = (function() {
                 return false;
             }
         }
-
     }
-})();
 
-(function() {
-    function collectIncludes(lowerExtensionName, collectedIncludes, collectedExtensions, nameMap) {
-        if (lowerExtensionName in collectedExtensions) {
-            // Already collected includes.
-            return;
-        }
-
-        var extension = nameMap[lowerExtensionName];
-        if (extension.dependencies != null) {
-            extension.dependencies.forEach(function(d) {
-                collectIncludes(d.toLowerCase(), collectedIncludes, collectedExtensions, nameMap);
-            });
-        }
-
-        if (extension.includes != null) {
-            extension.includes.forEach(function (include) { collectedIncludes.push(lowerExtensionName + "/" + include); });
-        }
-
-        collectedExtensions[lowerExtensionName] = true;
-    }
+    initializeProgressIndicator();
+    document.addEventListener("DOMContentLoaded", buildToolbar);
 
     // Load any dependencies if requested.
     var scriptTags = document.querySelectorAll("script");
-    var loadDependencies = false;
+    var shouldLoadDependencies = false;
     for (var i = 0; i < scriptTags.length; ++i) {
         var tag = scriptTags[i];
         if (tag.getAttribute("src").indexOf("/jsdbg.js") != -1) {
             if (tag.getAttribute("data-include-dependencies") != null) {
-                loadDependencies = true;
+                shouldLoadDependencies = true;
                 break;
             }
         }
     }
 
-    if (loadDependencies) {
-        // jsdbg.js requires biginteger.js.
-        document.write("<script src=\"/biginteger.js\" type=\"text/javascript\"></script>");
-        
-        // Include the common css file.
-        document.write("<link rel=\"stylesheet\" type=\"text/css\" href=\"/common.css\">");
-
-        JsDbg.RunSynchronously(function() {
-            JsDbg.GetExtensions(function(result) { 
-                var extensions = result.extensions; 
-
-                var nameMap = {};
-                extensions.forEach(function(e) { nameMap[e.name.toLowerCase()] = e; });
-
-                // Find the current extension.
-                var currentExtension = JsDbg.GetCurrentExtension();
-                if (currentExtension != null) {
-                    var includes = [];
-                    var collectedExtensions = {};
-                    collectIncludes(currentExtension, includes, collectedExtensions, nameMap);
-
-                    // Find any extensions that augment any loaded extensions.
-                    extensions.forEach(function(e) {
-                        if (e.augments && e.augments.length > 0) {
-                            for (var i = 0; i < e.augments.length; ++i) {
-                                if (e.augments[i].toLowerCase() in collectedExtensions) {
-                                    collectIncludes(e.name.toLowerCase(), includes, collectedExtensions, nameMap);
-                                }
-                            }
-                        }
-                    });
-
-                    includes.forEach(function(file) {
-                        if (file.match(/\.js$/)) {
-                            document.write("<script src=\"/" + file + "\" type=\"text/javascript\"></script>");
-                        } else if (file.match(/\.css$/)) {
-                            document.write("<link rel=\"stylesheet\" type=\"text/css\" href=\"/" + file + "\">");
-                        } else {
-                            console.log("Unknown dependency type: " + file);
-                        }
-                    });
-                }
-            });
-        });
+    if (shouldLoadDependencies) {
+        loadDependencies();
     }
+
+    return JsDbg;
 })();

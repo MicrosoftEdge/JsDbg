@@ -147,6 +147,19 @@ var Tests = (function() {
         }
     }
 
+    if (JsDbg.GetCurrentExtension() == "tests") {
+        JsDbg.OnPageReady(function () {
+            var container = document.body;
+            container.innerHTML = "";
+            registeredSuites.map(renderSuite).forEach(function (e) { container.appendChild(e); })
+
+            var allTests = document.querySelectorAll(".test-case-status");
+            for (var i = 0; i < allTests.length; ++i) {
+                allTests[i].click();
+            }
+        });
+    }
+
     return {
         CreateTestSuite: function (name, description) {
             var suite = {
@@ -164,16 +177,6 @@ var Tests = (function() {
                 description: description,
                 test: test
             });
-        },
-
-        InitializeUI: function(container) {
-            container.innerHTML = "";
-            registeredSuites.map(renderSuite).forEach(function (e) { container.appendChild(e); })
-
-            var allTests = document.querySelectorAll(".test-case-status");
-            for (var i = 0; i < allTests.length; ++i) {
-                allTests[i].click();
-            }
         }
     };
 })();

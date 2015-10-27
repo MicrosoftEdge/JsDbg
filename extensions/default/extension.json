@@ -11,6 +11,7 @@
         "layoutbuilder",
         "struct-diff",
         "documentation",
-        "tests"
+        "tests",
+        "jsdbg-tests"
     ]
 }
