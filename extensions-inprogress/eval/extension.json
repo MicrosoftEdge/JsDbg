@@ -1,7 +1,0 @@
-{
-    "name": "eval",
-    "author": "Peter Salas",
-    "description": "A modern command line for memory navigation.",
-    "dependencies": ["dbgobject"],
-    "includes": ["eval.js", "eval.css"]
-}
