@@ -65,7 +65,7 @@
         document.addEventListener("DOMContentLoaded", function() {
             // Get any startup extensions.
             JsDbg.GetPersistentData(null, function(data) {
-                if ("_CATALOG-extension-manager" in data) {
+                if (typeof(data) == typeof({}) && "_CATALOG-extension-manager" in data) {
                     var extensions = data["_CATALOG-extension-manager"];
                     if (extensions.startup && typeof(extensions.startup) == typeof([])) {
                         JsDbg.RunSynchronously(function() {

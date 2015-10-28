@@ -193,7 +193,6 @@ var JsDbg = (function() {
             try {
                 var result = JSON.parse(jsonText);
             } catch (exception) {
-                alert(jsonText);
                 result = {
                     error: "Failed to parse JSON reponse: " + jsonText
                 };
@@ -728,7 +727,7 @@ var JsDbg = (function() {
         _help_SetPersistentData: {
             description: "Saves the persistent data associated with the current user.",
             arguments: [
-                {name:"data", type:"string", description:"The data to save."},
+                {name:"data", type:"object", description:"The object to save."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
