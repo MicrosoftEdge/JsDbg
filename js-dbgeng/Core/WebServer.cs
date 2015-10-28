@@ -224,6 +224,10 @@ namespace JsDbg {
             context.Response.OutputStream.Close();
         }
 
+        private string JSONError(string error) {
+            return String.Format("{{ \"error\": \"{0}\" }}", error);
+        }
+
         private void ServeUncachedString(string responseString, HttpListenerContext context) {
             byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
             context.Response.AddHeader("Cache-Control", "no-cache");
@@ -1012,15 +1016,23 @@ namespace JsDbg {
             respond(String.Format("{{ \"extensions\": [{0}] }}", String.Join(",", jsonExtensions)));
         }
 
-        private void ServePersistentStorage(string[] segments, HttpListenerContext context) {
+        private async void ServePersistentStorage(string[] segments, HttpListenerContext context) {
             if (context.Request.HttpMethod == "GET") {
                 string user = context.Request.QueryString["user"];
-                this.ServeUncachedString(this.persistentStore.Get(user), context);
+                string result = await this.persistentStore.Get(user);
+                if (result != null) {
+                    this.ServeUncachedString(result, context);
+                } else {
+                    this.ServeUncachedString(this.JSONError("Unable to access the persistent store."), context);
+                }
             } else if (context.Request.HttpMethod == "PUT") {
                 System.IO.StreamReader reader = new System.IO.StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
                 string data = reader.ReadToEnd();
-                this.persistentStore.Set(data);
-                this.ServeUncachedString("{ \"success\": true }", context);
+                if (await this.persistentStore.Set(data)) {
+                    this.ServeUncachedString("{ \"success\": true }", context);
+                } else {
+                    this.ServeUncachedString(this.JSONError("Unable to access the persistent store."), context);
+                }
             } else {
                 this.ServeFailure(context);
             }
@@ -1080,14 +1092,18 @@ namespace JsDbg {
             }
         }
 
-        private void ServePersistentStorageUsers(NameValueCollection query, Action<string> respond, Action fail) {
-            string[] users = this.persistentStore.GetUsers();
+        private async void ServePersistentStorageUsers(NameValueCollection query, Action<string> respond, Action fail) {
+            string[] users = await this.persistentStore.GetUsers();
 
-            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(string[]));
-            using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
-                serializer.WriteObject(memoryStream, users);
-                string result = Encoding.Default.GetString(memoryStream.ToArray());
-                respond(String.Format("{{ \"users\": {0} }}", result));
+            if (users == null) {
+                respond(this.JSONError("Unable to access the persistent store."));
+            } else {
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(string[]));
+                using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                    serializer.WriteObject(memoryStream, users);
+                    string result = Encoding.Default.GetString(memoryStream.ToArray());
+                    respond(String.Format("{{ \"users\": {0} }}", result));
+                }
             }
         }
 
