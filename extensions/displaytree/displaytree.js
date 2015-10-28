@@ -1,18 +1,7 @@
 "use strict";
 
-// displaytree.js
-// Peter Salas
-//
-// Display tree visualization.
-//
-// This file has the mshtml-specific logic for constructing a display tree.  The methods that new types implement are
-//  - typename -> string               [a name that identifies the type]
-//  - getChildren() -> promised array  [collects the children in the array]
-//
-// These types also act as backing nodes drawn by widetree/talltree.js, which means that CDispNode implements
-//  - getChildren -> array of backing nodes
-//  - createRepresentation -> dom element
-var DisplayTree = (function() {
+var DisplayTree = undefined;
+JsDbg.OnLoad(function() {
     // Add a type description for CDispNode to link to the DisplayTree.
     DbgObject.AddTypeDescription(MSHTML.Module, "CDispNode", function(dispNode) {
         if (dispNode.isNull()) {
@@ -135,7 +124,7 @@ var DisplayTree = (function() {
         }
     ];
 
-    return {
+    DisplayTree = {
         Name: "DisplayTree",
         BasicType: "CDispNode",
         DefaultFieldType: {
@@ -144,4 +133,4 @@ var DisplayTree = (function() {
         },
         BuiltInFields: builtInFields
     };
-})();
+});

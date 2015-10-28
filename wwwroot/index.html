@@ -62,21 +62,22 @@
             });
         }
 
-        document.addEventListener("DOMContentLoaded", function() {
+        JsDbg.OnPageReady(function() {
             // Get any startup extensions.
             JsDbg.GetPersistentData(null, function(data) {
                 if (typeof(data) == typeof({}) && "_CATALOG-extension-manager" in data) {
                     var extensions = data["_CATALOG-extension-manager"];
-                    if (extensions.startup && typeof(extensions.startup) == typeof([])) {
-                        JsDbg.RunSynchronously(function() {
-                            extensions.startup.forEach(function (path) {
-                                JsDbg.LoadExtension(path, function() {});
+                    if (extensions.startup && Array.isArray(extensions.startup)) {
+                        var remainingLoads = extensions.startup.length;
+                        extensions.startup.forEach(function (path) {
+                            JsDbg.LoadExtension(path, function() {
+                                if (--remainingLoads == 0) {
+                                    reloadExtensions();
+                                }
                             });
-                        })
+                        });
                     }
                 }
-
-                reloadExtensions();
             });
         });
     </script>

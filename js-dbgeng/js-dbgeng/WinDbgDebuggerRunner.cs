@@ -37,6 +37,7 @@ namespace JsDbg {
             if (this.control.ExecutionStatus != DebugStatus.Break) {
                 Console.Out.WriteLine("Debugger is busy, waiting for break in.");
                 while (this.control.ExecutionStatus != DebugStatus.Break) {
+                    this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.Waiting);
                     await Task.Delay(1000);
                 }
             }
@@ -65,7 +66,7 @@ namespace JsDbg {
                         }
                     } else if (executionStatus == DebugStatus.Break) {
                         if (!insideWait) {
-                            this.engine.NotifyDebuggerBroke();
+                            this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.Break);
                         }
                     }
                 }

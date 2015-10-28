@@ -25,6 +25,7 @@ namespace Sushraja.Jump {
             if (this.dte == null) {
                 this.dte = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
                 while (this.dte == null) {
+                    this.engine.NotifyDebuggerChange(JsDbg.DebuggerChangeEventArgs.DebuggerStatus.Waiting);
                     await Task.Delay(1000);
                     this.dte = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
                 }
@@ -104,7 +105,7 @@ namespace Sushraja.Jump {
                 isPointer64Bit = false;
                 dte = null;
             } else if (riidEvent == breakInEvent) {
-                this.engine.NotifyDebuggerBroke();
+                this.engine.NotifyDebuggerChange(JsDbg.DebuggerChangeEventArgs.DebuggerStatus.Break);
             } else if (riidEvent == threadSwitchEvent) {
                 this.currentThread = pThread;
             }

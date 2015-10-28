@@ -16,9 +16,9 @@ namespace Sushraja.Jump {
             this.diaLoader = diaLoader;
         }
 
-        internal void NotifyDebuggerBroke() {
-            if (this.DebuggerBroke != null) {
-                this.DebuggerBroke(this, new EventArgs());
+        internal void NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus status) {
+            if (this.DebuggerChange != null) {
+                this.DebuggerChange(this, new DebuggerChangeEventArgs(status));
             }
         }
 
@@ -155,7 +155,7 @@ namespace Sushraja.Jump {
             return results;
         }
 
-        public event EventHandler DebuggerBroke;
+        public event JsDbg.DebuggerChangeEventHandler DebuggerChange;
 
         public event EventHandler BitnessChanged;
 

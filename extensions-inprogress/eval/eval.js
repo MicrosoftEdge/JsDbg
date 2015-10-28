@@ -246,18 +246,16 @@ var Eval = (function() {
 
     return {
         evaluate: function(input, stage) {
-            JsDbg.RunSynchronously(function() {
-                var result = executeAll(input.value);
-                var stackToDescribe;
-                if (result.rest.length > 0) {
-                    // topmost object is the exception.
-                    stackToDescribe = result.stack.pop();
-                } else {
-                    stackToDescribe = result.stack;
-                }
+            var result = executeAll(input.value);
+            var stackToDescribe;
+            if (result.rest.length > 0) {
+                // topmost object is the exception.
+                stackToDescribe = result.stack.pop();
+            } else {
+                stackToDescribe = result.stack;
+            }
 
-                stage.innerHTML = stackToDescribe.description();
-            });
+            stage.innerHTML = stackToDescribe.description();
         }
     }
 })();

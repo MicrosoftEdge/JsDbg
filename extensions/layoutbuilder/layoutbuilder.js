@@ -1,4 +1,7 @@
-var LayoutBuilder = (function() {
+"use strict";
+
+var LayoutBuilder = undefined;
+JsDbg.OnLoad(function() {
     // Add a type description for LayoutBoxBuilder to link to the LayoutBuilder stack.
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBoxBuilder", function(boxBuilder) {
         if (boxBuilder.isNull()) {
@@ -75,7 +78,7 @@ var LayoutBuilder = (function() {
         })
     }
 
-    return {
+    LayoutBuilder = {
         Name: "LayoutBuilder",
         BasicType: "LayoutBoxBuilder",
         DefaultFieldType: {
@@ -84,4 +87,4 @@ var LayoutBuilder = (function() {
         },
         BuiltInFields: []
     };
-})();
+});

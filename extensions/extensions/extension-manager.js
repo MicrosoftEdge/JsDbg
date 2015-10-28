@@ -338,4 +338,4 @@ function createExtensionDescription(extension) {
     return extensionDiv;
 }
 
-document.addEventListener("DOMContentLoaded", init);
+JsDbg.OnPageReady(init);

@@ -3,7 +3,7 @@
 // Peter Salas
 //
 
-(function() {
+JsDbg.OnLoad(function() {
     
     //
     // Catalog schema:
@@ -165,7 +165,7 @@ return Promise.join(fieldNames.map(function(side) { return object.f(side).desc()
         container.appendChild(outerDiv);
     }
 
-    document.addEventListener("DOMContentLoaded", init); 
+    JsDbg.OnPageReady(init);
 
 
     DbgObject.AddTypeDescription(MSHTML.Module, "CRect", function (value) {
@@ -179,4 +179,4 @@ return Promise.join(fieldNames.map(function(side) { return object.f(side).desc()
             });
         });
     });
-})();
+});

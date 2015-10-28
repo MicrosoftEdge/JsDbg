@@ -1,6 +1,7 @@
 "use strict";
 
-var StyleSheets = (function() {
+var StyleSheets = undefined;
+JsDbg.OnLoad(function() {
 
     function getAtomFromAtomTable(atomTable, atom) {
         return atomTable.f("_phat")
@@ -206,7 +207,7 @@ var StyleSheets = (function() {
 
     var builtInFields = [];
 
-    return {
+    StyleSheets = {
         Name: "StyleSheets",
         BasicType: "CMarkup",
         DefaultFieldType: {
@@ -215,4 +216,4 @@ var StyleSheets = (function() {
         },
         BuiltInFields: builtInFields
     };
-})();
+});

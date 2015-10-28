@@ -103,7 +103,7 @@ namespace JsDbg {
 
         public WebServer(IDebugger debugger, PersistentStore persistentStore, UserFeedback userFeedback, string path, string defaultExtensionPath) {
             this.debugger = debugger;
-            this.debugger.DebuggerBroke += (sender, e) => { this.NotifyClientsOfBreak(); };
+            this.debugger.DebuggerChange += (sender, e) => { this.NotifyClientsOfDebuggerChange(e.Status); };
             this.persistentStore = persistentStore;
             this.userFeedback = userFeedback;
             this.path = path;
@@ -1181,8 +1181,16 @@ namespace JsDbg {
             }
         }
 
-        public void NotifyClientsOfBreak() {
-            string message = "break";
+        public void NotifyClientsOfDebuggerChange(JsDbg.DebuggerChangeEventArgs.DebuggerStatus status) {
+            string message;
+            if (status == DebuggerChangeEventArgs.DebuggerStatus.Break) {
+                message = "break";
+            } else if (status == DebuggerChangeEventArgs.DebuggerStatus.Waiting) {
+                message = "waiting";
+            } else {
+                return;
+            }
+
             foreach (WebSocket socket in this.openSockets) {
                 if (socket.State == WebSocketState.Open) {
                     socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(message)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);

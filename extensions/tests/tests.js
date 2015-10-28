@@ -1,6 +1,7 @@
 "use strict";
 
-var Tests = (function() {
+var Tests = undefined;
+JsDbg.OnLoad(function() {
     var registeredSuites = [];
 
     function renderSuite(suite) {
@@ -147,7 +148,20 @@ var Tests = (function() {
         }
     }
 
-    return {
+    JsDbg.OnPageReady(function () {
+        if (JsDbg.GetCurrentExtension() == "tests") {
+            var container = document.body;
+            container.innerHTML = "";
+            registeredSuites.map(renderSuite).forEach(function (e) { container.appendChild(e); })
+
+            var allTests = document.querySelectorAll(".test-case-status");
+            for (var i = 0; i < allTests.length; ++i) {
+                allTests[i].click();
+            }
+        }
+    });
+
+    Tests = {
         CreateTestSuite: function (name, description) {
             var suite = {
                 name: name,
@@ -164,16 +178,6 @@ var Tests = (function() {
                 description: description,
                 test: test
             });
-        },
-
-        InitializeUI: function(container) {
-            container.innerHTML = "";
-            registeredSuites.map(renderSuite).forEach(function (e) { container.appendChild(e); })
-
-            var allTests = document.querySelectorAll(".test-case-status");
-            for (var i = 0; i < allTests.length; ++i) {
-                allTests[i].click();
-            }
         }
     };
-})();
+});

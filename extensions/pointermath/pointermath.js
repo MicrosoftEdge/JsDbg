@@ -1,6 +1,7 @@
 "use strict";
 
-var PointerMath = (function() {
+var PointerMath = undefined;
+JsDbg.OnLoad(function() {
 
     function Pointer(value, optionalBase) {
         if (typeof(value) == typeof("")) {
@@ -109,10 +110,10 @@ var PointerMath = (function() {
                 pointer += i;
             }
             assert.equals("499999500000", pointer.toString(), "Sum of 0 to 999999.");
-        });
+        }); 
     }
 
-    return {
+    PointerMath = {
         Pointer: Pointer
     };
-})();
+});
