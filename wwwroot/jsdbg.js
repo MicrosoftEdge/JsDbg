@@ -210,7 +210,6 @@ var JsDbg = (function() {
             try {
                 var result = JSON.parse(jsonText);
             } catch (exception) {
-                alert(jsonText);
                 result = {
                     error: "Failed to parse JSON reponse: " + jsonText
                 };
@@ -254,7 +253,7 @@ var JsDbg = (function() {
     function esc(s) { return encodeURIComponent(s); }
 
     var sizeNames = {
-        1 : "byte",
+        1 : "sbyte",
         2 : "short",
         4 : "int",
         8 : "long"
@@ -728,7 +727,7 @@ var JsDbg = (function() {
                 var originalCallback = callback;
                 callback = function(result) {
                     if (typeof(result.value) != typeof(undefined)) {
-                        result.value = readJsonFloat(result.value);
+                        result = {value: readJsonFloat(result.value)};
                     }
                     originalCallback(result);
                 }
@@ -737,7 +736,7 @@ var JsDbg = (function() {
                 var originalCallback = callback;
                 callback = function(result) {
                     if (typeof(result.value) != typeof(undefined)) {
-                        result.value = bigInt(result.value);
+                        result = {value: bigInt(result.value) };
                     }
                     originalCallback(result);
                 };
@@ -768,7 +767,7 @@ var JsDbg = (function() {
                 var originalCallback = callback;
                 callback = function(result) {
                     if (typeof(result.array) != typeof(undefined)) {
-                        result.array = result.array.map(readJsonFloat);
+                        result = {array: result.array.map(readJsonFloat) };
                     }
                     originalCallback(result);
                 }
@@ -777,7 +776,7 @@ var JsDbg = (function() {
                 var originalCallback = callback;
                 callback = function(result) {
                     if (typeof(result.array) != typeof(undefined)) {
-                        result.array = result.array.map(function (n) { return bigInt(n); });
+                        result = {array: result.array.map(function (n) { return bigInt(n); }) };
                     }
                     originalCallback(result);
                 };
@@ -876,7 +875,7 @@ var JsDbg = (function() {
         _help_SetPersistentData: {
             description: "Saves the persistent data associated with the current user.",
             arguments: [
-                {name:"data", type:"string", description:"The data to save."},
+                {name:"data", type:"object", description:"The object to save."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
