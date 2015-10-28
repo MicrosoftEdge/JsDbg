@@ -1,6 +1,7 @@
 "use strict";
 
-var PointerMath = (function() {
+var PointerMath = undefined;
+JsDbg.OnLoad(function() {
 
     function Pointer(value, optionalBase) {
         if (typeof(value) == typeof("")) {
@@ -61,60 +62,58 @@ var PointerMath = (function() {
     }
 
     if (typeof Tests !== "undefined") {
-        JsDbg.OnLoad(function () {
-            var testSuite = Tests.CreateTestSuite("PointerMath.Pointer", "Tests for the PointerMath.Pointer type.");
+        var testSuite = Tests.CreateTestSuite("PointerMath.Pointer", "Tests for the PointerMath.Pointer type.");
 
-            Tests.AddTest(testSuite, "PointerMath.Pointer constructor", function (assert) {
-                assert.equals("0xabc", (new Pointer("0xabc")).toString(), "0xabc");
-                assert.equals("0x7", (new Pointer("0b111")).toString(), "0b111");
-                assert.equals("0xb", (new Pointer("11")).toString(), "11");
-                assert.equals("0xb", (new Pointer(11)).toString(), "11 as number");
-                assert.equals("0xb", (new Pointer(new Pointer(11))).toString(), "11 as Pointer");
-                assert.equals("0xb", (new Pointer(bigInt(11))).toString(), "11 as BigInteger");
-            });
+        Tests.AddTest(testSuite, "PointerMath.Pointer constructor", function (assert) {
+            assert.equals("0xabc", (new Pointer("0xabc")).toString(), "0xabc");
+            assert.equals("0x7", (new Pointer("0b111")).toString(), "0b111");
+            assert.equals("0xb", (new Pointer("11")).toString(), "11");
+            assert.equals("0xb", (new Pointer(11)).toString(), "11 as number");
+            assert.equals("0xb", (new Pointer(new Pointer(11))).toString(), "11 as Pointer");
+            assert.equals("0xb", (new Pointer(bigInt(11))).toString(), "11 as BigInteger");
+        });
 
-            Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.add", function (assert) {
-                assert.equals("0xabc", new Pointer("0xab0").add(0xc).toString(), "0xab0 + 0xc");
-                assert.equals("0xffffffffffff1234", new Pointer("0xffffffffffff0000").add(0x1234).toString(), "0xffffffffffff0000 + 0x1234");
-                assert.equals("0xffffffffffff0000", new Pointer("0xffffffffffff1234").add(-0x1234).toString(), "0xffffffffffff1234 - 0x1234");
-            });
+        Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.add", function (assert) {
+            assert.equals("0xabc", new Pointer("0xab0").add(0xc).toString(), "0xab0 + 0xc");
+            assert.equals("0xffffffffffff1234", new Pointer("0xffffffffffff0000").add(0x1234).toString(), "0xffffffffffff0000 + 0x1234");
+            assert.equals("0xffffffffffff0000", new Pointer("0xffffffffffff1234").add(-0x1234).toString(), "0xffffffffffff1234 - 0x1234");
+        });
 
-            Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.add", function (assert) {
-                assert.equals("0xabc", new Pointer("0xab0").add(0xc).toString(), "0xab0 + 0xc");
-                assert.equals("0xffffffffffff1234", new Pointer("0xffffffffffff0000").add(0x1234).toString(), "0xffffffffffff0000 + 0x1234");
-                assert.equals("0xffffffffffff0000", new Pointer("0xffffffffffff1234").add(-0x1234).toString(), "0xffffffffffff1234 - 0x1234");
-            });
+        Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.add", function (assert) {
+            assert.equals("0xabc", new Pointer("0xab0").add(0xc).toString(), "0xab0 + 0xc");
+            assert.equals("0xffffffffffff1234", new Pointer("0xffffffffffff0000").add(0x1234).toString(), "0xffffffffffff0000 + 0x1234");
+            assert.equals("0xffffffffffff0000", new Pointer("0xffffffffffff1234").add(-0x1234).toString(), "0xffffffffffff1234 - 0x1234");
+        });
 
-            Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.toString", function (assert) {
-                assert.equals("0x0", new Pointer("0xffffffffff").add(-0xffffffffff).toString(), "0xffffffffff - 0xffffffffff");
-                assert.equals("0x0", new Pointer(0).toString(), "0");
-            });
+        Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.toString", function (assert) {
+            assert.equals("0x0", new Pointer("0xffffffffff").add(-0xffffffffff).toString(), "0xffffffffff - 0xffffffffff");
+            assert.equals("0x0", new Pointer(0).toString(), "0");
+        });
 
-            Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.toFormattedString", function (assert) {
-                assert.equals("NULL", new Pointer(0).toFormattedString(), "0 => NULL");
-                assert.equals("0x00001234", new Pointer(0x1234).toFormattedString(), "0x1234 => 0x00001234");
-                assert.equals("0x00000001`00001234", new Pointer(0x100001234).toFormattedString(), "0x100001234 => 0x00000001`00001234");
-            })
-
-            Tests.AddTest(testSuite, "PointerMath addition performance.", function (assert) {
-                var pointer = new Pointer(0);
-                for (var i = 0; i < 1000000; ++i) {
-                    pointer = pointer.add(i);
-                }
-                assert.equals("499999500000", pointer.value().toString(), "Sum of 0 to 999999.");
-            });
-
-            Tests.AddTest(testSuite, "JavaScript addition performance.", function (assert) {
-                var pointer = 0;
-                for (var i = 0; i < 1000000; ++i) {
-                    pointer += i;
-                }
-                assert.equals("499999500000", pointer.toString(), "Sum of 0 to 999999.");
-            });
+        Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.toFormattedString", function (assert) {
+            assert.equals("NULL", new Pointer(0).toFormattedString(), "0 => NULL");
+            assert.equals("0x00001234", new Pointer(0x1234).toFormattedString(), "0x1234 => 0x00001234");
+            assert.equals("0x00000001`00001234", new Pointer(0x100001234).toFormattedString(), "0x100001234 => 0x00000001`00001234");
         })
+
+        Tests.AddTest(testSuite, "PointerMath addition performance.", function (assert) {
+            var pointer = new Pointer(0);
+            for (var i = 0; i < 1000000; ++i) {
+                pointer = pointer.add(i);
+            }
+            assert.equals("499999500000", pointer.value().toString(), "Sum of 0 to 999999.");
+        });
+
+        Tests.AddTest(testSuite, "JavaScript addition performance.", function (assert) {
+            var pointer = 0;
+            for (var i = 0; i < 1000000; ++i) {
+                pointer += i;
+            }
+            assert.equals("499999500000", pointer.toString(), "Sum of 0 to 999999.");
+        }); 
     }
 
-    return {
+    PointerMath = {
         Pointer: Pointer
     };
-})();
+});

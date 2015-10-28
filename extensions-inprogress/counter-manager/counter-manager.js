@@ -49,4 +49,4 @@ JsDbg.OnLoad(function() {
         },
         BuiltInFields: []
     };
-})();
+});

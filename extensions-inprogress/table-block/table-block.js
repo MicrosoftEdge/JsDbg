@@ -33,4 +33,4 @@ JsDbg.OnLoad(function() {
         },
         BuiltInFields: []
     };
-})();
+});

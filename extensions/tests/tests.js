@@ -1,6 +1,7 @@
 "use strict";
 
-var Tests = (function() {
+var Tests = undefined;
+JsDbg.OnLoad(function() {
     var registeredSuites = [];
 
     function renderSuite(suite) {
@@ -147,8 +148,8 @@ var Tests = (function() {
         }
     }
 
-    if (JsDbg.GetCurrentExtension() == "tests") {
-        JsDbg.OnPageReady(function () {
+    JsDbg.OnPageReady(function () {
+        if (JsDbg.GetCurrentExtension() == "tests") {
             var container = document.body;
             container.innerHTML = "";
             registeredSuites.map(renderSuite).forEach(function (e) { container.appendChild(e); })
@@ -157,10 +158,10 @@ var Tests = (function() {
             for (var i = 0; i < allTests.length; ++i) {
                 allTests[i].click();
             }
-        });
-    }
+        }
+    });
 
-    return {
+    Tests = {
         CreateTestSuite: function (name, description) {
             var suite = {
                 name: name,
@@ -179,4 +180,4 @@ var Tests = (function() {
             });
         }
     };
-})();
+});
