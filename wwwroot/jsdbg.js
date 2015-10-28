@@ -580,7 +580,7 @@ var JsDbg = (function() {
                 var originalCallback = callback;
                 callback = function(result) {
                     if (typeof(result.value) != typeof(undefined)) {
-                        result.value = readJsonFloat(result.value);
+                        result = {value: readJsonFloat(result.value)};
                     }
                     originalCallback(result);
                 }
@@ -589,7 +589,7 @@ var JsDbg = (function() {
                 var originalCallback = callback;
                 callback = function(result) {
                     if (typeof(result.value) != typeof(undefined)) {
-                        result.value = bigInt(result.value);
+                        result = {value: bigInt(result.value) };
                     }
                     originalCallback(result);
                 };
@@ -620,7 +620,7 @@ var JsDbg = (function() {
                 var originalCallback = callback;
                 callback = function(result) {
                     if (typeof(result.array) != typeof(undefined)) {
-                        result.array = result.array.map(readJsonFloat);
+                        result = {array: result.array.map(readJsonFloat) };
                     }
                     originalCallback(result);
                 }
@@ -629,7 +629,7 @@ var JsDbg = (function() {
                 var originalCallback = callback;
                 callback = function(result) {
                     if (typeof(result.array) != typeof(undefined)) {
-                        result.array = result.array.map(function (n) { return bigInt(n); });
+                        result = {array: result.array.map(function (n) { return bigInt(n); }) };
                     }
                     originalCallback(result);
                 };

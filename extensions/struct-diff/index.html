@@ -17,7 +17,7 @@
                 document.querySelector(".type").focus();
             }
 
-            document.querySelector("button").addEventListener("click", function() {
+            document.getElementById("diffButton").addEventListener("click", function() {
                 var clock = Timer.Start();
                 var type = document.querySelector(".type").value;
                 var pointer1 = document.querySelectorAll(".pointer")[0].value;
@@ -257,7 +257,7 @@
     <input class="type" type="text" placeholder="Type (e.g. edgehtml!CFancyFormat)" />
     <input class="pointer" type="text" placeholder="Pointer 1" />
     <input class="pointer" type="text" placeholder="Pointer 2" />
-    <button>Diff!</button>
+    <button id="diffButton">Diff!</button>
     <input id="recurse" type="checkbox" /><label for="recurse">Show nested fields</label>
     <div id="results"></div>
 </body>

@@ -646,7 +646,7 @@ var DbgObject = (function() {
             if (that.bitcount && that.bitoffset !== undefined) {
                 value = value.shiftRight(that.bitoffset).and(bigInt.one.shiftLeft(that.bitcount).minus(1));
             }
-            if (!useBigInt) {
+            if (!that._isFloat() && !useBigInt) {
                 return value.toJSNumber();
             } else {
                 return value;
@@ -813,19 +813,26 @@ var DbgObject = (function() {
                 return that._getStructSize()
 
                 // Read the array...
-                .then(function(structSize) { return jsDbgPromise(MemoryCache.ReadArray, that._pointer.value(), structSize, that._isPointer() || that._isUnsigned, that._isFloat(), count); })
+                .then(function(structSize) { 
+                    return jsDbgPromise(MemoryCache.ReadArray, that._pointer.value(), structSize, that._isPointer() || that._isUnsigned, that._isFloat(), count)
 
-                // Process the array into DbgObjects if necessary.
-                .then(function(result) {
-                    if (that._isPointer()) {
-                        // If the type is a pointer, return an array of DbgObjects.
-                        var itemTypename = that._getDereferencedTypeName();
-                        return result.array.map(function(x) { return new DbgObject(that.module, itemTypename, x); });
-                    } else {
-                        // Otherwise, the items are values.
-                        return result.array;
-                    }
-                });
+                    // Process the array into DbgObjects if necessary.
+                    .then(function(result) {
+                        if (that._isPointer()) {
+                            // If the type is a pointer, return an array of DbgObjects.
+                            var itemTypename = that._getDereferencedTypeName();
+                            return result.array.map(function(x) { return new DbgObject(that.module, itemTypename, x); });
+                        } else {
+                            // Otherwise, the items are values.
+                            if (structSize <= 4 && !that._isFloat()) {
+                                // The values are bigIntegers but they aren't necessary.
+                                return result.array.map(function (n) { return n.toJSNumber(); })
+                            } else {
+                                return result.array;
+                            }
+                        }
+                    });
+                })
             } else {
                 // The array isn't an array of scalars.  Provide an array of idx calls instead.
                 var array = [];
