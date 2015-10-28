@@ -1,19 +1,7 @@
 "use strict";
 
-// boxtree.js
-// Peter Salas
-//
-// LayoutBox tree visualization.
-//
-// This file has the mshtml-specific logic for constructing a box tree.  The methods that new types implement are
-//  - typename -> string               [a name that identifies the type]
-//  - collectChildren(array) -> void   [adds children to the given array]
-//
-// These types also act as backing nodes drawn by widetree/talltree.js, which means that LayoutBox implements
-//  - getChildren -> array of backing nodes
-//  - createRepresentation -> dom element
-var BoxTree = (function() {
-
+var BoxTree = undefined;
+JsDbg.OnLoad(function() {
     function collectChildrenInFlow(flow) {
         return flow
         .latestPatch()
@@ -426,7 +414,7 @@ var BoxTree = (function() {
         }
     ];
 
-    return {
+    BoxTree = {
         Name: "BoxTree",
         BasicType: "LayoutBox",
         DefaultFieldType: {
@@ -435,4 +423,4 @@ var BoxTree = (function() {
         },
         BuiltInFields: builtInFields
     };
-})();
+});

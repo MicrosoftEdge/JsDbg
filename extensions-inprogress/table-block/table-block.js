@@ -1,6 +1,7 @@
 "use strict";
 
-var TableBlock = (function() {
+var TableBlock = undefined;
+JsDbg.OnLoad(function() {
     if (JsDbg.GetCurrentExtension() == "table-block") {
         DbgObjectTree.AddAddressInterpreter(function(address) {
             return new DbgObject(MSHTML.Module, "Tree::ComputedBlock", address).vcast();
@@ -23,7 +24,7 @@ var TableBlock = (function() {
         })
     }
 
-    return {
+    TableBlock = {
         Name: "TableBlock",
         BasicType: "ComputedBlock",
         DefaultFieldType: {

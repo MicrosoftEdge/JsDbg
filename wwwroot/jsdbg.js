@@ -36,9 +36,7 @@ var JsDbg = (function() {
     var loadHandlers = [];
     var readyHandlers = [];
     var isFinishedLoading = false;
-
-    // Big hammer - makes every request synchronous.
-    var everythingIsSynchronous = false;
+    var hasLoadedAllExtensions = false;
 
     // Progress indicator support.
     var waitingForDebugger = false;
@@ -195,7 +193,7 @@ var JsDbg = (function() {
             var transientCacheResult = transientCache[url];
             callback(transientCacheResult);
             return;
-        } else if (!everythingIsSynchronous && cacheType != CacheType.Uncached) {
+        } else if (cacheType != CacheType.Uncached) {
             if (url in pendingCachedRequests) {
                 pendingCachedRequests[url].push(callback);
                 return;
@@ -218,7 +216,7 @@ var JsDbg = (function() {
                 };
             }
             var otherCallbacks = [];
-            if (cacheType != CacheType.Uncached && !everythingIsSynchronous) {
+            if (cacheType != CacheType.Uncached) {
                 otherCallbacks = pendingCachedRequests[url];
                 delete pendingCachedRequests[url];
 
@@ -233,7 +231,7 @@ var JsDbg = (function() {
             requestEnded();
         }
 
-        if (browserSupportsWebSockets && !everythingIsSynchronous && !method && !data) {
+        if (browserSupportsWebSockets && !method && !data) {
             // Use WebSockets if the request is async, the method is unspecified, and there's no data payload.
             sendWebSocketMessage(requestCounter, url, handleJsonResponse);
         } else {
@@ -243,7 +241,7 @@ var JsDbg = (function() {
             }
 
             var xhr = new XMLHttpRequest();
-            xhr.open(method, url, !everythingIsSynchronous);
+            xhr.open(method, url, true);
             xhr.onreadystatechange = function() {
                 if (xhr.readyState == 4 && xhr.status == 200) {
                     handleJsonResponse(xhr.responseText);
@@ -417,16 +415,18 @@ var JsDbg = (function() {
 
     function fireReadyHandlers() {
         if (document.readyState != "loading") {
+            isFinishedLoading = true;
             readyHandlers.forEach(function (f) { f(); })
         } else {
             document.addEventListener("DOMContentLoaded", function () {
+                isFinishedLoading = true;
                 readyHandlers.forEach(function (f) { f(); })
             })
         }
     }
 
     function extensionsFinishedLoading() {
-        isFinishedLoading = true;
+        hasLoadedAllExtensions = true;
         if (loadHandlers.length == 0) {
             fireReadyHandlers();
         }
@@ -545,41 +545,12 @@ var JsDbg = (function() {
             return requestCounter;
         },
 
-        _help_IsRunningSynchronously: {
-            description: "Indicates if JsDbg methods will respond synchronously.",
-            returns: "A bool."
-        },
-        IsRunningSynchronously: function() {
-            return everythingIsSynchronous;
-        },
-
         GetCurrentExtension: function() {
             var components = window.location.pathname.split('/');
             if (components.length > 1 && components[1].length > 0) {
                 return components[1].toLowerCase();
             }
             return null;
-        },
-
-        _help_RunSynchronously: {
-            description: "Runs JsDbg synchronously for the duration of a given function.",
-            returns: "The return value of the given function.",
-            arguments: [{name:"action", type:"function() -> any", description: "The function to run in synchronous mode."}]
-        },
-        RunSynchronously: function(action) {
-            if (everythingIsSynchronous) {
-                return action();
-            } else {
-                everythingIsSynchronous = true;
-                try {
-                    var result = action();
-                    everythingIsSynchronous = false;
-                } catch (exception) {
-                    everythingIsSynchronous = false;
-                    throw exception;
-                }
-                return result;
-            }
         },
 
         _help_OnLoad: {
@@ -606,7 +577,7 @@ var JsDbg = (function() {
                 loadHandlers.shift();
                 if (loadHandlers.length > 0) {
                     loadHandlers[0](processNextLoadHandler);
-                } else if (isFinishedLoading) {
+                } else if (hasLoadedAllExtensions) {
                     fireReadyHandlers();
                 }
             }
@@ -959,7 +930,7 @@ var JsDbg = (function() {
     }
 
     initializeProgressIndicator();
-    document.addEventListener("DOMContentLoaded", buildToolbar);
+    JsDbg.OnPageReady(buildToolbar);
 
     // Load any dependencies if requested.
     var scriptTags = document.querySelectorAll("script");

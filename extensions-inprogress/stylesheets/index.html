@@ -5,7 +5,7 @@
     <title>StyleSheets Viewer</title>
     <script type="text/javascript" src="/jsdbg.js" data-include-dependencies></script>
     <script type="text/javascript">
-        document.addEventListener("DOMContentLoaded", function() {
+        JsDbg.OnPageReady(function() {
             TreeInspector.Initialize(StyleSheets, document.body);
         });
     </script>

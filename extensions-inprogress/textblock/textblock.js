@@ -1,6 +1,7 @@
 "use strict";
 
-var TextBlock = (function() {
+var TextBlock = undefined;
+JsDbg.OnLoad(function() {
 
     DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextBlock", function(textBlock) {
         return "<a href=\"/textblock/#" + textBlock.ptr() + "\">" + textBlock.ptr() + "</a>";
@@ -54,7 +55,7 @@ var TextBlock = (function() {
         }
     ];
 
-    return {
+    TextBlock = {
         Name: "TextBlock",
         BasicType: "TextBlock",
         DefaultFieldType: {
@@ -63,4 +64,4 @@ var TextBlock = (function() {
         },
         BuiltInFields: builtInFields
     };
-})();
+});

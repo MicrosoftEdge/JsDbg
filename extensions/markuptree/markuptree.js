@@ -1,6 +1,7 @@
 "use strict";
 
-var MarkupTree = (function() {
+var MarkupTree = undefined;
+JsDbg.OnLoad(function() {
 
     // Add a type description for CTreeNode to link to the BoxTree.
     DbgObject.AddTypeDescription(MSHTML.Module, "CTreeNode", function(treeNode) {
@@ -276,7 +277,7 @@ var MarkupTree = (function() {
         }
     ];
 
-    return {
+    MarkupTree = {
         Name: "MarkupTree",
         BasicType: "CMarkup",
         DefaultFieldType: {
@@ -285,4 +286,4 @@ var MarkupTree = (function() {
         },
         BuiltInFields: builtInFields
     }
-})();
+});
