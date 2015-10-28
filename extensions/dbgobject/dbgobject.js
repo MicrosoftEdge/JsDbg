@@ -21,7 +21,8 @@ var DbgObject = (function() {
             .replace(/\s+$/g, '')
             .replace(/^\s+/g, '');
 
-        this._isUnsigned = this.typename.indexOf("unsigned ") == 0;
+        // Treat "char" as unsigned.
+        this._isUnsigned = (this.typename.indexOf("unsigned ") == 0 || this.typename == "char");
 
         // Get the array size.
         var arrayRegex = /\[[0-9]+\]/g;

@@ -237,7 +237,7 @@ var JsDbg = (function() {
     function esc(s) { return encodeURIComponent(s); }
 
     var sizeNames = {
-        1 : "byte",
+        1 : "sbyte",
         2 : "short",
         4 : "int",
         8 : "long"

@@ -496,6 +496,9 @@ namespace JsDbg {
             try {
                 object value = null;
                 switch (type) {
+                    case "sbyte":
+                        value = await this.debugger.ReadMemory<sbyte>(pointer);
+                        break;
                     case "byte":
                         value = await this.debugger.ReadMemory<byte>(pointer);
                         break;
@@ -552,6 +555,9 @@ namespace JsDbg {
             try {
                 string arrayString;
                 switch (type) {
+                case "sbyte":
+                    arrayString = await ReadJsonArray<sbyte>(pointer, length);
+                    break;
                 case "byte":
                     arrayString = await ReadJsonArray<byte>(pointer, length);
                     break;
