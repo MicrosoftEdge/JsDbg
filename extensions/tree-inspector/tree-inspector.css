@@ -28,3 +28,39 @@
     margin:2em;
     white-space: pre;
 }
+
+.popup-message-container {
+    display:none;
+    position:absolute;
+    z-index:9;
+    pointer-events: none;
+}
+
+.popup-message-container.show {
+    display:inline;
+}
+
+.popup-message {
+    pointer-events: auto;
+    background:rgba(0, 0, 0, 0.8);
+    color:white;
+    max-width:176px;
+    padding:6px;
+    margin-top:4.99px;
+    margin-left:-5px;
+}
+
+.popup-message::before {
+    content:" ";
+    position:absolute;
+    margin-top:calc(-5px - 6px);
+    margin-left:calc(-6px + 5px + 4px);
+    display:block;
+    border-bottom:5px solid rgba(0, 0, 0, 0.8);
+    border-left:6px solid transparent;
+    border-right:6px solid transparent;
+}
+
+.popup-message .buttons {
+    text-align: left;
+}

@@ -61,7 +61,10 @@ var TreeInspector = (function() {
                     return workPromise;
                 }
             })();
+
+            var debuggerHasRunSinceLastRefresh = false;
             function refresh() {
+                debuggerHasRunSinceLastRefresh = false;
                 enqueueWork(function() {
                     lastRenderedPointer = null;
                     return loadRoots()
@@ -243,22 +246,63 @@ var TreeInspector = (function() {
                 "for": id("FullyExpand")
             }));
 
+            var notifyOnBreak = true;
             var didRegisterBreakListener = JsDbg.RegisterOnBreakListener(function() {
+                debuggerHasRunSinceLastRefresh = true;
                 if (document.getElementById(id("RefreshOnBreak")).checked) {
                     refresh();
+                } else {
+                    if (notifyOnBreak) {
+                        messageContainer.classList.add("show");
+                    }
                 }
             });
             if (didRegisterBreakListener) {
                 container.appendChild(ws());
+                var messageContainer = createElement("div", null, {
+                    id: id("RefreshOnBreakMessage"),
+                    class: "popup-message-container"
+                });
+                messageContainer.appendChild(document.createElement("br"));
+                var message = createElement("div", "The debugged process has run since the tree was last updated.", {
+                    class: "popup-message"
+                });
+                var buttons = createElement("div", null, { class: "buttons" });
+                buttons.appendChild(createElement("button", "Update Tree", {
+                    class: "small-button light"
+                }, { 
+                    click: function () {
+                        messageContainer.classList.remove("show");
+                        refresh();
+                    }
+                }));
+                buttons.appendChild(createElement("button", "Not Now", {
+                    class: "small-button light"
+                }, {
+                    click: function () {
+                        messageContainer.classList.remove("show");
+                        notifyOnBreak = false;
+                    }
+                }));
+                message.appendChild(buttons);
+                messageContainer.appendChild(message);
+
+                container.appendChild(messageContainer);
                 container.appendChild(createElement("input", null, {
                     name: "refreshOnBreak",
                     id: id("RefreshOnBreak"),
                     type: "checkbox",
                     checked: window.sessionStorage.getItem(id("RefreshOnBreak")) === "true" ? "checked" : undefined
                 }, {
-                    "change": createCheckboxChangeHandler(id("RefreshOnBreak"))
+                    "change": function () {
+                        createCheckboxChangeHandler(id("RefreshOnBreak"))();
+                        messageContainer.classList.remove("show");
+                        if (debuggerHasRunSinceLastRefresh) {
+                            refresh();
+                        }
+                    }
                 }));
-                container.appendChild(createElement("label", "Refresh on Break", {
+                container.appendChild(createElement("label", "Update When Debugger Breaks", {
                     "for": id("RefreshOnBreak")
                 }));
             }
