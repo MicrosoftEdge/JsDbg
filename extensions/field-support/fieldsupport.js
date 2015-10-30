@@ -342,15 +342,23 @@ var FieldSupport = (function() {
             label.innerHTML = shortTypeName(f.fullType) + "." + f.fullname;
             container.appendChild(label);
 
-            var edit = document.createElement("span");
-            edit.className = "edit button";
-            edit.addEventListener("mousedown", function() { editField(f, container); });
+            var edit = document.createElement("button");
+            edit.className = "edit small-button";
+            edit.textContent = "Edit";
+            edit.addEventListener("click", function() { 
+                if (container.classList.toggle("editing")) {
+                    edit.textContent = "Done";
+                } else {
+                    edit.textContent = "Edit";
+                }
+            });
             container.appendChild(edit);
 
             if (f.localstorageid) {
-                var remove = document.createElement("span");
-                remove.className = "remove button";
-                remove.addEventListener("mousedown", function() {
+                var remove = document.createElement("button");
+                remove.className = "remove small-button";
+                remove.textContent = "Remove";
+                remove.addEventListener("click", function() {
                     if (confirm("Are you sure you want to remove " + label.innerHTML + "?")) {
                         removeField(f, container);
                     }
@@ -419,7 +427,10 @@ var FieldSupport = (function() {
             
             Help.List()
                 .map(Help.Link)
-                .forEach(function(e) { codeDescription.appendChild(e); })
+                .forEach(function(e) {
+                    codeDescription.appendChild(e);
+                    codeDescription.appendChild(document.createTextNode(" "));
+                })
 
             editor.appendChild(constructTable([
                 [typeLabel, typeInput],
@@ -432,16 +443,6 @@ var FieldSupport = (function() {
             container.appendChild(editor);
 
             return container;
-        }
-
-        function editField(f, container) {
-            if (container.className.indexOf(" editing") >= 0) {
-                // Already being edited, so save.
-                container.className = container.className.replace(" editing", "");
-            } else {
-                // Start editing.
-                container.className += " editing";
-            }
         }
 
         function removeField(f, container) {
@@ -550,27 +551,30 @@ var FieldSupport = (function() {
         container.className = "field-selection";
 
         if (window.sessionStorage.getItem(StoragePrefix + ".UserFieldsCollapsed") == "true") {
-            container.className = container.className + " collapsed";
+            container.classList.add("collapsed");
         }
 
-        var showHide = document.createElement("div");
-        showHide.className = "show-hide button";
-        var isCollapsed = false;
-        showHide.addEventListener("click", function() {
-            if (isCollapsed) {
-                window.sessionStorage.setItem(StoragePrefix + ".UserFieldsCollapsed", "false");
-                container.className = "field-selection";
+        var showHide = document.createElement("button");
+        showHide.className = "show-hide small-button top-button";
+
+        function updateShowHideButton() {
+            if (container.classList.contains("collapsed")) {
+                showHide.textContent = "Show";
+                showHide.classList.add("light");
             } else {
-                window.sessionStorage.setItem(StoragePrefix + ".UserFieldsCollapsed", "true");
-                container.className = "field-selection collapsed";
+                showHide.textContent = "Hide";
+                showHide.classList.remove("light");
             }
-            isCollapsed = !isCollapsed;
+        }
+        updateShowHideButton();
+        showHide.addEventListener("click", function() {
+            var collapsed = container.classList.toggle("collapsed");
+            window.sessionStorage.setItem(StoragePrefix + ".UserFieldsCollapsed", collapsed);
+            updateShowHideButton();
         })
-        container.appendChild(showHide);
 
         var fields = document.createElement("div");
         fields.className = "fields";
-        container.appendChild(fields);
 
         storage.all(function(saved) {
             for (var key in saved) {
@@ -606,10 +610,12 @@ var FieldSupport = (function() {
                     fields.appendChild(ui);
                 });
 
+            container.appendChild(fields);
+
             // Add a button for adding a new field.
-            var addNew = document.createElement("span");
-            addNew.className = "add button";
-            container.appendChild(addNew);
+            var addNew = document.createElement("button");
+            addNew.className = "add small-button top-button";
+            addNew.textContent = "New";
 
             var addedFieldCounter = 0;
             addNew.addEventListener("click", function() {
@@ -628,6 +634,7 @@ var FieldSupport = (function() {
                 var fieldUI = buildFieldUI(newField);
                 fieldUI.className += " editing";
                 fields.appendChild(fieldUI);
+                fieldUI.scrollIntoView();
 
                 saveField(newField, fieldUI);
                 window.sessionStorage.setItem(getSessionStorageKey(newField), newField.enabled);
@@ -635,10 +642,13 @@ var FieldSupport = (function() {
                 refreshTreeUIAfterFieldChange();
             });
 
-            var browse = document.createElement("span");
-            browse.className = "browse button";
-            container.appendChild(document.createTextNode(" "));
+            var browse = document.createElement("button");
+            browse.className = "browse small-button top-button";
+            browse.textContent = "See More..."
+
+            container.appendChild(addNew);
             container.appendChild(browse);
+            container.appendChild(showHide);
 
             browse.addEventListener("click", function() {
                 var currentKeys = {}
@@ -682,6 +692,9 @@ var FieldSupport = (function() {
                             saveField(importedField, fieldUI);
                             window.sessionStorage.setItem(getSessionStorageKey(importedField), true);
                         });
+                        if (selected.length > 0) {
+                            fields.childNodes[fields.childNodes.length - 1].scrollIntoView();
+                        }
 
                         if (selected.length > 0) {
                             refreshTreeUIAfterFieldChange();

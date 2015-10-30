@@ -18,6 +18,9 @@ var CatalogViewer = (function() {
         })
     }
 
+    // The viewer is designed to be modal, therefore it can only be opened once.
+    var currentlyActive = false;
+
     return {
         _help: {
             name:"CatalogViewer",
@@ -33,9 +36,16 @@ var CatalogViewer = (function() {
                 {name: "ui", type:"function(object) -> array of HTML fragments", description: "A function to create the table cells associated with a given entity in the namespace."},
                 {name:" selected", type:"function({key: string, value:any, user:string})", description: "A function that is called when the user selects a number of entities."},
                 {name: "sortStringifier", type:"function({key: string, value:any, user:string}) -> string", description:"(optional) A function to create sort keys for the entities."}
-            ]
+            ],
+            returns: "A boolean indicating if the viewer is going to open."
         },
         Instantiate: function(namespace, collectItemsFromStore, prompt, ui, selected, sortStringifier) {
+            if (currentlyActive) {
+                return false;
+            } else {
+                currentlyActive = true;
+            }
+
             // Get all the stores.
             Catalog.LoadAllUsers(namespace, function(stores) {
                 if (stores.error) {
@@ -116,6 +126,7 @@ var CatalogViewer = (function() {
                                 }
                             }
 
+                            currentlyActive = false;
                             selected(selection);
                         });
 
@@ -124,6 +135,8 @@ var CatalogViewer = (function() {
                     });
                 }
             });
+
+            return true;
         }
     }
 })();

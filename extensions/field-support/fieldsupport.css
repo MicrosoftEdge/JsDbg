@@ -2,8 +2,6 @@
     position: fixed;
     right: 0px;
     top: 0px;
-    overflow: auto;
-    padding-left: 1em;
     max-height: 100%;
     box-sizing: border-box;
     z-index: 10;
@@ -14,39 +12,16 @@
 }
 
 .field-selection .fields {
-    clear:both;
-    margin-top:1em;
-    margin-right:1em;
+    border:thin #eee;
+    border-style:solid none;
+    padding:0.5em;
+    z-index:-1;
+    overflow-y:auto;
+    max-height:60vh;
 }
 
 .field-selection .edit {
     margin-left:1em;
-}
-
-.field-selection .remove {
-    margin-left:0.2em;
-}
-
-.field-selection .add:before {
-    content:"[new]";
-}
-
-.field-selection .browse:before {
-    content:"[browse all users]";
-}
-
-.field-selection .browse:after {
-    display:block;
-    margin-top:1em;
-    content:"";
-}
-
-.field-selection .edit:before {
-    content:"[edit]";
-}
-
-.field-selection .remove:before {
-    content:"[remove]";
 }
 
 .field-selection .field .editor {
@@ -62,10 +37,6 @@
     font-size:8pt;
 }
 
-.field-selection .editor .code-description a {
-    margin-right:0.5em;
-}
-
 .field-selection .editor ul.code-description {
     margin:0;
     padding-left:0em;
@@ -76,25 +47,15 @@
     font-size:8pt;
     min-height:20em;
     min-width:78ch;
-    width:100%;
+}
+
+.field-selection .code-description {
+    display:block;
+    max-width:78ch;
 }
 
 .field-selection .field.editing .editor {
     display:block;
-}
-
-.field-selection .field.editing .edit:before {
-    content:"[done]";
-}
-
-.field-selection .button {
-    font-size:8pt;
-    color:gray;
-    cursor:pointer;
-}
-
-.field-selection .button:hover {
-    color:blue;
 }
 
 .field-selection.collapsed {
@@ -110,15 +71,54 @@
     display:none;
 }
 
+.field-selection .top-button {
+    float:left;
+    margin-top:0.5em;
+    margin-bottom:0.5em;
+}
+
+.field-selection .add {
+    margin-left:1em;
+}
+
 .field-selection .show-hide {
     float:right;
-    margin:0.5em;
+    margin-right:1em;
 }
 
-.field-selection .show-hide:before {
-    content:"[hide]";
+.field-selection.collapsed .show-hide {
+    right:1em;
 }
 
-.field-selection.collapsed .show-hide:before {
-    content:"[show]";
+button.small-button::before {
+    content:"[";
+}
+
+button.small-button::after {
+    content:"]";
+}
+
+button.small-button {
+    outline:none;
+    background:transparent;
+    border:none;
+    color:gray;
+    cursor:pointer;
+    font-family: inherit;
+    font-size:8pt;
+    margin-right:0.3em;
+    padding:0;
+    text-transform: lowercase;
+}
+
+button.small-button:hover {
+    color:#03f;
+}
+
+button.small-button.light {
+    color:#bbb;
+}
+
+button.small-button.light:hover {
+    color:#9af;
 }
