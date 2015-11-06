@@ -213,7 +213,7 @@ var MSHTML = undefined;
                     var elementPromise = object.f("_pElement")
                     .then(null, function () {
                         // The _pElement pointer was removed in RS1.  The treeNode can now be directly cast as an element.
-                        return treeNode.vcast();
+                        return object.as("CElement");
                     });
                     return GetThreadstateFromObject(elementPromise);
                 } else if (object.typeDescription() == "CElement") {

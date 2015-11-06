@@ -131,7 +131,7 @@ JsDbg.OnLoad(function() {
             var elementPromise = object.f("_pElement")
             .then(null, function () {
                 // The _pElement pointer was removed in RS1.  The object can now be directly cast as an element.
-                return object.vcast();
+                return object.as("CElement");
             });
 
             var lookasidePromise = elementPromise
