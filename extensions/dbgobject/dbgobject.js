@@ -644,12 +644,18 @@ var DbgObject = (function() {
         // If we're a bit field, extract the bits.
         .then(function(result) {
             var value = result.value;
-            if (that.bitcount && that.bitoffset !== undefined) {
-                value = value.shiftRight(that.bitoffset).and(bigInt.one.shiftLeft(that.bitcount).minus(1));
-            }
-            if (!that._isFloat() && !useBigInt) {
-                return value.toJSNumber();
+            if (that._isFloat()) {
+                return value;
+            } else if (!useBigInt) {
+                var value = value.toJSNumber();
+                if (that.bitcount && that.bitoffset !== undefined) {
+                    value = (value >> that.bitoffset) & ((1 << that.bitcount) - 1);
+                }
+                return value;
             } else {
+                if (that.bitcount && that.bitoffset !== undefined) {
+                    value = value.shiftRight(that.bitoffset).and(bigInt.one.shiftLeft(that.bitcount).minus(1));
+                }
                 return value;
             }
         })
