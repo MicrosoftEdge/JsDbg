@@ -347,6 +347,7 @@ var FieldSupport = (function() {
             edit.textContent = "Edit";
             edit.addEventListener("click", function() { 
                 if (container.classList.toggle("editing")) {
+                    container.scrollIntoView();
                     edit.textContent = "Done";
                 } else {
                     edit.textContent = "Edit";
