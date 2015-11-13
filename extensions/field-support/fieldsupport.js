@@ -633,6 +633,7 @@ var FieldSupport = (function() {
 
                 var fieldUI = buildFieldUI(newField);
                 fieldUI.className += " editing";
+                fieldUI.querySelector(".edit").textContent = "Done";
                 fields.appendChild(fieldUI);
                 fieldUI.scrollIntoView();
 
