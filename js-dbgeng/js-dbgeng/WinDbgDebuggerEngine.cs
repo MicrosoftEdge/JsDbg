@@ -81,9 +81,11 @@ namespace JsDbg {
 
         public Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct {
             return this.AttemptOperation<T[]>(() => {
-                // TODO: can we ever have incomplete reads?
                 T[] result = new T[size];
-                this.dataSpaces.ReadVirtual<T>(pointer, result);
+                uint bytesRead = this.dataSpaces.ReadVirtual<T>(pointer, result);
+                if ((uint)System.Runtime.InteropServices.Marshal.SizeOf(typeof(T)) * size > bytesRead) {
+                    throw new DebuggerException("Unable to read the entire array.");
+                }
                 return result;
             }, String.Format("Invalid memory address: 0x{0:x8}", pointer));
         }

@@ -4,6 +4,11 @@ var MemoryCache = (function() {
     const PAGE_SIZE = 4096; // The cacheable unit size.
     const RETRIEVAL_SIZE = 4; // The size of the element that the page is broken down to.
     const CACHE_TRIGGER = 16; // Number of hits required on a given page before caching.  Lower is more aggressive.
+    const MINIMUM_PAGE_LOAD_ATTEMPTS = 10; // Minimum number of page load attempts before giving up.
+    const MAXIMUM_FAILURE_RATE = 0.5; // Maximum failure rate of page load attempts.  If we exceed this, we'll abandon caching.
+
+    var pageLoadAttempts = 0;
+    var pageLoadFails = 0;
 
     // Holds hit counters and pages.
     var cache = {};
@@ -72,6 +77,11 @@ var MemoryCache = (function() {
             return false;
         }
 
+        if (pageLoadAttempts > MINIMUM_PAGE_LOAD_ATTEMPTS && (pageLoadFails / pageLoadAttempts) > MAXIMUM_FAILURE_RATE) {
+            // More than 50% of our page load attempts are failing, so don't even bother.
+            return false;
+        }
+
         var cacheEntry = getCacheEntry(page);
         cacheEntry.hits += 1;
 
@@ -89,11 +99,13 @@ var MemoryCache = (function() {
             memoryCallback(cacheEntry.memory);
         } else if (cacheEntry.hits == CACHE_TRIGGER) {
             // We've hit it enough times to cache it.
+            ++pageLoadAttempts;
             cacheEntry.inflight = true;
             cacheEntry.callbacks.push(memoryCallback);
 
             JsDbg.ReadArray(page, RETRIEVAL_SIZE, /*isUnsigned*/true, /*isFloat*/false, PAGE_SIZE / RETRIEVAL_SIZE, function (result) {
                 if (result.error) {
+                    ++pageLoadFails;
                     cacheEntry.memory = result;
                 } else {
                     cacheEntry.inflight = false;
