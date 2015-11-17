@@ -369,6 +369,42 @@ var TallTree = (function() {
         return null;
     }
 
+    // utility method to determine depth of node, i.e. number of ancestor nodes, non-inclusive
+    function getNodeDepth(node) {
+        var depth = 0;
+        while (node.parentNode !== null) {
+            depth++;
+            node = node.parentNode;
+        }
+
+        return depth;
+    }
+
+    // utility method to return the nearest common ancestor of two nodes
+    function getNearestCommonAncestor(nodeA, nodeB) {
+        var depthA = getNodeDepth(nodeA);
+        var depthB = getNodeDepth(nodeB);
+
+        // bring nodes to same depth
+        while (depthA > depthB) {
+            depthA--;
+            nodeA = nodeA.parentNode;
+        }
+        while (depthB > depthA) {
+            depthB--;
+            nodeB = nodeB.parentNode;
+        }
+
+        // find a common ancestor or null
+        while (nodeA !== null && nodeA !== nodeB) {
+            nodeA = nodeA.parentNode;
+            nodeB = nodeB.parentNode;            
+        }
+
+        // now the same as nodeB; may be null
+        return nodeA;
+    }
+
     return {
         BuildTree: function(container, root, expandFully) {
             return enqueueWork(function() {
@@ -402,7 +438,7 @@ var TallTree = (function() {
             }
 
             var matchNode = getNearestAncestorMatchingFilter(current, function(node) {
-                return node.className === "node";
+                return node.classList && node.classList.contains("node");
             });
 
             if (matchNode != null) {
@@ -411,38 +447,43 @@ var TallTree = (function() {
             }
 
             // a node to root our search for selected nodes in the tree
-            var limitNode = range.commonAncestorContainer;
+            var limitNode = getNearestCommonAncestor(current, end);
 
-            // determine the depth of the current node
+            // determine the depth of the current node with respect to the common ancestor of current and end (so we are no deeper that we need to be)
             var depth = 0;
-            var parent = range.startContainer;
+            var parent = current;
             while (parent !== null && parent !== limitNode) {
-                if (parent.className === "child-container") {
+                if (parent.classList && parent.classList.contains("child-container")) {
                     depth++;
                 }
                 parent = parent.parentNode;
             }
 
+            // when building text, we don't want our special behavior unless we have selected more than one node, but for one exception when the range is collapsed withing a node
+            var crossedNodeBoundary = range.collapsed;
+
             // visit all nodes from current until end to build text
             var treeAsText = "";
             do {
-                if (current.className === "node") {
+                if (current.classList && current.classList.contains("node")) {
                     // write a representation of this tree node
                     treeAsText += repeatString("\t", depth) + current.textContent + "\r\n";
-                } else if (current.className === "child-container") {
+                } else if (current.classList.contains("child-container")) {
                     // increase depth when a new child-container is returned
                     depth++;
+                    // also set flag to indicate that at least one node boundary was crossed
+                    crossedNodeBoundary = true;
                 }
 
                 current = getNextPreorderElementNode(/*root*/limitNode, current, function(node) {
-                    if (node.className === "child-container") {
+                    if (node.classList.contains("child-container")) {
                         // when exiting a child-container scope decrease depth
                         depth--;
                     }
                 });
             } while (current != null && current != end);
 
-            return treeAsText;
+            return crossedNodeBoundary ? treeAsText : null;
         }
     };
 
