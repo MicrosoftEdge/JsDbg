@@ -174,19 +174,16 @@ var TreeInspector = (function() {
                 return namespace.Name + "." + str;
             }
 
+            // Handles copy event to pretty print the selected portion of the tree to the clipboard.
             function copyTreeSelection(event) {
                 var s = getSelection();
-                if (!s.isCollapsed) {
-                    var r = s.getRangeAt(0);
+                var r = s.getRangeAt(0);
 
-                    var t = treeAlgorithm.GetTreeRangeAsText(r);
-                    if (t) {
-                        console.log(t);
-                        event.clipboardData.setData("text/plain", t);
-                        event.preventDefault();
-                    } else {
-                        console.log("no text returned from treeAlgorithm");
-                    }
+                var t = treeAlgorithm.GetTreeRangeAsText(r);
+                if (t) {
+                    console.log(t);
+                    event.clipboardData.setData("text/plain", t);
+                    event.preventDefault();
                 }
             }
 

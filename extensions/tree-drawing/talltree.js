@@ -254,7 +254,7 @@ var TallTree = (function() {
             onExitNode = emptyCallback;
         }
 
-        // null means this is the first call, being by visiting root
+        // null means this is the first call, begin by visiting root
         if (current === null) {
             return root;
         }
@@ -298,7 +298,7 @@ var TallTree = (function() {
     // utility method to get the next preorder element node with an optional callback for whenever it exits the scope of a node previously returned by this function
     function getNextPreorderElementNode(root, current, onExitElementNode) {
         var onExitNode = null;
-        if (onExitElementNode) {
+        if (typeof(onExitElementNode) === typeof(Function)) {
             onExitNode = function(node) {
                 if (node.nodeType === Node.ELEMENT_NODE) {
                     onExitElementNode(node);
@@ -316,7 +316,7 @@ var TallTree = (function() {
     // utility method to get the node which occurs after the gap in the tree indicated using the DOM Range {container, offset} convention
     function getNodeAfterBoundaryPoint(container, offset) {
         if (container.firstChild === null) {
-            // containers which don't or can't have children are the node after
+            // containers which don't or can't have children are the 'after' node
             return container;
         }
 
@@ -324,7 +324,7 @@ var TallTree = (function() {
         while (offset > 0) {
             offset--;
 
-            // boundary point at end of container means the container is the node after
+            // boundary point at end of container means the container is the 'after' node
             if (node.nextSibling == null) {
                 return node.parentNode;
             }
@@ -339,23 +339,18 @@ var TallTree = (function() {
     function getElementNodeAfterBoundaryPoint(container, offset) {
         var node = getNodeAfterBoundaryPoint(container, offset);
         if (node.nodeType !== node.ELEMENT_NODE) {
-            
             var root = node;
             while (root.parentNode !== null) {
                 root = root.parentNode;
             }
 
-            if (root !== node) {
-                var firstExitNode = null;
-                var nextPreorderElement = getNextPreorderElementNode(root, node, function(exitNode) {
-                    if (firstExitNode === null) {
-                        firstExitNode = exitNode;
-                    }
-                });
-                node = firstExitNode !== null ? firstExitNode : nextPreorderElement;
-            } else {
-                node = null;
-            }
+            var firstExitNode = null;
+            var nextPreorderElement = getNextPreorderElementNode(root, node, function(exitNode) {
+                if (firstExitNode === null) {
+                    firstExitNode = exitNode;
+                }
+            });
+            node = firstExitNode !== null ? firstExitNode : nextPreorderElement;
         }
 
         return node;
