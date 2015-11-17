@@ -429,8 +429,8 @@ var TallTree = (function() {
         },
 
         GetTreeRangeAsText: function(range) {
-            var current = getElementNodeAfterBoundaryPoint(range.startContainer);
-            var end = getElementNodeAfterBoundaryPoint(range.endContainer);
+            var current = getElementNodeAfterBoundaryPoint(range.startContainer, range.startOffset);
+            var end = getElementNodeAfterBoundaryPoint(range.endContainer, range.endOffset);
 
             if (!current || !end) {
                 // strange case with no elements after the boundary point
