@@ -210,7 +210,12 @@ var MSHTML = undefined;
                 if (object.typeDescription() == "Tree::ElementNode") {
                     return GetThreadstateFromObject(GetCTreeNodeFromTreeElement(object));
                 } else if (object.typeDescription() == "CTreeNode") {
-                    return GetThreadstateFromObject(object.f("_pElement"));
+                    var elementPromise = object.f("_pElement")
+                    .then(null, function () {
+                        // The _pElement pointer was removed in RS1.  The treeNode can now be directly cast as an element.
+                        return object.as("CElement");
+                    });
+                    return GetThreadstateFromObject(elementPromise);
                 } else if (object.typeDescription() == "CElement") {
                     return GetThreadstateFromObject(GetMarkupFromElement(object));
                 } else if (object.typeDescription() == "CLayoutInfo") {

@@ -1,4 +1,4 @@
-.block { as ${/v:JsDbgVersion} 2015-06-02-01}
+.block { as ${/v:JsDbgVersion} 2015-10-28-01}
 .block { as ${/v:JsDbgPath} \\iefs\users\psalas\jsdbg\${JsDbgVersion}\jsdbg.exe}
 .block { as ${/v:JsDbgStrPath} "\\\\iefs\\users\\psalas\\jsdbg\\${JsDbgVersion}\\jsdbg.exe"}
 
@@ -16,7 +16,7 @@ r $t2 = 1; $$ should create a remote
             .block {.shell -x ${JsDbgPath} ${server}}
             .break;
         }
-        .elsif (@$t0 & $spat("${server}", "*ipe=jsdbg-*"))
+        .elsif (@$t0 & @@masm($spat("${server}", "*ipe=jsdbg-*")))
         {
             $$ there's already a jsdbg remote running.  we can connect the next time around if this is the only remote.
             r $t2 = 0;
@@ -31,7 +31,7 @@ r $t2 = 1; $$ should create a remote
         }
 
 
-        .if ($scmp("${server}", "-remote") == 0)
+        .if (@@masm($scmp("${server}", "-remote")) == 0)
         {
             r $t0 = 1;
         }

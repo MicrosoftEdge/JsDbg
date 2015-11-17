@@ -87,6 +87,10 @@ JsDbg.OnLoad(function() {
                 if (etagValue == "ETAG_GENERIC") {
                     // For generic elements, get the tag name/namespace.
                     return treeNode.f("_pElement").vcast()
+                    .then(null, function () {
+                        // The _pElement pointer was removed in RS1.  The treeNode can now be directly cast as an element.
+                        return treeNode.vcast();
+                    })
                     .then(function (element) {
                         return Promise.join([element.f("_cstrTagName._pch").string(), element.f("_cstrNamespace._pch").string(), element.f("_cstrNamespace._pch").isNull()])
                     })
@@ -124,29 +128,51 @@ JsDbg.OnLoad(function() {
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
             // Get the subordinate markup.
-            var element = object.f("_pElement");
+            var elementPromise = object.f("_pElement")
+            .then(null, function () {
+                // The _pElement pointer was removed in RS1.  The object can now be directly cast as an element.
+                return object.as("CElement");
+            });
+
+            var lookasidePromise = elementPromise
+            .then(function (element) {
+                return element.f("_fHasLookasidePtr").val();
+            });
+
+            // During the CTreeNode/CElement merger the LOOKASIDE_SUBORDINATE enum value moved around.  Currently, it's on the CTreeNode type.
+            var lookasideSubordinatePromise = DbgObject.constantValue(MSHTML.Module, "CTreeNode", "LOOKASIDE_SUBORDINATE")
+            .then(null, function() {
+                // Two additional cases to try: first (in reverse chronological order), when the CElement lookasides were offset by CTreeNode::LOOKASIDE_NODE_NUMBER
+                return DbgObject.constantValue(MSHTML.Module, "CTreeNode", "LOOKASIDE_NODE_NUMBER")
+                .then(
+                    // Success
+                    function(lookasideNodeNumber) {
+                        // Add this number to the CElement::LOOKASIDE_SUBORDINATE
+                        return DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE", "LOOKASIDE_SUBORDINATE")
+                        .then(function(lookasideSubordinate) {
+                            return lookasideSubordinate + lookasideNodeNumber;
+                        });
+                    },
+                    // Failed, try second case when CElement had a LOOKASIDE_SUBORDINATE value that could be used directly
+                    function() {
+                        return DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE", "LOOKASIDE_SUBORDINATE");
+                    }
+                );
+            });
+
             return Promise.join([
-                element.f("_fHasLookasidePtr").val(),
-                DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE", "LOOKASIDE_SUBORDINATE"),
-                DbgObject.constantValue(MSHTML.Module, "CTreeNode", "LOOKASIDE_NODE_NUMBER").then(null, function() { return 0; })
+                elementPromise,
+                lookasidePromise,
+                lookasideSubordinatePromise
             ])
             .then(function (results) {
-                var lookasides = results[0];
-                var lookasideSubordinate = results[1];
-                var lookasideNodeNumber = results[2];
+                var element = results[0];
+                var lookasides = results[1];
+                var lookasideSubordinate = results[2];
 
                 if (lookasides & (1 << lookasideSubordinate)) {
                     var hashtable = MSHTML.GetDocFromMarkup(MSHTML.GetMarkupFromElement(element)).f("_HtPvPv");
-                    // With the CTreeNode/CElement merger, CElement lookasides come after CTreeNode lookasides.
-                    return MSHTML.GetObjectLookasidePointer(element, lookasideSubordinate + lookasideNodeNumber, hashtable)
-                    .then(function (result) {
-                        if (result.isNull()) {
-                            // No result, but the lookaside bit was set...try the pre-merger behavior.
-                            return MSHTML.GetObjectLookasidePointer(element, lookasideSubordinate, hashtable);
-                        } else {
-                            return result;
-                        }
-                    })
+                    return MSHTML.GetObjectLookasidePointer(element, lookasideSubordinate, hashtable)
                     .then(function (result) {
                         if (!result.isNull()) {
                             return MSHTML.GetMarkupFromElement(result.as("CElement"))

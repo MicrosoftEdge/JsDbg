@@ -220,8 +220,12 @@ namespace JsDbg {
         }
 
         private void ServeFailure(HttpListenerContext context) {
-            context.Response.StatusCode = 400;
-            context.Response.OutputStream.Close();
+            try {
+                context.Response.StatusCode = 400;
+                context.Response.OutputStream.Close();
+            } catch (Exception exception) {
+                Console.Out.WriteLine("Network Exception: {0}", exception.Message);
+            }
         }
 
         private string JSONError(string error) {
@@ -230,11 +234,15 @@ namespace JsDbg {
 
         private void ServeUncachedString(string responseString, HttpListenerContext context) {
             byte[] buffer = System.Text.Encoding.UTF8.GetBytes(responseString);
-            context.Response.AddHeader("Cache-Control", "no-cache");
-            context.Response.ContentType = "application/json";
-            context.Response.ContentLength64 = buffer.Length;
-            context.Response.OutputStream.Write(buffer, 0, buffer.Length);
-            context.Response.OutputStream.Close();
+            try {
+                context.Response.AddHeader("Cache-Control", "no-cache");
+                context.Response.ContentType = "application/json";
+                context.Response.ContentLength64 = buffer.Length;
+                context.Response.OutputStream.Write(buffer, 0, buffer.Length);
+                context.Response.OutputStream.Close();
+            } catch (Exception exception) {
+                Console.Out.WriteLine("Network Exception: {0}", exception.Message);
+            }
         }
 
         private void NoteRequest(Uri url) {
@@ -1016,6 +1024,18 @@ namespace JsDbg {
             respond(String.Format("{{ \"extensions\": [{0}] }}", String.Join(",", jsonExtensions)));
         }
 
+        private string ReadRequestBody(HttpListenerContext context) {
+            string data;
+            try {
+                System.IO.StreamReader reader = new System.IO.StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
+                data = reader.ReadToEnd();
+                return data;
+            } catch (Exception exception) {
+                Console.Out.WriteLine("Network Exception: {0}", exception.Message);
+                return null;
+            }
+        }
+
         private async void ServePersistentStorage(string[] segments, HttpListenerContext context) {
             if (context.Request.HttpMethod == "GET") {
                 string user = context.Request.QueryString["user"];
@@ -1026,8 +1046,11 @@ namespace JsDbg {
                     this.ServeUncachedString(this.JSONError("Unable to access the persistent store."), context);
                 }
             } else if (context.Request.HttpMethod == "PUT") {
-                System.IO.StreamReader reader = new System.IO.StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
-                string data = reader.ReadToEnd();
+                string data = this.ReadRequestBody(context);
+                if (data == null) {
+                    return;
+                }
+
                 if (await this.persistentStore.Set(data)) {
                     this.ServeUncachedString("{ \"success\": true }", context);
                 } else {
@@ -1040,8 +1063,11 @@ namespace JsDbg {
 
         private void ServeFeedbackRequest(string[] segments, HttpListenerContext context) {
             if (context.Request.HttpMethod == "PUT") {
-                System.IO.StreamReader reader = new System.IO.StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
-                string data = reader.ReadToEnd();
+                string data = this.ReadRequestBody(context);
+                if (data == null) {
+                    return;
+                }
+
                 try {
                     this.userFeedback.RecordUserFeedback(data);
                     this.ServeUncachedString("{ \"success\": true }", context);
@@ -1063,8 +1089,10 @@ namespace JsDbg {
                     this.ServeUncachedString(String.Format("{{ \"path\": {0} }}", result), context);
                 }
             } else if (context.Request.HttpMethod == "PUT") {
-                System.IO.StreamReader reader = new System.IO.StreamReader(context.Request.InputStream, context.Request.ContentEncoding);
-                string data = reader.ReadToEnd();
+                string data = this.ReadRequestBody(context);
+                if (data == null) {
+                    return;
+                }
 
                 if (!Directory.Exists(data)) {
                     this.ServeUncachedString("{ \"error\": \"The directory is inaccessible or does not exist.\" }", context);
