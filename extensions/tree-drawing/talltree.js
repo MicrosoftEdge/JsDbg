@@ -465,20 +465,23 @@ var TallTree = (function() {
             // visit all nodes from current until end to build text
             var treeAsText = "";
             do {
-                if (current.classList && current.classList.contains("node")) {
+                if (current.classList.contains("node")) {
                     // write a representation of this tree node
                     treeAsText += repeatString("\t", depth) + current.textContent + "\r\n";
                 } else if (current.classList.contains("child-container")) {
                     // increase depth when a new child-container is returned
                     depth++;
-                    // also set flag to indicate that at least one node boundary was crossed
-                    crossedNodeBoundary = true;
                 }
 
                 current = getNextPreorderElementNode(/*root*/limitNode, current, function(node) {
                     if (node.classList.contains("child-container")) {
                         // when exiting a child-container scope decrease depth
                         depth--;
+                    }
+
+                    if (node.classList.contains("node")) {
+                        // set flag to indicate that at least one node boundary was crossed on the way to the end of the range
+                        crossedNodeBoundary = true;
                     }
                 });
             } while (current != null && current != end);
