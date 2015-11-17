@@ -165,12 +165,26 @@ var TreeInspector = (function() {
                 }
                 return e;
             }
+
             function ws() {
                 return document.createTextNode(" ");
             }
 
             function id(str) {
                 return namespace.Name + "." + str;
+            }
+
+            // Handles copy event to pretty print the selected portion of the tree to the clipboard.
+            function copyTreeSelection(event) {
+                var s = getSelection();
+                var r = s.getRangeAt(0);
+
+                var t = treeAlgorithm.GetTreeRangeAsText(r);
+                if (t) {
+                    console.log(t);
+                    event.clipboardData.setData("text/plain", t);
+                    event.preventDefault();
+                }
             }
 
             // Build up the UI.
@@ -314,6 +328,9 @@ var TreeInspector = (function() {
 
             // On a hash change, reload.
             window.addEventListener("hashchange", unpackHash);
+
+            // On copy, update the clipboard with some representation for the selected part of the tree.
+            document.addEventListener("copy", copyTreeSelection);
 
             refresh();
 
