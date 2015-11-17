@@ -329,6 +329,10 @@ var WideTree = (function() {
                     return drawingRoot;
                 });
             });
+        },
+
+        GetTreeRangeAsText: function(range) {
+            return null; // unsupported
         }
     }
 })();

@@ -233,6 +233,147 @@ var TallTree = (function() {
         }
     }
 
+    // utility method to repeat string s repeatCount times 
+    function repeatString(s, repeatCount) {
+        var repeat = "";
+        while (repeatCount > 0) {
+            repeat += s;
+            repeatCount--;
+        }
+
+        return repeat;
+    }
+
+    // empty function to simplify callback management
+    function emptyCallback() {}
+
+    // utility method to get the next preorder node with an optional callback for whenever it exits the scope of a node previously returned by this function
+    function getNextPreorderNode(root, current, onExitNode) {
+        // simplify callback code by ensuring we always have a callback function
+        if (typeof(onExitNode) !== typeof(Function)) {
+            onExitNode = emptyCallback;
+        }
+
+        // null means this is the first call, being by visiting root
+        if (current === null) {
+            return root;
+        }
+
+        if (current.firstChild !== null) {
+            return current.firstChild;
+        }
+
+        // empty root case
+        if (current === root) {
+            // exit the root
+            onExitNode(root);
+            return null;
+        }
+
+        if (current.nextSibling !== null) {
+            // exit current
+            onExitNode(current);
+            return current.nextSibling;
+        }
+
+        while (current.nextSibling === null) {
+            // exit current
+            onExitNode(current);
+            
+            current = current.parentNode;
+
+            // ran out of nodes
+            if (current === root) {
+                // exit the root
+                onExitNode(root);
+                return null;
+            }
+        }
+
+        // exit current
+        onExitNode(current);
+        return current.nextSibling;
+    }
+
+    // utility method to get the next preorder element node with an optional callback for whenever it exits the scope of a node previously returned by this function
+    function getNextPreorderElementNode(root, current, onExitElementNode) {
+        var onExitNode = null;
+        if (onExitElementNode) {
+            onExitNode = function(node) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    onExitElementNode(node);
+                }
+            };
+        }
+
+        do {
+            current = getNextPreorderNode(root, current, onExitNode);
+        } while (current !== null && current.nodeType !== Node.ELEMENT_NODE);
+
+        return current;
+    }
+
+    // utility method to get the node which occurs after the gap in the tree indicated using the DOM Range {container, offset} convention
+    function getNodeAfterBoundaryPoint(container, offset) {
+        if (container.firstChild === null) {
+            // containers which don't or can't have children are the node after
+            return container;
+        }
+
+        var node = container.firstChild;
+        while (offset > 0) {
+            offset--;
+
+            // boundary point at end of container means the container is the node after
+            if (node.nextSibling == null) {
+                return node.parentNode;
+            }
+
+            node = node.nextSibling;
+        }
+
+        return node;
+    }
+
+    // utility method to get the element node which occurs after the gap in the tree indicated using the DOM Range {container, offset} convention
+    function getElementNodeAfterBoundaryPoint(container, offset) {
+        var node = getNodeAfterBoundaryPoint(container, offset);
+        if (node.nodeType !== node.ELEMENT_NODE) {
+            
+            var root = node;
+            while (root.parentNode !== null) {
+                root = root.parentNode;
+            }
+
+            if (root !== node) {
+                var firstExitNode = null;
+                var nextPreorderElement = getNextPreorderElementNode(root, node, function(exitNode) {
+                    if (firstExitNode === null) {
+                        firstExitNode = exitNode;
+                    }
+                });
+                node = firstExitNode !== null ? firstExitNode : nextPreorderElement;
+            } else {
+                node = null;
+            }
+        }
+
+        return node;
+    }
+
+    // utility method that returns the nearest ancestor of node (inclusive) that the filter matches (or null if there's no match)
+    function getNearestAncestorMatchingFilter(node, filter) {
+        while (node != null) {
+            if (filter(node)) {
+                return node;
+            } else {
+                node = node.parentNode;
+            }
+        }
+
+        return null;
+    }
+
     return {
         BuildTree: function(container, root, expandFully) {
             return enqueueWork(function() {
@@ -254,6 +395,62 @@ var TallTree = (function() {
                     return drawingRoot;
                 });
             });
+        },
+
+        GetTreeRangeAsText: function(range) {
+            var current = getElementNodeAfterBoundaryPoint(range.startContainer);
+            var end = getElementNodeAfterBoundaryPoint(range.endContainer);
+
+            if (!current || !end) {
+                // strange case with no elements after the boundary point
+                return null;
+            }
+
+            var matchNode = getNearestAncestorMatchingFilter(current, function(node) {
+                return node.className === "node";
+            });
+
+            if (matchNode != null) {
+                // started inside a node element, update current to this better starting node so we write it out as text too
+                current = matchNode;
+            }
+
+            // a node to root our search for selected nodes in the tree
+            var limitNode = range.commonAncestorContainer;
+
+            // determine the depth of the current node
+            var depth = 0;
+            var parent = range.startContainer;
+            while (parent !== null && parent !== limitNode) {
+                if (parent.className === "child-container") {
+                    depth++;
+                }
+                parent = parent.parentNode;
+            }
+
+            // visit all nodes from current until end to build text
+            var treeAsText = "";
+            do {
+                if (current.className === "node") {
+                    // write a representation of this tree node
+                    treeAsText += repeatString("\t", depth) + current.textContent + "\r\n";
+                } else if (current.className === "child-container") {
+                    // increase depth when a new child-container is returned
+                    depth++;
+                }
+
+                current = getNextPreorderElementNode(/*root*/limitNode, current, function(node) {
+                    if (node.className === "child-container") {
+                        // when exiting a child-container scope decrease depth
+                        depth--;
+                    }
+                });
+            } while (current != null && current != end);
+
+            return treeAsText;
         }
-    }
+    };
+
+
+
 })();
