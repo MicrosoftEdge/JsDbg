@@ -252,7 +252,16 @@ JsDbg.OnLoad(function() {
             shortname: "lp",
             async:true,
             html: function() {
-                return this.f("sourceStyle.fancyFormat._layoutPlacement");
+                var that = this;
+                var ff = that.f("sourceStyle.fancyFormat")
+                .then(null, function (err) {
+                    return MSHTML.GetObjectFromThreadstateCache(
+                        that.f("elementInternal"), 
+                        "FancyFormat", 
+                        that.f("sourceStyle.iFF").val()
+                    );
+                });
+                return ff.then(function (ff) { return ff.f("_layoutPlacement"); })
             }
         },
 
@@ -343,7 +352,7 @@ JsDbg.OnLoad(function() {
                                     textData = textRun.f("_characterSourceUnion._pchTransformedCharacters");
                                     offset = 0; // No offset when transformed.
                                 } else {
-                                    textData = textRun.f("_characterSourceUnion._pTextData").as("Tree::TextData").f("_pText");
+                                    textData = textRun.f("_characterSourceUnion._pTextData").as("Tree::TextData").f("text", "_pText");
                                 }
 
                                 var stringLength = textRunLength;
