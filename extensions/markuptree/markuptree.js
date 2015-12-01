@@ -52,11 +52,11 @@ JsDbg.OnLoad(function() {
                 // Sort them by the length of the CMarkup's CAttrArray as a proxy for interesting-ness.
                 return Promise.sort(markups, function (markup) {
                     return markup.f("_pAA._c").val()
-                .then(function (value) {
-                    return 0 - value;
+                    .then(function (value) {
+                        return 0 - value;
+                    });
                 });
             });
-        });
         });
         DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
             return object.f("_tpBegin").f("_ptpThreadRight")
