@@ -22,8 +22,8 @@ JsDbg.OnLoad(function() {
         });
     });
 
+    // Old Tree Connection, convert a CTreePos into a CTreeNode/CTreeDataPos
     function promoteTreePos(treePos) {
-        debugger;
         // What kind of tree pos is this?
         return treePos.f("_elementTypeAndFlags", "_cElemLeftAndFlags").val()
         .then(function (treePosFlags) {
@@ -42,11 +42,11 @@ JsDbg.OnLoad(function() {
         })
     }
 
+    // New Tree Connection, convert a ANode into a CTreeNode/CTreeDataPos
     function promoteANode(aNode) {
-        var tp = aNode.as("CTreeDataPos");
+        var treeDataPos = aNode.as("CTreeDataPos");
         return aNode.as("CTreeDataPos").f("t._fIsElementNode").val()
         .then(function (isElementNode) {
-            console.log("isElementNode = " + isElementNode);
             if (isElementNode) {
                 console.log("elementNode");
                 return aNode.unembed("CTreeNode", "_fIsElementNode");
@@ -57,6 +57,45 @@ JsDbg.OnLoad(function() {
         }, function () {
             console.log("Error");
         });
+    }
+
+    // Old Tree Connection - Get all direct children of CTreeNode
+    function getAllDirectChildrenLegacy(object) {
+        return object.f("_tpBegin").f("_ptpThreadRight")
+        .list(
+            function (treePos) {
+                // What kind of tree pos is this?
+                return treePos.f("_elementTypeAndFlags", "_cElemLeftAndFlags").val()
+                .then(function (treePosFlags) {
+                    if (treePosFlags & 0x01) {
+                        // Node begin, skip to the end.
+                        treePos = treePos.unembed("CTreeNode", "_tpBegin").f("_tpEnd");
+                    }
+                    // Get the next tree pos.
+                    return treePos.f("_ptpThreadRight");
+            })
+        },
+        // Stop when we reach the end of the node.
+        object.f("_tpEnd")
+        )
+       .map(promoteTreePos);
+    }
+
+    // New Tree Connection - Get all direct children of CTreeNode
+    function getAllDirectChildren(object)
+    {
+        return object.f("firstChild")
+        .list(
+            function (aNode) {
+                return promoteANode(aNode)
+                .then(function (realType) {
+                    return realType.f("nextSibling");
+                })
+            },
+            //Stop when there is no more siblings
+            null
+        )
+        .map(promoteANode)
     }
 
     if (JsDbg.GetCurrentExtension() == "markuptree") {
@@ -77,71 +116,15 @@ JsDbg.OnLoad(function() {
         });
         });
 
-
-        // utility method to get the next preorder node with an optional callback for whenever it exits the scope of a node previously returned by this function
-        function getNextPreorderNode(root, current, onExitNode) {
-            // simplify callback code by ensuring we always have a callback function
-            if (typeof(onExitNode) !== typeof(Function)) {
-                onExitNode = emptyCallback;
-            }
-
-            // null means this is the first call, begin by visiting root
-            if (current === null) {
-                return root;
-            }
-
-            if (current.firstChild !== null) {
-                return current.firstChild;
-            }
-
-            // empty root case
-            if (current === root) {
-                // exit the root
-                onExitNode(root);
-                return null;
-            }
-
-            if (current.nextSibling !== null) {
-                // exit current
-                onExitNode(current);
-                return current.nextSibling;
-            }
-
-            while (current.nextSibling === null) {
-                // exit current
-                onExitNode(current);
-            
-                current = current.parentNode;
-
-                // ran out of nodes
-                if (current === root) {
-                    // exit the root
-                    onExitNode(root);
-                    return null;
-                }
-            }
-
-            // exit current
-            onExitNode(current);
-            return current.nextSibling;
-        }
-
         DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
-            //return object.f("_tpBegin").f("_ptpThreadRight")
             return object.f("firstChild")
-
-            .list(
-                function (aNode) {
-                    return promoteANode(aNode)
-                    .then (function (realType) {
-                        return realType.f("nextSibling");
-                    })
-                },
-                //Stop when we reach the end of the node.
-                //object.f("_tpEnd")
-                null
-            )
-            .map(promoteANode)
+            .then(function () {
+                // New Tree Connection
+                return getAllDirectChildren(object);
+            }, function () {
+                // Old Tree Connection
+                return getAllDirectChildrenLegacy(object);
+            })
             .then(function(children) {
                 return children.filter(function(child) { return child != null; });
             })
@@ -258,8 +241,14 @@ JsDbg.OnLoad(function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
-            //return promoteTreePos(markup.f("_ptpFirst"));
-            return markup.f("root").unembed("CTreeNode", "_fIsElementNode");
+            return markup.f("root")
+            .then(function () {
+                console.log("New Tree Connection");
+                return markup.f("root").unembed("CTreeNode", "_fIsElementNode");
+            }, function () {
+                console.log("Old Tree Connection");
+                return promoteTreePos(markup.f("_ptpFirst"));
+            });
         }, function (markup) {
             return markup.f("_pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
             .then(function (str) {
