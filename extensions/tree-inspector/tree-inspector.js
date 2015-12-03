@@ -181,7 +181,6 @@ var TreeInspector = (function() {
 
                 var t = treeAlgorithm.GetTreeRangeAsText(r);
                 if (t) {
-                    console.log(t);
                     event.clipboardData.setData("text/plain", t);
                     event.preventDefault();
                 }

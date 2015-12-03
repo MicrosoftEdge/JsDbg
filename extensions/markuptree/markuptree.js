@@ -48,10 +48,8 @@ JsDbg.OnLoad(function() {
         return aNode.as("CTreeDataPos").f("t._fIsElementNode").val()
         .then(function (isElementNode) {
             if (isElementNode) {
-                console.log("elementNode");
                 return aNode.unembed("CTreeNode", "_fIsElementNode");
             } else {
-                console.log("textNode");
                 return aNode.as("CTreeDataPos");
             }
         });
@@ -231,15 +229,14 @@ JsDbg.OnLoad(function() {
             return new DbgObject(MSHTML.Module, "CMarkup", address).vcast()
             .then(undefined, function (err) {
                 // Virtual-table cast failed, so presume a CTreeNode.
-            return new DbgObject(MSHTML.Module, "CTreeNode", address);
-        });
+                return new DbgObject(MSHTML.Module, "CTreeNode", address);
+            });
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
             return markup.f("root").unembed("CTreeNode", "_fIsElementNode")
             .then(null, function () {
-                console.log("Old Tree Connection");
-            return promoteTreePos(markup.f("_ptpFirst"));
+                return promoteTreePos(markup.f("_ptpFirst"));
             });
         }, function (markup) {
             return markup.f("_pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
