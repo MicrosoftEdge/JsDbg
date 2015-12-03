@@ -22,6 +22,7 @@ JsDbg.OnLoad(function() {
         });
     });
 
+    // Old Tree Connection, convert a CTreePos into a CTreeNode/CTreeDataPos
     function promoteTreePos(treePos) {
         // What kind of tree pos is this?
         return treePos.f("_elementTypeAndFlags", "_cElemLeftAndFlags").val()
@@ -41,6 +42,60 @@ JsDbg.OnLoad(function() {
         })
     }
 
+    // New Tree Connection, convert a ANode into a CTreeNode/CTreeDataPos
+    function promoteANode(aNode) {
+        var treeDataPos = aNode.as("CTreeDataPos");
+        return aNode.as("CTreeDataPos").f("t._fIsElementNode").val()
+        .then(function (isElementNode) {
+            if (isElementNode) {
+                console.log("elementNode");
+                return aNode.unembed("CTreeNode", "_fIsElementNode");
+            } else {
+                console.log("textNode");
+                return aNode.as("CTreeDataPos");
+            }
+        });
+    }
+
+    // Old Tree Connection - Get all direct children of CTreeNode
+    function getAllDirectChildrenLegacy(object) {
+        return object.f("_tpBegin").f("_ptpThreadRight")
+        .list(
+            function (treePos) {
+                // What kind of tree pos is this?
+                return treePos.f("_elementTypeAndFlags", "_cElemLeftAndFlags").val()
+                .then(function (treePosFlags) {
+                    if (treePosFlags & 0x01) {
+                        // Node begin, skip to the end.
+                        treePos = treePos.unembed("CTreeNode", "_tpBegin").f("_tpEnd");
+                    }
+                    // Get the next tree pos.
+                    return treePos.f("_ptpThreadRight");
+            })
+        },
+        // Stop when we reach the end of the node.
+        object.f("_tpEnd")
+        )
+       .map(promoteTreePos);
+    }
+
+    // New Tree Connection - Get all direct children of CTreeNode
+    function getAllDirectChildren(object)
+    {
+        return object.f("firstChild")
+        .list(
+            function (aNode) {
+                return promoteANode(aNode)
+                .then(function (realType) {
+                    return realType.f("nextSibling");
+                })
+            },
+            //Stop when there is no more siblings
+            null
+        )
+        .map(promoteANode)
+    }
+
     if (JsDbg.GetCurrentExtension() == "markuptree") {
         DbgObjectTree.AddRoot("Markup Tree", function() { 
             return MSHTML.GetCDocs()
@@ -52,31 +107,19 @@ JsDbg.OnLoad(function() {
                 // Sort them by the length of the CMarkup's CAttrArray as a proxy for interesting-ness.
                 return Promise.sort(markups, function (markup) {
                     return markup.f("_pAA._c").val()
-                    .then(function (value) {
-                        return 0 - value;
-                    });
+                .then(function (value) {
+                    return 0 - value;
                 });
             });
         });
+        });
+
         DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
-            return object.f("_tpBegin").f("_ptpThreadRight")
-            .list(
-                function (treePos) {
-                    // What kind of tree pos is this?
-                    return treePos.f("_elementTypeAndFlags", "_cElemLeftAndFlags").val()
-                    .then(function (treePosFlags) {
-                        if (treePosFlags & 0x01) {
-                            // Node begin, skip to the end.
-                            treePos = treePos.unembed("CTreeNode", "_tpBegin").f("_tpEnd");
-                        }
-                        // Get the next tree pos.
-                        return treePos.f("_ptpThreadRight");
+            return getAllDirectChildren(object)
+            .then(null, function () {
+                // Old Tree Connection
+                return getAllDirectChildrenLegacy(object);
                     })
-                },
-                // Stop when we reach the end of the node.
-                object.f("_tpEnd")
-            )
-            .map(promoteTreePos)
             .then(function(children) {
                 return children.filter(function(child) { return child != null; });
             })
@@ -193,7 +236,11 @@ JsDbg.OnLoad(function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
+            return markup.f("root").unembed("CTreeNode", "_fIsElementNode")
+            .then(null, function () {
+                console.log("Old Tree Connection");
             return promoteTreePos(markup.f("_ptpFirst"));
+            });
         }, function (markup) {
             return markup.f("_pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
             .then(function (str) {

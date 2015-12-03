@@ -65,12 +65,19 @@ var MSHTML = undefined;
         }
 
         function GetRootCTreeNodes() {
-            return GetCDocs()
-            .f("_pWindowPrimary._pCWindow._pMarkup._ptpFirst")
-            .unembed("CTreeNode", "_tpBegin")
-            .filter(function (treeNode) {
-                return !treeNode.isNull();
-            })
+            var markups = GetCDocs().f("_pWindowPrimary._pCWindow._pMarkup");
+
+            return markups.f("root").unembed("CTreeNode", "_fIsElementNode")
+                            .filter(function (treeNode) {
+                                return !treeNode.isNull();
+                            })
+                .then(null, function () {
+                    console.log("Old Tree Connection");
+                    return markups.f("_ptpFirst").unembed("CTreeNode", "_tpBegin")
+                        .filter(function (treeNode) {
+                            return !treeNode.isNull();
+                        });
+                });
         }
 
         function GetCTreeNodeFromTreeElement(element) {
@@ -85,7 +92,12 @@ var MSHTML = undefined;
                         .then(function (baseTypes) {
                             if (baseTypes.filter(function (b) { return b.typename == "CBase"; }).length > 0) {
                                 // CBase is in CTreeNode's ancestry, unembed.
-                                return element.as("CTreePos").unembed("CTreeNode", "_tpBegin");
+                                return element.as("CTreeNode").unembed("CTreeNode", "_fIsElementNode")
+                                .then(null, function () {
+                                        console.log("Old Tree Connection");
+                                        return element.as("CTreePos").unembed("CTreeNode", "_tpBegin");
+                                    }
+                                );
                             } else {
                                 // Not in the ancestry, just cast it.
                                 return element.as("CTreeNode");
