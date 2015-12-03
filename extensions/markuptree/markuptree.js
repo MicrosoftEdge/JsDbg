@@ -54,8 +54,6 @@ JsDbg.OnLoad(function() {
                 console.log("textNode");
                 return aNode.as("CTreeDataPos");
             }
-        }, function () {
-            console.log("Error");
         });
     }
 
@@ -117,11 +115,8 @@ JsDbg.OnLoad(function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
-            return object.f("firstChild")
-            .then(function () {
-                // New Tree Connection
-                return getAllDirectChildren(object);
-            }, function () {
+            return getAllDirectChildren(object)
+            .then(null, function () {
                 // Old Tree Connection
                 return getAllDirectChildrenLegacy(object);
             })
@@ -241,11 +236,8 @@ JsDbg.OnLoad(function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
-            return markup.f("root")
-            .then(function () {
-                console.log("New Tree Connection");
-                return markup.f("root").unembed("CTreeNode", "_fIsElementNode");
-            }, function () {
+            return markup.f("root").unembed("CTreeNode", "_fIsElementNode")
+            .then(null, function () {
                 console.log("Old Tree Connection");
                 return promoteTreePos(markup.f("_ptpFirst"));
             });

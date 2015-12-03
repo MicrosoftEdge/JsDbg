@@ -67,15 +67,11 @@ var MSHTML = undefined;
         function GetRootCTreeNodes() {
             var markups = GetCDocs().f("_pWindowPrimary._pCWindow._pMarkup");
 
-            return markups.f("root")
-                .then(
-                    function () {
-                    console.log("New Tree Connection");
-                    return markups.f("root").unembed("CTreeNode", "_fIsElementNode")
+            return markups.f("root").unembed("CTreeNode", "_fIsElementNode")
                             .filter(function (treeNode) {
                                 return !treeNode.isNull();
-                            });
-                }, function () {
+                            })
+                .then(null, function () {
                     console.log("Old Tree Connection");
                     return markups.f("_ptpFirst").unembed("CTreeNode", "_tpBegin")
                         .filter(function (treeNode) {
@@ -85,7 +81,6 @@ var MSHTML = undefined;
         }
 
         function GetCTreeNodeFromTreeElement(element) {
-            //debugger
             return new PromisedDbgObject(
                 element.f("placeholder")
                 .then(
@@ -97,13 +92,8 @@ var MSHTML = undefined;
                         .then(function (baseTypes) {
                             if (baseTypes.filter(function (b) { return b.typename == "CBase"; }).length > 0) {
                                 // CBase is in CTreeNode's ancestry, unembed.
-                                return element.as("CTreeNode").f("_fIsElementNode")
-                                .then(
-                                    function () {
-                                        console.log("New Tree Connection");
-                                        return element.unembed("CTreeNode", "_fIsElementNode");
-                                    }, 
-                                    function () {
+                                return element.as("CTreeNode").unembed("CTreeNode", "_fIsElementNode")
+                                .then(null, function () {
                                         console.log("Old Tree Connection");
                                         return element.as("CTreePos").unembed("CTreeNode", "_tpBegin");
                                     }
