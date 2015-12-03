@@ -479,7 +479,7 @@ var TallTree = (function() {
                         depth--;
                     }
 
-                    if (node.classList.contains("node")) {
+                    if (node.classList.contains("node") && node != limitNode) {
                         // set flag to indicate that at least one node boundary was crossed on the way to the end of the range
                         crossedNodeBoundary = true;
                     }

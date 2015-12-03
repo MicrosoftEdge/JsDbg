@@ -119,7 +119,7 @@ JsDbg.OnLoad(function() {
             .then(null, function () {
                 // Old Tree Connection
                 return getAllDirectChildrenLegacy(object);
-            })
+                    })
             .then(function(children) {
                 return children.filter(function(child) { return child != null; });
             })
@@ -239,7 +239,7 @@ JsDbg.OnLoad(function() {
             return markup.f("root").unembed("CTreeNode", "_fIsElementNode")
             .then(null, function () {
                 console.log("Old Tree Connection");
-                return promoteTreePos(markup.f("_ptpFirst"));
+            return promoteTreePos(markup.f("_ptpFirst"));
             });
         }, function (markup) {
             return markup.f("_pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
