@@ -342,7 +342,7 @@ JsDbg.OnLoad(function() {
             shortname: "tb",
             async:true,
             html: function() {
-                return this.f("_pTextBlock");
+                return this.f("_pTextBlockOrLayoutAssociations", "_pTextBlock");
             }
         }
     ];
