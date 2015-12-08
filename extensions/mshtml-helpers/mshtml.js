@@ -396,6 +396,9 @@ var MSHTML = undefined;
                     "CT_NAMEDHTML" : function() {
                         return DbgObject.global(moduleName, "g_HtmlColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
                     },
+                    "CT_NAMEDCSS" : function() {
+                        return DbgObject.global(moduleName, "g_CssColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
+                    },
                     "CT_NAMEDSYS" : function() {
                         return Promise.as(DbgObject.global(moduleName, "g_SystemColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())
                             .then(function(x) {
