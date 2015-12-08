@@ -229,14 +229,14 @@ JsDbg.OnLoad(function() {
             return new DbgObject(MSHTML.Module, "CMarkup", address).vcast()
             .then(undefined, function (err) {
                 // Virtual-table cast failed, so presume a CTreeNode.
-                return new DbgObject(MSHTML.Module, "CTreeNode", address);
-            });
+            return new DbgObject(MSHTML.Module, "CTreeNode", address);
+        });
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
             return markup.f("root").unembed("CTreeNode", "_fIsElementNode")
             .then(null, function () {
-                return promoteTreePos(markup.f("_ptpFirst"));
+            return promoteTreePos(markup.f("_ptpFirst"));
             });
         }, function (markup) {
             return markup.f("_pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
@@ -260,6 +260,7 @@ JsDbg.OnLoad(function() {
     }
 
     var builtInFields = [
+        /*ElementNode Fields*/
         {
             type: "CTreeNode",
             fullType: {
@@ -333,6 +334,173 @@ JsDbg.OnLoad(function() {
             }
         },
         {
+            type: "CTreeNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeNode"
+            },
+            fullname: "parent",
+            shortname: "p",
+            async: true,
+            html: function ()
+            {
+                return MSHTML.GetCTreeNodeFromTreeElement(this.f("parent", "_pNodeParent"));
+            }
+        },
+        {
+            type: "CTreeNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeNode"
+            },
+            fullname: "nextSibling",
+            shortname: "ns",
+            async: true,
+            html: function ()
+            {
+                return MSHTML.GetCTreeNodeFromTreeElement(this.f("nextSibling"));
+            }
+        },
+        {
+            type: "CTreeNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeNode"
+            },
+            fullname: "previousOrLastSibling",
+            shortname: "ns",
+            async: true,
+            html: function ()
+            {
+                return MSHTML.GetCTreeNodeFromTreeElement(this.f("previousOrLastSibling"));
+            }
+        },
+        {
+            type: "CTreeNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeNode"
+            },
+            fullname: "firstChild",
+            shortname: "fc",
+            async: true,
+            html: function ()
+            {
+                return MSHTML.GetCTreeNodeFromTreeElement(this.f("firstChild"));
+            }
+        },
+
+        /*TextNode fields*/
+        {
+            type: "Text",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeDataPos"
+            },
+            fullname: "parent",
+            shortname: "p",
+            async: true,
+            html: function ()
+            {
+                return MSHTML.GetCTreeNodeFromTreeElement(this.f("parent", "_pNodeParent"));
+            }
+        },
+        {
+            type: "Text",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeDataPos"
+            },
+            fullname: "nextSibling",
+            shortname: "ns",
+            async: true,
+            html: function ()
+            {
+                return MSHTML.GetCTreeNodeFromTreeElement(this.f("nextSibling"));
+            }
+        },
+        {
+            type: "Text",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeDataPos"
+            },
+            fullname: "previousOrLastSibling",
+            shortname: "ns",
+            async: true,
+            html: function ()
+            {
+                return MSHTML.GetCTreeNodeFromTreeElement(this.f("previousOrLastSibling"));
+            }
+        },
+        {
+            type: "Text",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeDataPos"
+            },
+            fullname: "Text",
+            shortname: "t",
+            async:true,
+            html: function() {
+                var that = this;
+
+                function processCharacters(characters) {
+                    var length = characters.length;
+                    var textArray = new Array();
+                    for (var i = 0; i < length; i++) {
+                        textArray.push(String.fromCharCode(characters[i]));
+                    }
+    
+                    return "\"" + textArray.join("") + "\"";
+                }
+
+                return this.f( "_spTextData.m_pT", "_pTextData")
+                    .f("isTextDataSlice", "_fIsTextDataSlice").val()
+                    .then(null, function() { return 0; }) // Handle no _fIsTextDataSlice field
+                    .then(function (isSlice) {
+                        if (!isSlice) {
+                            return that.f("_spTextData.m_pT", "_pTextData")
+                                .as("Tree::TextData")
+                                .f("text", "_pText")
+                                .array(that.f("_spTextData.m_pT", "_pTextData").f("textLength", "_ulTextLength"))
+                                .then(processCharacters);
+                        } else {
+                            var textDataSlicePromise = that.f("_spTextData.m_pT", "_pTextData").as("Tree::TextDataSlice");
+                            return Promise.join([
+                                textDataSlicePromise.f("originalTextData.m_pT", "_spOriginalTextData.m_pT"),
+                                textDataSlicePromise.f("textLength", "_ulTextLength"),
+                                textDataSlicePromise.f("offset", "_ulOffset")
+                            ])
+                            .then(function (results) {
+                                var originalTextData = results[0];
+                                var sliceLength = results[1];
+                                var sliceOffset = results[2];
+                                return originalTextData.f("text", "_pText").idx(sliceOffset.val()).array(sliceLength.val()).then(processCharacters);
+                            });
+                        }
+                    })
+                    .then(function (text) {
+                        return document.createTextNode(text);
+                    });
+            }
+        },
+        {
+            type: "Text",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeDataPos"
+            },
+            fullname: "TextLength",
+            shortname: "len",
+            async:true,
+            html: function() {
+                return this.f("_pTextData", "_spTextData.m_pT")
+                    .as("Tree::TextData", "Tree::ATextData")
+                    .f("textLength", "_ulTextLength");
+                }
+        },
+        {
             type: "Text",
             fullType: {
                 module: MSHTML.Module,
@@ -340,11 +508,11 @@ JsDbg.OnLoad(function() {
             },
             fullname: "TextBlock",
             shortname: "tb",
-            async:true,
-            html: function() {
+            async: true,
+            html: function () {
                 return this.f("_pTextBlockOrLayoutAssociations", "_pTextBlock");
             }
-        }
+        },
     ];
 
     MarkupTree = {
