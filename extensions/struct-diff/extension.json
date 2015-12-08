@@ -3,6 +3,6 @@
     "author": "Peter Salas",
     "description": "Diff two structures.",
     "dependencies": [
-        "dbgobject", "timer"
+        "dbgobject", "timer", "pointermath"
     ]
 }
