@@ -48,10 +48,8 @@ JsDbg.OnLoad(function() {
         return aNode.as("CTreeDataPos").f("t._fIsElementNode").val()
         .then(function (isElementNode) {
             if (isElementNode) {
-                console.log("elementNode");
                 return aNode.unembed("CTreeNode", "_fIsElementNode");
             } else {
-                console.log("textNode");
                 return aNode.as("CTreeDataPos");
             }
         });
@@ -238,7 +236,6 @@ JsDbg.OnLoad(function() {
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
             return markup.f("root").unembed("CTreeNode", "_fIsElementNode")
             .then(null, function () {
-                console.log("Old Tree Connection");
             return promoteTreePos(markup.f("_ptpFirst"));
             });
         }, function (markup) {
