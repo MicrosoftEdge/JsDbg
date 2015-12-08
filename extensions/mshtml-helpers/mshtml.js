@@ -68,15 +68,10 @@ var MSHTML = undefined;
             var markups = GetCDocs().f("_pWindowPrimary._pCWindow._pMarkup");
 
             return markups.f("root").unembed("CTreeNode", "_fIsElementNode")
-                            .filter(function (treeNode) {
-                                return !treeNode.isNull();
-                            })
+                .filter(function (treeNode) { return !treeNode.isNull(); })
                 .then(null, function () {
-                    console.log("Old Tree Connection");
                     return markups.f("_ptpFirst").unembed("CTreeNode", "_tpBegin")
-                        .filter(function (treeNode) {
-                            return !treeNode.isNull();
-                        });
+                    .filter(function (treeNode) { return !treeNode.isNull(); });
                 });
         }
 
@@ -94,10 +89,8 @@ var MSHTML = undefined;
                                 // CBase is in CTreeNode's ancestry, unembed.
                                 return element.as("CTreeNode").unembed("CTreeNode", "_fIsElementNode")
                                 .then(null, function () {
-                                        console.log("Old Tree Connection");
-                                        return element.as("CTreePos").unembed("CTreeNode", "_tpBegin");
-                                    }
-                                );
+                                    return element.as("CTreePos").unembed("CTreeNode", "_tpBegin");
+                                });
                             } else {
                                 // Not in the ancestry, just cast it.
                                 return element.as("CTreeNode");
@@ -402,6 +395,9 @@ var MSHTML = undefined;
                 var indirectColorRefs = {
                     "CT_NAMEDHTML" : function() {
                         return DbgObject.global(moduleName, "g_HtmlColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
+                    },
+                    "CT_NAMEDCSS" : function() {
+                        return DbgObject.global(moduleName, "g_CssColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
                     },
                     "CT_NAMEDSYS" : function() {
                         return Promise.as(DbgObject.global(moduleName, "g_SystemColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())

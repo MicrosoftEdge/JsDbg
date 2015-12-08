@@ -20,8 +20,8 @@
             document.getElementById("diffButton").addEventListener("click", function() {
                 var clock = Timer.Start();
                 var type = document.querySelector(".type").value;
-                var pointer1 = document.querySelectorAll(".pointer")[0].value;
-                var pointer2 = document.querySelectorAll(".pointer")[1].value;
+                var pointer1 = document.querySelectorAll(".pointer")[0].value.trim();
+                var pointer2 = document.querySelectorAll(".pointer")[1].value.trim();
                 var shouldRecurse = document.getElementById("recurse").checked;
 
                 window.localStorage.setItem("struct-diff.type", type);
@@ -34,7 +34,10 @@
                     return;
                 }
 
-                if (isNaN(parseInt(pointer1)) || isNaN(parseInt(pointer2))) {
+                try {
+                    pointer1 = new PointerMath.Pointer(pointer1);
+                    pointer2 = new PointerMath.Pointer(pointer2);
+                } catch (ex) {
                     alert("Please enter valid pointer values.");
                     return;
                 }
@@ -42,8 +45,8 @@
                 var module = type.substr(0, type.indexOf("!"));
                 var typename = type.substr(type.indexOf("!") + 1);
 
-                var object1 = new DbgObject(module, typename, parseInt(pointer1, 16));
-                var object2 = new DbgObject(module, typename, parseInt(pointer2, 16));
+                var object1 = new DbgObject(module, typename, pointer1);
+                var object2 = new DbgObject(module, typename, pointer2);
 
                 var differences = [];
 
@@ -91,7 +94,6 @@
                         function fieldToArrayExpansion(field) {
                             return field.value.hasDesc()
                             .then(function (hasDescription) {
-                                console.log(field.value.typename + " " + hasDescription);
                                 if (!hasDescription && field.value.isArray()) {
                                     var values = generateArray(field.value.idx.bind(field.value), field.value.arrayLength());
                                     return Promise
@@ -225,7 +227,14 @@
                             document.getElementById("results").innerHTML = "<h3>No difference!</h3>";
                         }  
                         clock.Mark("done with comparison");
-                    });
+                    })
+                    .then(null, function (err) {
+                        var errorSpan = document.createElement("span");
+                        errorSpan.classList.add("error");
+                        errorSpan.textContent = err;
+                        document.getElementById("results").innerHTML = "";
+                        document.getElementById("results").appendChild(errorSpan);
+                    })
             });
         }
 
@@ -250,6 +259,10 @@
 
         #results {
             margin-top:1em;
+        }
+
+        .error {
+            color:red;
         }
     </style>
 </head>

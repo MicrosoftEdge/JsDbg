@@ -244,118 +244,6 @@ var TallTree = (function() {
         return repeat;
     }
 
-    // empty function to simplify callback management
-    function emptyCallback() {}
-
-    // utility method to get the next preorder node with an optional callback for whenever it exits the scope of a node previously returned by this function
-    function getNextPreorderNode(root, current, onExitNode) {
-        // simplify callback code by ensuring we always have a callback function
-        if (typeof(onExitNode) !== typeof(Function)) {
-            onExitNode = emptyCallback;
-        }
-
-        // null means this is the first call, begin by visiting root
-        if (current === null) {
-            return root;
-        }
-
-        if (current.firstChild !== null) {
-            return current.firstChild;
-        }
-
-        // empty root case
-        if (current === root) {
-            // exit the root
-            onExitNode(root);
-            return null;
-        }
-
-        if (current.nextSibling !== null) {
-            // exit current
-            onExitNode(current);
-            return current.nextSibling;
-        }
-
-        while (current.nextSibling === null) {
-            // exit current
-            onExitNode(current);
-            
-            current = current.parentNode;
-
-            // ran out of nodes
-            if (current === root) {
-                // exit the root
-                onExitNode(root);
-                return null;
-            }
-        }
-
-        // exit current
-        onExitNode(current);
-        return current.nextSibling;
-    }
-
-    // utility method to get the next preorder element node with an optional callback for whenever it exits the scope of a node previously returned by this function
-    function getNextPreorderElementNode(root, current, onExitElementNode) {
-        var onExitNode = null;
-        if (typeof(onExitElementNode) === typeof(Function)) {
-            onExitNode = function(node) {
-                if (node.nodeType === Node.ELEMENT_NODE) {
-                    onExitElementNode(node);
-                }
-            };
-        }
-
-        do {
-            current = getNextPreorderNode(root, current, onExitNode);
-        } while (current !== null && current.nodeType !== Node.ELEMENT_NODE);
-
-        return current;
-    }
-
-    // utility method to get the node which occurs after the gap in the tree indicated using the DOM Range {container, offset} convention
-    function getNodeAfterBoundaryPoint(container, offset) {
-        if (container.firstChild === null) {
-            // containers which don't or can't have children are the 'after' node
-            return container;
-        }
-
-        var node = container.firstChild;
-        while (offset > 0) {
-            offset--;
-
-            // boundary point at end of container means the container is the 'after' node
-            if (node.nextSibling == null) {
-                return node.parentNode;
-            }
-
-            node = node.nextSibling;
-        }
-
-        return node;
-    }
-
-    // utility method to get the element node which occurs after the gap in the tree indicated using the DOM Range {container, offset} convention
-    function getElementNodeAfterBoundaryPoint(container, offset) {
-        var node = getNodeAfterBoundaryPoint(container, offset);
-        if (node.nodeType !== node.ELEMENT_NODE) {
-            var root = node;
-            while (root.parentNode !== null) {
-                root = root.parentNode;
-            }
-
-            var firstExitNode = null;
-            var nextPreorderElement = getNextPreorderElementNode(root, node, function(exitNode) {
-                if (firstExitNode === null) {
-                    firstExitNode = exitNode;
-                }
-            });
-            node = firstExitNode !== null ? firstExitNode : nextPreorderElement;
-        }
-
-        return node;
-    }
-
     // utility method that returns the nearest ancestor of node (inclusive) that the filter matches (or null if there's no match)
     function getNearestAncestorMatchingFilter(node, filter) {
         while (node != null) {
@@ -369,40 +257,43 @@ var TallTree = (function() {
         return null;
     }
 
-    // utility method to determine depth of node, i.e. number of ancestor nodes, non-inclusive
-    function getNodeDepth(node) {
-        var depth = 0;
-        while (node.parentNode !== null) {
-            depth++;
-            node = node.parentNode;
+    // utility method to determine if node intersects range
+    function intersectsNode(range, node) {
+        var nodeRange = document.createRange();
+        nodeRange.selectNode(node);
+
+        if (range.compareBoundaryPoints(Range.END_TO_START, nodeRange) === -1 &&
+            range.compareBoundaryPoints(Range.START_TO_END, nodeRange) === 1) {
+            // start is before end and end is after start so there is an intersection
+            return true;
         }
 
-        return depth;
+        return false;
     }
 
-    // utility method to return the nearest common ancestor of two nodes
-    function getNearestCommonAncestor(nodeA, nodeB) {
-        var depthA = getNodeDepth(nodeA);
-        var depthB = getNodeDepth(nodeB);
-
-        // bring nodes to same depth
-        while (depthA > depthB) {
-            depthA--;
-            nodeA = nodeA.parentNode;
-        }
-        while (depthB > depthA) {
-            depthB--;
-            nodeB = nodeB.parentNode;
+    // utility method to recurse a tree and write a text representation of interesting nodes that intersect range
+    function getTreeRangeAsTextRecursive(node, depth, range, result) {
+        if (!intersectsNode(range, node)) {
+            return;
         }
 
-        // find a common ancestor or null
-        while (nodeA !== null && nodeA !== nodeB) {
-            nodeA = nodeA.parentNode;
-            nodeB = nodeB.parentNode;            
+        if (node.classList && node.classList.contains("child-container")) {
+            depth++;
         }
 
-        // now the same as nodeB; may be null
-        return nodeA;
+        if (node.classList && node.classList.contains("node")) {
+            // the nodes we save don't contain other nodes to save so we can return from the recurrsion here
+            result.text += repeatString("\t", depth) + node.textContent + "\r\n";
+            result.nodes++;
+
+            return;
+        }
+
+        var child = node.firstChild;
+        while (child !== null) {
+            getTreeRangeAsTextRecursive(child, depth, range, result);
+            child = child.nextSibling;
+        }
     }
 
     return {
@@ -428,65 +319,26 @@ var TallTree = (function() {
             });
         },
 
+        // represent rows instersected by the range as a string
         GetTreeRangeAsText: function(range) {
-            var current = getElementNodeAfterBoundaryPoint(range.startContainer, range.startOffset);
-            var end = getElementNodeAfterBoundaryPoint(range.endContainer, range.endOffset);
+            // if collapsed in a row we can copy, copy that single row
+            if (range.collapsed) {
+                var matchNode = getNearestAncestorMatchingFilter(range.startContainer, function(node) {
+                    return node.classList && node.classList.contains("node");
+                });
 
-            if (!current || !end) {
-                // strange case with no elements after the boundary point
+                if (matchNode) {
+                    return matchNode.textContent;
+                }
+                
                 return null;
             }
 
-            var matchNode = getNearestAncestorMatchingFilter(current, function(node) {
-                return node.classList && node.classList.contains("node");
-            });
+            // otherwise we recurse the tree testing nodes for their intersection with range
+            var result = { text: "", nodes: 0 };
+            getTreeRangeAsTextRecursive(range.commonAncestorContainer, /*depth*/-1, range, result);
 
-            if (matchNode != null) {
-                // started inside a node element, update current to this better starting node so we write it out as text too
-                current = matchNode;
-            }
-
-            // a node to root our search for selected nodes in the tree
-            var limitNode = getNearestCommonAncestor(current, end);
-
-            // determine the depth of the current node with respect to the common ancestor of current and end (so we are no deeper that we need to be)
-            var depth = 0;
-            var parent = current;
-            while (parent !== null && parent !== limitNode) {
-                if (parent.classList && parent.classList.contains("child-container")) {
-                    depth++;
-                }
-                parent = parent.parentNode;
-            }
-
-            // when building text, we don't want our special behavior unless we have selected more than one node, but for one exception when the range is collapsed withing a node
-            var crossedNodeBoundary = range.collapsed;
-
-            // visit all nodes from current until end to build text
-            var treeAsText = "";
-            do {
-                if (current.classList.contains("node")) {
-                    // write a representation of this tree node
-                    treeAsText += repeatString("\t", depth) + current.textContent + "\r\n";
-                } else if (current.classList.contains("child-container")) {
-                    // increase depth when a new child-container is returned
-                    depth++;
-                }
-
-                current = getNextPreorderElementNode(/*root*/limitNode, current, function(node) {
-                    if (node.classList.contains("child-container")) {
-                        // when exiting a child-container scope decrease depth
-                        depth--;
-                    }
-
-                    if (node.classList.contains("node") && node != limitNode) {
-                        // set flag to indicate that at least one node boundary was crossed on the way to the end of the range
-                        crossedNodeBoundary = true;
-                    }
-                });
-            } while (current != null && current != end);
-
-            return crossedNodeBoundary ? treeAsText : null;
+            return result.nodes > 1 ? result.text : null;
         }
     };
 
