@@ -158,6 +158,8 @@ var DbgObject = (function() {
         var natural = getTypeDescriptionFunction(module, type);
         if (natural != null) {
             return Promise.as(natural);
+        } else if (type == "void") {
+            return Promise.as(null);
         }
 
         return jsDbgPromise(JsDbg.LookupBaseTypes, module, type)
