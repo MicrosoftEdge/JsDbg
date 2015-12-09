@@ -64,7 +64,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "Bounds",
             shortname: "b",
-            async:true,
             html: function() {
                 var rect = this.f("_rctBounds");
                 return Promise.map(["left", "top", "right", "bottom"], function(f) { return rect.f(f).val(); })
@@ -78,7 +77,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "Client",
             shortname: "c",
-            async:true,
             html: function() {
                 // Get the latest patch...
                 return this.latestPatch()
@@ -105,7 +103,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "All Flags",
             shortname: "flags",
-            async:true,
             html: function() {
                 return Promise
                     .filter(this.f("_flags").fields(), function(f) {
