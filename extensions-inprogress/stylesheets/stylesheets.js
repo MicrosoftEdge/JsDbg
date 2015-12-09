@@ -209,7 +209,7 @@ JsDbg.OnLoad(function() {
 
     StyleSheets = {
         Name: "StyleSheets",
-        BasicType: "CMarkup",
+        RootType: "CMarkup",
         DefaultFieldType: {
             module: MSHTML.Module,
             type: "CStyleSheet"

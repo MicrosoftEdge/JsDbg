@@ -123,7 +123,7 @@ JsDbg.OnLoad(function() {
 
     DisplayTree = {
         Name: "DisplayTree",
-        BasicType: "CDispNode",
+        RootType: "CDispNode",
         DefaultFieldType: {
             module: MSHTML.Module,
             type: "CDispNode"

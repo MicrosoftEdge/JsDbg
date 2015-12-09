@@ -55,7 +55,7 @@ JsDbg.OnLoad(function() {
 
     TextBlock = {
         Name: "TextBlock",
-        BasicType: "TextBlock",
+        RootType: "TextBlock",
         DefaultFieldType: {
             module: MSHTML.Module,
             type: "Tree::TextBlock"

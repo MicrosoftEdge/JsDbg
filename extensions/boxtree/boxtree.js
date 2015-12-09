@@ -417,7 +417,7 @@ JsDbg.OnLoad(function() {
 
     BoxTree = {
         Name: "BoxTree",
-        BasicType: "LayoutBox",
+        RootType: "LayoutBox",
         DefaultFieldType: {
             module: "edgehtml",
             type: "Layout::LayoutBox"

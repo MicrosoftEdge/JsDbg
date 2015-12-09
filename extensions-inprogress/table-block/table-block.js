@@ -26,7 +26,7 @@ JsDbg.OnLoad(function() {
 
     TableBlock = {
         Name: "TableBlock",
-        BasicType: "ComputedBlock",
+        RootType: "ComputedBlock",
         DefaultFieldType: {
             module: "edgehtml",
             type: "Tree::ComputedBlock"

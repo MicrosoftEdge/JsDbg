@@ -42,7 +42,7 @@ JsDbg.OnLoad(function() {
 
     CounterManager = {
         Name: "CounterManager",
-        BasicType: "CCounterManager",
+        RootType: "CCounterManager",
         DefaultFieldType: {
             module: "edgehtml",
             type: "CCounterManager"

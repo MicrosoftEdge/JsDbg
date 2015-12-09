@@ -531,7 +531,7 @@ JsDbg.OnLoad(function() {
 
     MarkupTree = {
         Name: "MarkupTree",
-        BasicType: "CDoc",
+        RootType: "CDoc",
         DefaultFieldType: {
             module: "edgehtml",
             type: "CTreeNode"
