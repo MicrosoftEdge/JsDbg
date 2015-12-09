@@ -389,6 +389,24 @@ JsDbg.OnLoad(function() {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("firstChild"));
             }
         },
+        {
+            type: "CTreeNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeNode"
+            },
+            fullname: "ordinals",
+            shortname: "ord",
+            async: true,
+            html: function ()
+            {
+                return Promise.join([this.f("beginOrdinal").val(), this.f("endOrdinal").val()])
+                .then(function (result)
+                {
+                    return result[0] + "," + result[1];
+                });
+            }
+        },
 
         /*TextNode fields*/
         {
@@ -511,6 +529,20 @@ JsDbg.OnLoad(function() {
             async: true,
             html: function () {
                 return this.f("_pTextBlockOrLayoutAssociations", "_pTextBlock");
+            }
+        },
+        {
+            type: "Text",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeDataPos"
+            },
+            fullname: "ordinal",
+            shortname: "ord",
+            async: true,
+            html: function ()
+            {
+                return this.f("beginOrdinal").val();
             }
         },
     ];
