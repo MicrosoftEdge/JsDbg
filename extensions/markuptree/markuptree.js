@@ -95,21 +95,19 @@ JsDbg.OnLoad(function() {
     }
 
     if (JsDbg.GetCurrentExtension() == "markuptree") {
-        DbgObjectTree.AddRoot("Markup Tree", function() { 
-            return MSHTML.GetCDocs()
-            .f("_pWindowPrimary._pCWindow._pMarkup")
-            .filter(function (markup) {
-                return !markup.isNull();
-            })
-            .then(function (markups) {
-                // Sort them by the length of the CMarkup's CAttrArray as a proxy for interesting-ness.
-                return Promise.sort(markups, function (markup) {
-                    return markup.f("_pAA._c").val()
-                .then(function (value) {
-                    return 0 - value;
-                });
-            });
+        DbgObjectTree.AddRoot("Markup Tree", function() {
+            // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
+            return Promise.sort(
+                MSHTML.GetCDocs(), 
+                function (doc) {
+                    return doc.f("_ulRefs").val().then(function (v) { return 0 - v; });
+                }
+            );
         });
+
+        DbgObjectTree.AddType(null, MSHTML.Module, "CDoc", null, function (object) {
+            // Get the primary markup.
+            return object.f("_pWindowPrimary._pCWindow._pMarkup");
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
@@ -226,11 +224,11 @@ JsDbg.OnLoad(function() {
         DbgObjectTree.AddType("Text", MSHTML.Module, "CTreeDataPos");
 
         DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "CMarkup", address).vcast()
+            return new DbgObject(MSHTML.Module, "CBase", address).vcast()
             .then(undefined, function (err) {
                 // Virtual-table cast failed, so presume a CTreeNode.
-            return new DbgObject(MSHTML.Module, "CTreeNode", address);
-        });
+                return new DbgObject(MSHTML.Module, "CTreeNode", address);
+            });
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
@@ -533,7 +531,7 @@ JsDbg.OnLoad(function() {
 
     MarkupTree = {
         Name: "MarkupTree",
-        BasicType: "CMarkup",
+        BasicType: "CDoc",
         DefaultFieldType: {
             module: "edgehtml",
             type: "CTreeNode"
