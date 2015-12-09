@@ -269,7 +269,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "_iFF",
             shortname: "_iFF",
-            async:true,
             html: function() {                
                 var that = this;
                 return Promise
@@ -287,7 +286,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "_iCF",
             shortname: "_iCF",
-            async:true,
             html: function() {
                 var that = this;
                 return Promise
@@ -305,7 +303,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "_iPF",
             shortname: "_iPF",
-            async:true,
             html: function() {
                 var that = this;
                 return Promise
@@ -323,7 +320,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "_iSF",
             shortname: "_iSF",
-            async:true,
             html: function() {
                 var that = this;
                 return Promise
@@ -341,7 +337,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "parent",
             shortname: "p",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("parent", "_pNodeParent"));
@@ -355,7 +350,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "nextSibling",
             shortname: "ns",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("nextSibling"));
@@ -369,7 +363,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "previousOrLastSibling",
             shortname: "ns",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("previousOrLastSibling"));
@@ -383,10 +376,26 @@ JsDbg.OnLoad(function() {
             },
             fullname: "firstChild",
             shortname: "fc",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("firstChild"));
+            }
+        },
+        {
+            type: "CTreeNode",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeNode"
+            },
+            fullname: "ordinals",
+            shortname: "ord",
+            html: function ()
+            {
+                return Promise.join([this.f("beginOrdinal").val(), this.f("endOrdinal").val()])
+                .then(function (result)
+                {
+                    return result[0] + "," + result[1];
+                });
             }
         },
 
@@ -399,7 +408,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "parent",
             shortname: "p",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("parent", "_pNodeParent"));
@@ -413,7 +421,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "nextSibling",
             shortname: "ns",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("nextSibling"));
@@ -427,7 +434,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "previousOrLastSibling",
             shortname: "ns",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("previousOrLastSibling"));
@@ -441,7 +447,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "Text",
             shortname: "t",
-            async:true,
             html: function() {
                 var that = this;
 
@@ -493,7 +498,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "TextLength",
             shortname: "len",
-            async:true,
             html: function() {
                 return this.f("_pTextData", "_spTextData.m_pT")
                     .as("Tree::TextData", "Tree::ATextData")
@@ -508,9 +512,21 @@ JsDbg.OnLoad(function() {
             },
             fullname: "TextBlock",
             shortname: "tb",
-            async: true,
             html: function () {
                 return this.f("_pTextBlockOrLayoutAssociations", "_pTextBlock");
+            }
+        },
+        {
+            type: "Text",
+            fullType: {
+                module: MSHTML.Module,
+                type: "CTreeDataPos"
+            },
+            fullname: "ordinal",
+            shortname: "ord",
+            html: function ()
+            {
+                return this.f("beginOrdinal").val();
             }
         },
     ];

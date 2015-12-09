@@ -436,10 +436,11 @@ var DbgObject = (function() {
 <li><code>a.f(\"b\")</code> returns a DbgObject representing an object of type B (<em>not</em> B*).</li>\
 <li><code>a.f(\"b.c.value\")</code> returns a DbgObject representing an int.</li>\
 <li><code>a.f(\"z\", \"b\")</code> returns a DbgObject representing an object of type B.</li>\
+<li><code>a.f(\"z\", \"\")</code> returns a DbgObject equivalent to <code>a</code>.</li>\
 </ul></p>",
         returns: "A promise to a DbgObject.",
         arguments: [
-            {name:"field", type:"string", description:"One or more fields (separated by \".\") to access."},
+            {name:"field", type:"string", description:"One or more fields (separated by \".\") to access.  Passing the empty string will return the same object."},
             {name:"...", description:"Fields to use if the prior field lookups failed (e.g. because a field has been renamed)."}
         ]
     }
@@ -464,6 +465,10 @@ var DbgObject = (function() {
     }
 
     DbgObject.prototype._fHelper = function(field) {
+        if (field == "") {
+            return Promise.as(this);
+        }
+
         var parts = field.split(".");
         if (parts.length > 1) {
             // multiple fields were specified
