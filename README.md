@@ -31,6 +31,7 @@ Goals:
 **Note:** Since it's difficult to use and debug the same process, if you are trying to debug your default browser, you should open [http://localhost:50000/](http://localhost:50000/) in a separate browser.
 
 ### What extensions are included?
+
 The most powerful extensions are the ones that show you the "three trees" of Trident: the markup (MarkupTree), layout (BoxTree), and display trees (DisplayTree).
 
 MarkupTree, for example, will display the internal representation of the DOM.  For example, here's a look at the DOM of bing.com:
@@ -51,25 +52,9 @@ While the example above just displayed a value, we can write whatever code we wa
 
 The code you write is automatically saved so that it will be available the next time you use the extension.
 
-## Writing Extensions
+## Writing New Extensions or Contributing to JsDbg
 
-An extension is a directory that contains an `extension.json` file and some web content.  An `extension.json` is made up of a few fields, of which only `name` is required:
-
-Name | Type | Description
------|------|------------
-`name` **(required)** | string | The name of the extension.  Content will be served from /[extension-name]/ when the extension is loaded.  The extension name should be unique, since JsDbg will not load multiple extensions with the same name.
-`description` | string | A description of the extension.
-`author` | string | The name of the author(s) or maintainer(s).
-`dependencies` | array of strings | An array of paths to other extensions that this extension depends on.  Paths are relative to the default extension directory, so built-in extensions can typically be referred to by name (e.g. `dbgobject`).  These extensions will be automatically loaded when the extension is loaded.
-`includes` | array of strings | An array of JS or CSS filenames in this extension's directory that should be included whenever this extension is used.  If other extensions take a dependency on this extension, these files will be included automatically.
-`augments` | array of strings | An array extension names that this extension augments.  Specifying an extension name here means that whenever that extension is used, this extension will be loaded as well.
-`headless` | bool | Indicates if the extension should not be listed on the launch page when loaded.  Used for extensions do not present UI of their own but are consumed by other extensions.
-
-Extensions can be loaded, unloaded, and shared with the built-in "Extensions" extension.
-
-## Contributing
-
-If you're interested in contributing to JsDbg, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+If you're interested in writing a new extension or contributing to JsDbg see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## Questions?
 

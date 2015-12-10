@@ -29,7 +29,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "Flags",
             shortname: "",
-            async:true,
             html: function() {
                 return Promise.filter(this.fields(), function(f) { return f.name.indexOf("_f") == 0; })
                 .then(function (fields) {
@@ -48,7 +47,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "RunType",
             shortname: "type",
-            async:true,
             html: function() {
                 return this.f("_runType").as("Tree::TextBlockRunTypeEnum");
             }
@@ -57,7 +55,7 @@ JsDbg.OnLoad(function() {
 
     TextBlock = {
         Name: "TextBlock",
-        BasicType: "TextBlock",
+        RootType: "TextBlock",
         DefaultFieldType: {
             module: MSHTML.Module,
             type: "Tree::TextBlock"

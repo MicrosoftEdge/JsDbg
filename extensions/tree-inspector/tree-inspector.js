@@ -17,7 +17,8 @@ var TreeInspector = (function() {
                 if (lastRenderedPointer != pointerField.value) {
                     // Don't re-render if we've already rendered.
                     pointerField.value = pointerField.value.trim();
-                    Promise.as(DbgObjectTree.InterpretAddress(new PointerMath.Pointer(pointerField.value, 16)))
+                    var objectPointer = new PointerMath.Pointer(pointerField.value, 16);
+                    Promise.as(DbgObjectTree.InterpretAddress(objectPointer))
                     .then(function(createdRoot) {
                         lastRenderedPointer = pointerField.value;
                         treeRoot = createdRoot;
@@ -31,7 +32,7 @@ var TreeInspector = (function() {
                         treeContainer.className = "invalid-tree";
                         var errorMessage = "<h3>An error occurred loading the tree.</h3>";
                         var suggestions = [
-                            "Make sure the " + namespace.BasicType + " address (0x" + parseInt(pointerField.value, 16).toString(16)  + ") is correct.",
+                            "Make sure the " + namespace.RootType + " address (" + objectPointer.toFormattedString() + ") is correct.",
                             "If you're using an iDNA trace, try indexing the trace first.",
                             "Try refreshing the page.",
                             "You can also try to debug the exception using the F12 tools.",
@@ -76,7 +77,7 @@ var TreeInspector = (function() {
                 return DbgObjectTree.GetRootTreeNodes()
                 .then(function (roots) {
                     rootsElement.className = "roots success";
-                    rootsElement.innerHTML = namespace.BasicType + " Roots: ";
+                    rootsElement.innerHTML = namespace.RootType + " Roots: ";
 
                     currentRoots = roots;
 
@@ -191,7 +192,7 @@ var TreeInspector = (function() {
 
             rootsElement = createElement("div");
             rootsElement.className = "roots success";
-            rootsElement.innerHTML = namespace.BasicType + " Roots: ";
+            rootsElement.innerHTML = namespace.RootType + " Roots: ";
             container.appendChild(rootsElement);
 
             container.appendChild(createElement("label",  "Pointer:", {"for": id("pointer")}));

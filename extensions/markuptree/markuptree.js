@@ -99,21 +99,19 @@ JsDbg.OnLoad(function() {
     }
 
     if (JsDbg.GetCurrentExtension() == "markuptree") {
-        DbgObjectTree.AddRoot("Markup Tree", function() { 
-            return MSHTML.GetCDocs()
-            .f("_pWindowPrimary._pCWindow._pMarkup")
-            .filter(function (markup) {
-                return !markup.isNull();
-            })
-            .then(function (markups) {
-                // Sort them by the length of the CMarkup's CAttrArray as a proxy for interesting-ness.
-                return Promise.sort(markups, function (markup) {
-                    return markup.f("_pAA._c").val()
-                .then(function (value) {
-                    return 0 - value;
-                });
-            });
+        DbgObjectTree.AddRoot("Markup Tree", function() {
+            // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
+            return Promise.sort(
+                MSHTML.GetCDocs(), 
+                function (doc) {
+                    return doc.f("_ulRefs").val().then(function (v) { return 0 - v; });
+                }
+            );
         });
+
+        DbgObjectTree.AddType(null, MSHTML.Module, "CDoc", null, function (object) {
+            // Get the primary markup.
+            return object.f("_pWindowPrimary._pCWindow._pMarkup");
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
@@ -231,11 +229,11 @@ JsDbg.OnLoad(function() {
         DbgObjectTree.AddType("TextNode", MSHTML.Module, "CDOMTextNode"); // !TEXTNODEMERGE
 
         DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "CMarkup", address).vcast()
+            return new DbgObject(MSHTML.Module, "CBase", address).vcast()
             .then(undefined, function (err) {
                 // Virtual-table cast failed, so presume a CTreeNode.
-            return new DbgObject(MSHTML.Module, "CTreeNode", address);
-        });
+                return new DbgObject(MSHTML.Module, "CTreeNode", address);
+            });
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
@@ -282,7 +280,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "_iFF",
             shortname: "_iFF",
-            async:true,
             html: function() {                
                 var that = this;
                 return Promise
@@ -300,7 +297,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "_iCF",
             shortname: "_iCF",
-            async:true,
             html: function() {
                 var that = this;
                 return Promise
@@ -318,7 +314,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "_iPF",
             shortname: "_iPF",
-            async:true,
             html: function() {
                 var that = this;
                 return Promise
@@ -336,7 +331,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "_iSF",
             shortname: "_iSF",
-            async:true,
             html: function() {
                 var that = this;
                 return Promise
@@ -354,7 +348,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "parent",
             shortname: "p",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("parent", "_pNodeParent"));
@@ -368,7 +361,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "nextSibling",
             shortname: "ns",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("nextSibling"));
@@ -382,7 +374,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "previousOrLastSibling",
             shortname: "ns",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("previousOrLastSibling"));
@@ -396,7 +387,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "firstChild",
             shortname: "fc",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("firstChild"));
@@ -410,7 +400,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "ordinals",
             shortname: "ord",
-            async: true,
             html: function ()
             {
                 return Promise.join([this.f("beginOrdinal").val(), this.f("endOrdinal").val()])
@@ -564,7 +553,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "parent",
             shortname: "p",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("parent", "_pNodeParent"));
@@ -578,7 +566,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "nextSibling",
             shortname: "ns",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("nextSibling"));
@@ -592,7 +579,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "previousOrLastSibling",
             shortname: "ns",
-            async: true,
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("previousOrLastSibling"));
@@ -606,7 +592,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "Text",
             shortname: "t",
-            async:true,
             html: function() {
                 var that = this;
 
@@ -658,7 +643,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "TextLength",
             shortname: "len",
-            async:true,
             html: function() {
                 return this.f("_pTextData", "_spTextData.m_pT")
                     .as("Tree::TextData", "Tree::ATextData")
@@ -673,7 +657,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "TextBlock",
             shortname: "tb",
-            async: true,
             html: function () {
                 return this.f("_pTextBlockOrLayoutAssociations", "_pTextBlock");
             }
@@ -686,7 +669,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "ordinal",
             shortname: "ord",
-            async: true,
             html: function ()
             {
                 return this.f("beginOrdinal").val();
@@ -696,7 +678,7 @@ JsDbg.OnLoad(function() {
 
     MarkupTree = {
         Name: "MarkupTree",
-        BasicType: "CMarkup",
+        RootType: "CDoc",
         DefaultFieldType: {
             module: "edgehtml",
             type: "CTreeNode"

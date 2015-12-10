@@ -80,7 +80,7 @@ JsDbg.OnLoad(function() {
 
     LayoutBuilder = {
         Name: "LayoutBuilder",
-        BasicType: "LayoutBoxBuilder",
+        RootType: "LayoutBoxBuilder",
         DefaultFieldType: {
             module: MSHTML.Module,
             type: "Layout::LayoutBoxBuilder"

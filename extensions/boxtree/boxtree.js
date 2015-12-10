@@ -199,7 +199,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "Element",
             shortname: "e",
-            async:true,
             html: function() {
                 return this.f("elementInternal", "element.m_pT");
             }
@@ -212,7 +211,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "Tag",
             shortname: "tag",
-            async:true,
             html: function() {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("elementInternal", "element.m_pT")).f("_etag");
             }
@@ -224,7 +222,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "ContentBoxWidth",
             shortname: "w",
-            async:true,
             html: function() {
                 return this.f("borderBoxModel.ContentBox.Width", "contentBoxWidth");
             }
@@ -237,7 +234,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "ContentBoxHeight",
             shortname: "h",
-            async:true,
             html: function() {
                 return this.f("borderBoxModel.ContentBox.Height", "contentBoxHeight");
             }
@@ -250,7 +246,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "LayoutPlacement",
             shortname: "lp",
-            async:true,
             html: function() {
                 var that = this;
                 var ff = that.f("sourceStyle.fancyFormat")
@@ -272,7 +267,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "DisplayNode",
             shortname: "d",
-            async:true,
             html: function() {
                 // Check if it's been extracted...
                 var that = this;
@@ -290,7 +284,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "Validity",
             shortname: "validity",
-            async:true,
             html: function(e) {
                 return Promise.join([this.f("isLayoutInvalid").val(), this.f("isDisplayInvalid").val()])
                     .then(function(invalidBits) {
@@ -315,7 +308,6 @@ JsDbg.OnLoad(function() {
             },
             fullname: "Text",
             shortname: "text",
-            async:true,
             html: function() {
                 return Promise
                     .join([
@@ -425,7 +417,7 @@ JsDbg.OnLoad(function() {
 
     BoxTree = {
         Name: "BoxTree",
-        BasicType: "LayoutBox",
+        RootType: "LayoutBox",
         DefaultFieldType: {
             module: "edgehtml",
             type: "Layout::LayoutBox"

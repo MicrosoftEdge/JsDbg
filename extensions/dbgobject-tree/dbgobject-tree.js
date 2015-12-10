@@ -24,6 +24,24 @@ var DbgObjectTree = (function() {
         return result;
     }
 
+    function notifyOfNewType(dbgObject, checkBaseTypes) {
+        if (!(dbgObject.typeDescription() in knownTypes)) {
+            knownTypes[dbgObject.typeDescription()] = true;
+            registeredTypeNotifiers.forEach(function (notifier) {
+                notifier(dbgObject.module, dbgObject.typeDescription());
+            });
+
+            if (checkBaseTypes) {
+                dbgObject.baseTypes()
+                .then(function (baseTypes) {
+                    baseTypes.forEach(function (baseType) {
+                        notifyOfNewType(baseType, /*checkBaseTypes*/false); 
+                    });
+                });
+            }
+        }
+    }
+
     function TreeNode(dbgObject, existingObjects, parent) {
         this.dbgObject = dbgObject;
         this.childrenPromise = null;
@@ -38,12 +56,7 @@ var DbgObjectTree = (function() {
             existingObjects[dbgObject.ptr()] = true;
         }
 
-        if (!(dbgObject.typeDescription() in knownTypes)) {
-            knownTypes[dbgObject.typeDescription()] = true;
-            registeredTypeNotifiers.forEach(function (notifier) {
-                notifier(dbgObject.module, dbgObject.typeDescription());
-            });
-        }
+        notifyOfNewType(dbgObject, /*checkBaseTypes*/true);
     }
 
     TreeNode.prototype.getMatchingRegistrations = function() {
