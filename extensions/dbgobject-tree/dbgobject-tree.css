@@ -5,9 +5,9 @@
 
 .error-container {
     position:absolute;
-    right:0.25em;
-    left:0px;
-    bottom:0.25em;
+    margin:0 !important;
+    top:0.25em;
+    left:0;
     text-align:right;
 }
 

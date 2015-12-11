@@ -188,28 +188,34 @@ var TreeInspector = (function() {
             }
 
             // Build up the UI.
-            container.className += " tree-inspector-root";
+            container.classList.add("tree-inspector-root");
+
+            var fieldSupportContainer = createElement("div", null, { class: "field-support-container" });
+            container.appendChild(fieldSupportContainer);
+
+            var topPane = createElement("div", null, { class: "tree-inspector-top-pane" });
+            container.appendChild(topPane);
 
             rootsElement = createElement("div");
             rootsElement.className = "roots success";
             rootsElement.innerHTML = namespace.RootType + " Roots: ";
-            container.appendChild(rootsElement);
+            topPane.appendChild(rootsElement);
 
-            container.appendChild(createElement("label",  "Pointer:", {"for": id("pointer")}));
-            container.appendChild(ws());
+            topPane.appendChild(createElement("label",  "Pointer:", {"for": id("pointer")}));
+            topPane.appendChild(ws());
 
             pointerField = createElement("input", null, {
                 "type": "text", 
                 "id": id("pointer")
             });
-            container.appendChild(pointerField);
+            topPane.appendChild(pointerField);
 
-            container.appendChild(ws());
-            container.appendChild(createElement("button", "Load", null, {
+            topPane.appendChild(ws());
+            topPane.appendChild(createElement("button", "Load", null, {
                 "click": function() { saveHashAndQueueCreateAndRender(); }
             }));
-            container.appendChild(ws());
-            container.appendChild(createElement("button", "Save", null, {
+            topPane.appendChild(ws());
+            topPane.appendChild(createElement("button", "Save", null, {
                 "click": function() {
                     if (treeRoot != null) {
                         TreeSaver.Save(treeRoot);
@@ -224,7 +230,7 @@ var TreeInspector = (function() {
                 treeAlgorithm = WideTree;
             }
 
-            container.appendChild(createElement("input", null, {
+            topPane.appendChild(createElement("input", null, {
                 name: "treeAlgorithm",
                 id: id("TallTree"),
                 type: "radio",
@@ -232,10 +238,10 @@ var TreeInspector = (function() {
             }, {
                 "change": treeAlgorithmRadioChanged
             }));
-            container.appendChild(createElement("label", "Tall Tree", {
+            topPane.appendChild(createElement("label", "Tall Tree", {
                 "for": id("TallTree")
             }));
-            container.appendChild(createElement("input", null, {
+            topPane.appendChild(createElement("input", null, {
                 name: "treeAlgorithm",
                 id: id("WideTree"),
                 type: "radio",
@@ -243,12 +249,12 @@ var TreeInspector = (function() {
             }, {
                 "change": treeAlgorithmRadioChanged
             }));
-            container.appendChild(createElement("label", "Wide Tree", {
+            topPane.appendChild(createElement("label", "Wide Tree", {
                 "for": id("WideTree")
             }));
 
-            container.appendChild(ws());
-            container.appendChild(createElement("input", null, {
+            topPane.appendChild(ws());
+            topPane.appendChild(createElement("input", null, {
                 name: "fullyExpand",
                 id: id("FullyExpand"),
                 type: "checkbox",
@@ -256,7 +262,7 @@ var TreeInspector = (function() {
             }, {
                 "change": createCheckboxChangeHandler(id("FullyExpand"))
             }));
-            container.appendChild(createElement("label", "Expand Tree Automatically", {
+            topPane.appendChild(createElement("label", "Expand Tree Automatically", {
                 "for": id("FullyExpand")
             }));
 
@@ -272,7 +278,7 @@ var TreeInspector = (function() {
                 }
             });
             if (didRegisterBreakListener) {
-                container.appendChild(ws());
+                topPane.appendChild(ws());
                 var messageContainer = createElement("div", null, {
                     id: id("RefreshOnBreakMessage"),
                     class: "popup-message-container"
@@ -301,8 +307,8 @@ var TreeInspector = (function() {
                 message.appendChild(buttons);
                 messageContainer.appendChild(message);
 
-                container.appendChild(messageContainer);
-                container.appendChild(createElement("input", null, {
+                topPane.appendChild(messageContainer);
+                topPane.appendChild(createElement("input", null, {
                     name: "refreshOnBreak",
                     id: id("RefreshOnBreak"),
                     type: "checkbox",
@@ -316,15 +322,15 @@ var TreeInspector = (function() {
                         }
                     }
                 }));
-                container.appendChild(createElement("label", "Update When Debugger Breaks", {
+                topPane.appendChild(createElement("label", "Update When Debugger Breaks", {
                     "for": id("RefreshOnBreak")
                 }));
             }
 
-            container.appendChild(createElement("div", "Click a node to show its children.  Ctrl-Click to expand or collapse a subtree."));
+            topPane.appendChild(createElement("div", "Click a node to show its children.  Ctrl-Click to expand or collapse a subtree."));
 
             treeContainer = createElement("div");
-            container.appendChild(treeContainer);
+            topPane.appendChild(treeContainer);
 
             // On a hash change, reload.
             window.addEventListener("hashchange", unpackHash);
@@ -348,7 +354,8 @@ var TreeInspector = (function() {
                             });
                         }
                     })
-                }
+                },
+                fieldSupportContainer
             )
         }
     }

@@ -3,9 +3,19 @@
     font-size:10pt;
 }
 
+html {
+    padding-top:30px;
+    height:-webkit-calc(100% - 30px);
+    height:-moz-calc(100% - 30px);
+    height:calc(100% - 30px);
+}
+
 .jsdbg-toolbar {
     font-size:12pt;
     padding:3px 5px;
+    margin-top:-30px;
+    box-sizing:border-box;
+    height:30px;
 }
 
 .jsdbg-toolbar > * {

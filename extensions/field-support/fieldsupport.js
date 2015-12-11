@@ -154,7 +154,7 @@ var FieldSupport = (function() {
         });
     }
 
-    function initialize(StoragePrefix, UserFields, DefaultType, UpdateUI) {
+    function initialize(StoragePrefix, UserFields, DefaultType, UpdateUI, container) {
 
         var reinjectUserFields = (function() {
             var modifiedTypes = [];
@@ -548,8 +548,7 @@ var FieldSupport = (function() {
         }
 
         // Add the field selection UI.
-        var container = document.createElement("div");
-        container.className = "field-selection";
+        container.classList.add("field-selection");
 
         if (window.sessionStorage.getItem(StoragePrefix + ".UserFieldsCollapsed") == "true") {
             container.classList.add("collapsed");
@@ -561,10 +560,8 @@ var FieldSupport = (function() {
         function updateShowHideButton() {
             if (container.classList.contains("collapsed")) {
                 showHide.textContent = "Show";
-                showHide.classList.add("light");
             } else {
                 showHide.textContent = "Hide";
-                showHide.classList.remove("light");
             }
         }
         updateShowHideButton();
@@ -575,7 +572,7 @@ var FieldSupport = (function() {
         })
 
         var fields = document.createElement("div");
-        fields.className = "fields";
+        fields.classList.add("fields");
 
         storage.all(function(saved) {
             for (var key in saved) {
@@ -611,8 +608,6 @@ var FieldSupport = (function() {
                     fields.appendChild(ui);
                 });
 
-            container.appendChild(fields);
-
             // Add a button for adding a new field.
             var addNew = document.createElement("button");
             addNew.className = "add small-button top-button";
@@ -644,13 +639,19 @@ var FieldSupport = (function() {
                 refreshTreeUIAfterFieldChange();
             });
 
+            var buttonContainer = document.createElement("div");
+            buttonContainer.classList.add("button-container");
+
             var browse = document.createElement("button");
             browse.className = "browse small-button top-button";
             browse.textContent = "See More..."
 
-            container.appendChild(addNew);
-            container.appendChild(browse);
-            container.appendChild(showHide);
+            buttonContainer.appendChild(addNew);
+            buttonContainer.appendChild(browse);
+            buttonContainer.appendChild(showHide);
+
+            container.appendChild(buttonContainer);
+            container.appendChild(fields);
 
             browse.addEventListener("click", function() {
                 var currentKeys = {}
@@ -711,8 +712,6 @@ var FieldSupport = (function() {
             });
 
             refreshTreeUIAfterFieldChange();
-
-            document.body.appendChild(container);
         });
     }
 

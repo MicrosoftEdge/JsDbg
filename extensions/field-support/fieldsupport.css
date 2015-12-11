@@ -1,23 +1,22 @@
-.field-selection {
-    position: fixed;
-    right: 0px;
-    top: 0px;
-    max-height: 100%;
-    box-sizing: border-box;
-    z-index: 10;
-    background: white;
-    border: thin solid #eee;
-    border-right: none;
-    border-top: none;
+.field-selection .button-container {
+    height:25px;
+    padding:5px;
+    box-sizing:border-box;
 }
 
 .field-selection .fields {
-    border:thin #eee;
-    border-style:solid none;
-    padding:0.5em;
-    z-index:-1;
-    overflow-y:auto;
-    max-height:60vh;
+    overflow-y:scroll;
+    height:calc(100% - 25px);
+    box-sizing:border-box;
+    clear:both;
+    border-top:thin solid #eee;
+    padding-top:0.5em;
+    padding-left:0.5em;
+    padding-right:0.5em;
+}
+
+.field-selection .fields :last-child {
+    margin-bottom:0.5em;
 }
 
 .field-selection .edit {
@@ -67,27 +66,33 @@
     display:none;
 }
 
-.field-selection.collapsed .add, .field-selection.collapsed .browse {
-    display:none;
+.field-selection.collapsed .button-container {
+    width:0;
+    padding-left:0;
+    padding-right:0;
+    margin-left:0;
+    margin-right:0;
+    border-left:0;
+    border-right:0;
 }
 
-.field-selection .top-button {
-    float:left;
-    margin-top:0.5em;
-    margin-bottom:0.5em;
+.field-selection.collapsed .add, .field-selection.collapsed .browse {
+    display:none;
 }
 
 .field-selection .add {
     margin-left:1em;
 }
 
-.field-selection .show-hide {
-    float:right;
-    margin-right:1em;
+.field-selection .top-button {
+    float:left;
 }
 
-.field-selection.collapsed .show-hide {
-    right:1em;
+.field-selection .show-hide {
+    z-index:10;
+    right:0px;
+    margin-right:2em;
+    position:absolute;
 }
 
 button.small-button::before {

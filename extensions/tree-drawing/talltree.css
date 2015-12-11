@@ -8,7 +8,6 @@
 
 .tall-node-container .node {
     position:relative;
-    xmin-height:18px;
     padding:0.2em 0;
     border-bottom:thin solid #eee;
     white-space:nowrap;

@@ -1,13 +1,39 @@
+.tree-inspector-root {
+    height:100%;
+    margin:0;
+    padding:0;
+}
 
-.tree-inspector-root .error {
+.tree-inspector-top-pane {
+    border-right:thin solid #eee;
+    box-sizing:border-box;
+    height:100%;
+    overflow:auto;
+    padding:8px 0 0 8px;
+    position:relative;
+}
+
+.tree-inspector-root > .field-support-container {
+    float:right;
+    height:100%;
+    overflow:auto;
+}
+
+.tree-inspector-bottom-pane > .tree-container-parent {
+    overflow:auto;
+    height:100%;
+    border-top:thin solid #eee;
+}
+
+.tree-inspector-top-pane .error {
     color:red;
 }
 
-.tree-inspector-root .roots {
+.tree-inspector-top-pane .roots {
     margin-bottom:1em;
 }
 
-.tree-inspector-root .invalid-tree {
+.tree-inspector-top-pane .invalid-tree {
     background:#fee;
     border:thin solid red;
     float:left;
@@ -15,15 +41,15 @@
     padding:1em;
 }
 
-.tree-inspector-root .invalid-tree li {
+.tree-inspector-top-pane .invalid-tree li {
     font-size:1.2em;
 }
 
-.tree-inspector-root .invalid-tree h3 {
+.tree-inspector-top-pane .invalid-tree h3 {
     margin-top:0;
 }
 
-.tree-inspector-root .invalid-tree code {
+.tree-inspector-top-pane .invalid-tree code {
     display:block;
     margin:2em;
     white-space: pre;

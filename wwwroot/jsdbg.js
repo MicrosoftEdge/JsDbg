@@ -56,7 +56,7 @@ var JsDbg = (function() {
         progress.indeterminate = true;
         loadingPanel.appendChild(progress);
         document.addEventListener("DOMContentLoaded", function() {
-            document.body.appendChild(loadingIndicator);
+            document.documentElement.appendChild(loadingIndicator);
         });
     }
 
