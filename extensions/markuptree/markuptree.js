@@ -273,7 +273,6 @@ JsDbg.OnLoad(function() {
     var builtInFields = [
         /*ElementNode Fields*/
         {
-            type: "CTreeNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeNode"
@@ -290,7 +289,6 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "CTreeNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeNode"
@@ -307,7 +305,6 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "CTreeNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeNode"
@@ -324,7 +321,6 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "CTreeNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeNode"
@@ -341,7 +337,6 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "CTreeNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeNode"
@@ -354,7 +349,6 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "CTreeNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeNode"
@@ -367,20 +361,18 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "CTreeNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeNode"
             },
             fullname: "previousOrLastSibling",
-            shortname: "ns",
+            shortname: "ps",
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("previousOrLastSibling"));
             }
         },
         {
-            type: "CTreeNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeNode"
@@ -393,7 +385,6 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "CTreeNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeNode"
@@ -412,53 +403,45 @@ JsDbg.OnLoad(function() {
 
         /*TextNode fields (TEXTNODEMERGE)*/
         {
-            type: "TextNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CDOMTextNode"
             },
             fullname: "parent",
             shortname: "p",
-            async: true,
             html: function () {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("parent", "_pNodeParent"));
             }
         },
         {
-            type: "TextNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CDOMTextNode"
             },
             fullname: "nextSibling",
             shortname: "ns",
-            async: true,
             html: function () {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("nextSibling"));
             }
         },
         {
-            type: "TextNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CDOMTextNode"
             },
             fullname: "previousOrLastSibling",
-            shortname: "ns",
-            async: true,
+            shortname: "ps",
             html: function () {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("previousOrLastSibling"));
             }
         },
         {
-            type: "TextNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CDOMTextNode"
             },
             fullname: "Text",
             shortname: "t",
-            async: true,
             html: function () {
                 var that = this;
 
@@ -503,14 +486,12 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "TextNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CDOMTextNode"
             },
             fullname: "TextLength",
             shortname: "len",
-            async: true,
             html: function () {
                 return this.f("_pTextData", "_spTextData.m_pT")
                     .as("Tree::TextData", "Tree::ATextData")
@@ -518,27 +499,23 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "TextNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CDOMTextNode"
             },
             fullname: "TextBlock",
             shortname: "tb",
-            async: true,
             html: function () {
                 return this.f("_pTextBlockOrLayoutAssociations", "_pTextBlock");
             }
         },
         {
-            type: "TextNode",
             fullType: {
                 module: MSHTML.Module,
                 type: "CDOMTextNode"
             },
             fullname: "ordinal",
             shortname: "ord",
-            async: true,
             html: function () {
                 return this.f("beginOrdinal").val();
             }
@@ -546,7 +523,6 @@ JsDbg.OnLoad(function() {
 
         /*TextNode fields (!TEXTNODEMERGE)*/
         {
-            type: "CTreeDataPos",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeDataPos"
@@ -559,7 +535,6 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "CTreeDataPos",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeDataPos"
@@ -572,20 +547,18 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "CTreeDataPos",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeDataPos"
             },
             fullname: "previousOrLastSibling",
-            shortname: "ns",
+            shortname: "ps",
             html: function ()
             {
                 return MSHTML.GetCTreeNodeFromTreeElement(this.f("previousOrLastSibling"));
             }
         },
         {
-            type: "CTreeDataPos",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeDataPos"
@@ -636,7 +609,6 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "CTreeDataPos",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeDataPos"
@@ -650,7 +622,6 @@ JsDbg.OnLoad(function() {
                 }
         },
         {
-            type: "CTreeDataPos",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeDataPos"
@@ -662,7 +633,6 @@ JsDbg.OnLoad(function() {
             }
         },
         {
-            type: "CTreeDataPos",
             fullType: {
                 module: MSHTML.Module,
                 type: "CTreeDataPos"
