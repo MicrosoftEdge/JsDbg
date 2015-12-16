@@ -250,8 +250,17 @@ var MSHTML = undefined;
                         }
                         return DbgObject.NULL;
                     });
+                } else {
+                    return DbgObject.NULL;
                 }
-            });
+            })
+            .then(function (object) {
+                if (object.isNull()) {
+                    throw new Error("Unable to reach a threadstate.");
+                } else {
+                    return object;
+                }
+            })
 
             return new PromisedDbgObject(promise);
         }
