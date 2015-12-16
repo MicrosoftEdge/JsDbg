@@ -26,9 +26,9 @@ Goals:
     $$><\\iefs\users\psalas\jsdbg\jsdbg.script
     ```
 
-4. The JsDbg server will launch and will open your default browser to [http://localhost:50000/](http://localhost:50000/).  The first time you run JsDbg, you may be prompted for elevation to register [DIA](https://msdn.microsoft.com/en-us/library/x93ctkx8.aspx).
+4. The JsDbg server will launch and will navigate a web browser to [http://localhost:50000/](http://localhost:50000/).  The first time you run JsDbg, you may be prompted for elevation to register [DIA](https://msdn.microsoft.com/en-us/library/x93ctkx8.aspx).
 
-**Note:** Since it's difficult to use and debug the same process, if you are trying to debug your default browser, you should open [http://localhost:50000/](http://localhost:50000/) in a separate browser.
+**Note:** Since it's difficult to use and debug the same process, if you are trying to debug your default browser, you should open [http://localhost:50000/](http://localhost:50000/) in a secondary browser (JsDbg works in Edge, IE 11, and Chrome).
 
 ### What extensions are included?
 
