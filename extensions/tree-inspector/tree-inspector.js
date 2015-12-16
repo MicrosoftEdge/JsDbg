@@ -201,27 +201,35 @@ var TreeInspector = (function() {
             rootsElement.innerHTML = namespace.RootType + " Roots: ";
             topPane.appendChild(rootsElement);
 
-            topPane.appendChild(createElement("label",  "Pointer:", {"for": id("pointer")}));
-            topPane.appendChild(ws());
+            var pointerInputControl = createElement("nobr");
+            topPane.appendChild(pointerInputControl);
+
+            pointerInputControl.appendChild(createElement("label",  "Pointer:", {"for": id("pointer")}));
+            pointerInputControl.appendChild(ws());
 
             pointerField = createElement("input", null, {
                 "type": "text", 
                 "id": id("pointer")
             });
-            topPane.appendChild(pointerField);
+            pointerInputControl.appendChild(pointerField);
 
             topPane.appendChild(ws());
-            topPane.appendChild(createElement("button", "Load", null, {
+
+            var loadSaveControl = createElement("nobr");
+            topPane.appendChild(loadSaveControl);
+            loadSaveControl.appendChild(createElement("button", "Load", null, {
                 "click": function() { saveHashAndQueueCreateAndRender(); }
             }));
-            topPane.appendChild(ws());
-            topPane.appendChild(createElement("button", "Save", null, {
+            loadSaveControl.appendChild(ws());
+            loadSaveControl.appendChild(createElement("button", "Save", null, {
                 "click": function() {
                     if (treeRoot != null) {
                         TreeSaver.Save(treeRoot);
                     }
                 }
             }))
+
+            topPane.appendChild(ws());
 
             treeAlgorithms[id("TallTree")] = TallTree;
             treeAlgorithms[id("WideTree")] = WideTree;
@@ -230,7 +238,9 @@ var TreeInspector = (function() {
                 treeAlgorithm = WideTree;
             }
 
-            topPane.appendChild(createElement("input", null, {
+            var treeAlgorithmControl = createElement("nobr");
+            topPane.appendChild(treeAlgorithmControl);
+            treeAlgorithmControl.appendChild(createElement("input", null, {
                 name: "treeAlgorithm",
                 id: id("TallTree"),
                 type: "radio",
@@ -238,10 +248,11 @@ var TreeInspector = (function() {
             }, {
                 "change": treeAlgorithmRadioChanged
             }));
-            topPane.appendChild(createElement("label", "Tall Tree", {
+            treeAlgorithmControl.appendChild(createElement("label", "Tall Tree", {
                 "for": id("TallTree")
             }));
-            topPane.appendChild(createElement("input", null, {
+
+            treeAlgorithmControl.appendChild(createElement("input", null, {
                 name: "treeAlgorithm",
                 id: id("WideTree"),
                 type: "radio",
@@ -249,12 +260,14 @@ var TreeInspector = (function() {
             }, {
                 "change": treeAlgorithmRadioChanged
             }));
-            topPane.appendChild(createElement("label", "Wide Tree", {
+            treeAlgorithmControl.appendChild(createElement("label", "Wide Tree", {
                 "for": id("WideTree")
             }));
 
             topPane.appendChild(ws());
-            topPane.appendChild(createElement("input", null, {
+            var expandTreeControl = createElement("nobr");
+            topPane.appendChild(expandTreeControl);
+            expandTreeControl.appendChild(createElement("input", null, {
                 name: "fullyExpand",
                 id: id("FullyExpand"),
                 type: "checkbox",
@@ -262,7 +275,7 @@ var TreeInspector = (function() {
             }, {
                 "change": createCheckboxChangeHandler(id("FullyExpand"))
             }));
-            topPane.appendChild(createElement("label", "Expand Tree Automatically", {
+            expandTreeControl.appendChild(createElement("label", "Expand Tree Automatically", {
                 "for": id("FullyExpand")
             }));
 
@@ -279,6 +292,9 @@ var TreeInspector = (function() {
             });
             if (didRegisterBreakListener) {
                 topPane.appendChild(ws());
+                var updateCheckboxControl = createElement("nobr");
+                topPane.appendChild(updateCheckboxControl);
+
                 var messageContainer = createElement("div", null, {
                     id: id("RefreshOnBreakMessage"),
                     class: "popup-message-container"
@@ -307,8 +323,8 @@ var TreeInspector = (function() {
                 message.appendChild(buttons);
                 messageContainer.appendChild(message);
 
-                topPane.appendChild(messageContainer);
-                topPane.appendChild(createElement("input", null, {
+                updateCheckboxControl.appendChild(messageContainer);
+                updateCheckboxControl.appendChild(createElement("input", null, {
                     name: "refreshOnBreak",
                     id: id("RefreshOnBreak"),
                     type: "checkbox",
@@ -322,7 +338,7 @@ var TreeInspector = (function() {
                         }
                     }
                 }));
-                topPane.appendChild(createElement("label", "Update When Debugger Breaks", {
+                updateCheckboxControl.appendChild(createElement("label", "Update When Debugger Breaks", {
                     "for": id("RefreshOnBreak")
                 }));
             }

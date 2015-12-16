@@ -16,6 +16,7 @@ html {
     margin-top:-30px;
     box-sizing:border-box;
     height:30px;
+    white-space: nowrap;
 }
 
 .jsdbg-toolbar > * {
