@@ -68,12 +68,13 @@
 
 .popup-message {
     pointer-events: auto;
-    background:rgba(0, 0, 0, 0.8);
+    background:#333338;
     color:white;
     max-width:176px;
     padding:6px;
     margin-top:4.99px;
     margin-left:-5px;
+    white-space: normal;
 }
 
 .popup-message::before {
@@ -82,7 +83,7 @@
     margin-top:calc(-5px - 6px);
     margin-left:calc(-6px + 5px + 4px);
     display:block;
-    border-bottom:5px solid rgba(0, 0, 0, 0.8);
+    border-bottom:5px solid #333338;
     border-left:6px solid transparent;
     border-right:6px solid transparent;
 }
