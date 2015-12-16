@@ -412,6 +412,10 @@ var Promise = (function() {
                 promisedType.prototype[methodName] = function promisedMethod() {
                     var forwardedArguments = arguments;
                     var resultPromise = this.promise.then(function callPromisedMethodOnRealizedObject(result) {
+                        if (!(result instanceof constructor)) {
+                            var prettyArguments = Array.from(forwardedArguments).join(", ");
+                            throw new Error("You can only call " + constructor.name + " methods (like \"" + methodName + "(" + prettyArguments + ")\") on " + constructor.name + " objects.");
+                        }
                         return result[methodName].apply(result, forwardedArguments);
                     });
                     if (resultPromisedType != null) {
@@ -423,6 +427,10 @@ var Promise = (function() {
                 promisedType.Array.prototype[methodName] = function promisedArrayMethod() {
                     var forwardedArguments = arguments;
                     var resultPromise = Promise.map(this.promise, function callPromisedMethodOnMappedItem(item) {
+                        if (!(item instanceof constructor)) {
+                            var prettyArguments = Array.from(forwardedArguments).join(", ");
+                            throw new Error("You can only call " + constructor.name + " methods (like \"" + methodName + "(" + prettyArguments + ")\") on " + constructor.name + " objects.");
+                        }
                         return item[methodName].apply(item, forwardedArguments);
                     });
                     if (resultPromisedType != null && resultPromisedType.Array != null) {
