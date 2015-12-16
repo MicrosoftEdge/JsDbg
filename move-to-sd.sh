@@ -1,1 +1,0 @@
-git diff --name-status HEAD^ | awk -f move-to-sd.awk
