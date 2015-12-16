@@ -63,16 +63,8 @@ namespace JsDbg {
                     SingleThreadSynchronizationContext syncContext = new SingleThreadSynchronizationContext();
                     SynchronizationContext.SetSynchronizationContext(syncContext);
 
-                    System.Console.TreatControlCAsInput = true;
-
                     // Run the debugger.  If the debugger ends, kill the web server.
                     runner.Run().ContinueWith((Task result) => { 
-                        webServer.Abort();
-                    });
-
-                    // Pressing enter kills the web server.
-                    Task.Run(() => ReadKeyUntilEnter()).ContinueWith((Task result) => {
-                        Console.WriteLine("Shutting down...");
                         webServer.Abort();
                     });
 
@@ -83,7 +75,13 @@ namespace JsDbg {
                         syncContext.Complete();
                     });
 
-                    Console.WriteLine("Press enter or ctrl-c to stop.");
+                    Core.BrowserLauncher.Launch(webServer.Url);
+
+                    // Pressing ctrl-c kills the web server.
+                    Task.Run(() => ReadKeysUntilAbort(webServer.Url)).ContinueWith((Task result) => {
+                        Console.WriteLine("Shutting down...");
+                        webServer.Abort();
+                    });
 
                     // Process requests until the web server is taken down.
                     syncContext.RunOnCurrentThread();
@@ -95,10 +93,14 @@ namespace JsDbg {
             return 0;
         }
 
-        static void ReadKeyUntilEnter() {
+        static void ReadKeysUntilAbort(string url) {
+            System.Console.TreatControlCAsInput = true;
+            Console.WriteLine("Press enter to launch a browser or ctrl-c to shutdown.");
             do {
                 ConsoleKeyInfo key = Console.ReadKey(/*intercept*/true);
-                if (key.Key == ConsoleKey.Enter || ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control && key.Key == ConsoleKey.C)) {
+                if (key.Key == ConsoleKey.Enter) {
+                    Core.BrowserLauncher.Launch(url);
+                } else if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control && key.Key == ConsoleKey.C) {
                     return;
                 }
                 // Otherwise keep going.

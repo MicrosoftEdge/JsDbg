@@ -35,7 +35,7 @@ namespace Sushraja.Jump
                 }
                 else
                 {
-                    webServer.Listen();
+                    var webServerTask = webServer.Listen();
                 }
                 this.UpdateUI();
             }
@@ -49,7 +49,7 @@ namespace Sushraja.Jump
         private void ServerURL_Click(object sender, RoutedEventArgs e)
         {
             // Launch the browser.
-            System.Diagnostics.Process.Start(webServer.Url);
+            Core.BrowserLauncher.Launch(webServer.Url);
         }
 
         private void UpdateUI()
@@ -94,7 +94,7 @@ namespace Sushraja.Jump
                 object keyValue = key.GetValue("AutoStartServer");
                 if (keyValue != null && keyValue.ToString() == "true")
                 {
-                    webServer.Listen(/*shouldLaunchBrowser*/false);
+                    var webServerTask = webServer.Listen();
                 }
                 key.Close();
                 this.UpdateUI(); 

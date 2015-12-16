@@ -125,7 +125,7 @@ namespace JsDbg {
             }
         }
 
-        public async Task Listen(bool shouldLaunchBrowser = true) {
+        public async Task Listen() {
             bool didTryNetsh = false;
             while (true) {
                 this.CreateHttpListener();
@@ -164,12 +164,6 @@ namespace JsDbg {
             }
 
             Console.Out.WriteLine("Listening on {0}...", this.Url);
-
-            // Launch the browser.
-            if (shouldLaunchBrowser)
-            {
-                System.Diagnostics.Process.Start(this.Url);
-            }
 
             try {
                 while (true) {

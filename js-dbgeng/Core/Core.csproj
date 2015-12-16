@@ -70,6 +70,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BrowserLauncher.cs" />
     <Compile Include="DiaHelpers.cs" />
     <Compile Include="DiaSessionLoader.cs" />
     <Compile Include="IConfiguration.cs" />

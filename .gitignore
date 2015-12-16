@@ -5,3 +5,4 @@ js-dbgeng/*/bin/*
 *.sublime-workspace
 *.opensdf
 *.sdf
+*.VC.opendb
