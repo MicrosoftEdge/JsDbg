@@ -30,13 +30,20 @@
 }
 
 .field-selection .fields-container {
-    font-size:8pt;
+    font-size:10pt;
     margin-left:1em;
 }
 
 .field-selection .fields-container input {
-    width:8pt;
-    height:8pt;
+    visibility: hidden;
+}
+
+.field-selection .fields-container label:hover input {
+    visibility: visible;
+}
+
+.field-selection .fields-container label input:checked {
+    visibility: visible;
 }
 
 .field-selection .fields-container label:hover {
@@ -45,6 +52,11 @@
 
 .field-selection .fields-container label {
     line-height:1;
+    cursor:default;
+}
+
+.field-selection .fields-container .field-type:hover {
+    text-decoration:underline;
 }
 
 .field-selection .fields-container .field-type, .field-selection .fields-container .field-name {

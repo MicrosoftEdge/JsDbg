@@ -57,16 +57,14 @@ var FieldSupport = (function() {
 
         var fieldsContainer = document.createElement("div");
         fieldsContainer.classList.add("fields-container");
-        if (type != "CTreeNode") {
-            typeContainer.classList.add("collapsed");
-        }
+        typeContainer.classList.add("collapsed");
         typeContainer.appendChild(fieldsContainer);
 
         var initialTransformer = function (names, dbgObject) { return dbgObject; };
         var addField = function (renderer) { DbgObjectTree.AddField(module, type, renderer); };
         var removeField = function (renderer) { DbgObjectTree.RemoveField(module, type, renderer); };
 
-        new DbgObject(module, type, 0).fields()
+        new DbgObject(module, type, 0).fields(/*includeBaseTypes*/false)
         .then(function (fields) {
             container.appendChild(typeContainer);
             createFieldUIForFields(module, type, fields, fieldsContainer, initialTransformer, addField, removeField);
@@ -80,7 +78,7 @@ var FieldSupport = (function() {
                     module, 
                     type, 
                     field.name, 
-                    field.value.typeDescription(),
+                    field.value,
                     transformObject,
                     addField,
                     removeField
@@ -89,7 +87,18 @@ var FieldSupport = (function() {
         });
     }
 
-    function createAutomaticFieldUI(module, type, fieldName, fieldType, transformObject, addField, removeField) {
+    function fullyDereferenceDbgObject(dbgObject) {
+        return Promise.as(dbgObject)
+        .then(function (dbgObject) {
+            if (dbgObject.isPointer()) {
+                return fullyDereferenceDbgObject(dbgObject.deref());
+            } else {
+                return dbgObject;
+            }
+        });
+    }
+
+    function createAutomaticFieldUI(module, type, fieldName, fieldObject, transformObject, addField, removeField) {
         var updatedTransformer = function (names, dbgObject) {
             dbgObject = transformObject(names, dbgObject);
             return Promise.as(dbgObject)
@@ -134,28 +143,37 @@ var FieldSupport = (function() {
         
         var fieldTypeContainer = document.createElement("span");
         fieldTypeContainer.classList.add("field-type");
+
+        var fieldType = fieldObject.typeDescription();
         fieldTypeContainer.textContent = fieldType;
         fieldTypeContainer.title = fieldType;
 
         var subFieldsContainer = null;
         fieldTypeContainer.addEventListener("click", function (e) {
-            e.preventDefault();
-
             if (subFieldsContainer == null) {
+                e.preventDefault();
                 subFieldsContainer = document.createElement("div");
                 subFieldsContainer.classList.add("fields-container");
 
-                new DbgObject(module, type, 0)
-                .f(fieldName)
+                fullyDereferenceDbgObject(fieldObject)
                 .then(function (subObject) {
-                    return subObject
-                    .fields()
-                    .then(function (subTypeFields) {
-                        fieldContainer.parentNode.insertBefore(subFieldsContainer, fieldContainer.nextSibling);
-                        createFieldUIForFields(module, subObject.typeDescription(), subTypeFields, subFieldsContainer, updatedTransformer, addField, removeField);
+                    return subObject.isTypeWithFields()
+                    .then(function (isTypeWithFields) {
+                        if (isTypeWithFields) {
+                            return subObject
+                            .fields()
+                            .then(function (subTypeFields) {
+                                fieldContainer.parentNode.insertBefore(subFieldsContainer, fieldContainer.nextSibling);
+                                createFieldUIForFields(module, subObject.typeDescription(), subTypeFields, subFieldsContainer, updatedTransformer, addField, removeField);
+                            })
+                        } else {
+                            subFieldsContainer = false;
+                            fieldTypeContainer.click();
+                        }
                     })
                 })
-            } else {
+            } else if (subFieldsContainer != false) {
+                e.preventDefault();
                 subFieldsContainer.classList.toggle("collapsed");
             }
         })
