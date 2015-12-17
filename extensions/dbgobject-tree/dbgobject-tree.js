@@ -214,7 +214,8 @@ var DbgObjectTree = (function() {
                 fields.forEach(function (field) {
                     fieldPromise = fieldPromise.then(function () {
                         return field(that.dbgObject, result);
-                    });
+                    })
+                    .then(null, function () { });
                 })
 
                 return fieldPromise.then(function () {

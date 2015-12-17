@@ -6,3 +6,4 @@ js-dbgeng/*/bin/*
 *.opensdf
 *.sdf
 *.VC.opendb
+*.tmp.*
