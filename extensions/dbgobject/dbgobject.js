@@ -668,6 +668,25 @@ var DbgObject = (function() {
         })
     }
 
+    DbgObject.prototype._help_isTypeWithFields = {
+        description: "Indicates if the type of the DbgObject is one that may have fields.",
+        returns: "A promise to a bool."
+    };
+    
+    DbgObject.prototype.isTypeWithFields = function() {
+        var that = this;
+        return Promise.as(null)
+        .then(function () {
+            if (that.typename in scalarTypes) {
+                return false;
+            } else if (that.isPointer()) {
+                return false;
+            } else {
+                return that.isEnum().then(function (isEnum) { return !isEnum; });
+            }
+        });
+    }
+
     DbgObject.prototype._help_isEnum = {
         description: "Indicates if the type of the DbgObject is an enum.",
         returns: "A promise to a bool."
