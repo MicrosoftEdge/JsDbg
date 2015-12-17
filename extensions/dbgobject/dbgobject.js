@@ -1081,7 +1081,7 @@ var DbgObject = (function() {
         description: "Gets all available fields for a given type.",
         returns: "A promise to an array of {name:(string), offset:(int), size:(int), value:(DbgObjects)} objects."
     }
-    DbgObject.prototype.fields = function() {
+    DbgObject.prototype.fields = function(includeBaseTypes) {
         if (this._isPointer()) {
             throw new Error("You cannot lookup fields on a pointer.");
         }
@@ -1090,9 +1090,13 @@ var DbgObject = (function() {
             return Promise.as([]);
         }
 
+        if (includeBaseTypes === undefined) {
+            includeBaseTypes = true;
+        }
+
         var that = this;
         // Lookup the fields...
-        return jsDbgPromise(JsDbg.LookupFields, this.module, this.typename)
+        return jsDbgPromise(JsDbg.LookupFields, this.module, this.typename, includeBaseTypes)
 
         // Sort them by offset and massage the output.
         .then(function(result) {

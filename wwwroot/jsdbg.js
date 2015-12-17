@@ -690,8 +690,8 @@ var JsDbg = (function() {
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        LookupFields: function(module, type, callback) {
-            jsonRequest("/jsdbg/typefields?module=" + esc(module) + "&type=" + esc(type), callback, CacheType.Cached);
+        LookupFields: function(module, type, includeBaseTypes, callback) {
+            jsonRequest("/jsdbg/typefields?module=" + esc(module) + "&type=" + esc(type) + "&includeBaseTypes=" + esc(includeBaseTypes), callback, CacheType.Cached);
         },
 
         _help_LookupBaseTypes: {

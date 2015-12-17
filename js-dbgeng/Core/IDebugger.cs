@@ -86,7 +86,7 @@ namespace JsDbg
     {
         event DebuggerChangeEventHandler DebuggerChange;
         void Dispose();
-        Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename);
+        Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes);
         Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typeName);
         bool IsPointer64Bit { get; }
         Task<bool> IsTypeEnum(string module, string type);

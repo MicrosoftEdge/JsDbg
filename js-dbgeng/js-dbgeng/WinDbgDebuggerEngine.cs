@@ -176,9 +176,45 @@ namespace JsDbg {
                 }
                 Console.Out.WriteLine();
 
+                // Sort the parsed base classes so that the furthest base classes come first. (i.e. if C : B, and B : A, we should have [A, B], where C is the type we're getting).
+                parser.ParsedBaseClasses.Sort((a, b) => {
+                    var endOfA = a.Offset + a.TypeSize;
+                    var endOfB = b.Offset + b.TypeSize;
+                    if (endOfA != endOfB) {
+                        // Whichever base class ends first is the "further" base class.
+                        return endOfA.CompareTo(endOfB);
+                    } else {
+                        // The base classes end at the same offset.  Whichever appeared second is the "further" base class.
+                        return b.Index.CompareTo(a.Index);
+                    }
+                });
+
+                List<SBaseType> baseTypes = new List<SBaseType>();
+                int currentBaseClassIndex = 0;
+
                 // Construct the type.
                 Dictionary<string, SField> fields = new Dictionary<string, SField>();
                 foreach (DumpTypeParser.SField parsedField in parser.ParsedFields) {
+                    // Advance the current base class index if necessary.
+                    while (currentBaseClassIndex < parser.ParsedBaseClasses.Count) {
+                        // Check if we've exhausted the fields in this base type.
+                        var currentBaseClass = parser.ParsedBaseClasses[currentBaseClassIndex];
+                        if ((parsedField.Offset + parsedField.Size) > (currentBaseClass.Offset + currentBaseClass.TypeSize)) {
+                            // This isn't perfect for at least a couple reasons:
+                            //  - All constants are associated with the final type, even if they are part of the base type.
+                            //  - Base types of the base types aren't known.
+                            // The only thing this base type is sufficient for is knowing which fields are associated with each type,
+                            // which fortunately is all we need it for (right now anyway).
+                            SBaseType baseType = new SBaseType(new Type(module, currentBaseClass.TypeName, currentBaseClass.TypeSize, /*isEnum*/false, fields, null, null), (int)currentBaseClass.Offset);
+                            baseTypes.Add(baseType);
+                            fields = new Dictionary<string, SField>();
+                            ++currentBaseClassIndex;
+                        } else {
+                            // The field is in this base type.
+                            break;
+                        }
+                    }
+
                     string resolvedTypeName = parsedField.TypeName;
                     uint resolvedTypeSize = parsedField.Size;
 
@@ -217,9 +253,13 @@ namespace JsDbg {
                     }
                 }
 
-                List<SBaseTypeName> baseTypeNames = new List<SBaseTypeName>();
-                foreach (DumpTypeParser.SBaseClass parsedBaseClass in parser.ParsedBaseClasses) {
-                    baseTypeNames.Add(new SBaseTypeName(parsedBaseClass.TypeName, (int)parsedBaseClass.Offset));
+                // Finish up the base types.
+                while (currentBaseClassIndex < parser.ParsedBaseClasses.Count) {
+                    var currentBaseClass = parser.ParsedBaseClasses[currentBaseClassIndex];
+                    SBaseType baseType = new SBaseType(new Type(module, currentBaseClass.TypeName, currentBaseClass.TypeSize, /*isEnum*/false, fields, null, null), (int)currentBaseClass.Offset);
+                    baseTypes.Add(baseType);
+                    fields = new Dictionary<string, SField>();
+                    ++currentBaseClassIndex;
                 }
 
                 Dictionary<string, ulong> constants = new Dictionary<string, ulong>();
@@ -227,8 +267,7 @@ namespace JsDbg {
                     constants.Add(constant.ConstantName, constant.Value);
                 }
 
-                // Construct the type.  We don't need to fill base types because this approach embeds base type information directly in the Type.
-                return new Type(module, typename, typeSize, parser.IsEnum, fields, constants, null, baseTypeNames);
+                return new Type(module, typename, typeSize, parser.IsEnum, fields, constants, baseTypes);
             }, String.Format("Unable to lookup type from debugger: {0}!{1}", module, typename));
         }
 

@@ -52,7 +52,7 @@ namespace JsDbg
     }
    
     public class Type {
-        public Type(string module, string name, uint size, bool isEnum, Dictionary<string, SField> fields, Dictionary<string, ulong> constants, List<SBaseType> baseTypes, List<SBaseTypeName> baseTypeNames) {
+        public Type(string module, string name, uint size, bool isEnum, Dictionary<string, SField> fields, Dictionary<string, ulong> constants, List<SBaseType> baseTypes) {
             this.module = module;
             this.name = name;
             this.size = size;
@@ -72,7 +72,6 @@ namespace JsDbg
                 }
             }
             this.baseTypes = baseTypes;
-            this.baseTypeNames = baseTypeNames;
         }
 
         public string Module {
@@ -150,47 +149,38 @@ namespace JsDbg
                             yield return nestedBaseTypeResult;
                         }
                     }
-                } else if (this.baseTypeNames != null) {
-                    foreach (SBaseTypeName baseTypeName in this.baseTypeNames) {
-                        SBaseTypeResult result = new SBaseTypeResult();
-                        result.TypeName = baseTypeName.Name;
-                        result.Offset = baseTypeName.Offset;
-                        yield return result;
-                    }
                 }
 
                 yield break;
             }
         }
         
-        public IEnumerable<SFieldResult> Fields {
-            get {
-                if (this.baseTypes != null) {
-                    foreach (SBaseType baseType in this.baseTypes) {
-                        foreach (SFieldResult innerBaseField in baseType.Type.Fields) {
-                            SFieldResult baseField = innerBaseField;
-                            baseField.Offset = (uint)(baseField.Offset + baseType.Offset);
-                            yield return baseField;
-                        }
+        public IEnumerable<SFieldResult> Fields(bool includeBaseTypes) {
+            if (includeBaseTypes && this.baseTypes != null) {
+                foreach (SBaseType baseType in this.baseTypes) {
+                    foreach (SFieldResult innerBaseField in baseType.Type.Fields(includeBaseTypes: true)) {
+                        SFieldResult baseField = innerBaseField;
+                        baseField.Offset = (uint)(baseField.Offset + baseType.Offset);
+                        yield return baseField;
                     }
                 }
-
-                if (this.fields != null) {
-                    foreach (string fieldName in this.fields.Keys) {
-                        SField innerField = this.fields[fieldName];
-                        SFieldResult field = new SFieldResult();
-                        field.FieldName = fieldName;
-                        field.TypeName = innerField.TypeName;
-                        field.Offset = innerField.Offset;
-                        field.Size = innerField.Size;
-                        field.BitCount = innerField.BitCount;
-                        field.BitOffset = innerField.BitOffset;
-                        yield return field;
-                    }
-                }
-
-                yield break;
             }
+
+            if (this.fields != null) {
+                foreach (string fieldName in this.fields.Keys) {
+                    SField innerField = this.fields[fieldName];
+                    SFieldResult field = new SFieldResult();
+                    field.FieldName = fieldName;
+                    field.TypeName = innerField.TypeName;
+                    field.Offset = innerField.Offset;
+                    field.Size = innerField.Size;
+                    field.BitCount = innerField.BitCount;
+                    field.BitOffset = innerField.BitOffset;
+                    yield return field;
+                }
+            }
+
+            yield break;
         }
 
         public IEnumerable<SConstantResult> Constants {
@@ -219,7 +209,6 @@ namespace JsDbg
         private readonly Dictionary<string, ulong> constants;
         private readonly Dictionary<string, string> caseInsensitiveConstants;
         private readonly List<SBaseType> baseTypes;
-        private readonly List<SBaseTypeName> baseTypeNames;
         private readonly bool isEnum;
     }
 
@@ -282,7 +271,7 @@ namespace JsDbg
         private Type GetBuiltinType(IDiaSession session, string module, string typename) {
             string strippedType = typename.Replace("unsigned", "").Replace("signed", "").Trim();
             if (BuiltInTypes.ContainsKey(strippedType)) {
-                return new Type(module, typename, BuiltInTypes[strippedType], false, null, null, null, null);
+                return new Type(module, typename, BuiltInTypes[strippedType], false, null, null, null);
             } else if (strippedType.EndsWith("*")) {
                 uint pointerSize = this.isPointer64Bit ? 8u : 4u;
 
@@ -302,7 +291,7 @@ namespace JsDbg
                     this.modulePointerSizes[module] = pointerSize;
                 }
 
-                return new Type(module, typename, pointerSize, false, null, null, null, null);
+                return new Type(module, typename, pointerSize, false, null, null, null);
             } else {
                 return null;
             }

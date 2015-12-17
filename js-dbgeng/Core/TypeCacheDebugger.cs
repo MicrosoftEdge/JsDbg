@@ -129,7 +129,7 @@ namespace Core {
                     }
 
                     // Construct the type.
-                    JsDbg.Type type = new JsDbg.Type(module, typename, typeSize, symTag == SymTagEnum.SymTagEnum, fields, constants, baseTypes, null);
+                    JsDbg.Type type = new JsDbg.Type(module, typename, typeSize, symTag == SymTagEnum.SymTagEnum, fields, constants, baseTypes);
                     return type;
                 }
             }
@@ -143,8 +143,8 @@ namespace Core {
 
         public void Dispose() { }
 
-        public async Task<IEnumerable<JsDbg.SFieldResult>> GetAllFields(string module, string typename) {
-            return (await this.LoadType(module, typename)).Fields;
+        public async Task<IEnumerable<JsDbg.SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
+            return (await this.LoadType(module, typename)).Fields(includeBaseTypes);
         }
 
         public async Task<IEnumerable<JsDbg.SBaseTypeResult>> GetBaseTypes(string module, string typename) {

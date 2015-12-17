@@ -784,8 +784,10 @@ namespace JsDbg {
         private async void ServeTypeFields(NameValueCollection query, Action<string> respond, Action fail) {
             string module = query["module"];
             string type = query["type"];
+            string includeBaseTypesString = query["includeBaseTypes"];
+            bool includeBaseTypes;
 
-            if (module == null || type == null) {
+            if (module == null || type == null || includeBaseTypesString == null || !bool.TryParse(includeBaseTypesString, out includeBaseTypes)) {
                 fail();
                 return;
             }
@@ -795,7 +797,7 @@ namespace JsDbg {
                 StringBuilder builder = new StringBuilder();
                 builder.Append("{ \"fields\": [\n");
                 bool isFirst = true;
-                foreach (SFieldResult field in await this.debugger.GetAllFields(module, type)) {
+                foreach (SFieldResult field in await this.debugger.GetAllFields(module, type, includeBaseTypes)) {
                     if (!isFirst) {
                         builder.Append(",\n");
                     }

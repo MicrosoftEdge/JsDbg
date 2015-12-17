@@ -18,6 +18,8 @@ namespace JsDbg {
         internal struct SBaseClass {
             internal uint Offset;
             internal string TypeName;
+            internal uint TypeSize;
+            internal int Index;
         }
 
         internal struct SBitFieldDescription {
@@ -69,7 +71,7 @@ namespace JsDbg {
                             SBitFieldDescription bitField;
                             bool didParseType = this.ParseType(ArraySlice(parts, 2), out typeSize, out typename, out bitField);
                             if (didParseType) {
-                                this.ParsedBaseClasses.Add(new SBaseClass() { Offset = offset, TypeName = typename });
+                                this.ParsedBaseClasses.Add(new SBaseClass() { Offset = offset, TypeName = typename, TypeSize = typeSize, Index = this.ParsedBaseClasses.Count });
                             } else {
                                 System.Diagnostics.Debug.WriteLine(String.Format("Unable to parse type entry: {0}", line));
                             }
@@ -222,8 +224,12 @@ namespace JsDbg {
                 typename = typename.TrimEnd(',');
                 bitField = new SBitFieldDescription();
 
-                if (tokens.Length > 5 && tokens[5] == "bytes") {
-                    size = uint.Parse(tokens[4].Substring(2), System.Globalization.NumberStyles.HexNumber);
+                if (tokens.Length > 5) {
+                    for (int i = 5; i < tokens.Length; ++i) {
+                        if (tokens[i] == "bytes") {
+                            size = uint.Parse(tokens[i - 1].Substring(2), System.Globalization.NumberStyles.HexNumber);
+                        }
+                    }
                 }
                 return true;
             }
