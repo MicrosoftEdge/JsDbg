@@ -21,6 +21,9 @@ JsDbg.OnLoad(function() {
             }
         });
     });
+    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextNode", function (textNode) {
+        return "<a href=\"/markuptree/#" + textNode.ptr() + "\">" + textNode.ptr() + "</a>";
+    });
 
     // Old Tree Connection, convert a CTreePos into a CTreeNode/CTreeDataPos
     function promoteTreePos(treePos) {
@@ -30,7 +33,10 @@ JsDbg.OnLoad(function() {
             if (treePosFlags & 0x01) {
                 return treePos.unembed("CTreeNode", "_tpBegin")
             } else if (treePosFlags & 0x04) {
-                return treePos.as("CTreeDataPos");
+                return treePos.unembed("CDOMTextNode", "treePos")
+                .then(null, function () {
+                    return treePos.as("CTreeDataPos");
+                });
             } else if (treePosFlags & 0x08) {
                 return treePos.as("CTreeDataPos").f("p._dwPointerAndGravityAndCling").bigval()
                 .then(function (pointerandGravityAndCling) {
@@ -151,13 +157,13 @@ JsDbg.OnLoad(function() {
                 } else if (etagValue == "ETAG_ROOT") {
                     return "$root";
                 } else if (etagValue == "ETAG_GENERATED") {
-                    return treeNode.as("Tree::GeneratedElementNode").f("_gctype").constant()
+                    return treeNode.as("Tree::GeneratedElementNode").f("_generatedContentType", "_gctype").constant()
                     .then(null, function() {
                         // Tree::GeneratedElementNode replaced CGeneratedTreeNode in the RS1 milestone.
                         return treeNode.as("CGeneratedTreeNode").f("_gctype").constant();
                     })
                     .then(function (gcType) {
-                        return "::" + gcType.substr("GC_".length).toLowerCase();
+                        return "::" + gcType.replace(/GC_/, "").toLowerCase();
                     });
                 } else {
                     // Non-generic elements: just strip the tag identifier.
@@ -493,7 +499,7 @@ JsDbg.OnLoad(function() {
             fullname: "TextLength",
             shortname: "len",
             html: function () {
-                return this.f("_pTextData", "_spTextData.m_pT")
+                return this.f("textData.m_pT")
                     .as("Tree::TextData", "Tree::ATextData")
                     .f("textLength", "_ulTextLength");
             }
@@ -506,7 +512,7 @@ JsDbg.OnLoad(function() {
             fullname: "TextBlock",
             shortname: "tb",
             html: function () {
-                return this.f("_pTextBlockOrLayoutAssociations", "_pTextBlock");
+                return this.f("textBlockOrLayoutAssociations");
             }
         },
         {
