@@ -35,14 +35,16 @@
 }
 
 .field-selection .fields-container label {
-    line-height:1;
+    display:flex;
     cursor:default;
 }
 
 .field-selection .fields-container label input {
     height:12px;
     width:12px;
+    align-self: flex-end;
     margin:0;
+    flex-shrink: 0;
     box-sizing:border-box;
 }
 
@@ -52,13 +54,19 @@
 
 .field-selection .fields-container .field-type, .field-selection .fields-container .field-name {
     box-sizing:border-box;
-    display:inline-block;
     white-space: nowrap;
     margin:0 3px;
-    max-width:calc((100% - 12px) / 2 - 6px);
     overflow:hidden;
     text-overflow: ellipsis;
-    line-height:normal;
+}
+
+.field-selection .fields-container .field-type {
+    min-width:0px;
+    flex-shrink:100000;
+}
+
+.field-selection .fields-container .field-name {
+    flex-shrink:0.001;
 }
 
 .field-selection .collapsed .field-type {
@@ -66,7 +74,6 @@
 }
 
 .field-selection .collapsed .field-name {
-    max-width:calc((100% - 12px) - 6px);
     padding-right:3px;
 }
 

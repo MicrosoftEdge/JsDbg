@@ -278,7 +278,6 @@ var FieldSupport = (function() {
 
             return Promise.map(fields, function (field) {
                 var fieldContainer = document.createElement("label");
-                fieldContainer.style.display = "block";
                 fieldsContainer.appendChild(fieldContainer);
                 return that.renderFieldUI(field, type, fieldContainer);
             });
@@ -307,7 +306,6 @@ var FieldSupport = (function() {
             names.push(currentField.name);
         }
         fieldNameContainer.textContent = names.reverse().join(".");
-        fieldNameContainer.title = field.name;
         fieldContainer.appendChild(fieldNameContainer);
         
         var fieldTypeContainer = document.createElement("span");
@@ -315,8 +313,9 @@ var FieldSupport = (function() {
 
         var fieldType = field.dbgObject.typeDescription();
         fieldTypeContainer.textContent = fieldType;
-        fieldTypeContainer.title = fieldType;
         fieldContainer.appendChild(fieldTypeContainer);
+
+        fieldContainer.title = fieldType + " " + field.name;
 
         return field.getChildType()
         .then(function (childType) {
