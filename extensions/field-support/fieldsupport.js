@@ -14,6 +14,24 @@ var FieldSupport = (function() {
         this.fieldsIncludingBaseTypes = null;
         this.isExpanded = false;
         this.includingBaseTypes = undefined;
+
+        var that = this;
+        this.userFields = userFields.getUserFields(module, typename).map(function (userField) {
+            return new KnownField(
+                userField.name,
+                userField.optionalType,
+                userField.getter,
+                // TODO: Renderer abstraction is at the wrong level.
+                function renderer(dbgObject, element, fields) {
+                    return dbgObject.desc().then(function (desc) {
+                        var descriptionContainer = document.createElement("div");
+                        element.appendChild(descriptionContainer);
+                        descriptionContainer.innerHTML = fields + ":" + desc;
+                    });
+                },
+                that
+            );
+        });
     }
 
     KnownType.prototype.isType = function (module, typename) {
@@ -26,7 +44,22 @@ var FieldSupport = (function() {
         .fields(includeBaseTypes)
         .then(function (fields) {
             return fields.map(function (field) {
-                return new KnownField(field.name, field.value, that);
+                var dereferencedType = field.value.typeDescription().replace(/\**$/, "");
+                return new KnownField(
+                    field.name, 
+                    dereferencedType,
+                    function getter(dbgObject) {
+                        return dbgObject.f(field.name);
+                    },
+                    function renderer(dbgObject, element, fields) {
+                        return dbgObject.desc().then(function (desc) {
+                            var descriptionContainer = document.createElement("div");
+                            element.appendChild(descriptionContainer);
+                            descriptionContainer.innerHTML = fields + ":" + desc;
+                        });
+                    },
+                    that
+                );
             });
         });
     }
@@ -72,6 +105,7 @@ var FieldSupport = (function() {
 
     KnownType.prototype.getFieldsToShowWhenCollapsed = function(shownFields) {
         var that = this;
+
         if (this.fieldsIncludingBaseTypes != null) {
             this.fieldsIncludingBaseTypes.forEach(function (field) {
                 that.considerFieldWhenCollapsed(field, shownFields);
@@ -87,7 +121,8 @@ var FieldSupport = (function() {
 
     KnownType.prototype.getFields = function () {
         if (this.fields != null) {
-            return Promise.as(this.fields);
+            // TODO: fix ugly concatenation of user fields and native fields
+            return Promise.as(this.userFields.concat(this.fields));
         } else {
             var that = this
             return this.getFieldsInternal(/*includeBaseTypes*/false)
@@ -95,7 +130,7 @@ var FieldSupport = (function() {
                 if (that.fields == null) {
                     that.fields = fields;
                 }
-                return that.fields;
+                return that.userFields.concat(that.fields);
             });
         }
     }
@@ -116,12 +151,14 @@ var FieldSupport = (function() {
         }
     }
 
-    function KnownField(name, dbgObject, parentType) {
+    function KnownField(name, resultingTypeName, getter, renderer, parentType) {
         this.name = name;
-        this.dbgObject = dbgObject;
         this.parentType = parentType;
+        this.resultingTypeName = resultingTypeName;
         this.childType = null;
         this.isEnabled = false;
+        this.getter = getter;
+        this.renderer = renderer;
         this.fieldRenderer = this.renderField.bind(this);
     }
 
@@ -135,19 +172,26 @@ var FieldSupport = (function() {
             currentField = currentField.parentType.parentField;
         }
 
-        var fields = parentFields.reverse().map(function (field) { return field.name; }).join(".");
+        parentFields.reverse();
+        var fields = parentFields.map(function (field) { return field.name; }).join(".");
+        var getters = parentFields.map(function (field) { return field.getter; });
 
-        return dbgObject.f(fields)
+        var dbgObjectToRender = Promise.as(dbgObject);
+        getters.forEach(function (getter) {
+            dbgObjectToRender = dbgObjectToRender.then(getter);
+        });
+
+        var that = this;
+        return dbgObjectToRender
         .then(function (dbgObjectToRender) {
             if (!dbgObjectToRender.isNull()) {
-                return dbgObjectToRender.desc()
-                .then(function (desc) {
-                    var descriptionContainer = document.createElement("div");
-                    element.appendChild(descriptionContainer);
-                    descriptionContainer.innerHTML = fields + ":" + desc;
-                });
+                return that.renderer(dbgObjectToRender, element, fields);
             }
         });
+    }
+
+    KnownField.prototype.getChildTypeName = function() {
+        return this.resultingTypeName;
     }
 
     KnownField.prototype.setIsEnabled = function(isEnabled) {
@@ -166,36 +210,22 @@ var FieldSupport = (function() {
     }
 
     KnownField.prototype.getChildType = function() {
-        function fullyDereferenceDbgObject(dbgObject) {
-            return Promise.as(dbgObject)
-            .then(function (dbgObject) {
-                if (dbgObject.isPointer()) {
-                    return fullyDereferenceDbgObject(dbgObject.deref());
-                } else {
-                    return dbgObject;
-                }
-            });
-        }
-
         var that = this;
         return Promise.as(this.childType)
         .then(function (childType) {
-            if (childType == null) {
-                // Fetch the child type.
-                return fullyDereferenceDbgObject(that.dbgObject)
-                .then(function (dereferencedDbgObject) {
-                    return dereferencedDbgObject.isTypeWithFields()
-                    .then(function (isTypeWithFields) {
-                        if (!isTypeWithFields) {
-                            that.childType = false;
-                            return null;
-                        } else {
-                            that.childType = new KnownType(dereferencedDbgObject.module, dereferencedDbgObject.typeDescription(), that);
-                            return that.childType;
-                        }
-                    })
+            if (childType == null && that.resultingTypeName != null) {
+                return new DbgObject(that.parentType.module, that.resultingTypeName, 0)
+                .isTypeWithFields()
+                .then(function (isTypeWithFields) {
+                    if (!isTypeWithFields) {
+                        that.childType = false;
+                        return null;
+                    } else {
+                        that.childType = new KnownType(that.parentType.module, that.resultingTypeName, that);
+                        return that.childType;
+                    }
                 });
-            } else if (childType === false) {
+            } else if (childType === false || that.resultingTypeName == null) {
                 // There is no child type (i.e. there are no interesting fields).
                 return null;
             } else {
@@ -318,14 +348,16 @@ var FieldSupport = (function() {
         fieldNameContainer.textContent = names.reverse().join(".");
         fieldContainer.appendChild(fieldNameContainer);
         
-        var fieldTypeContainer = document.createElement("span");
-        fieldTypeContainer.classList.add("field-type");
-
-        var fieldType = field.dbgObject.typeDescription();
-        fieldTypeContainer.textContent = fieldType;
-        fieldContainer.appendChild(fieldTypeContainer);
-
-        fieldContainer.title = fieldType + " " + field.name;
+        var fieldType = field.getChildTypeName();
+        if (fieldType != null) {
+            var fieldTypeContainer = document.createElement("span");
+            fieldTypeContainer.classList.add("field-type");
+            fieldTypeContainer.textContent = fieldType;
+            fieldContainer.appendChild(fieldTypeContainer);
+            fieldContainer.title = fieldType + " " + field.name;
+        } else {
+            fieldContainer.title = field.name;
+        }
 
         return field.getChildType()
         .then(function (childType) {
@@ -377,8 +409,55 @@ var FieldSupport = (function() {
         return this.renderFieldList(childType, subFieldsContainer);
     }
 
+    // TODO: use a global?
+    // TODO: no support for base types
+    var userFields = null;
+    function UserFields() {
+        this.fieldsByType = {};
+        this.listenersByType = {};
+    }
 
-    function initialize(StoragePrefix, UserFields, DefaultType, UpdateUI, container) {
+    UserFields.prototype.addField = function (module, typename, name, getter, optionalType) {
+        var key = this.typeKey(module, typename);
+        if (!(key in this.fieldsByType)) {
+            this.fieldsByType[key] = [];
+        }
+        var newField = {name: name, getter: getter, optionalType: optionalType };
+        this.fieldsByType[key].push(newField);
+        if (key in this.listenersByType) {
+            var listeners = this.listenersByType[key];
+            listeners.forEach(function (listener) {
+                listener(newField, true);
+            })
+        }
+    }
+
+    UserFields.prototype.addListener = function (module, typename, listener) {
+        var key = this.typeKey(module, typename);
+        if (!(key in this.listenersByType)) {
+            this.listenersByType[key] = [];
+        }
+        this.listenersByType[key].push(listener);
+    }
+
+    UserFields.prototype.getUserFields = function (module, typename) {
+        var key = this.typeKey(module, typename);
+        if (key in this.fieldsByType) {
+            return this.fieldsByType[key];
+        } else {
+            return [];
+        }
+    }
+
+    UserFields.prototype.typeKey = function (module, typename) {
+        return module + "!" + typename;
+    }
+
+    function initialize(unused1, unused2, unused3, UpdateUI, container) {
+        if (userFields == null) {
+            userFields = new UserFields();
+            userFields.addField("edgehtml", "CTreeNode", "FancyFormat", function (dbgObject) { return dbgObject.f("_pFF"); }, "CFancyFormat");
+        }
         var fieldSupportController = new FieldSupportController(container, UpdateUI);
         DbgObjectTree.AddTypeNotifier(function (module, typename) {
             fieldSupportController.addType(module, typename);
