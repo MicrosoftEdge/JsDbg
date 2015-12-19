@@ -31,11 +31,32 @@ var FieldSupport = (function() {
         });
     }
 
+    KnownType.prototype.considerFieldWhenCollapsed = function (field, shownFields) {
+        if (field.isEnabled) {
+            shownFields.push(field);
+        }
+        if (field.childType != null && field.childType != false) {
+            field.childType.getFieldsToShowWhenCollapsed(shownFields);
+        }
+    }
+
     KnownType.prototype.getFieldsToRender = function () {
-        if (this.includingBaseTypes === true) {
+        if (!this.isExpanded) {
+            return Promise.as(this.getFieldsToShowWhenCollapsed([]));
+        } else if (this.includingBaseTypes === true) {
             return this.getFieldsIncludingBaseTypes();
         } else if (this.includingBaseTypes === false) {
-            return this.getFields();
+            var that = this;
+            return this.getFields()
+            .then(function (fields) {
+                var baseFieldsToShow = [];
+                if (that.fieldsIncludingBaseTypes != null) {
+                    that.fieldsIncludingBaseTypes.forEach(function (field) {
+                        that.considerFieldWhenCollapsed(field, baseFieldsToShow);
+                    })
+                }
+                return baseFieldsToShow.concat(fields);
+            });
         } else if (this.includingBaseTypes === undefined) {
             var that = this;
             return this.getFields()
@@ -44,6 +65,21 @@ var FieldSupport = (function() {
                 return that.getFieldsToRender();
             })
         }
+    }
+
+    KnownType.prototype.getFieldsToShowWhenCollapsed = function(shownFields) {
+        var that = this;
+        if (this.fieldsIncludingBaseTypes != null) {
+            this.fieldsIncludingBaseTypes.forEach(function (field) {
+                that.considerFieldWhenCollapsed(field, shownFields);
+            });
+        } else if (this.fields != null) {
+            this.fields.forEach(function (field) {
+                that.considerFieldWhenCollapsed(field, shownFields);
+            });
+        }
+
+        return shownFields;
     }
 
     KnownType.prototype.getFields = function () {
@@ -193,6 +229,7 @@ var FieldSupport = (function() {
     }
 
     FieldSupportController.prototype.renderRootType = function(rootType, typeContainer) {
+        var that = this;
         typeContainer.innerHTML = "";
         typeContainer.classList.add("type-container");
 
@@ -200,7 +237,9 @@ var FieldSupport = (function() {
         typeName.classList.add("type-name");
         typeName.appendChild(document.createTextNode(rootType.typename));
         typeName.addEventListener("click", function () {
+            rootType.isExpanded = !rootType.isExpanded;
             typeContainer.classList.toggle("collapsed");
+            that.renderFieldList(rootType, fieldsContainer);
         })
         typeContainer.appendChild(typeName);
 
@@ -221,25 +260,27 @@ var FieldSupport = (function() {
         .then(function (fields) {
             fieldsContainer.innerHTML = "";
 
-            var showBaseTypesControl = document.createElement("button");
-            showBaseTypesControl.classList.add("small-button");
-            showBaseTypesControl.textContent = type.includingBaseTypes ? "Exclude Base Types" : "Include Base Types";
-            fieldsContainer.appendChild(showBaseTypesControl);
-            showBaseTypesControl.addEventListener("click", function () {
-                type.includingBaseTypes = !type.includingBaseTypes;
-                that.renderFieldList(type, fieldsContainer);
-            })
+            if (type.isExpanded) {
+                var showBaseTypesControl = document.createElement("button");
+                showBaseTypesControl.classList.add("small-button");
+                showBaseTypesControl.textContent = type.includingBaseTypes ? "Exclude Base Types" : "Include Base Types";
+                fieldsContainer.appendChild(showBaseTypesControl);
+                showBaseTypesControl.addEventListener("click", function () {
+                    type.includingBaseTypes = !type.includingBaseTypes;
+                    that.renderFieldList(type, fieldsContainer);
+                })
+            }
 
-            fields.forEach(function (field) {
+            return Promise.map(fields, function (field) {
                 var fieldContainer = document.createElement("label");
                 fieldContainer.style.display = "block";
                 fieldsContainer.appendChild(fieldContainer);
-                that.renderFieldUI(field, fieldContainer);
-            })
+                return that.renderFieldUI(field, type, fieldContainer);
+            });
         });
     }
 
-    FieldSupportController.prototype.renderFieldUI = function (field, fieldContainer) {
+    FieldSupportController.prototype.renderFieldUI = function (field, renderingType, fieldContainer) {
         fieldContainer.innerHTML = "";
 
         var input = document.createElement("input");
@@ -253,11 +294,16 @@ var FieldSupport = (function() {
         });
         var fieldNameContainer = document.createElement("span");
         fieldNameContainer.classList.add("field-name");
-        fieldNameContainer.textContent = field.name;
+
+        var currentField = field;
+        var names = [field.name];
+        while (currentField.parentType != renderingType) {
+            currentField = currentField.parentType.parentField;
+            names.push(currentField.name);
+        }
+        fieldNameContainer.textContent = names.reverse().join(".");
         fieldNameContainer.title = field.name;
         fieldContainer.appendChild(fieldNameContainer);
-
-        fieldContainer.appendChild(document.createTextNode(" "));
         
         var fieldTypeContainer = document.createElement("span");
         fieldTypeContainer.classList.add("field-type");
@@ -265,50 +311,42 @@ var FieldSupport = (function() {
         var fieldType = field.dbgObject.typeDescription();
         fieldTypeContainer.textContent = fieldType;
         fieldTypeContainer.title = fieldType;
+        fieldContainer.appendChild(fieldTypeContainer);
 
-        var subFieldsContainer = null;
-        fieldTypeContainer.addEventListener("click", function (e) {
-            if (subFieldsContainer == false) {
-                // Do nothing.
+        return field.getChildType()
+        .then(function (childType) {
+            if (childType == null) {
                 return;
             }
 
-            e.preventDefault();
-
-            field.getChildType()
-            .then(function (childType) {
-                if (childType == null) {
-                    // There is no child type, fire the click again.
-                    subFieldsContainer = false;
-                    fieldTypeContainer.click();
-                    return;
-                }
-
-                return Promise.as(null)
-                .then(function () {
-                    if (subFieldsContainer == null) {
-                        subFieldsContainer = document.createElement("div");
-                        subFieldsContainer.classList.add("fields-container");
-                        return that.renderFieldList(childType, subFieldsContainer)
-                        .then(function () {
-                            fieldContainer.parentNode.insertBefore(subFieldsContainer, fieldContainer.nextSibling);
-                            return subFieldsContainer;
-                        })
-                    }
-                    return subFieldsContainer;
-                })
-                .then(function () {
+            var subFieldsContainer = document.createElement("div");
+            subFieldsContainer.classList.add("fields-container");
+            if (!childType.isExpanded) {
+                subFieldsContainer.classList.toggle("collapsed");
+            }
+            return that.renderFieldList(childType, subFieldsContainer)
+            .then(function () {
+                fieldContainer.parentNode.insertBefore(subFieldsContainer, fieldContainer.nextSibling);
+                fieldTypeContainer.addEventListener("click", function (e) {
+                    e.preventDefault();
                     childType.isExpanded = !childType.isExpanded;
-                    if (childType.isExpanded) {
-                        subFieldsContainer.classList.remove("collapsed");
-                    } else {
-                        subFieldsContainer.classList.add("collapsed");
-                    }
+                    subFieldsContainer.classList.toggle("collapsed");
+                    that.renderFieldList(childType, subFieldsContainer);
                 });
-            })
-        })
+            });
+        });
+    }
 
-        fieldContainer.appendChild(fieldTypeContainer);
+    FieldSupportController.prototype.renderFieldTypeUI = function(childType, subFieldsContainer) {
+        subFieldsContainer.innerHTML = "";
+
+        if (childType == null) {
+            // There is no child type, so nothing to render.
+            return Promise.as(undefined);
+        }
+
+        var that = this;
+        return this.renderFieldList(childType, subFieldsContainer);
     }
 
 
