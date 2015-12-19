@@ -227,7 +227,17 @@ var FieldSupport = (function() {
         var newTypeContainer = document.createElement("div");
         return this.renderRootType(newType, newTypeContainer)
         .then(function () {
-            that.typeListContainer.appendChild(newTypeContainer);
+            // Sort by type name.
+            that.knownTypes.sort(function (a, b) {
+                return a.typename.localeCompare(b.typename);
+            });
+
+            var index = that.knownTypes.indexOf(newType);
+            var nodeAfter = null;
+            if (index < that.typeListContainer.childNodes.length) {
+                nodeAfter = that.typeListContainer.childNodes[index];
+            }
+            that.typeListContainer.insertBefore(newTypeContainer, nodeAfter);
         });
     }
 
