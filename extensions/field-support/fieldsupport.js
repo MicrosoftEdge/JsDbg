@@ -52,7 +52,10 @@ var FieldSupport = (function() {
                 var baseFieldsToShow = [];
                 if (that.fieldsIncludingBaseTypes != null) {
                     that.fieldsIncludingBaseTypes.forEach(function (field) {
-                        that.considerFieldWhenCollapsed(field, baseFieldsToShow);
+                        // Check if the field is in the natural (i.e. non-base fields).
+                        if (fields.indexOf(field) < 0) {
+                            that.considerFieldWhenCollapsed(field, baseFieldsToShow);
+                        }
                     })
                 }
                 return baseFieldsToShow.concat(fields);
@@ -247,6 +250,8 @@ var FieldSupport = (function() {
         fieldsContainer.classList.add("fields-container");
         if (!rootType.isExpanded) {
             typeContainer.classList.add("collapsed");
+        } else {
+            typeContainer.classList.remove("collapsed");
         }
         typeContainer.appendChild(fieldsContainer);
 
@@ -319,10 +324,24 @@ var FieldSupport = (function() {
                 return;
             }
 
+            var currentType = field.parentType;
+            var areAllTypesExpanded = true;
+            while (areAllTypesExpanded && currentType != null) {
+                areAllTypesExpanded = currentType.isExpanded;
+                currentType = currentType.parentField != null ? currentType.parentField.parentType : null;
+            }
+
+            if (!areAllTypesExpanded) {
+                // One of the parent types is collapsed, let the parent type render the fields.
+                return;
+            }
+
             var subFieldsContainer = document.createElement("div");
             subFieldsContainer.classList.add("fields-container");
             if (!childType.isExpanded) {
-                subFieldsContainer.classList.toggle("collapsed");
+                subFieldsContainer.classList.add("collapsed");
+            } else {
+                subFieldsContainer.classList.remove("collapsed");
             }
             return that.renderFieldList(childType, subFieldsContainer)
             .then(function () {
