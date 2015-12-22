@@ -83,7 +83,7 @@ JsDbg.OnLoad(function () {
             result = this.baseTypes()
             .then(function (baseTypes) {
                 for (var i = 0; i < baseTypes.length; ++i) {
-                    var extendedType = getExtendedType(that.module, that.typename);
+                    var extendedType = getExtendedType(baseTypes[i].module, baseTypes[i].typename);
                     if (fieldName in extendedType.fields) {
                         var field = extendedType.fields[fieldName];
                         return Promise.as(field.getter(that)).then(field.ensureCompatibleResult.bind(field));

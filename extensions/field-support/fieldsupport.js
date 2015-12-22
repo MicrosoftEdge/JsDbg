@@ -14,7 +14,7 @@ var FieldSupport = (function() {
         });
     }
 
-    DbgObject.AddExtendedField("edgehtml", "CTreeNode", "FancyFormat", "CFancyFormat", function (dbgObject) {
+    DbgObject.AddExtendedField("edgehtml", "CBase", "FancyFormat", "CFancyFormat", function (dbgObject) {
         return dbgObject.f("_pFF");
     });
 
@@ -31,6 +31,8 @@ var FieldSupport = (function() {
 
         var that = this;
         this.extendedFields = [];
+        this.extendedFieldsIncludingBaseTypes = null;
+
         DbgObject.GetExtendedFields(module, typename).forEach(function (extendedField) {
             that.addExtendedField(extendedField.fieldName, extendedField.typeName);
         });
@@ -62,7 +64,8 @@ var FieldSupport = (function() {
                     return dbgObject.F(fieldName);
                 },
                 renderDbgObject,
-                this
+                this,
+                /*isBaseTypeField*/false
             )
         );
     }
@@ -91,7 +94,8 @@ var FieldSupport = (function() {
                             descriptionContainer.innerHTML = fields + ":" + desc;
                         });
                     },
-                    that
+                    that,
+                    /*isBaseType*/includeBaseTypes
                 );
             });
         });
@@ -121,6 +125,71 @@ var FieldSupport = (function() {
             this.extendedFields = [];
         }
         return hadEnabledFields;
+    }
+
+    KnownType.prototype.getExtendedFieldsIncludingBaseTypes = function () {
+        var that = this;
+        return Promise.as(this.extendedFieldsIncludingBaseTypes)
+        .then(function (extendedFieldsIncludingBaseTypes) {
+            if (extendedFieldsIncludingBaseTypes != null) {
+                return extendedFieldsIncludingBaseTypes;
+            } else {
+                // Get all the base types for the type.
+                return new DbgObject(that.module, that.typename, 0)
+                .baseTypes()
+                .then(function (baseTypes) {
+                    var allExtendedFields = [];
+                    baseTypes.reverse()
+                    baseTypes.map(function (baseObject) {
+                        allExtendedFields = allExtendedFields.concat(DbgObject.GetExtendedFields(that.module, baseObject.typeDescription()));
+                    });
+
+                    allExtendedFields = allExtendedFields.map(function (extendedField) {
+                        return new KnownField(
+                            extendedField.fieldName,
+                            extendedField.typeName,
+                            function getter(dbgObject) {
+                                return dbgObject.F(extendedField.fieldName);
+                            },
+                            renderDbgObject,
+                            that,
+                            /*isBaseTypeField*/true
+                        );
+                    });
+                    if (that.extendedFieldsIncludingBaseTypes == null) {
+                        that.extendedFieldsIncludingBaseTypes = allExtendedFields.concat(that.extendedFields);
+                    }
+                    return that.extendedFieldsIncludingBaseTypes;
+                });
+            }
+        })
+    }
+
+    KnownType.prototype.getExtendedFieldsToRender = function() {
+        if (!this.isExpanded) {
+            return Promise.as(this.getExtendedFieldsToShowWhenCollapsed([]));
+        } else if (this.includingBaseTypes === true) {
+            return this.getExtendedFieldsIncludingBaseTypes();
+        } else if (this.includingBaseTypes === false) {
+            var baseFieldsToShow = [];
+            if (this.extendedFieldsIncludingBaseTypes != null) {
+                var that = this;
+                this.extendedFieldsIncludingBaseTypes.forEach(function (field) {
+                    // Check if the field is in the natural (i.e. non-base fields)
+                    if (that.extendedFields.indexOf(field) < 0) {
+                        that.considerFieldWhenCollapsed(field, baseFieldsToShow);
+                    }
+                });
+            }
+            return Promise.as(baseFieldsToShow.concat(this.extendedFields));
+        } else if (this.includingBaseTypes === undefined) {
+            var that = this;
+            return this.getFields()
+            .then(function (fields) {
+                that.includingBaseTypes = (fields.length == 0);
+                return that.getExtendedFieldsToRender();
+            })
+        }
     }
 
     KnownType.prototype.getFieldsToRender = function () {
@@ -153,6 +222,22 @@ var FieldSupport = (function() {
         }
     }
 
+    KnownType.prototype.getExtendedFieldsToShowWhenCollapsed = function(shownFields) {
+        var that = this;
+
+        if (this.extendedFieldsIncludingBaseTypes != null) {
+            this.extendedFieldsIncludingBaseTypes.forEach(function (field) {
+                that.considerFieldWhenCollapsed(field, shownFields);
+            })
+        } else {
+            this.extendedFields.forEach(function (field) {
+                that.considerFieldWhenCollapsed(field, shownFields);
+            })
+        }
+
+        return shownFields;
+    }
+
     KnownType.prototype.getFieldsToShowWhenCollapsed = function(shownFields) {
         var that = this;
 
@@ -171,8 +256,7 @@ var FieldSupport = (function() {
 
     KnownType.prototype.getFields = function () {
         if (this.fields != null) {
-            // TODO: fix ugly concatenation of user fields and native fields
-            return Promise.as(this.extendedFields.concat(this.fields));
+            return Promise.as(this.fields);
         } else {
             var that = this
             return this.getFieldsInternal(/*includeBaseTypes*/false)
@@ -201,7 +285,7 @@ var FieldSupport = (function() {
         }
     }
 
-    function KnownField(name, resultingTypeName, getter, renderer, parentType) {
+    function KnownField(name, resultingTypeName, getter, renderer, parentType, isBaseTypeField) {
         this.name = name;
         this.parentType = parentType;
         this.resultingTypeName = resultingTypeName;
@@ -210,6 +294,7 @@ var FieldSupport = (function() {
         this.getter = getter;
         this.renderer = renderer;
         this.fieldRenderer = this.renderField.bind(this);
+        this.isBaseTypeField = isBaseTypeField;
     }
 
     KnownField.prototype.renderField = function(dbgObject, element) {
@@ -372,23 +457,38 @@ var FieldSupport = (function() {
 
         return type.getFieldsToRender()
         .then(function (fields) {
-            fieldsContainer.innerHTML = "";
+            return type.getExtendedFieldsToRender()
+            .then(function (extendedFields) {
+                fieldsContainer.innerHTML = "";
 
-            if (type.isExpanded) {
-                var showBaseTypesControl = document.createElement("button");
-                showBaseTypesControl.classList.add("small-button");
-                showBaseTypesControl.textContent = type.includingBaseTypes ? "Exclude Base Types" : "Include Base Types";
-                fieldsContainer.appendChild(showBaseTypesControl);
-                showBaseTypesControl.addEventListener("click", function () {
-                    type.includingBaseTypes = !type.includingBaseTypes;
-                    that.renderFieldList(type, fieldsContainer);
+                if (type.isExpanded) {
+                    var showBaseTypesControl = document.createElement("button");
+                    showBaseTypesControl.classList.add("small-button");
+                    showBaseTypesControl.textContent = type.includingBaseTypes ? "Exclude Base Types" : "Include Base Types";
+                    fieldsContainer.appendChild(showBaseTypesControl);
+                    showBaseTypesControl.addEventListener("click", function () {
+                        type.includingBaseTypes = !type.includingBaseTypes;
+                        that.renderFieldList(type, fieldsContainer);
+                    })
+                }
+
+                return Promise.map(extendedFields, function (extendedField) {
+                    var fieldContainer = document.createElement("label");
+                    fieldsContainer.appendChild(fieldContainer);
+                    return that.renderFieldUI(extendedField, type, fieldContainer);
                 })
-            }
+                .then(function() {
+                    if (extendedFields.length > 0 && type.isExpanded) {
+                        var hr = document.createElement("hr");
+                        fieldsContainer.appendChild(hr);
+                    }
 
-            return Promise.map(fields, function (field) {
-                var fieldContainer = document.createElement("label");
-                fieldsContainer.appendChild(fieldContainer);
-                return that.renderFieldUI(field, type, fieldContainer);
+                    return Promise.map(fields, function (field) {
+                        var fieldContainer = document.createElement("label");
+                        fieldsContainer.appendChild(fieldContainer);
+                        return that.renderFieldUI(field, type, fieldContainer);
+                    })
+                });
             });
         });
     }
@@ -435,7 +535,7 @@ var FieldSupport = (function() {
             }
 
             var currentType = field.parentType;
-            var areAllTypesExpanded = true;
+            var areAllTypesExpanded = !(field.isBaseTypeField && !field.parentType.includingBaseTypes);
             while (areAllTypesExpanded && currentType != null) {
                 areAllTypesExpanded = currentType.isExpanded;
                 currentType = currentType.parentField != null ? currentType.parentField.parentType : null;

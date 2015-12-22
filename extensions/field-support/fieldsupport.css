@@ -43,8 +43,8 @@
 .field-selection .fields-container label input {
     height:12px;
     width:12px;
-    align-self: flex-end;
     margin:0;
+    align-self:flex-end;
     flex-shrink: 0;
     box-sizing:border-box;
 }
@@ -68,6 +68,13 @@
 
 .field-selection .fields-container .field-name {
     flex-shrink:0.001;
+}
+
+.field-selection .fields-container hr {
+    border-width:1px;
+    border-color:#ccc;
+    border-style:solid none none none;
+    margin:5px 0;
 }
 
 .field-selection .collapsed .field-type {
