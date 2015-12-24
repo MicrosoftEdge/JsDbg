@@ -80,8 +80,7 @@ var DbgObject = (function() {
         })
         .then(function (result) { 
             if (result.error) {
-                var error = new Error(result.error);
-                return Promise.fail(error);
+                throw new Error(result.error);
             }
             return result; 
         });
