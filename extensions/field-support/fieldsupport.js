@@ -14,10 +14,6 @@ var FieldSupport = (function() {
         });
     }
 
-    DbgObject.AddExtendedField("edgehtml", "CBase", "FancyFormat", "CFancyFormat", function (dbgObject) {
-        return dbgObject.f("_pFF");
-    });
-
     function KnownType(module, typename, parentField, controller, rerender) {
         this.module = module;
         this.typename = typename;

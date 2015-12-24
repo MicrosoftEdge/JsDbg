@@ -38,9 +38,9 @@ var MSHTML = undefined;
     JsDbg.OnLoad(function() {
         function GetDocsAndThreadstates(){
             return DbgObject.global(moduleName, "g_pts").deref()
-            .list("ptsNext")
+            .list("ptsNext").as("THREADSTATEUI")
             .map(function (threadstate) {
-                return threadstate.as("THREADSTATEUI").f("_paryDoc")
+                return threadstate.f("_paryDoc")
                 .array()
                 .map(function (doc) {
                     return {
@@ -75,6 +75,10 @@ var MSHTML = undefined;
                 });
         }
 
+        DbgObject.AddExtendedField(moduleName, "Tree::ElementNode", "TreeNode", "CTreeNode", function (element) {
+            return MSHTML.GetCTreeNodeFromTreeElement(element);
+        });
+
         function GetCTreeNodeFromTreeElement(element) {
             return new PromisedDbgObject(
                 element.f("placeholder")
@@ -105,6 +109,22 @@ var MSHTML = undefined;
                 )
             );
         }
+
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "FancyFormat", "CFancyFormat", function (treeNode) {
+            return MSHTML.GetObjectFromThreadstateCache(treeNode, "FancyFormat", treeNode.f("_iFF").val());
+        });
+
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "CharFormat", "CCharFormat", function (treeNode) {
+            return MSHTML.GetObjectFromThreadstateCache(treeNode, "CharFormat", treeNode.f("_iCF").val());
+        });
+
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "ParaFormat", "CParaFormat", function (treeNode) {
+            return MSHTML.GetObjectFromThreadstateCache(treeNode, "ParaFormat", treeNode.f("_iPF").val());
+        });
+
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "SvgFormat", "CSvgFormat", function (treeNode) {
+            return MSHTML.GetObjectFromThreadstateCache(treeNode, "SvgFormat", treeNode.f("_iSF").val());
+        });
 
         function GetLayoutAssociationFromCTreeNode(treeNode, flag) {
             var conversion = ({
@@ -150,6 +170,14 @@ var MSHTML = undefined;
         }
 
         function GetMarkupFromElement(element) {
+            return element.F("Markup");
+        }
+
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "Markup", "CMarkup", function (element) {
+            return element.as("CElement").F("Markup");
+        });
+
+        DbgObject.AddExtendedField(moduleName, "CElement", "Markup", "CMarkup", function (element) {
             var promise = Promise.join([element.f("_fHasLayoutPtr").val(), element.f("_fHasLayoutAry", "_fHasLayoutPtr").val(), element.f("_fHasMarkupPtr").val()])
             .then(function(bits) {
                 if (bits[0] || bits[1]) {
@@ -160,16 +188,19 @@ var MSHTML = undefined;
                         return markup.as("char").idx(0 - markup.pointerValue().mod(4)).as("CMarkup");
                     })
                 } else {
-                    return DbgObject.NULL;
+                    return new DbgObject(moduleName, "CMarkup", 0);
                 }
             });
-
-            return new PromisedDbgObject(promise);
-        }
+            return promise;
+        });
 
         function GetDocFromMarkup(markup) {
-            return markup.f("_pSecCtx", "_spSecCtx.m_pT").f("_pDoc");
+            return markup.F("Doc");
         }
+
+        DbgObject.AddExtendedField(moduleName, "CMarkup", "Doc", "CDoc", function (markup) {
+            return markup.f("_pSecCtx", "_spSecCtx.m_pT").f("_pDoc");
+        });
 
         function searchForHtPvPvMatch(firstEntry, entryCount, index, stride, key) {
             if (index > entryCount) {
@@ -240,16 +271,7 @@ var MSHTML = undefined;
                 } else if (object.typeDescription() == "CMarkup") {
                     return GetThreadstateFromObject(GetDocFromMarkup(object));
                 } else if (object.typeDescription() == "CDoc") {
-                    // Once we have a Doc, we can walk the threadstate pointers to find the corresponding threadstate.
-                    return Promise.as(GetDocsAndThreadstates())
-                    .then(function(docsAndThreadstates) {
-                        for (var i = 0; i < docsAndThreadstates.length; ++i) {
-                            if (docsAndThreadstates[i].doc.equals(object)) {
-                                return docsAndThreadstates[i].threadstate;
-                            }
-                        }
-                        return DbgObject.NULL;
-                    });
+                    return object.F("Threadstate");
                 } else {
                     return DbgObject.NULL;
                 }
@@ -265,20 +287,33 @@ var MSHTML = undefined;
             return new PromisedDbgObject(promise);
         }
 
+        DbgObject.AddExtendedField(moduleName, "CDoc", "Threadstate", "THREADSTATEUI", function (doc) {
+            return Promise.as(GetDocsAndThreadstates())
+            .then(function(docsAndThreadstates) {
+                for (var i = 0; i < docsAndThreadstates.length; ++i) {
+                    if (docsAndThreadstates[i].doc.equals(doc)) {
+                        return docsAndThreadstates[i].threadstate;
+                    }
+                }
+                return new DbgObject(moduleName, "THREADSTATEUI", 0);
+            });
+        });
+
         function GetObjectFromDataCache(cache, index) {
             var promise = Promise.join([cache, index])
             .then(function(cacheAndIndex) {
                 var cache = cacheAndIndex[0];
                 var index = cacheAndIndex[1];
 
-                if (index < 0) {
-                    return DbgObject.NULL;
-                }
                 var type = cache.typeDescription();
                 var templateMatches = type.match(/<.*>/);
                 var resultType = "void";
                 if (templateMatches) {
                     resultType = templateMatches[0].substr(1, templateMatches[0].length - 2);
+                }
+
+                if (index < 0) {
+                    return new DbgObject(cache.module, resultType, 0);
                 }
 
                 var bucketSize = 128;
