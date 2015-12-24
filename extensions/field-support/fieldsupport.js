@@ -375,6 +375,9 @@ var FieldSupport = (function() {
                         that.childType = new KnownType(that.parentType.module, that.resultingTypeName, that, that.parentType.controller);
                         return that.childType;
                     }
+                }, function () {
+                    that.childType = false;
+                    return null;
                 });
             } else if (childType === false || that.resultingTypeName == null) {
                 // There is no child type (i.e. there are no interesting fields).
