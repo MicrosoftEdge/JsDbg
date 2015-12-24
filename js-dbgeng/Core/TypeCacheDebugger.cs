@@ -66,7 +66,11 @@ namespace Core {
         private async Task<JsDbg.Type> LoadTypeFromDiaSession(IDiaSession diaSession, string module, string typename, DiaHelpers.NameSearchOptions options) {
             IDiaEnumSymbols symbols;
             diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagNull, typename, (uint)options, out symbols);
-            foreach (IDiaSymbol symbol in symbols) {
+            foreach (IDiaSymbol iterationSymbol in symbols) {
+                IDiaSymbol symbol = iterationSymbol;
+                while ((SymTagEnum)symbol.symTag == SymTagEnum.SymTagTypedef) {
+                    symbol = symbol.type;
+                }
                 SymTagEnum symTag = (SymTagEnum)symbol.symTag;
                 if (symTag == SymTagEnum.SymTagUDT || symTag == SymTagEnum.SymTagBaseType || symTag == SymTagEnum.SymTagEnum) {
                     // Get the fields for this class.
