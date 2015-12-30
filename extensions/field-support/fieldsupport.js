@@ -522,9 +522,15 @@ var FieldSupport = (function() {
             fieldListUIContainer.appendChild(filterTextBox);
             filterTextBox.focus();
             var that = this;
+            var searchTimeout = null;
             filterTextBox.addEventListener("input", function () {
-                type.setSearchQuery(filterTextBox.value);
-                that.renderFieldList(type, fieldListContainer);
+                if (searchTimeout != null) {
+                    clearTimeout(searchTimeout);
+                }
+                searchTimeout = setTimeout(function () {
+                    type.setSearchQuery(filterTextBox.value);
+                    that.renderFieldList(type, fieldListContainer);
+                }, 100);
             });
 
             var showBaseTypesControl = document.createElement("button");
