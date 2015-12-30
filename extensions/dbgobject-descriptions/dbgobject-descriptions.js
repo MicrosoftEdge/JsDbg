@@ -42,6 +42,28 @@ JsDbg.OnLoad(function () {
         }
     }
 
+    DbgObject._help_GetDescriptions = {
+        description: "Gets the available descriptions for the given type.",
+        arguments: [
+            {name: "module", type:"string", description:"The module of the type."},
+            {name: "typeName", type:"string", description:"The name of the type."}
+        ],
+        returns: "An array of objects with <code>name</code> and <code>getter</code> fields."
+    };
+    DbgObject.GetDescriptions = function (module, typeName) {
+        var key = typeKey(module, typeName);
+        var descriptions = [];
+        if (key in descriptionTypes) {
+            descriptions = descriptionTypes[key];
+        } else {
+            descriptions = [];
+        }
+
+        return descriptions.concat(descriptionFunctions.filter(function (item) {
+            return item.module == module && item.condition(typeName);
+        }));
+    }
+
     function getTypeDescriptionFunctionIncludingBaseTypes(module, type) {
         function getTypeDescriptionFunction(module, type) {
             var key = module + "!" + type;
