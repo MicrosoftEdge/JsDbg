@@ -1,0 +1,6 @@
+{
+    "name": "dbgobject-descriptions",
+    "headless": true,
+    "dependencies": ["dbgobject-core"],
+    "includes": ["dbgobject-descriptions.js"]
+}

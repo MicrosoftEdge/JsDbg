@@ -1,8 +1,6 @@
 {
     "name": "dbgobject-extended-fields",
-    "author": "Peter Salas",
     "headless": true,
-    "dependencies": ["dbgobject"],
-    "includes": ["dbgobject-extended-fields.js"],
-    "augments": ["tests", "documentation"]
+    "dependencies": ["dbgobject-core"],
+    "includes": ["dbgobject-extended-fields.js"]
 }

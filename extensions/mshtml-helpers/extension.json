@@ -3,7 +3,7 @@
     "author": "Peter Salas",
     "description": "Helper functions for mshtml.dll",
     "headless": true,
-    "dependencies": ["dbgobject", "dbgobject-extended-fields", "help"],
+    "dependencies": ["dbgobject", "help"],
     "includes": ["mshtml.js"],
     "augments": ["dbgobject"]
 }

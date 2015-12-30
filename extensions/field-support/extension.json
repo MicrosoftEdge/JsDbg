@@ -5,7 +5,6 @@
     "headless": true,
     "dependencies": [
         "dbgobject",
-        "dbgobject-extended-fields",
         "dbgobject-tree",
         "catalog",
         "catalog-viewer",

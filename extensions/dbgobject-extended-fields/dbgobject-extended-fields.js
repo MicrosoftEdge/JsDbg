@@ -169,8 +169,6 @@ JsDbg.OnLoad(function () {
         getExtendedType(module, typeName).listeners.push(notifier);
     }
 
-    PromisedDbgObject.IncludePromisedMethod("F", PromisedDbgObject);
-
     if (typeof(Tests) !== typeof(undefined)) {
         var suite = Tests.CreateTestSuite("DbgObject-Extended-Fields", "Tests for the extended field functionality on DbgObject.");
 

@@ -1,0 +1,6 @@
+{
+    "name": "dbgobject-core",
+    "headless": true,
+    "includes": ["dbgobject-core.js"],
+    "dependencies": ["promise", "pointermath", "memorycache", "help"]
+}

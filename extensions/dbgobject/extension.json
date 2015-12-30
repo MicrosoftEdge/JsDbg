@@ -3,7 +3,7 @@
     "author": "Peter Salas",
     "description": "Convenience library for navigating objects in memory.",
     "headless": true,
-    "dependencies": ["promise", "pointermath", "memorycache", "help"],
+    "dependencies": ["dbgobject-core", "dbgobject-descriptions", "dbgobject-extended-fields"],
     "includes": ["dbgobject.js"],
-    "augments": ["documentation"]
+    "augments": ["documentation", "tests"]
 }
