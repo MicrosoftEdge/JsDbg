@@ -519,8 +519,8 @@ var FieldSupport = (function() {
             filterTextBox.placeholder = "Search...";
             filterTextBox.type = "search";
             filterTextBox.value = type.searchQuery;
-            filterTextBox.focus();
             fieldListUIContainer.appendChild(filterTextBox);
+            filterTextBox.focus();
             var that = this;
             filterTextBox.addEventListener("input", function () {
                 type.setSearchQuery(filterTextBox.value);
