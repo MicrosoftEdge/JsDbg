@@ -4,14 +4,14 @@ var MarkupTree = undefined;
 JsDbg.OnLoad(function() {
 
     // Add a type description for CTreeNode to link to the BoxTree.
-    DbgObject.AddTypeDescription(MSHTML.Module, "CTreeNode", "Markup Tree", JsDbg.GetCurrentExtension() == "markuptree", function(treeNode) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "CTreeNode", "MarkupTree", true, function(treeNode) {
         if (treeNode.isNull()) {
             return "null";
         } else {
             return "<a href=\"/markuptree/#" + treeNode.ptr() + "\">" + treeNode.ptr() + "</a>";
         }
     });
-    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::ElementNode", "Markup Tree", JsDbg.GetCurrentExtension() == "markuptree", function(elementNode) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::ElementNode", "MarkupTree", true, function(elementNode) {
         return MSHTML.GetCTreeNodeFromTreeElement(elementNode)
         .then(function (treeNode) {
             if (treeNode.isNull()) {

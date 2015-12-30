@@ -3,7 +3,7 @@
 var TextBlock = undefined;
 JsDbg.OnLoad(function() {
 
-    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextBlock", "Text Block", JsDbg.GetCurrentExtension() == "textblock", function(textBlock) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextBlock", "TextBlock", true, function(textBlock) {
         return "<a href=\"/textblock/#" + textBlock.ptr() + "\">" + textBlock.ptr() + "</a>";
     });
 

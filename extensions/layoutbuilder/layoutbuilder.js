@@ -3,14 +3,14 @@
 var LayoutBuilder = undefined;
 JsDbg.OnLoad(function() {
     // Add a type description for LayoutBoxBuilder to link to the LayoutBuilder stack.
-    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBoxBuilder", "LayoutBuilder Stack", JsDbg.GetCurrentExtension() == "layoutbuilder", function(boxBuilder) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBoxBuilder", "LayoutBuilders", true, function(boxBuilder) {
         if (boxBuilder.isNull()) {
             return "null";
         } else {
             return "<a href=\"/layoutbuilder/#" + boxBuilder.ptr() + "\">" + boxBuilder.ptr() + "</a>";
         }
     });
-    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBuilder", "LayoutBuilder Stack", JsDbg.GetCurrentExtension() == "layoutbuilder", function(layoutBuilder) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBuilder", "LayoutBuilders", true, function(layoutBuilder) {
         if (layoutBuilder.isNull()) {
             return "null";
         } else {
