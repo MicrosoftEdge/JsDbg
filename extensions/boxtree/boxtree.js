@@ -29,7 +29,7 @@ JsDbg.OnLoad(function() {
     }
 
     // Add a type description for LayoutBox to link to the BoxTree.
-    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBox", function(box) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBox", "BoxTree", JsDbg.GetCurrentExtension() == "boxtree", function(box) {
         if (box.isNull()) {
             return "null";
         } else {

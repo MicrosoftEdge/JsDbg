@@ -120,7 +120,7 @@ return Promise.join(fieldNames.map(function(side) { return object.f(side).desc()
             } else {
                 var implementation = description.fn;
             }
-            DbgObject.AddTypeDescription(description.module, description.type, function (value) {
+            DbgObject.AddTypeDescription(description.module, description.type, "", true, function (value) {
                 return implementation(value);
             });
         });

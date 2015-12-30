@@ -144,7 +144,7 @@ JsDbg.OnLoad(function() {
         })
     }
 
-    DbgObject.AddTypeDescription(MSHTML.Module, "CStyleSheet", function(stylesheet) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "CStyleSheet", "StyleSheet", JsDbg.GetCurrentExtension() == "stylesheets", function(stylesheet) {
         return "<a href=\"/stylesheets/#" + stylesheet.ptr() + "\">" + stylesheet.ptr() + "</a>";
     });
 

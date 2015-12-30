@@ -381,11 +381,11 @@ var MSHTML = undefined;
 
 
         // Provide some type descriptions.
-        DbgObject.AddTypeDescription(moduleName, "ELEMENT_TAG", function(tagObj) {
+        DbgObject.AddTypeDescription(moduleName, "ELEMENT_TAG", "Tag", true, function(tagObj) {
             return Promise.as(tagObj.constant()).then(function(k) { return k.substr("ETAG_".length); });
         });
 
-        DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^_?(style[A-z0-9]+)$/); }, function(enumObj) {
+        DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^_?(style[A-z0-9]+)$/); }, "CSS Value", true, function(enumObj) {
             var enumString = enumObj.typeDescription().replace(/^_?(style[A-z0-9]+)$/, "$1");
             return Promise.as(enumObj.as("_" + enumString).constant())
             .then(
@@ -399,7 +399,7 @@ var MSHTML = undefined;
             )
         });
 
-        DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^(Tree|Layout).*::(.*Enum)$/); }, function (enumObj) {
+        DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^(Tree|Layout).*::(.*Enum)$/); }, "Enum Value", true, function (enumObj) {
             var enumString = enumObj.typeDescription().replace(/^(Tree|Layout).*::(.*Enum)$/, "$2_");
             return Promise.as(enumObj.constant())
                 .then(
@@ -416,7 +416,7 @@ var MSHTML = undefined;
         var colorTypesWithInlineColorRef = {"CT_COLORREF":true, "CT_COLORREFA":true, "CT_POUND1":true, "CT_POUND2":true, "CT_POUND3":true, "CT_POUND4":true, "CT_POUND5":true, "CT_POUND6":true, "CT_RGBSPEC":true, "CT_RGBASPEC":true, "CT_HSLSPEC":true, "CT_HSLASPEC":true};
         var colorTypesWithAlpha = {"CT_COLORREFA": true, "CT_RGBASPEC": true, "CT_HSLASPEC": true};
 
-        DbgObject.AddTypeDescription(moduleName, "CColorValue", function(color) {
+        DbgObject.AddTypeDescription(moduleName, "CColorValue", "Color", true, function(color) {
             return Promise.join([color.f("_ct").as("CColorValue::COLORTYPE").constant(), color.f("_crValue").val(), color.f("_flAlpha").val()])
             .then(function(colorTypeAndRefAndAlpha) {
                 var colorType = colorTypeAndRefAndAlpha[0];
@@ -481,7 +481,7 @@ var MSHTML = undefined;
             });
         });
 
-        DbgObject.AddTypeDescription(moduleName, "CUnitValue", function(unitval) {
+        DbgObject.AddTypeDescription(moduleName, "CUnitValue", "UnitValue", true, function(unitval) {
             var SCALEMULT_NULLVALUE        = 0;
             var SCALEMULT_POINT            = 1000;
             var SCALEMULT_PICA             = 100;
@@ -555,7 +555,7 @@ var MSHTML = undefined;
             });
         });
 
-        DbgObject.AddTypeDescription(moduleName, "Tree::SComputedValue", function(computedValue) {
+        DbgObject.AddTypeDescription(moduleName, "Tree::SComputedValue", "ComputedValue", true, function(computedValue) {
             return Promise.as(computedValue.as("CUnitValue").desc())
             .then(function(unitvalueDesc) {
                 if (unitvalueDesc == "_") {
@@ -566,12 +566,12 @@ var MSHTML = undefined;
             })
         });
 
-        DbgObject.AddTypeDescription(moduleName, "Math::SLayoutMeasure", function(layoutMeasure) {
+        DbgObject.AddTypeDescription(moduleName, "Math::SLayoutMeasure", "Length", true, function(layoutMeasure) {
             return Promise.as(layoutMeasure.val())
-                .then(function(val) { return val / 100 + "px"; });
+            .then(function(val) { return val / 100 + "px"; });
         });
 
-        DbgObject.AddTypeDescription(moduleName, "Layout::SBoxFrame", function(rect) {
+        DbgObject.AddTypeDescription(moduleName, "Layout::SBoxFrame", "Frame", true, function(rect) {
             var sideNames = ["top", "right", "bottom", "left"];
             return Promise.join(sideNames.map(function(side) { return rect.f(side).desc(); }))
             .then(function (sides) {
@@ -579,7 +579,7 @@ var MSHTML = undefined;
             });
         });
 
-        DbgObject.AddTypeDescription(moduleName, "Math::SPoint", function(point) {
+        DbgObject.AddTypeDescription(moduleName, "Math::SPoint", "Point", true, function(point) {
            var fieldNames = ["x", "y"];
             return Promise.join(fieldNames.map(function(side) { return point.f(side).desc(); }))
             .then(function (values) {

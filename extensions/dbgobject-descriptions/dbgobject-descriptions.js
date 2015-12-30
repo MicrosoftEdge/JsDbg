@@ -3,6 +3,17 @@
 JsDbg.OnLoad(function () {
     var descriptionTypes = {};
     var descriptionFunctions = [];
+
+    function typeKey(module, typeName) {
+        return module + "!" + typeName;
+    }
+
+    function TypeDescription(name, isPrimary, getter) {
+        this.name = name;
+        this.isPrimary = isPrimary;
+        this.getter = getter;
+    }
+
     DbgObject._help_AddTypeDescription = {
         description: "Provides a function to produce type-specific formatting of DbgObjects.",
         notes: "The provided function will be used whenever <code>desc()</code> is called on a DbgObject with a matching type.",
@@ -12,15 +23,19 @@ JsDbg.OnLoad(function () {
             {name: "description", type:"function(DbgObject) -> string", description: "A function that returns an HTML fragment to describe a given DbgObject."}
         ]
     };
-    DbgObject.AddTypeDescription = function(module, typeNameOrFn, description) {
+    DbgObject.AddTypeDescription = function(module, typeNameOrFn, name, isPrimary, description) {
         module = DbgObject.NormalizeModule(module);
         if (typeof(typeNameOrFn) == typeof("")) {
-            descriptionTypes[module + "!" + typeNameOrFn] = description;
+            var key = typeKey(module, typeNameOrFn);
+            if (!(key in descriptionTypes)) {
+                descriptionTypes[key] = [];
+            }
+            descriptionTypes[key].push(new TypeDescription(name, isPrimary, description));
         } else if (typeof(typeNameOrFn) == typeof(function(){})) {
             descriptionFunctions.push({
                 module: module, 
                 condition: typeNameOrFn, 
-                description: description
+                description: new TypeDescription(name, isPrimary, description)
             });
         } else {
             throw new Error("You must pass a string or regular expression for the type name.");
@@ -31,12 +46,15 @@ JsDbg.OnLoad(function () {
         function getTypeDescriptionFunction(module, type) {
             var key = module + "!" + type;
             if (key in descriptionTypes) {
-                return descriptionTypes[key];
+                var primaryDescriptions = descriptionTypes[key].filter(function (d) { return d.isPrimary; });
+                if (primaryDescriptions.length > 0) {
+                    return primaryDescriptions[0].getter;
+                }
             } else {
                 // Check the regex array.
                 for (var i = 0; i < descriptionFunctions.length; ++i) {
-                    if (descriptionFunctions[i].module == module && descriptionFunctions[i].condition(type)) {
-                        return descriptionFunctions[i].description;
+                    if (descriptionFunctions[i].module == module && descriptionFunctions[i].condition(type) && descriptionFunctions[i].description.isPrimary) {
+                        return descriptionFunctions[i].description.getter;
                     }
                 }
             }
