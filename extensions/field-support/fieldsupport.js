@@ -24,6 +24,7 @@ var FieldSupport = (function() {
         this.includingBaseTypes = undefined;
         this.controller = controller;
         this.rerender = rerender !== undefined ? rerender : function () { this.parentField.parentType.rerender(); };
+        this.searchQuery = "";
 
         var that = this;
         this.extendedFields = [];
@@ -188,6 +189,11 @@ var FieldSupport = (function() {
         }
     }
 
+    KnownType.prototype.isFiltered = function (field) {
+        return (field.name.toLowerCase().indexOf(this.searchQuery.toLowerCase()) != 0) &&
+            (field.resultingTypeName.toLowerCase().indexOf(this.searchQuery.toLowerCase()) != 0);
+    }
+
     KnownType.prototype.getFieldsToRender = function () {
         if (!this.isExpanded) {
             return Promise.as(this.getFieldsToShowWhenCollapsed([]));
@@ -279,6 +285,10 @@ var FieldSupport = (function() {
                 return that.fieldsIncludingBaseTypes;
             });
         }
+    }
+
+    KnownType.prototype.setSearchQuery = function(query) {
+        this.searchQuery = query;
     }
 
     function KnownField(name, resultingTypeName, getter, renderer, parentType, isBaseTypeField) {
@@ -435,7 +445,7 @@ var FieldSupport = (function() {
         typeName.addEventListener("click", function () {
             rootType.isExpanded = !rootType.isExpanded;
             typeContainer.classList.toggle("collapsed");
-            that.renderFieldList(rootType, fieldsContainer);
+            that.renderFieldListAndUI(rootType, fieldsContainer);
         })
         typeContainer.appendChild(typeName);
 
@@ -448,7 +458,38 @@ var FieldSupport = (function() {
         }
         typeContainer.appendChild(fieldsContainer);
 
-        return this.renderFieldList(rootType, fieldsContainer);
+        return this.renderFieldListAndUI(rootType, fieldsContainer);
+    }
+
+    FieldSupportController.prototype.renderFieldListAndUI = function(type, fieldListUIContainer) {
+        fieldListUIContainer.innerHTML = "";
+        var fieldListContainer = document.createElement("div");
+        if (type.isExpanded) {
+            var filterTextBox = document.createElement("input");
+            filterTextBox.classList.add("small-input");
+            filterTextBox.placeholder = "Search...";
+            filterTextBox.type = "search";
+            filterTextBox.value = type.searchQuery;
+            filterTextBox.focus();
+            fieldListUIContainer.appendChild(filterTextBox);
+            var that = this;
+            filterTextBox.addEventListener("input", function () {
+                type.setSearchQuery(filterTextBox.value);
+                that.renderFieldList(type, fieldListContainer);
+            });
+
+            var showBaseTypesControl = document.createElement("button");
+            showBaseTypesControl.classList.add("small-button");
+            showBaseTypesControl.textContent = type.includingBaseTypes ? "Exclude Base Types" : "Include Base Types";
+            fieldListUIContainer.appendChild(showBaseTypesControl);
+            showBaseTypesControl.addEventListener("click", function () {
+                type.includingBaseTypes = !type.includingBaseTypes;
+                that.renderFieldList(type, fieldListContainer);
+            })
+        }
+
+        fieldListUIContainer.appendChild(fieldListContainer);
+        return this.renderFieldList(type, fieldListContainer);
     }
 
     FieldSupportController.prototype.renderFieldList = function(type, fieldsContainer) {
@@ -459,17 +500,6 @@ var FieldSupport = (function() {
             return type.getExtendedFieldsToRender()
             .then(function (extendedFields) {
                 fieldsContainer.innerHTML = "";
-
-                if (type.isExpanded) {
-                    var showBaseTypesControl = document.createElement("button");
-                    showBaseTypesControl.classList.add("small-button");
-                    showBaseTypesControl.textContent = type.includingBaseTypes ? "Exclude Base Types" : "Include Base Types";
-                    fieldsContainer.appendChild(showBaseTypesControl);
-                    showBaseTypesControl.addEventListener("click", function () {
-                        type.includingBaseTypes = !type.includingBaseTypes;
-                        that.renderFieldList(type, fieldsContainer);
-                    })
-                }
 
                 return Promise.map(extendedFields, function (extendedField) {
                     var fieldContainer = document.createElement("label");
@@ -494,6 +524,12 @@ var FieldSupport = (function() {
 
     FieldSupportController.prototype.renderFieldUI = function (field, renderingType, fieldContainer) {
         fieldContainer.innerHTML = "";
+
+        if (renderingType.isFiltered(field)) {
+            fieldContainer.classList.add("filtered");
+        } else {
+            fieldContainer.classList.remove("filtered");
+        }
 
         var input = document.createElement("input");
         fieldContainer.appendChild(input);
@@ -529,14 +565,15 @@ var FieldSupport = (function() {
 
         return field.getChildType()
         .then(function (childType) {
-            if (childType == null) {
+            if (childType == null || renderingType.isFiltered(field)) {
                 return;
             }
 
             var currentType = field.parentType;
             var areAllTypesExpanded = !(field.isBaseTypeField && !field.parentType.includingBaseTypes);
             while (areAllTypesExpanded && currentType != null) {
-                areAllTypesExpanded = currentType.isExpanded;
+                var isFiltered = currentType.parentField != null && currentType.parentField.parentType.isFiltered(currentType.parentField);
+                areAllTypesExpanded = currentType.isExpanded && !isFiltered;
                 currentType = currentType.parentField != null ? currentType.parentField.parentType : null;
             }
 
@@ -552,14 +589,14 @@ var FieldSupport = (function() {
             } else {
                 subFieldsContainer.classList.remove("collapsed");
             }
-            return that.renderFieldList(childType, subFieldsContainer)
+            return that.renderFieldListAndUI(childType, subFieldsContainer)
             .then(function () {
                 fieldContainer.parentNode.insertBefore(subFieldsContainer, fieldContainer.nextSibling);
                 fieldTypeContainer.addEventListener("click", function (e) {
                     e.preventDefault();
                     childType.isExpanded = !childType.isExpanded;
                     subFieldsContainer.classList.toggle("collapsed");
-                    that.renderFieldList(childType, subFieldsContainer);
+                    that.renderFieldListAndUI(childType, subFieldsContainer);
                 });
             });
         });
@@ -574,7 +611,7 @@ var FieldSupport = (function() {
         }
 
         var that = this;
-        return this.renderFieldList(childType, subFieldsContainer);
+        return this.renderFieldListAndUI(childType, subFieldsContainer);
     }
 
     function initialize(unused1, unused2, unused3, UpdateUI, container) {

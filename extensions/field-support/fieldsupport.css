@@ -77,6 +77,11 @@
     margin:5px 0;
 }
 
+.field-selection .fields-container .filtered {
+    visibility: hidden;
+    height:0px;
+}
+
 .field-selection .collapsed .field-type {
     display:none;
 }
@@ -88,6 +93,11 @@
 .field-selection .field-type {
     color:#999;
     font-style:italic;
+}
+
+input.small-input {
+    font-size:8pt;
+    margin-right:0.3em;
 }
 
 button.small-button::before {
