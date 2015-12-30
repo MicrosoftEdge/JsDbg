@@ -15,5 +15,8 @@
     "includes": [
         "fieldsupport.css",
         "fieldsupport.js"
+    ],
+    "augments": [
+        "tests"
     ]
 }

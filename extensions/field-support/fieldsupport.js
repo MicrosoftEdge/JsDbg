@@ -189,9 +189,58 @@ var FieldSupport = (function() {
         }
     }
 
+    function fuzzyMatch(body, term) {
+        if (term.length == 0) {
+            return true;
+        }
+
+        var firstCharacterIndex = body.indexOf(term[0]);
+        if (firstCharacterIndex == -1) {
+            return false;
+        }
+
+        // Allow slightly transposed fuzzy matches by grabbing the character before the hit.
+        var prefix = "";
+        if (firstCharacterIndex > 0) {
+            prefix = body[firstCharacterIndex - 1];
+        }
+
+        return fuzzyMatch(prefix + body.substr(firstCharacterIndex + 1), term.substr(1));
+    }
+
+    JsDbg.OnLoad(function() {
+        if (typeof Tests !== "undefined") {
+            var suite = Tests.CreateTestSuite("FieldSupport.FuzzyMatch", "Tests for the fuzzy matcher in FieldSupport.");
+            Tests.AddTest(suite, "Basic Matching", function (assert) {
+                assert(fuzzyMatch("abc", ""), "[empty string] -> abc");
+                assert(fuzzyMatch("abc", "a"), "a -> abc");
+                assert(fuzzyMatch("abc", "b"), "b -> abc");
+                assert(fuzzyMatch("abc", "c"), "c -> abc");
+                assert(fuzzyMatch("abc", "ab"), "ab -> abc");
+                assert(fuzzyMatch("abc", "bc"), "bc -> abc");
+                assert(fuzzyMatch("abc", "abc"), "abc -> abc");
+                assert(!fuzzyMatch("abc", "d"), "d !-> abc");
+            });
+
+            Tests.AddTest(suite, "Fuzzy Matching", function (assert) {
+                assert(fuzzyMatch("abc", "ac"), "ac -> abc");
+                assert(fuzzyMatch("abcde", "ace"), "ace -> abcde");
+                assert(!fuzzyMatch("abcde", "afce"), "afce !-> abcde");
+                assert(!fuzzyMatch("abcde", "acef"), "acef !-> abcde");
+            });
+
+            Tests.AddTest(suite, "Transposed Matching", function (assert) {
+                assert(fuzzyMatch("abc", "acb"), "acb -> abc");
+                assert(fuzzyMatch("abcde", "acbe"), "acbe -> abcde");
+                assert(!fuzzyMatch("abcde", "acbce"), "acbce -> abcde");
+                assert(!fuzzyMatch("abcde", "abb"), "abb -> abcde");
+                assert(!fuzzyMatch("abcde", "aeb"), "aeb !-> abcde");
+            });
+        }
+    })
+
     KnownType.prototype.isFiltered = function (field) {
-        return (field.name.toLowerCase().indexOf(this.searchQuery.toLowerCase()) != 0) &&
-            (field.resultingTypeName.toLowerCase().indexOf(this.searchQuery.toLowerCase()) != 0);
+        return !fuzzyMatch(field.name.toLowerCase() + " " + field.resultingTypeName.toLowerCase(), this.searchQuery.toLowerCase());
     }
 
     KnownType.prototype.getFieldsToRender = function () {
