@@ -80,7 +80,7 @@ JsDbg.OnLoad(function() {
         })
         .then(function (result) { 
             if (result.error) {
-                throw new Error(result.error);
+                return Promise.fail(new Error(result.error));
             }
             return result; 
         });
