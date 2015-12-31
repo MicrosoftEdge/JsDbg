@@ -88,7 +88,7 @@ var MSHTML = undefined;
                         return element.as("void*").idx(1).as("CTreeNode");
                     }, function () {
                         // TEXTNODEMERGE -- ElementNode is part of CTreeNode's virtual inheritance hierarchy
-                        return element.vcast()
+                        return element.vcast().as("CTreeNode")
                         .then(null, function () {
                             // !TEXTNODEMERGE -- CTreeNode and ElementNode do not share a type hierarchy
                             return new DbgObject(MSHTML.Module, "CTreeNode", 0).baseTypes()
