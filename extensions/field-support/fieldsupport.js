@@ -454,14 +454,14 @@ var FieldSupport = (function() {
         container.appendChild(this.typeListContainer);
 
         var showAllTypes = document.createElement("button");
-        showAllTypes.textContent = "More Types...";
+        showAllTypes.textContent = "Show More Types...";
         showAllTypes.classList.add("small-button");
         showAllTypes.classList.add("more-types");
         container.appendChild(showAllTypes);
         var that = this;
         showAllTypes.addEventListener("click", function () {
-            showAllTypes.parentNode.removeChild(showAllTypes);
-            that.typeListContainer.classList.add("show-all-types");
+            that.typeListContainer.classList.toggle("show-all-types");
+            showAllTypes.textContent = that.typeListContainer.classList.contains("show-all-types") ? "Show Fewer Types..." : "Show More Types...";
         });
 
         container.classList.add("field-selection");
