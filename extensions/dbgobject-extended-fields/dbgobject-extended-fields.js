@@ -72,7 +72,16 @@ JsDbg.OnLoad(function () {
             return fragments.join("\n");
         }
     };
-    DbgObject.prototype.F = function(fieldName) {
+    DbgObject.prototype.F = function(fieldNames) {
+        var fields = fieldNames.split(".");
+        var current = Promise.as(this);
+        fields.forEach(function (field) {
+            current = current.then(function (result) { return result._FHelper(field) });
+        });
+        return current;
+    }
+
+    DbgObject.prototype._FHelper = function (fieldName) {
         var extendedType = getExtendedType(this.module, this.typename);
         var result = null;
         var that = this;
@@ -110,6 +119,8 @@ JsDbg.OnLoad(function () {
         var extendedType = getExtendedType(module, typeName);
         if (fieldName in extendedType.fields) {
             throw new Error("There is already a \"" + fieldName + "\" field registered for " + module + "!" + typeName);
+        } else if (fieldName.indexOf(".") != -1) {
+            throw new Error("You cannot have a field name with a '.' in it.");
         }
 
         extendedType.fields[fieldName] = new ExtendedField(fieldName, fieldTypeName, getter);

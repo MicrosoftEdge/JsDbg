@@ -111,19 +111,19 @@ var MSHTML = undefined;
         }
 
         DbgObject.AddExtendedField(moduleName, "CTreeNode", "FancyFormat", "CFancyFormat", function (treeNode) {
-            return MSHTML.GetObjectFromThreadstateCache(treeNode, "FancyFormat", treeNode.f("_iFF").val());
+            return MSHTML.GetObjectFromDataCache(treeNode.F("Markup.Doc.Threadstate").f("_pFancyFormatCache"), treeNode.f("_iFF").val());
         });
 
         DbgObject.AddExtendedField(moduleName, "CTreeNode", "CharFormat", "CCharFormat", function (treeNode) {
-            return MSHTML.GetObjectFromThreadstateCache(treeNode, "CharFormat", treeNode.f("_iCF").val());
+            return MSHTML.GetObjectFromDataCache(treeNode.F("Markup.Doc.Threadstate").f("_pCharFormatCache"), treeNode.f("_iCF").val());
         });
 
         DbgObject.AddExtendedField(moduleName, "CTreeNode", "ParaFormat", "CParaFormat", function (treeNode) {
-            return MSHTML.GetObjectFromThreadstateCache(treeNode, "ParaFormat", treeNode.f("_iPF").val());
+            return MSHTML.GetObjectFromDataCache(treeNode.F("Markup.Doc.Threadstate").f("_pParaFormatCache"), treeNode.f("_iPF").val());
         });
 
         DbgObject.AddExtendedField(moduleName, "CTreeNode", "SvgFormat", "CSvgFormat", function (treeNode) {
-            return MSHTML.GetObjectFromThreadstateCache(treeNode, "SvgFormat", treeNode.f("_iSF").val());
+            return MSHTML.GetObjectFromDataCache(treeNode.F("Markup.Doc.Threadstate").f("_pSvgFormatCache"), treeNode.f("_iSF").val());
         });
 
         function GetLayoutAssociationFromCTreeNode(treeNode, flag) {
@@ -174,7 +174,7 @@ var MSHTML = undefined;
         }
 
         DbgObject.AddExtendedField(moduleName, "CTreeNode", "Markup", "CMarkup", function (element) {
-            return element.as("CElement").F("Markup");
+            return element.f("_pElement", "").as("CElement").F("Markup");
         });
 
         DbgObject.AddExtendedField(moduleName, "CElement", "Markup", "CMarkup", function (element) {
