@@ -47,7 +47,7 @@ JsDbg.OnLoad(function () {
             if (primaries.length == 0) {
                 return null;
             } else {
-                return primaries[0];
+                return primaries[0].getter;
             }
         }
 
