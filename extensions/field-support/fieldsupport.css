@@ -40,6 +40,14 @@
     cursor:default;
 }
 
+.field-selection .base-type {
+    display:none;
+}
+
+.field-selection .show-all-types .base-type {
+    display:block;
+}
+
 .field-selection .fields-container label input {
     height:12px;
     width:12px;

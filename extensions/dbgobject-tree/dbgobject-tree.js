@@ -6,6 +6,7 @@ var DbgObjectTree = (function() {
     var registeredAddressInterpreters = [];
     var registeredTypeNotifiers = [];
     var knownTypes = {};
+    var knownBaseTypes = {};
     var currentFields = {};
 
     function flatten(array, result) {
@@ -24,18 +25,22 @@ var DbgObjectTree = (function() {
         return result;
     }
 
-    function notifyOfNewType(dbgObject, checkBaseTypes) {
+    function notifyOfNewType(dbgObject, isLeafType) {
         if (!(dbgObject.typeDescription() in knownTypes)) {
-            knownTypes[dbgObject.typeDescription()] = true;
+            if (isLeafType) {
+                knownTypes[dbgObject.typeDescription()] = true;
+            }
+
             registeredTypeNotifiers.forEach(function (notifier) {
-                notifier(dbgObject.module, dbgObject.typeDescription());
+                notifier(dbgObject.module, dbgObject.typeDescription(), !isLeafType);
             });
 
-            if (checkBaseTypes) {
+            if (isLeafType && !(dbgObject.typeDescription() in knownBaseTypes)) {
+                knownBaseTypes[dbgObject.typeDescription()] = true;
                 dbgObject.baseTypes()
                 .then(function (baseTypes) {
                     baseTypes.forEach(function (baseType) {
-                        notifyOfNewType(baseType, /*checkBaseTypes*/false); 
+                        notifyOfNewType(baseType, /*isLeafType*/false); 
                     });
                 });
             }

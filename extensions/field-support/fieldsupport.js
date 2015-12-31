@@ -439,21 +439,43 @@ var FieldSupport = (function() {
 
     function FieldSupportController(container, updateTreeUI) {
         this.knownTypes = [];
-        this.typeListContainer = container;
+        this.typeListContainer = document.createElement("div");
         this.updateTreeUI = updateTreeUI;
+
+        container.appendChild(this.typeListContainer);
+
+        var showAllTypes = document.createElement("button");
+        showAllTypes.textContent = "More Types...";
+        showAllTypes.classList.add("small-button");
+        showAllTypes.classList.add("more-types");
+        container.appendChild(showAllTypes);
+        var that = this;
+        showAllTypes.addEventListener("click", function () {
+            showAllTypes.parentNode.removeChild(showAllTypes);
+            that.typeListContainer.classList.add("show-all-types");
+        });
 
         container.classList.add("field-selection");
     }
 
-    FieldSupportController.prototype.addType = function (module, typename) {
+    FieldSupportController.prototype.addType = function (module, typename, isBaseType) {
         for (var i = 0; i < this.knownTypes.length; ++i) {
             if (this.knownTypes[i].isType(module, typename)) {
+                if (!isBaseType) {
+                    // We may have rendered it as a base type before.  If so, remove the class.
+                    this.typeListContainer.childNodes[i].classList.remove("base-type");
+                }
                 return;
             }
         }
 
         // A type we haven't seen before.
         var newTypeContainer = document.createElement("div");
+
+        if (isBaseType) {
+            newTypeContainer.classList.add("base-type");
+        }
+        
         var that = this;
         var newType = new FieldSupportAggregateType(module, typename, null, this, function() {
             that.renderRootType(newType, newTypeContainer);
@@ -671,8 +693,8 @@ var FieldSupport = (function() {
 
     function initialize(unused1, unused2, unused3, UpdateUI, container) {
         var fieldSupportController = new FieldSupportController(container, UpdateUI);
-        DbgObjectTree.AddTypeNotifier(function (module, typename) {
-            fieldSupportController.addType(module, typename);
+        DbgObjectTree.AddTypeNotifier(function (module, typename, isBaseType) {
+            fieldSupportController.addType(module, typename, isBaseType);
         });
     }
 
