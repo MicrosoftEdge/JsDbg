@@ -153,6 +153,30 @@ JsDbg.OnLoad(function () {
             });
         });
 
+        Tests.AddTest(suite, "AddExtendedField (type predicate)", function (assert) {
+            var resultObject = new DbgObject("test", "ResultType", 0);
+            var predicate = function (t) { return t.indexOf("Test") == 0; };
+            DbgObject.AddExtendedField("test", predicate, "predicateField", "ResultType", function() {
+                return resultObject;
+            });
+
+            var fResult = new DbgObject("test", "TestX", 0).F("predicateField");
+            assert(fResult.__proto__ == PromisedDbgObject.prototype);
+
+            var didError = false;
+            return fResult
+            .then(function (result) {
+                assert.equals(result, resultObject);
+
+                return new DbgObject("test", "ShouldFail", 0).F("predicateField");
+            })
+            .then(null, function () { didError = true })
+            .then(function () {
+                assert(didError);
+                DbgObject.RemoveExtendedField("test", predicate, "predicateField");
+            })
+        });
+
         Tests.AddTest(suite, "OnExtendedFieldsChanged", function (assert) {
             var didNotify = false;
             DbgObject.OnExtendedFieldsChanged("test", "TestType", function() {
