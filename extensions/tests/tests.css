@@ -28,7 +28,7 @@
 }
 
 .test-case-status::before {
-    content: "Run Test";
+    content: "Pending...";
 }
 
 .test-case-status.running::before {

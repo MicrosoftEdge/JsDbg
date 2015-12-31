@@ -33,6 +33,7 @@ JsDbg.OnLoad(function() {
     function renderCase(testCase) {
         var container = document.createElement("div");
         container.classList.add("test-case");
+        container.runTestCase = function () { return runTest(testCase, container) };
 
         var description = document.createElement("div");
         description.classList.add("test-case-description");
@@ -42,13 +43,17 @@ JsDbg.OnLoad(function() {
         status.classList.add("test-case-status");
 
         status.addEventListener("click", function() {
-            runTest(testCase, container);
+            container.runTestCase();
         });
 
         container.appendChild(description);
         container.appendChild(status);
 
         return container;
+    }
+
+    function canUsePromises() {
+        return typeof Promise !== "undefined" && Promise.as !== undefined;
     }
 
     function runTest(testCase, container) {
@@ -91,7 +96,7 @@ JsDbg.OnLoad(function() {
 
         var start = new Date();
 
-        if (Promise != undefined && Promise.as != undefined) {
+        if (canUsePromises()) {
             if (testCase.isRunning) {
                 return false;
             }
@@ -103,7 +108,7 @@ JsDbg.OnLoad(function() {
             status.classList.remove("failed");
 
             // Promise based test.
-            Promise.as(false)
+            return Promise.as(false)
             .then(function () {
                 return testCase.test(assert);
             })
@@ -154,9 +159,18 @@ JsDbg.OnLoad(function() {
             container.innerHTML = "";
             registeredSuites.map(renderSuite).forEach(function (e) { container.appendChild(e); })
 
-            var allTests = document.querySelectorAll(".test-case-status");
-            for (var i = 0; i < allTests.length; ++i) {
-                allTests[i].click();
+            var allTests = Array.from(document.querySelectorAll(".test-case"));
+            if (canUsePromises()) {
+                var currentStatus = Promise.as(false);
+                allTests.forEach(function (container) {
+                    currentStatus = currentStatus.then(function () {
+                        return container.runTestCase();
+                    });
+                })
+            } else {
+                allTests.forEach(function (container ) {
+                    container.runTestCase();
+                });
             }
         }
     });
