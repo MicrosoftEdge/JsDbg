@@ -191,6 +191,22 @@ JsDbg.OnLoad(function() {
         });
     }
 
+    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::ContainerBox", "Validity", false, function (dbgObject, e) {
+        return Promise.join([dbgObject.f("isLayoutInvalid").val(), dbgObject.f("isDisplayInvalid").val()])
+        .then(function(invalidBits) {
+            if (invalidBits[0]) {
+                // Layout is invalid.
+                e.style.backgroundColor = "#fbc";
+            } else if (invalidBits[1]) {
+                // Display is invalid.
+                e.style.backgroundColor = "#ffc";
+            } else {
+                // Box is valid.
+                e.style.backgroundColor = "#bfc";
+            }
+        });
+    })
+
     var builtInFields = [
         {
             fullType: {

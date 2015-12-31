@@ -216,10 +216,19 @@ var FieldSupport = (function() {
                 null,
                 function getter(dbgObject) { return dbgObject; },
                 function renderer(dbgObject, element, fields) {
-                    return Promise.as(description.getter(dbgObject)).then(function (desc) {
-                        var descriptionContainer = document.createElement("div");
-                        element.appendChild(descriptionContainer);
-                        descriptionContainer.innerHTML = fields + ":" + desc;
+                    return Promise.as(description.getter(dbgObject, element)).then(function (desc) {
+                        if (desc instanceof Node) {
+                            var descriptionContainer = document.createElement("div");
+                            element.appendChild(descriptionContainer);
+                            descriptionContainer.appendChild(document.createTextNode(fields + ":"));
+                            descriptionContainer.appendChild(desc);
+                        } else if (desc instanceof DbgObject) {
+                            renderDbgObject(desc, element, fields);
+                        } else if (typeof(desc) != typeof(undefined)) {
+                            var descriptionContainer = document.createElement("div");
+                            element.appendChild(descriptionContainer);
+                            descriptionContainer.innerHTML = fields + ":" + desc;
+                        }
                     });
                 },
                 that
