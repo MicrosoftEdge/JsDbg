@@ -434,10 +434,9 @@ JsDbg.OnLoad(function() {
     BoxTree = {
         Name: "BoxTree",
         RootType: "LayoutBox",
-        DefaultFieldType: {
-            module: "edgehtml",
-            type: "Layout::LayoutBox"
-        },
-        BuiltInFields: builtInFields
+        DefaultTypes: [
+            { module: MSHTML.Module, type: "Layout::ContainerBox" },
+            { module: MSHTML.Module, type: "Layout::LayoutBox" }
+        ]
     };
 });

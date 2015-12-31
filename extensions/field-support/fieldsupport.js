@@ -727,11 +727,17 @@ var FieldSupport = (function() {
         return this.renderFieldListAndUI(childType, subFieldsContainer);
     }
 
-    function initialize(unused1, unused2, unused3, UpdateUI, container) {
-        var fieldSupportController = new FieldSupportController(container, UpdateUI);
+    function initialize(unused1, unused2, defaultTypes, updateUI, container) {
+        var fieldSupportController = new FieldSupportController(container, updateUI);
         DbgObjectTree.AddTypeNotifier(function (module, typename, isBaseType) {
             fieldSupportController.addType(module, typename, isBaseType);
         });
+
+        if (Array.isArray(defaultTypes)) {
+            defaultTypes.forEach(function (type) {
+                fieldSupportController.addType(type.module, type.type, /*isBaseType*/false);
+            });
+        }
     }
 
     return {

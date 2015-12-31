@@ -357,9 +357,9 @@ var TreeInspector = (function() {
             refresh();
 
             FieldSupport.Initialize(
-                namespace.Name, 
-                namespace.BuiltInFields, 
-                namespace.DefaultFieldType, 
+                null, 
+                null, 
+                namespace.DefaultTypes, 
                 function() {
                     var defer = window.setImmediate || window.msSetImmediate || (function (f) { window.setTimeout(f, 0); });
                     defer(function() {

@@ -28,7 +28,7 @@ JsDbg.OnLoad(function() {
         return treePos.f("_elementTypeAndFlags", "_cElemLeftAndFlags").val()
         .then(function (treePosFlags) {
             if (treePosFlags & 0x01) {
-                return treePos.unembed("CTreeNode", "_tpBegin")
+                return treePos.unembed("CTreeNode", "_tpBegin").vcast();
             } else if (treePosFlags & 0x04) {
                 return treePos.as("CTreeDataPos");
             } else if (treePosFlags & 0x08) {
@@ -51,7 +51,7 @@ JsDbg.OnLoad(function() {
             return aNode.as("CTreeDataPos").f("t._fIsElementNode").val()
             .then(function (isElementNode) {
                 if (isElementNode) {
-                    return aNode.unembed("CTreeNode", "_fIsElementNode");
+                    return aNode.unembed("CTreeNode", "_fIsElementNode").vcast();
                 } else {
                     return aNode.as("CTreeDataPos");
                 }
@@ -692,10 +692,9 @@ JsDbg.OnLoad(function() {
     MarkupTree = {
         Name: "MarkupTree",
         RootType: "CDoc",
-        DefaultFieldType: {
-            module: "edgehtml",
-            type: "CTreeNode"
-        },
-        BuiltInFields: builtInFields
+        DefaultTypes: [
+            { module: MSHTML.Module, type: "CTreeNode" },
+            { module: MSHTML.Module, type: "CBase" }
+        ]
     }
 });
