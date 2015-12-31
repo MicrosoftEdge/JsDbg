@@ -6,14 +6,6 @@
 
 var FieldSupport = (function() {
 
-    function renderDbgObject(dbgObject, element, fields) {
-        return dbgObject.desc().then(function (desc) {
-            var descriptionContainer = document.createElement("div");
-            element.appendChild(descriptionContainer);
-            descriptionContainer.innerHTML = fields + ":" + desc;
-        });
-    }
-
     function FieldSupportAggregateType(module, typename, parentField, controller, rerender) {
         this.parentField = parentField;
         this.controller = controller;
@@ -108,6 +100,12 @@ var FieldSupport = (function() {
         .then(this.flattenFieldsFromBackingTypes.bind(this));
     }
 
+    FieldSupportAggregateType.prototype.getDescriptionsToRender = function() {
+        console.assert(this.isPreparedForRendering);
+        return Promise.map(this.backingTypes, function (backingType) { return backingType.getDescriptionsToRender(); })
+        .then(this.flattenFieldsFromBackingTypes.bind(this));
+    }
+
     FieldSupportAggregateType.prototype.flattenFieldsFromBackingTypes = function (arrayOfFields) {
         arrayOfFields = arrayOfFields.slice(0);
         arrayOfFields.reverse();
@@ -169,7 +167,11 @@ var FieldSupport = (function() {
     })
 
     FieldSupportAggregateType.prototype.isFiltered = function (field) {
-        return !fuzzyMatch(field.name.toLowerCase() + " " + field.resultingTypeName.toLowerCase(), this.searchQuery.toLowerCase());
+        var base = field.name.toLowerCase();
+        if (field.resultingTypeName != null) {
+            base += " " + field.resultingTypeName.toLowerCase();
+        }
+        return !fuzzyMatch(base, this.searchQuery.toLowerCase());
     }
 
     FieldSupportAggregateType.prototype.setSearchQuery = function(query) {
@@ -184,6 +186,7 @@ var FieldSupport = (function() {
         this.typename = typename;
         this.fields = null;
         this.extendedFields = [];
+        this.descriptions = [];
 
         var that = this;
         DbgObject.GetExtendedFields(module, typename).forEach(function (extendedField) {
@@ -205,6 +208,30 @@ var FieldSupport = (function() {
                 });
             }
             that.aggregateType.rerender();
+        });
+
+        DbgObject.GetDescriptions(module, typename).forEach(function (description) {
+            that.descriptions.push(new FieldSupportField(
+                description.name,
+                null,
+                function getter(dbgObject) { return dbgObject; },
+                function renderer(dbgObject, element, fields) {
+                    return Promise.as(description.getter(dbgObject)).then(function (desc) {
+                        var descriptionContainer = document.createElement("div");
+                        element.appendChild(descriptionContainer);
+                        descriptionContainer.innerHTML = fields + ":" + desc;
+                    });
+                },
+                that
+            ));
+        })
+    }
+
+    function renderDbgObject(dbgObject, element, fields) {
+        return dbgObject.desc().then(function (desc) {
+            var descriptionContainer = document.createElement("div");
+            element.appendChild(descriptionContainer);
+            descriptionContainer.innerHTML = fields + ":" + desc;
         });
     }
 
@@ -237,13 +264,7 @@ var FieldSupport = (function() {
                     function getter(dbgObject) {
                         return dbgObject.f(field.name);
                     },
-                    function renderer(dbgObject, element, fields) {
-                        return dbgObject.desc().then(function (desc) {
-                            var descriptionContainer = document.createElement("div");
-                            element.appendChild(descriptionContainer);
-                            descriptionContainer.innerHTML = fields + ":" + desc;
-                        });
-                    },
+                    renderDbgObject,
                     that
                 );
             })
@@ -283,6 +304,10 @@ var FieldSupport = (function() {
         return Promise.as(this.extendedFields).then(this.adjustFieldsForCollapsing.bind(this));
     }
 
+    FieldSupportSingleType.prototype.getDescriptionsToRender = function() {
+        return Promise.as(this.descriptions).then(this.adjustFieldsForCollapsing.bind(this));
+    }
+
     FieldSupportSingleType.prototype.adjustFieldsForCollapsing = function(allFields) {
         if (this.isExpanded) {
             return allFields;
@@ -310,7 +335,7 @@ var FieldSupport = (function() {
         return hadEnabledFields;
     }
 
-    function FieldSupportField(name, resultingTypeName, getter, renderer, parentType, isBaseTypeField) {
+    function FieldSupportField(name, resultingTypeName, getter, renderer, parentType) {
         this.name = name;
         this.parentType = parentType;
         this.resultingTypeName = resultingTypeName;
@@ -319,7 +344,6 @@ var FieldSupport = (function() {
         this.getter = getter;
         this.renderer = renderer;
         this.fieldRenderer = this.renderField.bind(this);
-        this.isBaseTypeField = isBaseTypeField;
     }
 
     FieldSupportField.prototype.renderField = function(dbgObject, element) {
@@ -527,10 +551,10 @@ var FieldSupport = (function() {
     FieldSupportController.prototype.renderFieldList = function(type, fieldsContainer) {
         var that = this;
 
-        return Promise.join([type.getFieldsToRender(), type.getExtendedFieldsToRender()])
+        return Promise.join([type.getFieldsToRender(), type.getExtendedFieldsToRender(), type.getDescriptionsToRender()])
         .then(function (results) {
             var fields = results[0];
-            var extendedFields = results[1];
+            var extendedFields = results[1].concat(results[2]);
             fieldsContainer.innerHTML = "";
 
             return Promise.map(extendedFields, function (extendedField) {
