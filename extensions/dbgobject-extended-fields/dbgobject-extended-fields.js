@@ -1,26 +1,7 @@
 "use strict";
 
 JsDbg.OnLoad(function () {
-    var extendedTypes = {};
-
-    function typeKey(module, typeName) {
-        return module + "!" + typeName;
-    }
-
-    function getExtendedType(module, typeName) {
-        var key = typeKey(module, typeName);
-        if (!(key in extendedTypes)) {
-            extendedTypes[key] = new ExtendedType(module, typeName);
-        }
-        return extendedTypes[key];
-    }
-
-    function ExtendedType(module, typeName) {
-        this.module = module;
-        this.typeName = typeName;
-        this.listeners = [];
-        this.fields = {};
-    }
+    var registeredFields = new DbgObject.TypeExtension();
 
     function ExtendedField(fieldName, typeName, getter) {
         this.fieldName = fieldName;
@@ -55,15 +36,20 @@ JsDbg.OnLoad(function () {
             var fragments = [];
             fragments.push("<p>Extended fields can be registered with <code>DbgObject.AddExtendedField</code>.</p>");
 
+
+
             var listFragments = []
             listFragments.push("Currently registered extended fields:<ul>");
-            for (var key in extendedTypes) {
-                var extendedType = extendedTypes[key];
-                for (var fieldKey in extendedType.fields) {
-                    var extendedField = extendedType.fields[fieldKey];
-                    listFragments.push("<li>" + extendedType.typeName + "." + extendedField.fieldName + " (" + extendedField.typeName + ")</li>");
-                }
-            }
+
+            var types = registeredFields.getAllTypes();
+            types.forEach(function (type) {
+                registeredFields.getAllExtensions(type.module, type.type).forEach(function (extension) {
+                    if (typeof type.type == typeof "") {
+                        listFragments.push("<li>" + type.module + "!" + type.type + "." + extension.extension.fieldName + " (" + extension.extension.typeName + ")</li>");
+                    }
+                })
+            });
+
             listFragments.push("</ul>");
 
             if (listFragments.length > 2) {
@@ -82,25 +68,11 @@ JsDbg.OnLoad(function () {
     }
 
     DbgObject.prototype._FHelper = function (fieldName) {
-        var extendedType = getExtendedType(this.module, this.typename);
-        var result = null;
         var that = this;
-        if (fieldName in extendedType.fields) {
-            var field = extendedType.fields[fieldName];
-            result = Promise.as(field.getter(this)).then(field.ensureCompatibleResult.bind(field))
-        } else {
-            result = this.baseTypes()
-            .then(function (baseTypes) {
-                for (var i = 0; i < baseTypes.length; ++i) {
-                    var extendedType = getExtendedType(baseTypes[i].module, baseTypes[i].typename);
-                    if (fieldName in extendedType.fields) {
-                        var field = extendedType.fields[fieldName];
-                        return Promise.as(field.getter(that)).then(field.ensureCompatibleResult.bind(field));
-                    }
-                }
-                throw new Error("\"" + fieldName + "\" is not a registered field on " + that.typename);
-            });
-        }
+        var result = registeredFields.getExtensionIncludingBaseTypes(this.module, this.typename, fieldName)
+        .then(function (extension) {
+            return Promise.as(extension.getter(that)).then(extension.ensureCompatibleResult.bind(extension));
+        });
 
         return new PromisedDbgObject(result);
     }
@@ -116,17 +88,12 @@ JsDbg.OnLoad(function () {
         ],
     };
     DbgObject.AddExtendedField = function(module, typeName, fieldName, fieldTypeName, getter) {
-        var extendedType = getExtendedType(module, typeName);
-        if (fieldName in extendedType.fields) {
-            throw new Error("There is already a \"" + fieldName + "\" field registered for " + module + "!" + typeName);
-        } else if (fieldName.indexOf(".") != -1) {
+        if (fieldName.indexOf(".") != -1) {
             throw new Error("You cannot have a field name with a '.' in it.");
         }
 
-        extendedType.fields[fieldName] = new ExtendedField(fieldName, fieldTypeName, getter);
-        extendedType.listeners.forEach(function (listener) {
-            listener(module, typeName, fieldName, fieldTypeName, /*isAdded*/true);
-        });
+        var extendedField = new ExtendedField(fieldName, fieldTypeName, getter);
+        return registeredFields.addExtension(module, typeName, fieldName, extendedField);
     }
 
     DbgObject._help_RemoveExtendedField = {
@@ -138,16 +105,7 @@ JsDbg.OnLoad(function () {
         ]
     }
     DbgObject.RemoveExtendedField = function(module, typeName, fieldName) {
-        var extendedType = getExtendedType(module, typeName);
-        if (fieldName in extendedType.fields) {
-            var extendedField = extendedType.fields[fieldName];
-            delete extendedType.fields[fieldName];
-            extendedType.listeners.forEach(function (listener) {
-                listener(module, typeName, fieldName, extendedField.typeName, /*isAdded*/false);
-            });
-        } else {
-            throw new Error("\"" + fieldName + "\" is not a registered field on " + typeName);
-        }
+        return registeredFields.removeExtension(module, typeName, fieldName);
     }
 
     DbgObject._help_GetExtendedFields = {
@@ -159,13 +117,9 @@ JsDbg.OnLoad(function () {
         returns: "An array of extended fields with <code>fieldName</code>, <code>typeName</code>, and <code>getter</code> fields."
     }
     DbgObject.GetExtendedFields = function(module, typeName) {
-        var fields = getExtendedType(module, typeName).fields;
-        var result = [];
-        for (var key in fields) {
-            result.push(fields[key]);
-        }
-
-        return result;
+        return registeredFields.getAllExtensions(module, typeName).map(function (extension) {
+            return extension.extension;
+        });
     }
 
     DbgObject._help_OnExtendedFieldsChanged = {
@@ -177,7 +131,7 @@ JsDbg.OnLoad(function () {
         ]
     }
     DbgObject.OnExtendedFieldsChanged = function(module, typeName, notifier) {
-        getExtendedType(module, typeName).listeners.push(notifier);
+        return registeredFields.addListener(module, typeName, notifier);
     }
 
     if (typeof(Tests) !== typeof(undefined)) {

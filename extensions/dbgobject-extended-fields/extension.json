@@ -1,6 +1,6 @@
 {
     "name": "dbgobject-extended-fields",
     "headless": true,
-    "dependencies": ["dbgobject-core"],
+    "dependencies": ["dbgobject-core", "dbgobject-type-extension"],
     "includes": ["dbgobject-extended-fields.js"]
 }

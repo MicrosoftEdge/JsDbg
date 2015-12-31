@@ -1,12 +1,7 @@
 "use strict";
 
 JsDbg.OnLoad(function () {
-    var descriptionTypes = {};
-    var descriptionFunctions = [];
-
-    function typeKey(module, typeName) {
-        return module + "!" + typeName;
-    }
+    var registeredDescriptions = new DbgObject.TypeExtension();
 
     function TypeDescription(name, isPrimary, getter) {
         this.name = name;
@@ -19,27 +14,13 @@ JsDbg.OnLoad(function () {
         notes: "The provided function will be used whenever <code>desc()</code> is called on a DbgObject with a matching type.",
         arguments:[
             {name: "module", type:"string", description:"The module of the type."},
-            {name: "typeNameOrFn", type:"string/function(string) -> bool", description: "The type name, or a predicate that matches a type name."},
+            {name: "type", type:"string/function(string) -> bool", description: "The type name, or a predicate that matches a type name."},
             {name: "description", type:"function(DbgObject) -> string", description: "A function that returns an HTML fragment to describe a given DbgObject."}
         ]
     };
-    DbgObject.AddTypeDescription = function(module, typeNameOrFn, name, isPrimary, description) {
-        module = DbgObject.NormalizeModule(module);
-        if (typeof(typeNameOrFn) == typeof("")) {
-            var key = typeKey(module, typeNameOrFn);
-            if (!(key in descriptionTypes)) {
-                descriptionTypes[key] = [];
-            }
-            descriptionTypes[key].push(new TypeDescription(name, isPrimary, description));
-        } else if (typeof(typeNameOrFn) == typeof(function(){})) {
-            descriptionFunctions.push({
-                module: module, 
-                condition: typeNameOrFn, 
-                description: new TypeDescription(name, isPrimary, description)
-            });
-        } else {
-            throw new Error("You must pass a string or regular expression for the type name.");
-        }
+    DbgObject.AddTypeDescription = function(module, type, name, isPrimary, description) {
+        var extension = new TypeDescription(name, isPrimary, description);
+        return registeredDescriptions.addExtension(module, type, name, extension);
     }
 
     DbgObject._help_GetDescriptions = {
@@ -50,38 +31,24 @@ JsDbg.OnLoad(function () {
         ],
         returns: "An array of objects with <code>name</code> and <code>getter</code> fields."
     };
-    DbgObject.GetDescriptions = function (module, typeName) {
-        var key = typeKey(module, typeName);
-        var descriptions = [];
-        if (key in descriptionTypes) {
-            descriptions = descriptionTypes[key];
-        } else {
-            descriptions = [];
-        }
+    DbgObject.GetDescriptions = function (module, type) {
+        return registeredDescriptions.getAllExtensions(module, type).map(function (extension) {
+            return extension.extension;
+        })
+    }
 
-        return descriptions.concat(descriptionFunctions.filter(function (item) {
-            return item.module == module && item.condition(typeName);
-        }));
+    DbgObject.OnDescriptionsChanged = function (module, typeName, listener) {
+        return registeredDescriptions.addListener(module, typeName, listener);
     }
 
     function getTypeDescriptionFunctionIncludingBaseTypes(module, type) {
         function getTypeDescriptionFunction(module, type) {
-            var key = module + "!" + type;
-            if (key in descriptionTypes) {
-                var primaryDescriptions = descriptionTypes[key].filter(function (d) { return d.isPrimary; });
-                if (primaryDescriptions.length > 0) {
-                    return primaryDescriptions[0].getter;
-                }
+            var primaries = registeredDescriptions.getAllExtensions(module, type).filter(function (e) { return e.extension.isPrimary; }).map(function (e) { return e.extension; });
+            if (primaries.length == 0) {
+                return null;
             } else {
-                // Check the regex array.
-                for (var i = 0; i < descriptionFunctions.length; ++i) {
-                    if (descriptionFunctions[i].module == module && descriptionFunctions[i].condition(type) && descriptionFunctions[i].description.isPrimary) {
-                        return descriptionFunctions[i].description.getter;
-                    }
-                }
+                return primaries[0];
             }
-
-            return null;
         }
 
         var natural = getTypeDescriptionFunction(module, type);
@@ -191,13 +158,13 @@ JsDbg.OnLoad(function () {
         returns: "A promise to an HTML fragment.",
         notes: function() {
             var html = "<p>Type-specific description generators can be registered with <code>DbgObject.AddTypeDescription</code>.</p>";
-            var loadedDescriptionTypes = [];
-            for (var key in descriptionTypes) {
-                loadedDescriptionTypes.push("<li>" + key + "</li>");
-            }
-            for (var i = 0; i < descriptionFunctions.length; ++i) {
-                loadedDescriptionTypes.push("<li>Predicate: " + descriptionFunctions[i].module + "!(" + descriptionFunctions[i].condition.toString() + ")</li>");
-            }
+            var loadedDescriptionTypes = registeredDescriptions.getAllTypes().map(function (type) {
+                if (typeof type.type == typeof "") {
+                    return "<li>" + type.module + "!" + type.type + "</li>";
+                } else {
+                    return "<li>Predicate: " + type.module + "!(" + type.type.toString() + ")</li>"
+                }
+            });
             return html + "Currently registered types with descriptions: <ul>" + loadedDescriptionTypes.join("") + "</ul>";
         }
     }
