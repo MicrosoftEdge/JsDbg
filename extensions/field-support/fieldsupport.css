@@ -52,7 +52,7 @@
     height:12px;
     width:12px;
     margin:0;
-    align-self:flex-end;
+    align-self:center;
     flex-shrink: 0;
     box-sizing:border-box;
 }

@@ -475,7 +475,7 @@ var FieldSupport = (function() {
         if (isBaseType) {
             newTypeContainer.classList.add("base-type");
         }
-        
+
         var that = this;
         var newType = new FieldSupportAggregateType(module, typename, null, this, function() {
             that.renderRootType(newType, newTypeContainer);
@@ -570,6 +570,25 @@ var FieldSupport = (function() {
         });
     }
 
+    function findFieldNameCollisions(fields, type) {
+        var names = {};
+        var collisions = {};
+
+        fields.forEach(function (f) {
+            if (f.parentType.aggregateType != type) {
+                return;
+            }
+
+            if (f.name in names) {
+                collisions[f.name] = true;
+            } else {
+                names[f.name] = true;
+            }
+        })
+
+        return collisions;
+    }
+
     FieldSupportController.prototype.renderFieldList = function(type, fieldsContainer) {
         var that = this;
 
@@ -579,10 +598,14 @@ var FieldSupport = (function() {
             var extendedFields = results[1].concat(results[2]);
             fieldsContainer.innerHTML = "";
 
+            // Find any collisions in the fields.
+            var fieldCollisions = findFieldNameCollisions(fields, type);
+            var extendedFieldCollisions = findFieldNameCollisions(extendedFields, type);
+
             return Promise.map(extendedFields, function (extendedField) {
                 var fieldContainer = document.createElement("label");
                 fieldsContainer.appendChild(fieldContainer);
-                return that.renderFieldUI(extendedField, type, fieldContainer);
+                return that.renderFieldUI(extendedField, type, fieldContainer, extendedFieldCollisions);
             })
             .then(function() {
                 if (extendedFields.length > 0 && type.isExpanded()) {
@@ -593,13 +616,13 @@ var FieldSupport = (function() {
                 return Promise.map(fields, function (field) {
                     var fieldContainer = document.createElement("label");
                     fieldsContainer.appendChild(fieldContainer);
-                    return that.renderFieldUI(field, type, fieldContainer);
+                    return that.renderFieldUI(field, type, fieldContainer, fieldCollisions);
                 })
             });
         });
     }
 
-    FieldSupportController.prototype.renderFieldUI = function (field, renderingType, fieldContainer) {
+    FieldSupportController.prototype.renderFieldUI = function (field, renderingType, fieldContainer, nameCollisions) {
         fieldContainer.innerHTML = "";
 
         if (renderingType.isFiltered(field)) {
@@ -626,6 +649,10 @@ var FieldSupport = (function() {
             currentField = currentField.parentType.aggregateType.parentField;
             names.push(currentField.name);
         }
+        if (currentField.name in nameCollisions) {
+            names[names.length - 1] = (currentField.parentType.typename) + "::" + names[names.length - 1];
+        }
+
         fieldNameContainer.textContent = names.reverse().join(".");
         fieldContainer.appendChild(fieldNameContainer);
         
