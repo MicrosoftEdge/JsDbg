@@ -270,6 +270,49 @@ JsDbg.OnLoad(function() {
         FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDOMTextNode", "TextNode");
     }
 
+    DbgObject.AddTypeDescription(MSHTML.Module, "CTreeDataPos", "Text", false, function (dbgObject) {
+        function processCharacters(characters) {
+            var length = characters.length;
+            var textArray = new Array();
+            for (var i = 0; i < length; i++) {
+                textArray.push(String.fromCharCode(characters[i]));
+            }
+        
+            return "\"" + textArray.join("") + "\"";
+        }
+
+        return dbgObject.f( "_spTextData.m_pT", "_pTextData")
+        .f("isTextDataSlice", "_fIsTextDataSlice").val()
+        .then(null, function() { return 0; }) // Handle no _fIsTextDataSlice field
+        .then(function (isSlice) {
+            if (!isSlice) {
+                return dbgObject.f("_spTextData.m_pT", "_pTextData")
+                    .as("Tree::TextData")
+                    .f("text", "_pText")
+                    .array(dbgObject.f("_spTextData.m_pT", "_pTextData").f("textLength", "_ulTextLength"))
+                    .then(processCharacters);
+            } else {
+                var textDataSlicePromise = dbgObject.f("_spTextData.m_pT", "_pTextData").as("Tree::TextDataSlice");
+                return Promise.join([
+                    textDataSlicePromise.f("originalTextData.m_pT", "_spOriginalTextData.m_pT"),
+                    textDataSlicePromise.f("textLength", "_ulTextLength"),
+                    textDataSlicePromise.f("offset", "_ulOffset")
+                ])
+                .then(function (results) {
+                    var originalTextData = results[0];
+                    var sliceLength = results[1];
+                    var sliceOffset = results[2];
+                    return originalTextData.f("text", "_pText").idx(sliceOffset.val()).array(sliceLength.val()).then(processCharacters);
+                });
+            }
+        })
+        .then(function (text) {
+            var e = document.createElement("div");
+            e.textContent = text;
+            return e.innerHTML;
+        });
+    })
+
     var builtInFields = [
         /*ElementNode Fields*/
         {
