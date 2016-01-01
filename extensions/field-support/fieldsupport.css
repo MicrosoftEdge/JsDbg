@@ -6,6 +6,18 @@
     max-width:30vw;
 }
 
+.field-selection .instructions {
+    width:200px;
+    min-width:100%;
+    font-size:0.8em;
+    margin:4pt;
+    margin-bottom:0;
+}
+
+.field-selection .more-types {
+    margin:4pt;
+}
+
 .field-selection .type-container {
     margin-left:5px;
     -webkit-user-select: none;

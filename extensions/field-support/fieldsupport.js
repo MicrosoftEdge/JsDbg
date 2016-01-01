@@ -451,7 +451,11 @@ var FieldSupport = (function() {
         this.typeListContainer = document.createElement("div");
         this.updateTreeUI = updateTreeUI;
 
-        container.appendChild(this.typeListContainer);
+        var instructionText = document.createElement("div");
+        instructionText.classList.add("instructions");
+        container.appendChild(instructionText);
+        instructionText.textContent = "To annotate the tree with additional data, use the types below to select properties to render on the tree.";
+
 
         var showAllTypes = document.createElement("button");
         showAllTypes.textContent = "Show More Types...";
@@ -463,6 +467,8 @@ var FieldSupport = (function() {
             that.typeListContainer.classList.toggle("show-all-types");
             showAllTypes.textContent = that.typeListContainer.classList.contains("show-all-types") ? "Show Fewer Types..." : "Show More Types...";
         });
+
+        container.appendChild(this.typeListContainer);
 
         container.classList.add("field-selection");
     }
