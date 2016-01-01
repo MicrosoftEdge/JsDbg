@@ -69,9 +69,10 @@ JsDbg.OnLoad(function () {
 
     DbgObject.prototype._FHelper = function (fieldName) {
         var that = this;
-        var result = registeredFields.getExtensionIncludingBaseTypes(this.module, this.typename, fieldName)
-        .then(function (extension) {
-            return Promise.as(extension.getter(that)).then(extension.ensureCompatibleResult.bind(extension));
+        var result = registeredFields.getExtensionIncludingBaseTypes(this, fieldName)
+        .then(function (result) {
+            return Promise.as(result.extension.getter(result.dbgObject))
+            .then(result.extension.ensureCompatibleResult.bind(result.extension));
         });
 
         return new PromisedDbgObject(result);

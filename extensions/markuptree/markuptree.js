@@ -289,7 +289,7 @@ JsDbg.OnLoad(function() {
                 return dbgObject.f("_spTextData.m_pT", "_pTextData")
                     .as("Tree::TextData")
                     .f("text", "_pText")
-                    .array(dbgObject.f("_spTextData.m_pT", "_pTextData").f("textLength", "_ulTextLength"))
+                    .vals(dbgObject.f("_spTextData.m_pT", "_pTextData").f("textLength", "_ulTextLength"))
                     .then(processCharacters);
             } else {
                 var textDataSlicePromise = dbgObject.f("_spTextData.m_pT", "_pTextData").as("Tree::TextDataSlice");
@@ -302,7 +302,7 @@ JsDbg.OnLoad(function() {
                     var originalTextData = results[0];
                     var sliceLength = results[1];
                     var sliceOffset = results[2];
-                    return originalTextData.f("text", "_pText").idx(sliceOffset.val()).array(sliceLength.val()).then(processCharacters);
+                    return originalTextData.f("text", "_pText").idx(sliceOffset.val()).vals(sliceLength.val()).then(processCharacters);
                 });
             }
         })

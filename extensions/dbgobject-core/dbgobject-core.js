@@ -419,94 +419,112 @@ JsDbg.OnLoad(function() {
 
     DbgObject.prototype._help_val = {
         description: "Retrieves a scalar value held by a DbgObject.",
-        returns: "A promise to a number."
+        returns: "A promise to a number.",
+        notes: "This method has several variants with respect to treatment of integers: \
+        <table>\
+            <tr><th>name</th><th>sign</th><th>type</th></tr>\
+            <tr><td><code>val</code></td><td>auto</td><td>JS number</td></tr>\
+            <tr><td><code>sval</code></td><td>signed</td><td>JS number</td></tr>\
+            <tr><td><code>uval</code></td><td>unsigned</td><td>JS number</td></tr>\
+            <tr><td><code>bigval</code></td><td>auto</td><td>bigInt</td></tr>\
+            <tr><td><code>sbigval</code></td><td>signed</td><td>bigInt</td></tr>\
+            <tr><td><code>ubigval</code></td><td>unsigned</td><td>bigInt</td></tr>\
+        </table>"
     }
-    DbgObject.prototype.val = function() {
-        return this._val(this._isUnsigned, false);
-    }
+    DbgObject.prototype.val = function() { return this._val(this._isUnsigned || this._isPointer(), false, false, 0); }
+    DbgObject.prototype.uval = function() { return this._val(true, false, false, 0); }
+    DbgObject.prototype.sval = function() { return this._val(false, false, false, 0); }
+    DbgObject.prototype.bigval = function() { return this._val(this._isUnsigned || this._isPointer(), true, false, 0); }
+    DbgObject.prototype.ubigval = function() { return this._val(true, true, false, 0); }
+    DbgObject.prototype.sbigval = function() { return this._val(false, true, false, 0); }
 
-    DbgObject.prototype._help_uval = {
-        description: "Retrieves an unsigned scalar value held by a DbgObject.",
-        returns: "A promise to an unsigned number."
+    DbgObject.prototype._help_vals = {
+        description: "Retrieves scalar values starting with a DbgObject.",
+        returns: "A promise to an array of numbers.",
+        arguments: [{name: "count", type:"count", description: "The number of scalars to retrieve.  For native arrays (e.g. int[N]) this can be left undefined."}],
+        notes: "This method has the same variants as the <code>val</code> method: \
+        <table>\
+            <tr><th>name</th><th>sign</th><th>type</th></tr>\
+            <tr><td><code>vals</code></td><td>auto</td><td>JS number</td></tr>\
+            <tr><td><code>svals</code></td><td>signed</td><td>JS number</td></tr>\
+            <tr><td><code>uvals</code></td><td>unsigned</td><td>JS number</td></tr>\
+            <tr><td><code>bigvals</code></td><td>auto</td><td>bigInt</td></tr>\
+            <tr><td><code>sbigvals</code></td><td>signed</td><td>bigInt</td></tr>\
+            <tr><td><code>ubigvals</code></td><td>unsigned</td><td>bigInt</td></tr>\
+        </table>"
     }
-    DbgObject.prototype.uval = function() {
-        return this._val(true, false);
-    }
+    DbgObject.prototype.vals = function(count) { return this._val(this._isUnsigned || this._isPointer(), false, true, count); }
+    DbgObject.prototype.uvals = function(count) { return this._val(true, false, true, count); }
+    DbgObject.prototype.svals = function(count) { return this._val(false, false, true, count); }
+    DbgObject.prototype.bigvals = function(count) { return this._val(this._isUnsigned || this._isPointer(), true, true, count); }
+    DbgObject.prototype.ubigvals = function(count) { return this._val(true, true, true, count); }
+    DbgObject.prototype.sbigvals = function(count) { return this._val(false, true, true, count); }
 
-    DbgObject.prototype._help_sval = {
-        description: "Retrieves a signed scalar value held by a DbgObject.",
-        returns: "A promise to a signed number."
-    }
-    DbgObject.prototype.sval = function() {
-        return this._val(false, false);
-    }
-
-    DbgObject.prototype._help_bigval = {
-        description: "Retrieves a scalar value held by a DbgObject as a bigInt.",
-        returns: "A promise to a bigInt.",
-        notes: "JavaScript does not have 64-bit integers, so this should be used whenever the value may be a 64-bit integer."
-    }
-    DbgObject.prototype.bigval = function() {
-        return this._val(this._isUnsigned, true);
-    }
-
-    DbgObject.prototype._help_ubigval = {
-        description: "Retrieves an unsigned scalar value held by a DbgObject as a bigInt.",
-        returns: "A promise to an unsigned bigInt.",
-        notes: "JavaScript does not have 64-bit integers, so this should be used whenever the value may be a 64-bit integer."
-    }
-    DbgObject.prototype.ubigval = function() {
-        return this._val(true, true);
-    }
-
-    DbgObject.prototype._help_sbigval = {
-        description: "Retrieves a signed scalar value held by a DbgObject as a bigInt.",
-        returns: "A promise to a signed bigInt.",
-        notes: "JavaScript does not have 64-bit integers, so this should be used whenever the value may be a 64-bit integer."
-    }
-    DbgObject.prototype.sbigval = function() {
-        return this._val(false, true);
-    }
-
-    DbgObject.prototype._val = function(unsigned, useBigInt) {
+    DbgObject.prototype._val = function(unsigned, useBigInt, isCountSpecified, count) {
         if (this.isNull()) {
             return Promise.as(null);
         }
 
         if (this.typename == "void") {
-            return Promise.as(this._pointer);
+            if (!isCountSpecified) {
+                return Promise.as(this._pointer);
+            } else {
+                throw new Error("You may not retrieve multiple values from a 'void' object.");
+            }
         }
 
-        if (this._isArray && this._arrayLength > 0) {
-            throw new Error("You cannot get a value of an array.");
+        if (isCountSpecified && count === undefined) {
+            if (this._isArray) {
+                count = this._arrayLength;
+            } else {
+                throw new Error("A count must be specified for any non-array type.")
+            }
         }
 
         var that = this;
 
         // Lookup the structure size...
-        return this._getStructSize()
+        return Promise.join([this._getStructSize(), isCountSpecified ? count : 1])
 
-        // Read the value...
-        .then(function(structSize) {
-            return jsDbgPromise(MemoryCache.ReadNumber, that._pointer.value(), structSize, unsigned, that._isFloat());
+        // Get the array of values.
+        .then(function(structSizeAndArrayCount) {
+            var structSize = structSizeAndArrayCount[0];
+            var arrayCount = structSizeAndArrayCount[1];
+            if (arrayCount instanceof DbgObject) {
+                arrayCount = arrayCount.val();
+            }
+            return Promise.as(arrayCount)
+            .then(function (arrayCount) {
+                return jsDbgPromise(MemoryCache.ReadArray, that._pointer.value(), structSize, unsigned, that._isFloat(), arrayCount);
+            })
         })
 
         // If we're a bit field, extract the bits.
         .then(function(result) {
-            var value = result.value;
+            var array = result.array;
             if (that._isFloat()) {
-                return value;
+                // The array is already good to go.
             } else if (!useBigInt) {
-                var value = value.toJSNumber();
-                if (that.bitcount && that.bitoffset !== undefined) {
-                    value = (value >> that.bitoffset) & ((1 << that.bitcount) - 1);
-                }
-                return value;
+                array = array.map(function (value) {
+                    var value = value.toJSNumber();
+                    if (that.bitcount && that.bitoffset !== undefined) {
+                        value = (value >> that.bitoffset) & ((1 << that.bitcount) - 1);
+                    }
+                    return value;
+                });
             } else {
-                if (that.bitcount && that.bitoffset !== undefined) {
-                    value = value.shiftRight(that.bitoffset).and(bigInt.one.shiftLeft(that.bitcount).minus(1));
-                }
-                return value;
+                array = array.map(function (value) {
+                    if (that.bitcount && that.bitoffset !== undefined) {
+                        value = value.shiftRight(that.bitoffset).and(bigInt.one.shiftLeft(that.bitcount).minus(1));
+                    }
+                    return value;
+                });
+            }
+
+            if (isCountSpecified) {
+                return array;
+            } else {
+                return array[0];
             }
         })
     }
@@ -587,140 +605,6 @@ JsDbg.OnLoad(function() {
         // And return it.
         .then(function(result) { return result.name; })
     }
-
-    var registeredArrayTypes = [];
-
-    DbgObject._help_AddDynamicArrayType = {
-        description: "Registers a type as a dynamic array type and provides a transformation to get the contents as an array.",
-        arguments: [
-            {name:"module", type:"string", description: "The module of the array type."},
-            {name:"typeNameOrFn", type:"string/function(string) -> bool", description: "The array type (or a predicate that matches the array type)."},
-            {name:"transformation", type:"function(DbgObject) -> (promised) array", description: "A function that converts a DbgObject of the specified type to an array."}
-        ]
-    }
-    DbgObject.AddDynamicArrayType = function(module, typeNameOrFn, transformation) {
-        module = DbgObject.NormalizeModule(module);
-        if (typeof(typeNameOrFn) == typeof("")) {
-             var typeName = typeNameOrFn;
-             typeNameOrFn = function(typeNameToCheck) {
-                return typeName == typeNameToCheck;
-             };
-        } 
-        registeredArrayTypes.push({
-            module: module,
-            matchesType: typeNameOrFn,
-            transformation: transformation
-        });
-    }
-
-    DbgObject.prototype._help_array = {
-        description: "Provides an array of values or DbgObjects.",
-        returns: "A promise to an array of numbers if the type is not a pointer type and can be treated as a scalar, or an array of DbgObjects.",
-        arguments: [{name:"count (optional)", type:"int", description:"The number of items to retrieve.  Optional if the object represents an inline array or is a known array type."}]
-    }
-    DbgObject.prototype.array = function(count) {
-        var that = this;
-        // "count" might be a promise...
-        return Promise.as(count)
-        .then(function (count) {
-            // If we were given a DbgObject, go ahead and get the value.
-            if (count !== undefined && count.val == DbgObject.prototype.val) {
-                if (count.isNull()) {
-                    return 0;
-                } else {
-                    return count.bigval();
-                }
-            } else {
-                return count;
-            }
-        })
-
-        .then(function (count) {
-            if (!that._isArray && count === undefined) {
-                // Check the registered dynamic array types.
-                return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, that.typename)
-                .then(function (baseTypes) {
-                    baseTypes = [{type: that.typename, offset:0}].concat(baseTypes);
-
-                    for (var i = 0; i < baseTypes.length; ++i) {
-                        var baseType = baseTypes[i];
-
-                        for (var j = 0; j < registeredArrayTypes.length; ++j) {
-                            var registration = registeredArrayTypes[j];
-                            if (that.module != registration.module) {
-                                continue;
-                            }
-
-                            if (registration.matchesType(baseType.type)) {
-                                // We found a match.  Cast it up to the matching base type.
-                                var castedType = new DbgObject(that.module, baseType.type, that._pointer.add(baseType.offset));
-                                return registration.transformation(castedType)
-                            }
-                        }
-                    }
-
-                    // No matches.
-                    return count;
-                });
-            } else {
-                return count;
-            }
-        })
-
-        // Once we have the real count we can get the array.
-        .then(function(arrayOrCount) {
-            if (Array.isArray(arrayOrCount)) {
-                return arrayOrCount;
-            } else {
-                var count = arrayOrCount;
-            }
-
-            if (count === undefined && that._isArray) {
-                count = that._arrayLength;
-            } else if (count === undefined) {
-                throw new Error("Unknown array type: " + that.typename);
-            }
-
-            if (count == 0 || that.isNull()) {
-                return [];
-            }
-
-            if (that.isScalarType() || that.isPointer()) {
-                // Get the struct size...
-                return that._getStructSize()
-
-                // Read the array...
-                .then(function(structSize) { 
-                    return jsDbgPromise(MemoryCache.ReadArray, that._pointer.value(), structSize, that._isPointer() || that._isUnsigned, that._isFloat(), count)
-
-                    // Process the array into DbgObjects if necessary.
-                    .then(function(result) {
-                        if (that._isPointer()) {
-                            // If the type is a pointer, return an array of DbgObjects.
-                            var itemTypename = that._getDereferencedTypeName();
-                            return result.array.map(function(x) { return new DbgObject(that.module, itemTypename, x); });
-                        } else {
-                            // Otherwise, the items are values.
-                            if (structSize <= 4 && !that._isFloat()) {
-                                // The values are bigIntegers but they aren't necessary.
-                                return result.array.map(function (n) { return n.toJSNumber(); })
-                            } else {
-                                return result.array;
-                            }
-                        }
-                    });
-                })
-            } else {
-                // The array isn't an array of scalars.  Provide an array of idx calls instead.
-                var array = [];
-                for (var i = 0; i < count; ++i) {
-                    array.push(that.idx(i));
-                }
-                return Promise.join(array);
-            }
-        });
-    }
-
 
     DbgObject.prototype._help_list = {
         description: "Walks a linked list until it reaches null, the first node, or a given node.",
@@ -995,7 +879,7 @@ JsDbg.OnLoad(function() {
     }
 
     DbgObject.prototype._help_arrayLength = {
-        description: "If the DbgObject represents an array, returns the lengh of the array.",
+        description: "If the DbgObject represents an array, returns the length of the array.",
         returns: "An integer."
     }
     DbgObject.prototype.arrayLength = function() {

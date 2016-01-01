@@ -23,21 +23,20 @@ JsDbg.OnLoad(function() {
         });
     }
 
-    DbgObjectTypeExtension.prototype.getExtensionIncludingBaseTypes = function (module, type, name) {
-        module = DbgObject.NormalizeModule(module);
-
+    DbgObjectTypeExtension.prototype.getExtensionIncludingBaseTypes = function (dbgObject, name) {
         var that = this;
         return Promise.as(null)
         .then(function () {
             try {
-                return that.getExtension(module, type, name);
+                return that.getExtension(dbgObject, name);
             } catch (ex) {
-                return new DbgObject(module, type, 0)
+                return dbgObject
                 .baseTypes()
                 .then(function (baseTypes) {
                     for (var i = 0; i < baseTypes.length; ++i) {
                         try {
-                            return that.getExtension(module, baseTypes[i].typeDescription(), name);
+                            dbgObject = baseTypes[i];
+                            return that.getExtension(dbgObject, name);
                         } catch (ex) {
                             continue;
                         }
@@ -49,12 +48,17 @@ JsDbg.OnLoad(function() {
                     throw new Error("There was no \"" + name + "\" registered on " + type + " or its base types.");
                 });
             }
+        })
+        .then(function (extension) {
+            return {
+                dbgObject: dbgObject,
+                extension: extension
+            }
         });
     }
 
-    DbgObjectTypeExtension.prototype.getExtension = function (module, type, name) {
-        module = DbgObject.NormalizeModule(module);
-        var key = typeKey(module, type);
+    DbgObjectTypeExtension.prototype.getExtension = function (dbgObject, name) {
+        var key = typeKey(dbgObject.module, dbgObject.typename);
         if (key in this.types) {
             var collection = this.types[key];
             if (name in collection) {
@@ -64,12 +68,12 @@ JsDbg.OnLoad(function() {
 
         for (var i = 0; i < this.functions.length; ++i) {
             var entry = this.functions[i];
-            if (entry.module == module && entry.type(type) && entry.name == name) {
+            if (entry.module == dbgObject.module && entry.type(dbgObject.typename) && entry.name == name) {
                 return entry.extension;
             }
         }
 
-        throw new Error("There was no \"" + name + "\" registered on " + type);
+        throw new Error("There was no \"" + name + "\" registered on " + dbgObject.typename);
     }
 
     DbgObjectTypeExtension.prototype.addExtension = function (module, type, name, extension) {
