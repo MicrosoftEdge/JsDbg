@@ -859,7 +859,31 @@ JsDbg.OnLoad(function() {
 
         // Sort them by offset and massage the output.
         .then(function(result) {
-            result.fields.sort(function(a, b) { return a.offset - b.offset; });
+            function bitSize(bytes, bits) {
+                return bytes * 64 + (bits ? bits : 0);
+            }
+
+            // Sort the fields as best we can.  This will sometimes split up anonymous structs in unions though.
+            result.fields.sort(function(a, b) {
+                var aOffset = bitSize(a.offset, a.bitoffset);
+                var bOffset = bitSize(b.offset, b.bitoffset);
+
+                if (aOffset != bOffset) {
+                    return aOffset - bOffset;
+                }
+
+                var aSize = bitSize(a.size, a.bitcount);
+                var bSize = bitSize(b.size, b.bitcount);
+                
+                // They start at the same offset, so there's a union.  Put the biggest first.
+                if (aSize != bSize) {
+                    return bSize - aSize;
+                }
+
+                // Same offset and same size.  Sort alphabetically.
+                return a.name.localeCompare(b.name);
+            });
+
             return result.fields.map(function(field) {
                 return {
                     name: field.name,
