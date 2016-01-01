@@ -58,18 +58,6 @@ return Promise.join(fieldNames.map(function(side) { return object.f(side).desc()
             });
 
             descriptions.push({
-                name: "CRect",
-                module: MSHTML.Module,
-                type: "CRect",
-                code: "var fieldNames = [\"left\", \"top\", \"right\", \"bottom\"];\n\
-return Promise.join(fieldNames.map(function(side) { return object.f(side).desc(); }))\n\
-.then(function (values) {\n\
-    values = values.map(function (v, i) { return \"<span style=\\\"font-size:0.8em\\\">\" + fieldNames[i] + \":</span>\" + v; });\n\
-    return \"(\" + values.join(\", \") + \")\";\n\
-});"
-            });
-
-            descriptions.push({
                 name: "CAttrValue",
                 module: MSHTML.Module,
                 type: "CAttrValue",
@@ -168,7 +156,7 @@ return Promise.join(fieldNames.map(function(side) { return object.f(side).desc()
     JsDbg.OnPageReady(init);
 
 
-    DbgObject.AddTypeDescription(MSHTML.Module, "CRect", function (value) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "CRect", "Rect", true, function (value) {
         return value.fields()
         .then(function (fields) {
             return Promise.map(fields, function (field) { return field.value.desc(); })
