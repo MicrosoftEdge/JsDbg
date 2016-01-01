@@ -934,6 +934,10 @@ JsDbg.OnLoad(function() {
         })
     }
 
+    DbgObject.prototype._help_baseTypes = {
+        description: "Gets the base types of an object.",
+        returns: "A promise to an array of DbgObjects representing each of the base types."
+    }
     DbgObject.prototype.baseTypes = function() {
         if (this == DbgObject.NULL) {
             return Promise.as([]);
