@@ -13,6 +13,7 @@ JsDbg.OnLoad(function() {
     PromisedDbgObject.IncludePromisedMethod("idx", PromisedDbgObject); 
     PromisedDbgObject.IncludePromisedMethod("unembed", PromisedDbgObject); 
     PromisedDbgObject.IncludePromisedMethod("vcast", PromisedDbgObject);
+    PromisedDbgObject.IncludePromisedMethod("dcast", PromisedDbgObject);
     PromisedDbgObject.IncludePromisedMethod("list", PromisedDbgObject.Array);
     PromisedDbgObject.IncludePromisedMethod("array", PromisedDbgObject.Array);
     PromisedDbgObject.IncludePromisedMethod("baseTypes", PromisedDbgObject.Array);

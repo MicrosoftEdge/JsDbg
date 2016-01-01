@@ -37,6 +37,10 @@ JsDbg.OnLoad(function() {
         }
     });
 
+    DbgObject.AddExtendedField(MSHTML.Module, "Layout::LayoutBox", "AsContainerBox", "Layout::ContainerBox", function (box) {
+        return box.dcast("Layout::ContainerBox");
+    })
+
     if (JsDbg.GetCurrentExtension() == "boxtree") {
         DbgObjectTree.AddRoot("Box Tree", function() {
             return Promise.map(MSHTML.GetRootCTreeNodes(), function(treeNode) {

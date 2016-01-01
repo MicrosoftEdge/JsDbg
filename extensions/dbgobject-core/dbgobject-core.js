@@ -907,6 +907,33 @@ JsDbg.OnLoad(function() {
         });
     }
 
+    DbgObject.prototype._help_dcast = {
+        description: "Attempts a dynamic cast to a given type, returning a null DbgObject if the cast is invalid.",
+        returns: "A promise to a DbgObject.",
+        arguments: [
+            {name: "type", type: "string", description: "The type to attempt a dynamic cast to."}
+        ],
+        notes: "This is only available on types that have a vtable."
+    }
+    DbgObject.prototype.dcast = function(type) {
+        var that = this;
+        return this.vcast()
+        .then(function (result) {
+            if (result.typename == type) {
+                return result;
+            } else {
+                return result.baseTypes()
+                .then(function (baseTypes) {
+                    baseTypes = baseTypes.filter(function (d) { return d.typename == type; });
+                    return baseTypes.length > 0 ? baseTypes[0] : Promise.fail();
+                })
+            }
+        })
+        .then(null, function (err) {
+            return new DbgObject(that.module, type, 0);
+        })
+    }
+
     DbgObject.prototype.baseTypes = function() {
         if (this == DbgObject.NULL) {
             return Promise.as([]);
