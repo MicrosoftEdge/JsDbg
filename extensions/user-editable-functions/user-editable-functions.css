@@ -1,0 +1,47 @@
+.function-editor.backdrop {
+    background:rgba(0, 0, 0, 0.8);
+    height:100%;
+    left:0px;
+    position:fixed;
+    top:0px;
+    width:100%;
+    z-index:100;
+    overflow: auto;
+}
+
+.function-editor .modal-editor {
+    background:white;
+    width:60%;
+    margin:20px auto;
+    padding:20px;
+    position:relative;
+}
+
+.function-editor .code-region {
+    font-size:8pt;
+    font-family:Consolas, monospace;
+    white-space:pre-wrap;
+}
+
+.function-editor .user-editable-function-editor {
+    border:none;
+    box-sizing:border-box;
+    display:block;
+    font-family:inherit;
+    font-size:inherit;
+    height:calc(100% - 40px);
+    line-height:normal;
+    margin-left:8pt;
+    outline:none;
+    overflow:hidden;
+    position:absolute;
+    padding:0;
+    resize:none;
+    width:calc(100% - 40px - 8pt);
+}
+
+.function-editor .filler {
+    visibility: hidden;
+    margin-left:8pt;
+    word-wrap:break-word;
+}

@@ -9,6 +9,7 @@
         "catalog",
         "catalog-viewer",
         "promise",
+        "user-editable-functions",
         "help"
     ],
     "includes": [

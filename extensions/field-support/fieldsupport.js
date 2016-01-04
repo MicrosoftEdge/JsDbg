@@ -190,11 +190,11 @@ var FieldSupport = (function() {
 
         var that = this;
         DbgObject.GetExtendedFields(module, typename).forEach(function (extendedField) {
-            that.addExtendedField(extendedField.fieldName, extendedField.typeName);
+            that.addExtendedField(extendedField.fieldName, extendedField.typeName, extendedField.getter);
         });
-        DbgObject.OnExtendedFieldsChanged(module, typename, function (module, typename, fieldName, fieldTypeName, isAdded) {
+        DbgObject.OnExtendedFieldsChanged(module, typename, function (module, typename, fieldName, extendedField, isAdded) {
             if (isAdded) {
-                that.addExtendedField(fieldName, fieldTypeName);
+                that.addExtendedField(fieldName, extendedField.typeName, extendedField.getter);
             } else {
                 that.extendedFields = that.extendedFields.filter(function (userField) {
                     if (userField.name == fieldName) {
@@ -244,7 +244,7 @@ var FieldSupport = (function() {
         });
     }
 
-    FieldSupportSingleType.prototype.addExtendedField = function (fieldName, typeName) {
+    FieldSupportSingleType.prototype.addExtendedField = function (fieldName, typeName, getter) {
         this.extendedFields.push(new FieldSupportField(
             fieldName,
             typeName,
@@ -252,7 +252,8 @@ var FieldSupport = (function() {
                 return dbgObject.F(fieldName);
             },
             renderDbgObject,
-            this
+            this,
+            getter
         ));
     }
 
@@ -344,7 +345,7 @@ var FieldSupport = (function() {
         return hadEnabledFields;
     }
 
-    function FieldSupportField(name, resultingTypeName, getter, renderer, parentType) {
+    function FieldSupportField(name, resultingTypeName, getter, renderer, parentType, editableFunction) {
         this.name = name;
         this.parentType = parentType;
         this.resultingTypeName = resultingTypeName;
@@ -352,7 +353,17 @@ var FieldSupport = (function() {
         this.isEnabled = false;
         this.getter = getter;
         this.renderer = renderer;
+        this.editableFunction = editableFunction;
         this.fieldRenderer = this.renderField.bind(this);
+
+        if (editableFunction) {
+            var that = this;
+            UserEditableFunctions.OnChange(editableFunction, function () {
+                if (that.isEnabled) {
+                    that.parentType.aggregateType.controller.updateTreeUI();
+                }
+            });
+        }
     }
 
     FieldSupportField.prototype.renderField = function(dbgObject, element) {
@@ -388,6 +399,16 @@ var FieldSupport = (function() {
             var errorMsg = ex.stack ? ex.toString() : JSON.stringify(ex);
             errorContainer.innerHTML = "(" + errorMsg + ")";
         });
+    }
+
+    FieldSupportField.prototype.isEditable = function() {
+        return this.editableFunction && UserEditableFunctions.IsEditable(this.editableFunction);
+    }
+
+    FieldSupportField.prototype.beginEditing = function() {
+        if (this.isEditable) {
+            UserEditableFunctions.Edit(this.editableFunction);
+        }
     }
 
     FieldSupportField.prototype.getChildTypeName = function() {
@@ -430,7 +451,7 @@ var FieldSupport = (function() {
                         that.childType = false;
                         return null;
                     } else {
-                        that.childType = new FieldSupportAggregateType(that.parentType.module, that.resultingTypeName, that, that.parentType.controller);
+                        that.childType = new FieldSupportAggregateType(that.parentType.module, that.resultingTypeName, that, that.parentType.aggregateType.controller);
                         return that.childType;
                     }
                 }, function () {
@@ -680,6 +701,14 @@ var FieldSupport = (function() {
             fieldContainer.title = fieldType + " " + field.name;
         } else {
             fieldContainer.title = field.name;
+        }
+
+        if (field.isEditable()) {
+            var editButton = document.createElement("button");
+            fieldContainer.appendChild(editButton);
+            editButton.classList.add("small-button");
+            editButton.textContent = "Edit";
+            editButton.addEventListener("click", function() { field.beginEditing(); });
         }
 
         return field.getChildType()
