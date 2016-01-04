@@ -16,6 +16,10 @@ var FieldSupport = (function() {
         this.includeBaseTypes = false;
     }
 
+    FieldSupportAggregateType.prototype.module = function() {
+        return this.backingTypes[0].module;
+    }
+
     FieldSupportAggregateType.prototype.typename = function () {
         return this.backingTypes[0].typename;
     }
@@ -214,7 +218,7 @@ var FieldSupport = (function() {
             if (description.isPrimary) {
                 return;
             }
-            
+
             that.descriptions.push(new FieldSupportField(
                 description.name,
                 null,
@@ -431,14 +435,14 @@ var FieldSupport = (function() {
     FieldSupportField.prototype.setIsEnabled = function(isEnabled) {
         if (isEnabled != this.isEnabled) {
             this.isEnabled = isEnabled;
-            var rootType = this.parentType;
-            while (rootType.aggregateType.parentField != null) {
-                rootType = rootType.aggregateType.parentField.parentType;
+            var rootType = this.parentType.aggregateType;
+            while (rootType.parentField != null) {
+                rootType = rootType.parentField.parentType.aggregateType;
             }
             if (isEnabled) {
-                DbgObjectTree.AddField(rootType.module, rootType.typename, this.fieldRenderer);
+                DbgObjectTree.AddField(rootType.module(), rootType.typename(), this.fieldRenderer);
             } else {
-                DbgObjectTree.RemoveField(rootType.module, rootType.typename, this.fieldRenderer);
+                DbgObjectTree.RemoveField(rootType.module(), rootType.typename(), this.fieldRenderer);
             }
         }
     }
