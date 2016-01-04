@@ -93,7 +93,7 @@ JsDbg.OnLoad(function() {
     }
 
     EditableFunction.prototype.call = function(thisObject, args) {
-        this.f.apply(thisObject, args);
+        return this.f.apply(thisObject, args);
     }
 
     EditableFunction.prototype.edit = function(editingContainer) {
@@ -101,12 +101,37 @@ JsDbg.OnLoad(function() {
         var textArea = document.createElement("textarea");
         editingContainer.appendChild(textArea);
         textArea.value = this.functionBody;
+        var that = this;
+        var ensureUpdated = function() {
+            that._update(textArea.value);
+        }
+
+        textArea.addEventListener("change", ensureUpdated);
+        var observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                if (mutation.removedNodes.length > 0 && mutation.removedNodes[0] == textArea) {
+                    ensureUpdated();
+                    observer.disconnect();
+                }
+            });
+        });
+        observer.observe(editingContainer, { childList: true });
+
+        return ensureUpdated;
+    }
+
+    EditableFunction.prototype._update = function(body) {
+        if (this.functionBody != body) {
+            this.functionBody = body;
+            var functionArguments = this.argumentNames.concat([this.functionBody]);
+            this.f = Function.apply(null, functionArguments);
+        }
     }
 
     function create(name, f) {
         var ef = new EditableFunction(name, f);
         var result = function() {
-            ef.call(this, arguments);
+            return ef.call(this, arguments);
         }
         result.editableFunction = ef;
         return result;
@@ -120,7 +145,7 @@ JsDbg.OnLoad(function() {
         if (!isEditable(f)) {
             throw new Error("You can only edit editable functions.");
         } else {
-            f.editableFunction.edit(editingContainer);
+            return f.editableFunction.edit(editingContainer);
         }
     }
 
@@ -128,5 +153,22 @@ JsDbg.OnLoad(function() {
         Create: create,
         IsEditable: isEditable,
         Edit: edit
+    }
+
+    if (testSuite) {
+        Tests.AddTest(testSuite, "Simple Editing", function(assert) {
+            var f = UserEditableFunctions.Create("uef-test1", function (a) {return a;});
+            assert(UserEditableFunctions.IsEditable(f), "IsEditable");
+            assert.equals(1, f(1), "Initial function definition.");
+
+            var container = document.createElement("div");
+            var ensureUpdated = UserEditableFunctions.Edit(f, container);
+            var editor = container.querySelector("textarea");
+            
+            assert.equals(editor.value, "return a;", "Editor value population.");
+            editor.value = "return a + 1;";
+            ensureUpdated();
+            assert.equals(2, f(1), "Edited function definition.");
+        })
     }
 });
