@@ -159,7 +159,11 @@ JsDbg.OnLoad(function() {
             container.innerHTML = "";
             registeredSuites.map(renderSuite).forEach(function (e) { container.appendChild(e); })
 
-            var allTests = Array.from(document.querySelectorAll(".test-case"));
+            var testCaseElements = document.querySelectorAll(".test-case");
+            var allTests = [];
+            for (var i = 0; i < testCaseElements.length; ++i) {
+                allTests.push(testCaseElements[i]);
+            }
             if (canUsePromises()) {
                 var currentStatus = Promise.as(false);
                 allTests.forEach(function (container) {
