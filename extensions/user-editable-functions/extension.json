@@ -1,0 +1,7 @@
+{
+    "name": "user-editable-functions",
+    "headless": true,
+    "dependencies": ["catalog"],
+    "includes": ["user-editable-functions.js", "user-editable-functions.css"],
+    "augments": ["tests"]
+}
