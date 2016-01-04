@@ -211,6 +211,10 @@ var FieldSupport = (function() {
         });
 
         DbgObject.GetDescriptions(module, typename).forEach(function (description) {
+            if (description.isPrimary) {
+                return;
+            }
+            
             that.descriptions.push(new FieldSupportField(
                 description.name,
                 null,
