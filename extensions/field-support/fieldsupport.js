@@ -421,20 +421,37 @@ var FieldSupport = (function() {
         }
     }
 
+    function getDescs(obj) {
+        if (obj instanceof Node) {
+            return Promise.as(obj);
+        } else if (obj instanceof DbgObject) {
+            return obj.desc();
+        } else if (Array.isArray(obj)) {
+            return Promise.map(obj, getDescs)
+            .then(function (array) {
+                return array.join(", ").toString();
+            });
+        } else if (typeof(obj) != typeof(undefined)) {
+            return Promise.as(obj);
+        } else {
+            return Promise.as(undefined);
+        }
+    }
+
     FieldSupportSingleType.prototype.addDescription = function (name, getter) {
         var newField = new FieldSupportField(
             name,
             null,
             function getter(dbgObject) { return dbgObject; },
             function renderer(dbgObject, element, fields) {
-                return Promise.as(getter(dbgObject, element)).then(function (desc) {
+                return Promise.as(getter(dbgObject, element))
+                .then(getDescs)
+                .then(function (desc) {
                     if (desc instanceof Node) {
                         var descriptionContainer = document.createElement("div");
                         element.appendChild(descriptionContainer);
                         descriptionContainer.appendChild(document.createTextNode(fields + ":"));
                         descriptionContainer.appendChild(desc);
-                    } else if (desc instanceof DbgObject) {
-                        renderDbgObject(desc, element, fields);
                     } else if (typeof(desc) != typeof(undefined)) {
                         var descriptionContainer = document.createElement("div");
                         element.appendChild(descriptionContainer);
