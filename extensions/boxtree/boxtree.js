@@ -37,9 +37,9 @@ JsDbg.OnLoad(function() {
         }
     });
 
-    DbgObject.AddExtendedField(MSHTML.Module, "Layout::LayoutBox", "AsContainerBox", "Layout::ContainerBox", function (box) {
+    DbgObject.AddExtendedField(MSHTML.Module, "Layout::LayoutBox", "AsContainerBox", "Layout::ContainerBox", UserEditableFunctions.Create(function (box) {
         return box.dcast("Layout::ContainerBox");
-    })
+    }))
 
     if (JsDbg.GetCurrentExtension() == "boxtree") {
         DbgObjectTree.AddRoot("Box Tree", function() {
@@ -195,7 +195,7 @@ JsDbg.OnLoad(function() {
         });
     }
 
-    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::ContainerBox", "Validity", false, function (dbgObject, e) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::ContainerBox", "Validity", false, UserEditableFunctions.Create(function (dbgObject, e) {
         return Promise.join([dbgObject.f("isLayoutInvalid").val(), dbgObject.f("isDisplayInvalid").val()])
         .then(function(invalidBits) {
             if (invalidBits[0]) {
@@ -209,7 +209,7 @@ JsDbg.OnLoad(function() {
                 e.style.backgroundColor = "#bfc";
             }
         });
-    })
+    }))
 
     var builtInFields = [
         {

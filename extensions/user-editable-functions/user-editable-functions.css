@@ -14,34 +14,37 @@
     width:60%;
     margin:20px auto;
     padding:20px;
-    position:relative;
 }
 
-.function-editor .code-region {
+.function-editor-code-region {
     font-size:8pt;
     font-family:Consolas, monospace;
     white-space:pre-wrap;
+    position:relative;
+    font-weight:bold;
 }
 
-.function-editor .user-editable-function-editor {
-    border:none;
+.function-editor-code-region textarea {
+    background:transparent;
     box-sizing:border-box;
     display:block;
     font-family:inherit;
     font-size:inherit;
-    height:calc(100% - 40px);
+    height:calc(100% - 26px);
     line-height:normal;
-    margin-left:8pt;
-    outline:none;
     overflow:hidden;
     position:absolute;
-    padding:0;
     resize:none;
-    width:calc(100% - 40px - 8pt);
+    width:100%;
 }
 
-.function-editor .filler {
-    visibility: hidden;
-    margin-left:8pt;
+.function-editor-code-region textarea, .function-editor-code-region .filler {
+    border:thin solid #ccc;
+    padding:0 16pt 0 0pt;
+    margin-left:16pt;
     word-wrap:break-word;
+}
+
+.function-editor-code-region .filler {
+    visibility: hidden;
 }

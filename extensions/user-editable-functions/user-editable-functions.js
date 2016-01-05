@@ -11,7 +11,7 @@ JsDbg.OnLoad(function() {
 
     function parseFunction(f) {
         var fString = f.toString();
-        var argumentNames = fString.split("{", 2)[0].match(/\((.*)\)/)[1].split(",");
+        var argumentNames = fString.split("{", 2)[0].match(/\((.*)\)/)[1].split(/,\s*/g);
         var body = fString.match(/{((.|\s)*)}/)[1];
 
         // Strip any carriage returns.
@@ -84,8 +84,7 @@ JsDbg.OnLoad(function() {
         });
     }
 
-    function EditableFunction(name, f) {
-        this.name = name;
+    function EditableFunction(f) {
         this.f = f;
         this.listeners = [];
         var parsedFunction = parseFunction(f);
@@ -218,7 +217,7 @@ JsDbg.OnLoad(function() {
 
     EditableFunction.prototype._createTextAreaEditor = function(editingContainer) {
         var codeRegion = document.createElement("div");
-        codeRegion.classList.add("code-region");
+        codeRegion.classList.add("function-editor-code-region");
         editingContainer.appendChild(codeRegion);
 
         // Prologue for the function prototype.
@@ -228,7 +227,6 @@ JsDbg.OnLoad(function() {
         // Create a text area that will edit the function.
         var textArea = document.createElement("textarea");
         textArea.setAttribute("spellcheck", "false");
-        textArea.classList.add("user-editable-function-editor");
         codeRegion.appendChild(textArea);
         textArea.value = this.functionBody;
         textArea.addEventListener("keydown", function (e) {
@@ -250,8 +248,6 @@ JsDbg.OnLoad(function() {
             filler.textContent = contents;
         }
         textArea.addEventListener("input", updateFiller);
-        textArea.focus();
-        textArea.setSelectionRange(0, 0);
         updateFiller();
 
         // Epilogue for the closing curly bracket.
@@ -306,7 +302,7 @@ JsDbg.OnLoad(function() {
 
     if (testSuite) {
         Tests.AddTest(testSuite, "Simple Editing", function(assert) {
-            var f = UserEditableFunctions.Create("uef-test1", function (a) { return a; });
+            var f = UserEditableFunctions.Create(function (a) { return a; });
             assert(UserEditableFunctions.IsEditable(f), "IsEditable");
             assert.equals(1, f(1), "Initial function definition.");
 

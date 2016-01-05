@@ -239,7 +239,8 @@ var FieldSupport = (function() {
                         }
                     });
                 },
-                that
+                that,
+                description.getter
             ));
         })
     }
@@ -414,8 +415,11 @@ var FieldSupport = (function() {
     }
 
     FieldSupportField.prototype.beginEditing = function() {
-        if (this.isEditable) {
-            UserEditableFunctions.Edit(this.editableFunction);
+        if (this.isEditable()) {
+            var editor = new FieldSupportFieldEditor(this);
+            editor.beginEditing(false, this.parentType.typename, this.name, this.resultingTypeName, this.editableFunction, function () {
+                // Don't need to do anything, because the editor takes care of the function editing.
+            });
         }
     }
 
@@ -472,6 +476,71 @@ var FieldSupport = (function() {
             } else {
                 return childType;
             }
+        })
+    }
+
+    function FieldSupportFieldEditor() {
+    }
+
+    FieldSupportFieldEditor.prototype.beginEditing = function(isFullyEditable, typename, fieldName, resultingTypeName, editableFunction, onSave) {
+        // Initialize the modal editor.
+        var backdrop = document.createElement("div");
+        backdrop.classList.add("field-editor");
+
+        document.body.appendChild(backdrop);
+
+        var editor = document.createElement("div");
+        editor.classList.add("modal-editor");
+        backdrop.appendChild(editor);
+
+        editor.innerHTML = "<table>\
+        <tr><td>Type:</td><td class=\"type\"></td></tr>\
+        <tr><td>Name:</td><td><input class=\"name\" type=\"text\"></td></tr>\
+        <tr><td>Result Type:</td><td><input class=\"has-result-type\" type=checkbox><input class=\"result-type\" type=\"text\"></td></tr>\
+        <tr><td>Documentation:</td><td><div class=\"documentation\"></div></td></tr>\
+        </table>\
+        <div class=\"code-editor\"></div>\
+        <div class=\"buttons\"><button class=\"small-button save\">Save</button><button class=\"small-button cancel\">Cancel</button></div>\
+        ";
+
+        var documentation = editor.querySelector(".documentation");
+        Help.List()
+        .map(Help.Link)
+        .forEach(function(e) {
+            documentation.appendChild(e);
+            documentation.appendChild(document.createTextNode(" "));
+        })
+
+        editor.querySelector(".type").textContent = typename;
+        var nameInput = editor.querySelector(".name");
+        nameInput.value = fieldName;
+        var hasResultTypeCheckBox = editor.querySelector(".has-result-type");
+        hasResultTypeCheckBox.checked = resultingTypeName != null;
+        var resultTypeInput = editor.querySelector(".result-type");
+        resultTypeInput.value = resultingTypeName;
+        resultTypeInput.disabled = !hasResultTypeCheckBox.checked;
+        hasResultTypeCheckBox.addEventListener("change", function () {
+            resultTypeInput.disabled = !hasResultTypeCheckBox.checked;
+            if (!resultTypeInput.disabled) {
+                resultTypeInput.focus();
+            }
+        });
+
+        if (!isFullyEditable) {
+            nameInput.disabled = true;
+            hasResultTypeCheckBox.disabled = true;
+            resultTypeInput.disabled = true;
+        }
+
+        var updateFunction = UserEditableFunctions.Edit(editableFunction, editor.querySelector(".code-editor"));
+        editor.querySelector(".cancel").addEventListener("click", function () {
+            document.body.removeChild(backdrop);
+        })
+
+        editor.querySelector(".save").addEventListener("click", function() {
+            updateFunction();
+            document.body.removeChild(backdrop);
+            onSave(typename, nameInput.value, hasResultTypeCheckBox.checked ? resultTypeInput.value : null, editableFunction);
         })
     }
 
@@ -607,6 +676,29 @@ var FieldSupport = (function() {
                         that.renderFieldList(type, fieldListContainer);
                     })
                 }
+
+                var newExtensionButton = document.createElement("button");
+                newExtensionButton.classList.add("small-button");
+                newExtensionButton.textContent = "extend";
+                fieldListUIContainer.appendChild(newExtensionButton);
+                newExtensionButton.addEventListener("click", function() {
+                    var editor = new FieldSupportFieldEditor();
+                    var newFunction = UserEditableFunctions.Create(function (dbgObject, element) { });
+                    editor.beginEditing(
+                        true, 
+                        type.typename(), 
+                        "", 
+                        null, 
+                        newFunction,
+                        function onSave(typename, name, resultingTypeName, editableFunction) {
+                            if (resultingTypeName != null) {
+                                DbgObject.AddExtendedField(type.module(), typename, name, resultingTypeName, editableFunction);
+                            } else {
+                                DbgObject.AddTypeDescription(type.module(), typename, name, /*isPrimary*/false, editableFunction);
+                            }
+                        }
+                    );
+                });
             }
 
             fieldListUIContainer.appendChild(fieldListContainer);
