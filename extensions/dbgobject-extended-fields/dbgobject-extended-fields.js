@@ -11,7 +11,9 @@ JsDbg.OnLoad(function () {
 
     ExtendedField.prototype.ensureCompatibleResult = function(result) {
         var that = this;
-        if (result.typeDescription() == this.typeName) {
+        if (!(result instanceof DbgObject)) {
+            throw new Error("The field \"" + this.fieldName + "\" did not return a DbgObject, but returned \"" + result + "\"");
+        } else if (result.typeDescription() == this.typeName) {
             return result;
         } else {
             return result.baseTypes()
