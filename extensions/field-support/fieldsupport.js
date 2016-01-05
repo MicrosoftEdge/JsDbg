@@ -5,6 +5,112 @@
 //
 
 var FieldSupport = (function() {
+    function PersistedFieldCollection() {
+        this.persistedFields = [];
+    }
+
+    PersistedFieldCollection.prototype.add = function(pf) {
+        this.persistedFields.push(pf);
+        this.serialize();
+    }
+
+    PersistedFieldCollection.prototype.remove = function(pf) {
+        this.persistedFields = this.persistedFields.filter(function (x) { return x != pf; });
+        this.serialize();
+    }
+
+    PersistedFieldCollection.prototype.serialize = function() {
+        window.sessionStorage.setItem(
+            "FieldSupport-UserFields", 
+            JSON.stringify(this.persistedFields.map(function (f) { return f.serialize(); }))
+        );
+    }
+
+    PersistedFieldCollection.prototype.deserialize = function() {
+        var obj = window.sessionStorage.getItem("FieldSupport-UserFields");
+        if (obj) {
+            var that = this;
+            this.persistedFields = JSON.parse(obj).map(function (str) {
+                var f = new PersistedField(that);
+                f.deserialize(str);
+                return f;
+            });
+        }
+    }
+
+    function PersistedField(collection, module, typeName, name, resultingTypeName, editableFunction) {
+        this.module = module;
+        this.typeName = typeName;
+        this.name = name;
+        this.resultingTypeName = resultingTypeName;
+        this.editableFunction = editableFunction;
+        this.collection = collection;
+
+        if (this.editableFunction) {
+            var that = this;
+            UserEditableFunctions.OnChange(this.editableFunction, function() { that.collection.serialize(); });
+        }
+    }
+
+    PersistedField.prototype.delete = function() {
+        this.collection.remove(this);
+    }
+
+    PersistedField.prototype.serialize = function() {
+        return JSON.stringify({
+            module: this.module,
+            typeName: this.typeName,
+            name: this.name,
+            resultingTypeName: this.resultingTypeName,
+            editableFunction: UserEditableFunctions.Serialize(this.editableFunction)
+        });
+    }
+
+    PersistedField.prototype.deserialize = function(str) {
+        var obj = JSON.parse(str);
+        this.module = obj.module;
+        this.typeName = obj.typeName;
+        this.name = obj.name;
+        this.resultingTypeName = obj.resultingTypeName;
+        this.editableFunction = UserEditableFunctions.Deserialize(obj.editableFunction);
+        this.editableFunction.persistedField = this;
+        var that = this;
+        UserEditableFunctions.OnChange(this.editableFunction, function() { that.collection.serialize(); });
+
+        if (this.resultingTypeName != null) {
+            DbgObject.AddExtendedField(this.module, this.typeName, this.name, this.resultingTypeName, this.editableFunction);
+        } else {
+            DbgObject.AddTypeDescription(this.module, this.typeName, this.name, false, this.editableFunction);
+        }
+    }
+
+    PersistedField.prototype.update = function(module, typeName, name, resultingTypeName) {
+        var needsUpdate = false;
+        if (this.module != module) {
+            needsUpdate = true;
+            this.module = module;
+        }
+
+        if (this.typeName != typeName) {
+            needsUpdate = true;
+            this.typeName = typeName;
+        }
+
+        if (this.name != name) {
+            needsUpdate = true;
+            this.name = name;
+        }
+
+        if (this.resultingTypeName != resultingTypeName) {
+            needsUpdate = true;
+            this.resultingTypeName = resultingTypeName;
+        }
+
+        if (needsUpdate) {
+            this.collection.serialize();
+        }
+    }
+
     function CheckedFields() {
         this.checkedFields = [];
     }
@@ -626,7 +732,7 @@ var FieldSupport = (function() {
     }
 
     FieldSupportField.prototype.canBeDeleted = function() {
-        return this.editableFunction && this.editableFunction.wasCreatedDynamically;
+        return this.editableFunction && this.editableFunction.persistedField;
     }
 
     FieldSupportField.prototype.beginEditing = function() {
@@ -634,18 +740,19 @@ var FieldSupport = (function() {
             var editor = new FieldSupportFieldEditor(this);
             var that = this;
             editor.beginEditing(
-                this.editableFunction.wasCreatedDynamically ? FieldEditability.EditableExceptHasType : FieldEditability.NotEditable, 
+                this.editableFunction.persistedField ? FieldEditability.EditableExceptHasType : FieldEditability.NotEditable, 
                 this.parentType.typename, 
                 this.name, 
                 this.resultingTypeName,
                 this.editableFunction,
                 function (typename, name, resultingTypeName, editableFunction) {
-                    if (that.editableFunction.wasCreatedDynamically) {
+                    if (that.editableFunction.persistedField) {
                         if (that.resultingTypeName != null) {
                             DbgObject.UpdateExtendedField(that.parentType.module, that.parentType.typename, that.name, name, resultingTypeName);
                         } else {
                             DbgObject.RenameTypeDescription(that.parentType.module, that.parentType.typename, that.name, name);
                         }
+                        that.editableFunction.persistedField.update(that.parentType.module, that.parentType.typename, name, resultingTypeName);
                     }
                 }
             );
@@ -659,6 +766,7 @@ var FieldSupport = (function() {
             } else {
                 DbgObject.RemoveTypeDescription(this.parentType.module, this.parentType.typename, this.name);
             }
+            this.editableFunction.persistedField.delete();
         }
     }
 
@@ -849,6 +957,8 @@ var FieldSupport = (function() {
         this.updateTreeUI = updateTreeUI;
         this.checkedFields = new CheckedFields();
         this.checkedFields.deserialize();
+        this.persistedFieldCollection = new PersistedFieldCollection();
+        this.persistedFieldCollection.deserialize();
 
         var isHidden = window.sessionStorage.getItem("FieldSupport-HideTypes") == "true";
         var showHide = document.createElement("button");
@@ -1009,7 +1119,6 @@ var FieldSupport = (function() {
                 newExtensionButton.addEventListener("click", function() {
                     var editor = new FieldSupportFieldEditor();
                     var newFunction = UserEditableFunctions.Create(function () { });
-                    newFunction.wasCreatedDynamically = true;
                     newFunction.initialType = type;
                     editor.beginEditing(
                         FieldEditability.FullyEditable, 
@@ -1018,11 +1127,15 @@ var FieldSupport = (function() {
                         null, 
                         newFunction,
                         function onSave(typename, name, resultingTypeName, editableFunction) {
+                            editableFunction.persistedField = new PersistedField(that.persistedFieldCollection, type.module(), typename, name, resultingTypeName, editableFunction);
+
                             if (resultingTypeName != null) {
                                 DbgObject.AddExtendedField(type.module(), typename, name, resultingTypeName, editableFunction);
                             } else {
                                 DbgObject.AddTypeDescription(type.module(), typename, name, /*isPrimary*/false, editableFunction);
                             }
+
+                            that.persistedFieldCollection.add(editableFunction.persistedField);
                         }
                     );
                 });
