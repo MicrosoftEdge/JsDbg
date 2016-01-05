@@ -11,7 +11,12 @@ JsDbg.OnLoad(function() {
 
     function parseFunction(f) {
         var fString = f.toString();
-        var argumentNames = fString.split("{", 2)[0].match(/\((.*)\)/)[1].split(/,\s*/g);
+        var argumentNames = fString
+        .split("{", 2)[0] // Drop the function body
+        .match(/\(((.|\s)*)\)/)[1] // Grab the argument list
+        .replace(/(\/\*.*?\*\/)|\s+/g, "") // Remove any /**/ comments or whitespace
+        .split(","); // Split on ','
+        
         var body = fString.match(/{((.|\s)*)}/)[1];
 
         // Strip any carriage returns.
@@ -290,12 +295,11 @@ JsDbg.OnLoad(function() {
     EditableFunction.deserialize = function(str) {
         var obj = JSON.parse(str);
         var functionArguments = obj.args.concat([obj.body]);
-        var f = Function.apply(null, functionArguments);
-        return f;
+        return new EditableFunction(Function.apply(null, functionArguments)).caller;
     }
 
-    function create(name, f) {
-        return (new EditableFunction(name, f)).caller;
+    function create(f) {
+        return (new EditableFunction(f)).caller;
     }
 
     function isEditable(f) {
@@ -384,6 +388,7 @@ JsDbg.OnLoad(function() {
 
             var g = UserEditableFunctions.Deserialize(serialized);
             assert.equals(3, g(1, 2), "Deserialized function definition.");
+            assert(UserEditableFunctions.IsEditable(g), "Deserialized function should be editable.");
         })
     }
 });
