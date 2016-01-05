@@ -196,10 +196,10 @@ var FieldSupport = (function() {
         DbgObject.GetExtendedFields(module, typename).forEach(function (extendedField) {
             that.addExtendedField(extendedField.fieldName, extendedField.typeName, extendedField.getter);
         });
-        DbgObject.OnExtendedFieldsChanged(module, typename, function (module, typename, fieldName, extendedField, isAdded) {
-            if (isAdded) {
+        DbgObject.OnExtendedFieldsChanged(module, typename, function (module, typename, fieldName, extendedField, operation, argument) {
+            if (operation == "add") {
                 that.addExtendedField(fieldName, extendedField.typeName, extendedField.getter);
-            } else {
+            } else if (operation == "remove") {
                 that.extendedFields = that.extendedFields.filter(function (userField) {
                     if (userField.name == fieldName) {
                         if (userField.disableCompletely()) {
@@ -210,6 +210,15 @@ var FieldSupport = (function() {
                         return true;
                     }
                 });
+            } else if (operation == "rename") {
+                that.extendedFields.forEach(function (userField) {
+                    if (userField.name == fieldName) {
+                        userField.name = argument;
+                        if (userField.isEnabled) {
+                            that.aggregateType.controller.updateTreeUI();
+                        }
+                    }
+                })
             }
             that.aggregateType.rerender();
         });
@@ -220,12 +229,12 @@ var FieldSupport = (function() {
             }
         });
 
-        DbgObject.OnDescriptionsChanged(module, typename, function (module, typename, descriptionName, description, isAdded) {
-            if (isAdded) {
+        DbgObject.OnDescriptionsChanged(module, typename, function (module, typename, descriptionName, description, operation, argument) {
+            if (operation == "add") {
                 if (!description.isPrimary) {
                     that.addDescription(description.name, description.getter);
                 }
-            } else {
+            } else if (operation == "remove") {
                 that.descriptions = that.descriptions.filter(function (descriptionField) {
                     if (descriptionField.name == descriptionName) {
                         if (descriptionField.disableCompletely()) {
@@ -236,6 +245,15 @@ var FieldSupport = (function() {
                         return true;
                     }
                 });
+            } else if (operation == "rename") {
+                that.descriptions.forEach(function (descriptionField) {
+                    if (descriptionField.name == descriptionName) {
+                        descriptionField.name = argument;
+                        if (descriptionField.isEnabled) {
+                            that.aggregateType.controller.updateTreeUI();
+                        }
+                    }
+                })
             }
             that.aggregateType.rerender();
         })
@@ -250,20 +268,26 @@ var FieldSupport = (function() {
     }
 
     FieldSupportSingleType.prototype.addExtendedField = function (fieldName, typeName, getter) {
-        this.extendedFields.push(new FieldSupportField(
+        var newField = new FieldSupportField(
             fieldName,
             typeName,
             function getter(dbgObject) {
-                return dbgObject.F(fieldName);
+                return dbgObject.F(newField.name);
             },
             renderDbgObject,
             this,
             getter
-        ));
+        );
+        this.extendedFields.push(newField);
+
+        if (getter.initialType == this.aggregateType) {
+            newField.setIsEnabled(true);
+            this.aggregateType.controller.updateTreeUI();
+        }
     }
 
     FieldSupportSingleType.prototype.addDescription = function (name, getter) {
-        this.descriptions.push(new FieldSupportField(
+        var newField = new FieldSupportField(
             name,
             null,
             function getter(dbgObject) { return dbgObject; },
@@ -285,7 +309,13 @@ var FieldSupport = (function() {
             },
             this,
             getter
-        ));
+        );
+        this.descriptions.push(newField);
+
+        if (getter.initialType == this.aggregateType) {
+            newField.setIsEnabled(true);
+            this.aggregateType.controller.updateTreeUI();
+        }
     }
 
     FieldSupportSingleType.prototype.getFields = function() {
@@ -443,9 +473,23 @@ var FieldSupport = (function() {
     FieldSupportField.prototype.beginEditing = function() {
         if (this.isEditable()) {
             var editor = new FieldSupportFieldEditor(this);
-            editor.beginEditing(false, this.parentType.typename, this.name, this.resultingTypeName, this.editableFunction, function () {
-                // Don't need to do anything, because the editor takes care of the function editing.
-            });
+            var that = this;
+            editor.beginEditing(
+                this.editableFunction.wasCreatedDynamically, 
+                this.parentType.typename, 
+                this.name, 
+                this.resultingTypeName,
+                this.editableFunction,
+                function (typename, name, resultingTypeName, editableFunction) {
+                    if (that.editableFunction.wasCreatedDynamically) {
+                        if (that.resultingTypeName != null) {
+                            DbgObject.RenameExtendedField(that.parentType.module, that.parentType.typename, that.name, name);
+                        } else {
+                            DbgObject.RenameTypeDescription(that.parentType.module, that.parentType.typename, that.name, name);
+                        }
+                    }
+                }
+            );
         }
     }
 
@@ -715,12 +759,13 @@ var FieldSupport = (function() {
 
                 var newExtensionButton = document.createElement("button");
                 newExtensionButton.classList.add("small-button");
-                newExtensionButton.textContent = "extend";
+                newExtensionButton.textContent = "Extend";
                 fieldListUIContainer.appendChild(newExtensionButton);
                 newExtensionButton.addEventListener("click", function() {
                     var editor = new FieldSupportFieldEditor();
                     var newFunction = UserEditableFunctions.Create(function (dbgObject, element) { });
                     newFunction.wasCreatedDynamically = true;
+                    newFunction.initialType = type;
                     editor.beginEditing(
                         true, 
                         type.typename(), 

@@ -101,8 +101,46 @@ JsDbg.OnLoad(function() {
             throw new Error("The \"type\" must be either a string or a function.");
         }
 
-        this._notifyListeners(module, type, name, extension, true);
+        this._notifyListeners(module, type, name, extension, "add", null);
         return extension;
+    }
+
+    DbgObjectTypeExtension.prototype.renameExtension = function (module, type, oldName, newName) {
+        module = DbgObject.NormalizeModule(module);
+
+        if (oldName == newName) {
+            return;
+        }
+
+        if (typeof type == typeof "") {
+            var key = typeKey(module, type);
+            if (key in this.types) {
+                var collection = this.types[key];
+                if (oldName in collection) {
+                    if (newName in collection) {
+                        throw new Error("There is already a \"" + newName + "\" registered on " + type)
+                    }
+                    var extension = collection[oldName];
+                    delete collection[oldName];
+                    collection[newName] = extension;
+                    this._notifyListeners(module, type, oldName, extension, "rename", newName);
+                    return extension;
+                } else {
+                    throw new Error("There is no \"" + oldName + "\" registered on " + type);
+                }
+            }
+        } else if (typeof type == typeof typeKey) {
+            for (var i = 0; i < this.functions.length; ++i) {
+                var entry = this.functions[i];
+                if (entry.module == module && entry.type == type && entry.name == oldName) {
+                    entry.name = newName
+                    this._notifyListeners(module, type, oldName, entry.extension, "rename", newName);
+                    return entry.extension;
+                }
+            }
+        } else {
+            throw new Error("The \"type\" must be either a string or a function.");
+        }
     }
 
     DbgObjectTypeExtension.prototype.removeExtension = function (module, type, name) {
@@ -115,7 +153,7 @@ JsDbg.OnLoad(function() {
                 if (name in collection) {
                     var extension = collection[name];
                     delete collection[name];
-                    this._notifyListeners(module, type, name, extension, false);
+                    this._notifyListeners(module, type, name, extension, "remove", null);
                     return extension;
                 }
             }
@@ -124,7 +162,7 @@ JsDbg.OnLoad(function() {
                 var entry = this.functions[i];
                 if (entry.module == module && entry.type == type && entry.name == name) {
                     this.functions.splice(i, 1);
-                    this._notifyListeners(module, type, name, entry.extension, false);
+                    this._notifyListeners(module, type, name, entry.extension, "remove", null);
                     return entry.extension;
                 }
             }
@@ -133,7 +171,7 @@ JsDbg.OnLoad(function() {
         }
     }
 
-    DbgObjectTypeExtension.prototype._notifyListeners = function (module, type, name, extension, isAddition) {
+    DbgObjectTypeExtension.prototype._notifyListeners = function (module, type, name, extension, operation, context) {
         this.listeners.forEach(function (listener) {
             if (listener.module == module) {
                 var typeMatches = false;
@@ -144,7 +182,7 @@ JsDbg.OnLoad(function() {
                 }
 
                 if (typeMatches) {
-                    listener.listener(module, listener.type, name, extension, isAddition);
+                    listener.listener(module, listener.type, name, extension, operation, context);
                 }
             }
         });

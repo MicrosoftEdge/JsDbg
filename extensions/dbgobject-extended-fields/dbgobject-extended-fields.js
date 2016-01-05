@@ -111,6 +111,10 @@ JsDbg.OnLoad(function () {
         return registeredFields.removeExtension(module, typeName, fieldName);
     }
 
+    DbgObject.RenameExtendedField = function(module, typeName, fieldName, newFieldName) {
+        return registeredFields.renameExtension(module, typeName, fieldName, newFieldName);
+    }
+
     DbgObject._help_GetExtendedFields = {
         description: "Gets an array of extended fields.",
         arguments: [

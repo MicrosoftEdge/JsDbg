@@ -27,6 +27,10 @@ JsDbg.OnLoad(function () {
         return registeredDescriptions.removeExtension(module, type, name);
     }
 
+    DbgObject.RenameTypeDescription = function(module, type, oldName, newName) {
+        return registeredDescriptions.renameExtension(module, type, oldName, newName);
+    }
+
     DbgObject._help_GetDescriptions = {
         description: "Gets the available descriptions for the given type.",
         arguments: [
