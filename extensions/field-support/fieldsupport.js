@@ -5,6 +5,118 @@
 //
 
 var FieldSupport = (function() {
+    function CheckedFields() {
+        this.checkedFields = [];
+    }
+
+    CheckedFields.prototype.enableField = function (field) {
+        var path = this._computePath(field);
+        this.checkedFields.push(path);
+        this.serialize();
+    }
+
+    CheckedFields.prototype.disableField = function (field) {
+        var path = this._computePath(field);
+        this.checkedFields = this.checkedFields.filter(function (existingPath) {
+            var areEqual = existingPath.length == path.length;
+            for (var i = 0; i < path.length && areEqual; ++i) {
+                areEqual = path[i] == existingPath[i];
+            }
+            return !areEqual;
+        });
+        this.serialize();
+    }
+
+    CheckedFields.prototype._computePath = function (field) {
+        var path = [];
+        this._appendPath(field, path);
+        path.reverse();
+        return path;
+    }
+
+    CheckedFields.prototype._appendPath = function(obj, path) {
+        if (obj instanceof FieldSupportField) {
+            path.push(obj.name);
+            path.push(obj.sourceInParentType);
+            return this._appendPath(obj.parentType, path);
+        } else if (obj instanceof FieldSupportSingleType) {
+            path.push(obj.typename);
+            return this._appendPath(obj.aggregateType, path);
+        } else if (obj instanceof FieldSupportAggregateType) {
+            path.push(obj.typename())
+            if (obj.parentField != null) {
+                return this._appendPath(obj.parentField, path);
+            }
+        }
+    }
+
+    CheckedFields.prototype.reenableFields = function (type) {
+        var that = this;
+        return Promise.map(this.checkedFields, function (path) { return that._reenableRemainingFields(type, path, 0); })
+        .then(function () {
+            return;
+        });
+    }
+
+    CheckedFields.prototype._reenableRemainingFields = function (obj, path, currentIndex) {
+        var that = this;
+        if (currentIndex == path.length) {
+            if (obj instanceof FieldSupportField) {
+                obj.setIsEnabled(true, /*isDeserialization*/true);
+            }
+        } else {
+            if (obj instanceof FieldSupportField) {
+                return obj.getChildType()
+                .then(function (childType) {
+                    if (childType != null) {
+                        return that._reenableRemainingFields(childType, path, currentIndex)
+                    }
+                });
+            } else if (obj instanceof FieldSupportSingleType) {
+                var collection = path[currentIndex];
+                if (collection == "fields") {
+                    collection = obj.getFields();
+                } else {
+                    collection = obj[collection];
+                }
+                currentIndex++;
+
+                return Promise.as(collection)
+                .then(function (collection) {
+                    for (var i = 0; i < collection.length; ++i) {
+                        if (collection[i].name == path[currentIndex]) {
+                            return that._reenableRemainingFields(collection[i], path, currentIndex + 1);
+                        }
+                    }
+                })
+            } else if (obj instanceof FieldSupportAggregateType) {
+                if (path[currentIndex] != obj.typename()) {
+                    return;
+                }
+                currentIndex++;
+
+                return obj.prepareForRendering()
+                .then(function () {
+                    for (var i = 0; i < obj.backingTypes.length; ++i) {
+                        if (obj.backingTypes[i].typename == path[currentIndex]) {
+                            return that._reenableRemainingFields(obj.backingTypes[i], path, currentIndex + 1);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    CheckedFields.prototype.serialize = function() {
+        window.sessionStorage.setItem('FieldSupport-CheckedFields', JSON.stringify(this.checkedFields));
+    }
+
+    CheckedFields.prototype.deserialize = function() {
+        var data = window.sessionStorage.getItem('FieldSupport-CheckedFields');
+        if (data) {
+            this.checkedFields = JSON.parse(data);
+        }
+    }
 
     function FieldSupportAggregateType(module, typename, parentField, controller, rerender) {
         this.parentField = parentField;
@@ -12,8 +124,8 @@ var FieldSupport = (function() {
         this.rerender = rerender !== undefined ? rerender : function () { this.parentField.parentType.aggregateType.rerender(); };
         this.searchQuery = "";
         this.backingTypes = [new FieldSupportSingleType(module, typename, this)];
-        this.isPreparedForRendering = false;
         this.includeBaseTypes = false;
+        this.preparedForRenderingPromise = null;
     }
 
     FieldSupportAggregateType.prototype.module = function() {
@@ -33,31 +145,38 @@ var FieldSupport = (function() {
         return this.backingTypes[0].isExpanded;
     }
 
-    FieldSupportAggregateType.prototype.prepareForRendering = function () {
-        // Ensure that the base types are loaded and that we've decided whether to include them by default.
-        if (this.isPreparedForRendering) {
-            return Promise.as(null);
-        } else {
-            var that = this;
-            return new DbgObject(this.backingTypes[0].module, this.backingTypes[0].typename, 0)
-            .baseTypes()
-            .then(function (baseTypes) {
-                if (!that.hasLoadedBaseTypes) {
-                    that.hasLoadedBaseTypes = true;
-                    baseTypes.forEach(function (baseType) {
-                        that.backingTypes.push(new FieldSupportSingleType(baseType.module, baseType.typeDescription(), that));
-                    })
-                }
-                return that.backingTypes;
-            })
-            .then(function (backingTypes) {
-                return backingTypes[0].getFields()
-            })
-            .then(function (primaryTypeFields) {
-                that.isPreparedForRendering = true;
-                that.includeBaseTypes = (primaryTypeFields.length == 0);
-            });
+    FieldSupportAggregateType.prototype.prepareForRendering = function() {
+        if (this.preparedForRenderingPromise == null) {
+            this.preparedForRenderingPromise = this._prepareForRendering();
         }
+        return this.preparedForRenderingPromise;
+    }
+
+    FieldSupportAggregateType.prototype._prepareForRendering = function () {
+        // Ensure that the base types are loaded and that we've decided whether to include them by default.
+        if (this.preparedForRenderingPromise != null) {
+            throw new Error("We shouldn't be preparing twice.");
+        }
+
+        var that = this;
+        return new DbgObject(this.backingTypes[0].module, this.backingTypes[0].typename, 0)
+        .baseTypes()
+        .then(function (baseTypes) {
+            if (!that.hasLoadedBaseTypes) {
+                that.hasLoadedBaseTypes = true;
+                baseTypes.forEach(function (baseType) {
+                    that.backingTypes.push(new FieldSupportSingleType(baseType.module, baseType.typeDescription(), that));
+                })
+            }
+            return that.backingTypes;
+        })
+        .then(function (backingTypes) {
+            return backingTypes[0].getFields()
+        })
+        .then(function (primaryTypeFields) {
+            that.includeBaseTypes = (primaryTypeFields.length == 0);
+            that.isPreparedForRendering = true;
+        });
     }
 
     FieldSupportAggregateType.prototype.toggleExpansion = function() {
@@ -189,6 +308,7 @@ var FieldSupport = (function() {
         this.module = module;
         this.typename = typename;
         this.fields = null;
+        this.fieldsPromise = null;
         this.extendedFields = [];
         this.descriptions = [];
 
@@ -290,7 +410,8 @@ var FieldSupport = (function() {
             },
             renderDbgObject,
             this,
-            getter
+            getter,
+            "extendedFields"
         );
         this.extendedFields.push(newField);
 
@@ -322,7 +443,8 @@ var FieldSupport = (function() {
                 });
             },
             this,
-            getter
+            getter,
+            "descriptions"
         );
         this.descriptions.push(newField);
 
@@ -333,10 +455,13 @@ var FieldSupport = (function() {
     }
 
     FieldSupportSingleType.prototype.getFields = function() {
-        if (this.fields != null) {
-            return Promise.as(this.fields);
+        if (this.fieldsPromise == null) {
+            this.fieldsPromise = this._getFields();
         }
+        return this.fieldsPromise;
+    }
 
+    FieldSupportSingleType.prototype._getFields = function() {
         var that = this;
         return new DbgObject(this.module, this.typename, 0)
         .fields(/*includeBaseTypes*/false)
@@ -350,7 +475,9 @@ var FieldSupport = (function() {
                         return dbgObject.f(field.name);
                     },
                     renderDbgObject,
-                    that
+                    that,
+                    null,
+                    "fields"
                 );
             })
         })
@@ -420,7 +547,7 @@ var FieldSupport = (function() {
         return hadEnabledFields;
     }
 
-    function FieldSupportField(name, resultingTypeName, getter, renderer, parentType, editableFunction) {
+    function FieldSupportField(name, resultingTypeName, getter, renderer, parentType, editableFunction, sourceInParentType) {
         this.name = name;
         this.parentType = parentType;
         this.resultingTypeName = resultingTypeName;
@@ -430,6 +557,7 @@ var FieldSupport = (function() {
         this.renderer = renderer;
         this.editableFunction = editableFunction;
         this.fieldRenderer = this.renderField.bind(this);
+        this.sourceInParentType = sourceInParentType;
 
         if (editableFunction) {
             var that = this;
@@ -530,12 +658,20 @@ var FieldSupport = (function() {
         return hadEnabledFields
     }
 
-    FieldSupportField.prototype.setIsEnabled = function(isEnabled) {
+    FieldSupportField.prototype.setIsEnabled = function(isEnabled, isDeserialization) {
         if (isEnabled != this.isEnabled) {
             this.isEnabled = isEnabled;
             var rootType = this.parentType.aggregateType;
             while (rootType.parentField != null) {
                 rootType = rootType.parentField.parentType.aggregateType;
+            }
+
+            if (!isDeserialization) {
+                if (isEnabled) {
+                    rootType.controller.checkedFields.enableField(this);
+                } else {
+                    rootType.controller.checkedFields.disableField(this);
+                }
             }
             if (isEnabled) {
                 DbgObjectTree.AddField(rootType.module(), rootType.typename(), this.fieldRenderer);
@@ -694,6 +830,8 @@ var FieldSupport = (function() {
         this.knownTypes = [];
         this.typeListContainer = document.createElement("div");
         this.updateTreeUI = updateTreeUI;
+        this.checkedFields = new CheckedFields();
+        this.checkedFields.deserialize();
 
         var instructionText = document.createElement("div");
         instructionText.classList.add("instructions");
@@ -741,7 +879,10 @@ var FieldSupport = (function() {
         });
 
         var that = this;
-        return this.renderRootType(newType, newTypeContainer)
+        return this.checkedFields.reenableFields(newType)
+        .then(function () {
+            return that.renderRootType(newType, newTypeContainer)
+        })
         .then(function () {
             that.knownTypes.push(newType);
 
