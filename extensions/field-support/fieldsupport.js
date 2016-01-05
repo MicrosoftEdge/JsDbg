@@ -219,6 +219,20 @@ var FieldSupport = (function() {
                         }
                     }
                 })
+            } else if (operation == "typechange") {
+                that.extendedFields.forEach(function (userField) {
+                    if (userField.name == fieldName) {
+                        if (userField.childType != null) {
+                            userField.childType.disableCompletely();
+                            userField.childType = null;
+                            userField.resultingTypeName = argument;
+
+                            if (userField.isEnabled) {
+                                that.aggregateType.controller.updateTreeUI();
+                            }
+                        }
+                    }
+                });
             }
             that.aggregateType.rerender();
         });
@@ -475,7 +489,7 @@ var FieldSupport = (function() {
             var editor = new FieldSupportFieldEditor(this);
             var that = this;
             editor.beginEditing(
-                this.editableFunction.wasCreatedDynamically, 
+                this.editableFunction.wasCreatedDynamically ? FieldEditability.EditableExceptHasType : FieldEditability.NotEditable, 
                 this.parentType.typename, 
                 this.name, 
                 this.resultingTypeName,
@@ -483,7 +497,7 @@ var FieldSupport = (function() {
                 function (typename, name, resultingTypeName, editableFunction) {
                     if (that.editableFunction.wasCreatedDynamically) {
                         if (that.resultingTypeName != null) {
-                            DbgObject.RenameExtendedField(that.parentType.module, that.parentType.typename, that.name, name);
+                            DbgObject.UpdateExtendedField(that.parentType.module, that.parentType.typename, that.name, name, resultingTypeName);
                         } else {
                             DbgObject.RenameTypeDescription(that.parentType.module, that.parentType.typename, that.name, name);
                         }
@@ -562,7 +576,13 @@ var FieldSupport = (function() {
     function FieldSupportFieldEditor() {
     }
 
-    FieldSupportFieldEditor.prototype.beginEditing = function(isFullyEditable, typename, fieldName, resultingTypeName, editableFunction, onSave) {
+    var FieldEditability = {
+        FullyEditable: 0,
+        NotEditable: 1,
+        EditableExceptHasType: 2
+    };
+
+    FieldSupportFieldEditor.prototype.beginEditing = function(editablity, typename, fieldName, resultingTypeName, editableFunction, onSave) {
         // Initialize the modal editor.
         var backdrop = document.createElement("div");
         backdrop.classList.add("field-editor");
@@ -610,11 +630,19 @@ var FieldSupport = (function() {
 
         var updateFunction = UserEditableFunctions.Edit(editableFunction, editor.querySelector(".code-editor"));
 
-        if (!isFullyEditable) {
+        if (editablity == FieldEditability.NotEditable) {
             nameInput.disabled = true;
             hasResultTypeCheckBox.disabled = true;
             resultTypeInput.disabled = true;
         } else {
+            if (editablity == FieldEditability.EditableExceptHasType) {
+                if (resultingTypeName == null) {
+                    hasResultTypeCheckBox.parentNode.parentNode.style.display = "none";
+                } else {
+                    hasResultTypeCheckBox.style.display = "none";
+                }
+            }
+
             if (fieldName == "") {
                 nameInput.focus();
             } else {
@@ -776,7 +804,7 @@ var FieldSupport = (function() {
                     newFunction.wasCreatedDynamically = true;
                     newFunction.initialType = type;
                     editor.beginEditing(
-                        true, 
+                        FieldEditability.FullyEditable, 
                         type.typename(), 
                         "", 
                         null, 

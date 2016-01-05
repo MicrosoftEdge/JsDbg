@@ -101,7 +101,7 @@ JsDbg.OnLoad(function() {
             throw new Error("The \"type\" must be either a string or a function.");
         }
 
-        this._notifyListeners(module, type, name, extension, "add", null);
+        this.notifyListeners(module, type, name, extension, "add", null);
         return extension;
     }
 
@@ -123,7 +123,7 @@ JsDbg.OnLoad(function() {
                     var extension = collection[oldName];
                     delete collection[oldName];
                     collection[newName] = extension;
-                    this._notifyListeners(module, type, oldName, extension, "rename", newName);
+                    this.notifyListeners(module, type, oldName, extension, "rename", newName);
                     return extension;
                 } else {
                     throw new Error("There is no \"" + oldName + "\" registered on " + type);
@@ -134,7 +134,7 @@ JsDbg.OnLoad(function() {
                 var entry = this.functions[i];
                 if (entry.module == module && entry.type == type && entry.name == oldName) {
                     entry.name = newName
-                    this._notifyListeners(module, type, oldName, entry.extension, "rename", newName);
+                    this.notifyListeners(module, type, oldName, entry.extension, "rename", newName);
                     return entry.extension;
                 }
             }
@@ -153,7 +153,7 @@ JsDbg.OnLoad(function() {
                 if (name in collection) {
                     var extension = collection[name];
                     delete collection[name];
-                    this._notifyListeners(module, type, name, extension, "remove", null);
+                    this.notifyListeners(module, type, name, extension, "remove", null);
                     return extension;
                 }
             }
@@ -162,7 +162,7 @@ JsDbg.OnLoad(function() {
                 var entry = this.functions[i];
                 if (entry.module == module && entry.type == type && entry.name == name) {
                     this.functions.splice(i, 1);
-                    this._notifyListeners(module, type, name, entry.extension, "remove", null);
+                    this.notifyListeners(module, type, name, entry.extension, "remove", null);
                     return entry.extension;
                 }
             }
@@ -171,7 +171,7 @@ JsDbg.OnLoad(function() {
         }
     }
 
-    DbgObjectTypeExtension.prototype._notifyListeners = function (module, type, name, extension, operation, context) {
+    DbgObjectTypeExtension.prototype.notifyListeners = function (module, type, name, extension, operation, context) {
         this.listeners.forEach(function (listener) {
             if (listener.module == module) {
                 var typeMatches = false;

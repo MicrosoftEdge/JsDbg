@@ -111,8 +111,13 @@ JsDbg.OnLoad(function () {
         return registeredFields.removeExtension(module, typeName, fieldName);
     }
 
-    DbgObject.RenameExtendedField = function(module, typeName, fieldName, newFieldName) {
-        return registeredFields.renameExtension(module, typeName, fieldName, newFieldName);
+    DbgObject.UpdateExtendedField = function(module, typeName, oldFieldName, newFieldName, newFieldType) {
+        registeredFields.renameExtension(module, typeName, oldFieldName, newFieldName);
+        var extension = registeredFields.getExtension(new DbgObject(module, typeName, 0), newFieldName);
+        if (extension.typeName != newFieldType) {
+            extension.typeName = newFieldType;
+            registeredFields.notifyListeners(module, typeName, newFieldName, extension, "typechange", newFieldType);
+        }
     }
 
     DbgObject._help_GetExtendedFields = {
