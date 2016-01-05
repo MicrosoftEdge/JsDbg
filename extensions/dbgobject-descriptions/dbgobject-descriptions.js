@@ -15,6 +15,8 @@ JsDbg.OnLoad(function () {
         arguments:[
             {name: "module", type:"string", description:"The module of the type."},
             {name: "type", type:"string/function(string) -> bool", description: "The type name, or a predicate that matches a type name."},
+            {name: "name", type:"string", description:"The name of the description."},
+            {name: "isPrimary", type:"bool", description:"A value that indicates if the description should be used by <code>desc()</code>."},
             {name: "description", type:"function(DbgObject) -> string", description: "A function that returns an HTML fragment to describe a given DbgObject."}
         ]
     };
@@ -23,10 +25,27 @@ JsDbg.OnLoad(function () {
         return registeredDescriptions.addExtension(module, type, name, extension);
     }
 
+    DbgObject._help_RemoveTypeDescription = {
+        description: "Removes a previously registered type description.",
+        arguments: [
+            { name: "module", type: "string", description: "The module name of the type to remove the description from." },
+            { name: "type", type: "string/function(string) -> bool", description: "The name of the type (or type predicate) to remove the description from." },
+            { name: "name", type: "string", description: "The name of the description to remove." }
+        ]
+    }
     DbgObject.RemoveTypeDescription = function(module, type, name) {
         return registeredDescriptions.removeExtension(module, type, name);
     }
 
+    DbgObject._help_RenameTypeDescription = {
+        description: "Renames a previously registered type description.",
+        arguments: [
+            { name: "module", type: "string", description: "The module name of the type to rename the description on." },
+            { name: "type", type: "string/function(string) -> bool", description: "The name of the type (or type predicate) to rename the description on." },
+            { name: "oldName", type: "string", description: "The name of the description to rename." },
+            { name: "newName", type: "string", description: "The new name of the description" },
+        ]
+    }
     DbgObject.RenameTypeDescription = function(module, type, oldName, newName) {
         return registeredDescriptions.renameExtension(module, type, oldName, newName);
     }

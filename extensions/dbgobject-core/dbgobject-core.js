@@ -112,7 +112,7 @@ JsDbg.OnLoad(function() {
     }
 
     DbgObject._help_AddModuleFilter = {
-        description: "Adds a transformation to be applied to modules names.",
+        description: "Adds a transformation to be applied to module names.",
         arguments: [
             {name:"filter", type:"function(string) -> string", description:"The filter to apply to each module name."}
         ]

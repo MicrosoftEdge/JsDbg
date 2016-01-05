@@ -18,8 +18,8 @@ JsDbg.OnLoad(function() {
     }
 
     DbgObject.prototype._help_array = {
-        description: "Provides an array of values or DbgObjects.",
-        returns: "A promise to an array of numbers if the type is not a pointer type and can be treated as a scalar, or an array of DbgObjects.",
+        description: "Given a DbgObject that represents an array, retrieves an array of corresponding DbgObjects.",
+        returns: "A promise to an array of DbgObjects.  If the array is an array of pointers, the pointers will be dereferenced.",
         arguments: [{name:"count (optional)", type:"int", description:"The number of items to retrieve.  Optional if the object represents an inline array or is a known array type."}]
     }
     DbgObject.prototype.array = function(count) {

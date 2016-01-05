@@ -111,6 +111,16 @@ JsDbg.OnLoad(function () {
         return registeredFields.removeExtension(module, typeName, fieldName);
     }
 
+    DbgObject._help_UpdateExtendedField = {
+        description: "Updates the name or result type of a previously registered extended field.",
+        arguments: [
+            { name: "module", type: "string", description: "The module name of the type to update the extended field on." },
+            { name: "typeName", type: "string", description: "The name of the type to update the extended field on." },
+            { name: "oldFieldName", type: "string", description: "The name of the extended field to update." },
+            { name: "newFieldName", type: "string", description: "The new name of the extended field." },
+            { name: "newFieldType", type: "string", description: "The new type of the extended field." }
+        ]
+    }
     DbgObject.UpdateExtendedField = function(module, typeName, oldFieldName, newFieldName, newFieldType) {
         if (newFieldName.indexOf(".") != -1) {
             throw new Error("You cannot have a field name with a '.' in it.");
