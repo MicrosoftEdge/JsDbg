@@ -23,6 +23,10 @@ JsDbg.OnLoad(function () {
         return registeredDescriptions.addExtension(module, type, name, extension);
     }
 
+    DbgObject.RemoveTypeDescription = function(module, type, name) {
+        return registeredDescriptions.removeExtension(module, type, name);
+    }
+
     DbgObject._help_GetDescriptions = {
         description: "Gets the available descriptions for the given type.",
         arguments: [

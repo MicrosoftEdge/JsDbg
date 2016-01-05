@@ -436,12 +436,26 @@ var FieldSupport = (function() {
         return this.editableFunction && UserEditableFunctions.IsEditable(this.editableFunction);
     }
 
+    FieldSupportField.prototype.canBeDeleted = function() {
+        return this.editableFunction && this.editableFunction.wasCreatedDynamically;
+    }
+
     FieldSupportField.prototype.beginEditing = function() {
         if (this.isEditable()) {
             var editor = new FieldSupportFieldEditor(this);
             editor.beginEditing(false, this.parentType.typename, this.name, this.resultingTypeName, this.editableFunction, function () {
                 // Don't need to do anything, because the editor takes care of the function editing.
             });
+        }
+    }
+
+    FieldSupportField.prototype.delete = function() {
+        if (this.canBeDeleted()) {
+            if (this.resultingTypeName) {
+                DbgObject.RemoveExtendedField(this.parentType.module, this.parentType.typename, this.name);
+            } else {
+                DbgObject.RemoveTypeDescription(this.parentType.module, this.parentType.typename, this.name);
+            }
         }
     }
 
@@ -706,6 +720,7 @@ var FieldSupport = (function() {
                 newExtensionButton.addEventListener("click", function() {
                     var editor = new FieldSupportFieldEditor();
                     var newFunction = UserEditableFunctions.Create(function (dbgObject, element) { });
+                    newFunction.wasCreatedDynamically = true;
                     editor.beginEditing(
                         true, 
                         type.typename(), 
@@ -831,6 +846,14 @@ var FieldSupport = (function() {
             editButton.classList.add("small-button");
             editButton.textContent = "Edit";
             editButton.addEventListener("click", function() { field.beginEditing(); });
+        }
+
+        if (field.canBeDeleted()) {
+            var deleteButton = document.createElement("button");
+            fieldContainer.appendChild(deleteButton);
+            deleteButton.classList.add("small-button");
+            deleteButton.textContent = "Delete";
+            deleteButton.addEventListener("click", function() { field.delete(); });
         }
 
         return field.getChildType()
