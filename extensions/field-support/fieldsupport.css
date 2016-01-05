@@ -6,12 +6,25 @@
     max-width:30vw;
 }
 
+.field-selection .show-hide {
+    z-index:10;
+    right:0px;
+    margin-right:2em;
+    margin-top:4pt;
+    position:absolute;
+}
+
+.field-selection.hidden {
+    overflow:hidden !important;
+    width:0;
+    padding:0;
+    margin:0;
+}
+
 .field-selection .instructions {
     width:200px;
-    xmin-width:100%;
     font-size:0.8em;
-    margin:4pt;
-    margin-bottom:0;
+    margin:4pt 20pt 0 4pt;
 }
 
 .field-selection .more-types {

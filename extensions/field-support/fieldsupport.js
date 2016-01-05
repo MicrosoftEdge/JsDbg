@@ -833,6 +833,27 @@ var FieldSupport = (function() {
         this.checkedFields = new CheckedFields();
         this.checkedFields.deserialize();
 
+        var isHidden = window.sessionStorage.getItem("FieldSupport-HideTypes") == "true";
+        var showHide = document.createElement("button");
+        showHide.classList.add("small-button");
+        showHide.classList.add("show-hide");
+        container.appendChild(showHide);
+        var updateIsHidden = function() {
+            if (isHidden) {
+                container.classList.add("hidden");
+                showHide.textContent = "Show";
+            } else {
+                container.classList.remove("hidden");
+                showHide.textContent = "Hide";
+            }
+            window.sessionStorage.setItem("FieldSupport-HideTypes", isHidden);
+        }
+        showHide.addEventListener("click", function() {
+            isHidden = !isHidden;
+            updateIsHidden();
+        });
+        updateIsHidden();
+
         var instructionText = document.createElement("div");
         instructionText.classList.add("instructions");
         container.appendChild(instructionText);
@@ -840,14 +861,14 @@ var FieldSupport = (function() {
 
 
         var showAllTypes = document.createElement("button");
-        showAllTypes.textContent = "Show More Types...";
+        showAllTypes.textContent = "Show More Types";
         showAllTypes.classList.add("small-button");
         showAllTypes.classList.add("more-types");
         container.appendChild(showAllTypes);
         var that = this;
         showAllTypes.addEventListener("click", function () {
             that.typeListContainer.classList.toggle("show-all-types");
-            showAllTypes.textContent = that.typeListContainer.classList.contains("show-all-types") ? "Show Fewer Types..." : "Show More Types...";
+            showAllTypes.textContent = that.typeListContainer.classList.contains("show-all-types") ? "Show Fewer Types" : "Show More Types";
         });
 
         container.appendChild(this.typeListContainer);
