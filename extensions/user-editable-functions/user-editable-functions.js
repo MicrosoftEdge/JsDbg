@@ -280,6 +280,20 @@ JsDbg.OnLoad(function() {
         this.listeners.push(listener);
     }
 
+    EditableFunction.prototype.serialize = function() {
+        return JSON.stringify({
+            args: this.argumentNames,
+            body: this.functionBody
+        });
+    }
+
+    EditableFunction.deserialize = function(str) {
+        var obj = JSON.parse(str);
+        var functionArguments = obj.args.concat([obj.body]);
+        var f = Function.apply(null, functionArguments);
+        return f;
+    }
+
     function create(name, f) {
         return (new EditableFunction(name, f)).caller;
     }
@@ -302,11 +316,25 @@ JsDbg.OnLoad(function() {
         }
     }
 
+    function serialize(f) {
+        if (!isEditable(f)) {
+            throw new Error("You can only serialize editable functions.");
+        } else {
+            return f.editableFunction.serialize();
+        }
+    }
+
+    function deserialize(str) {
+        return EditableFunction.deserialize(str);
+    }
+
     UserEditableFunctions = {
         Create: create,
         IsEditable: isEditable,
         Edit: edit,
-        OnChange: onchange
+        OnChange: onchange,
+        Serialize: serialize,
+        Deserialize: deserialize
     }
 
     if (testSuite) {
@@ -327,7 +355,6 @@ JsDbg.OnLoad(function() {
 
         Tests.AddTest(testSuite, "Changing Argument Names", function (assert) {
             var f = UserEditableFunctions.Create(function (a, b) { return a; });
-            assert(UserEditableFunctions.IsEditable(f), "IsEditable");
             assert.equals(1, f(1, 2, 3), "Initial function definition.");
 
             var container = document.createElement("div");
@@ -346,6 +373,17 @@ JsDbg.OnLoad(function() {
             editContext.updateArguments(["a", "b", "c"]);
             editContext.commit();
             assert.equals(3, f(1, 2, 3), "Updated arguments and body.");
+        })
+
+        Tests.AddTest(testSuite, "Function Serialization/Deserialization", function (assert) {
+            var f = UserEditableFunctions.Create(function (a, b) { return a + b; });
+            assert.equals(3, f(1, 2), "Initial function definition.");
+
+            var serialized = UserEditableFunctions.Serialize(f);
+            assert.equals(typeof "", typeof serialized, "Serialized type should be a string.");
+
+            var g = UserEditableFunctions.Deserialize(serialized);
+            assert.equals(3, g(1, 2), "Deserialized function definition.");
         })
     }
 });
