@@ -112,6 +112,10 @@ JsDbg.OnLoad(function () {
     }
 
     DbgObject.UpdateExtendedField = function(module, typeName, oldFieldName, newFieldName, newFieldType) {
+        if (newFieldName.indexOf(".") != -1) {
+            throw new Error("You cannot have a field name with a '.' in it.");
+        }
+
         registeredFields.renameExtension(module, typeName, oldFieldName, newFieldName);
         var extension = registeredFields.getExtension(new DbgObject(module, typeName, 0), newFieldName);
         if (extension.typeName != newFieldType) {
