@@ -657,14 +657,28 @@ var FieldSupport = (function() {
             }
         }
 
-        editor.querySelector(".cancel").addEventListener("click", function () {
+        var handleEscape = function (e) {
+            if (e.keyCode == 27) {
+                dismiss();
+            }
+        }
+
+        var dismiss = function() {
             document.body.removeChild(backdrop);
-        })
+            window.removeEventListener("keydown", handleEscape);
+        }
+
+        window.addEventListener("keydown", handleEscape);
+        editor.querySelector(".cancel").addEventListener("click", dismiss);
 
         editor.querySelector(".save").addEventListener("click", function() {
-            updateFunction();
-            document.body.removeChild(backdrop);
-            onSave(typename, nameInput.value, hasResultTypeCheckBox.checked ? resultTypeInput.value : null, editableFunction);
+            try {
+                onSave(typename, nameInput.value, hasResultTypeCheckBox.checked ? resultTypeInput.value : null, editableFunction);
+                updateFunction();
+                dismiss();
+            } catch (ex) {
+                alert(ex);
+            }
         })
     }
 
