@@ -215,33 +215,29 @@ var FieldSupport = (function() {
         });
 
         DbgObject.GetDescriptions(module, typename).forEach(function (description) {
-            if (description.isPrimary) {
-                return;
+            if (!description.isPrimary) {
+                that.addDescription(description.name, description.getter);
             }
+        });
 
-            that.descriptions.push(new FieldSupportField(
-                description.name,
-                null,
-                function getter(dbgObject) { return dbgObject; },
-                function renderer(dbgObject, element, fields) {
-                    return Promise.as(description.getter(dbgObject, element)).then(function (desc) {
-                        if (desc instanceof Node) {
-                            var descriptionContainer = document.createElement("div");
-                            element.appendChild(descriptionContainer);
-                            descriptionContainer.appendChild(document.createTextNode(fields + ":"));
-                            descriptionContainer.appendChild(desc);
-                        } else if (desc instanceof DbgObject) {
-                            renderDbgObject(desc, element, fields);
-                        } else if (typeof(desc) != typeof(undefined)) {
-                            var descriptionContainer = document.createElement("div");
-                            element.appendChild(descriptionContainer);
-                            descriptionContainer.innerHTML = fields + ":" + desc;
+        DbgObject.OnDescriptionsChanged(module, typename, function (module, typename, descriptionName, description, isAdded) {
+            if (isAdded) {
+                if (!description.isPrimary) {
+                    that.addDescription(description.name, description.getter);
+                }
+            } else {
+                that.descriptions = that.descriptions.filter(function (descriptionField) {
+                    if (descriptionField.name == descriptionName) {
+                        if (descriptionField.disableCompletely()) {
+                            that.aggregateType.controller.updateTreeUI();
                         }
-                    });
-                },
-                that,
-                description.getter
-            ));
+                        return false;
+                    } else {
+                        return true;
+                    }
+                });
+            }
+            that.aggregateType.rerender();
         })
     }
 
@@ -261,6 +257,32 @@ var FieldSupport = (function() {
                 return dbgObject.F(fieldName);
             },
             renderDbgObject,
+            this,
+            getter
+        ));
+    }
+
+    FieldSupportSingleType.prototype.addDescription = function (name, getter) {
+        this.descriptions.push(new FieldSupportField(
+            name,
+            null,
+            function getter(dbgObject) { return dbgObject; },
+            function renderer(dbgObject, element, fields) {
+                return Promise.as(getter(dbgObject, element)).then(function (desc) {
+                    if (desc instanceof Node) {
+                        var descriptionContainer = document.createElement("div");
+                        element.appendChild(descriptionContainer);
+                        descriptionContainer.appendChild(document.createTextNode(fields + ":"));
+                        descriptionContainer.appendChild(desc);
+                    } else if (desc instanceof DbgObject) {
+                        renderDbgObject(desc, element, fields);
+                    } else if (typeof(desc) != typeof(undefined)) {
+                        var descriptionContainer = document.createElement("div");
+                        element.appendChild(descriptionContainer);
+                        descriptionContainer.innerHTML = fields + ":" + desc;
+                    }
+                });
+            },
             this,
             getter
         ));
