@@ -185,3 +185,8 @@ button.small-button.light:hover {
 .field-editor .modal-editor .code-editor {
     margin-top:0.5em;
 }
+
+.field-editor .modal-editor .description {
+    font-size:8pt;
+    margin-top:1em;
+}

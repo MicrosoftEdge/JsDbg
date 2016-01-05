@@ -599,6 +599,7 @@ var FieldSupport = (function() {
         <tr><td>Result Type:</td><td><input class=\"has-result-type\" type=checkbox><input class=\"result-type\" type=\"text\"></td></tr>\
         <tr><td>Documentation:</td><td><div class=\"documentation\"></div></td></tr>\
         </table>\
+        <div class=\"description\"></div>\
         <div class=\"code-editor\"></div>\
         <div class=\"buttons\"><button class=\"small-button save\">Save</button><button class=\"small-button cancel\">Cancel</button></div>\
         ";
@@ -620,13 +621,19 @@ var FieldSupport = (function() {
         hasResultTypeCheckBox.checked = resultingTypeName != null;
         var resultTypeInput = editor.querySelector(".result-type");
         resultTypeInput.value = resultingTypeName;
-        resultTypeInput.disabled = !hasResultTypeCheckBox.checked;
-        hasResultTypeCheckBox.addEventListener("change", function () {
+
+        var descriptionText = editor.querySelector(".description");
+        var synchronizeHasResultType = function() {
             resultTypeInput.disabled = !hasResultTypeCheckBox.checked;
-            if (!resultTypeInput.disabled) {
-                resultTypeInput.focus();
+            if (hasResultTypeCheckBox.checked) {
+                descriptionText.textContent = "Return a DbgObject (or a promise to a DbgObject) with type \"" + resultTypeInput.value + "\".";
+            } else {
+                descriptionText.textContent = "Return a DbgObject, an HTML string, an HTML node, modify \"element\", or return a promise.";
             }
-        });
+        }
+        hasResultTypeCheckBox.addEventListener("change", synchronizeHasResultType);
+        resultTypeInput.addEventListener("input", synchronizeHasResultType);
+        synchronizeHasResultType();
 
         var updateFunction = UserEditableFunctions.Edit(editableFunction, editor.querySelector(".code-editor"));
 
