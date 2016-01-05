@@ -587,6 +587,8 @@ var FieldSupport = (function() {
         Help.List()
         .map(Help.Link)
         .forEach(function(e) {
+            // Tabbing should skip over the documentation links.
+            e.setAttribute("tabindex", -1);
             documentation.appendChild(e);
             documentation.appendChild(document.createTextNode(" "));
         })
@@ -606,13 +608,20 @@ var FieldSupport = (function() {
             }
         });
 
+        var updateFunction = UserEditableFunctions.Edit(editableFunction, editor.querySelector(".code-editor"));
+
         if (!isFullyEditable) {
             nameInput.disabled = true;
             hasResultTypeCheckBox.disabled = true;
             resultTypeInput.disabled = true;
+        } else {
+            if (fieldName == "") {
+                nameInput.focus();
+            } else {
+                editor.querySelector("textarea").focus();
+            }
         }
 
-        var updateFunction = UserEditableFunctions.Edit(editableFunction, editor.querySelector(".code-editor"));
         editor.querySelector(".cancel").addEventListener("click", function () {
             document.body.removeChild(backdrop);
         })
