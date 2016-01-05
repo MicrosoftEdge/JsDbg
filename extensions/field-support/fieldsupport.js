@@ -582,7 +582,7 @@ var FieldSupport = (function() {
         EditableExceptHasType: 2
     };
 
-    FieldSupportFieldEditor.prototype.beginEditing = function(editablity, typename, fieldName, resultingTypeName, editableFunction, onSave) {
+    FieldSupportFieldEditor.prototype.beginEditing = function(editability, typename, fieldName, resultingTypeName, editableFunction, onSave) {
         // Initialize the modal editor.
         var backdrop = document.createElement("div");
         backdrop.classList.add("field-editor");
@@ -603,6 +603,8 @@ var FieldSupport = (function() {
         <div class=\"code-editor\"></div>\
         <div class=\"buttons\"><button class=\"small-button save\">Save</button><button class=\"small-button cancel\">Cancel</button></div>\
         ";
+
+        var functionEditContext = UserEditableFunctions.Edit(editableFunction, editor.querySelector(".code-editor"));
 
         var documentation = editor.querySelector(".documentation");
         Help.List()
@@ -630,19 +632,25 @@ var FieldSupport = (function() {
             } else {
                 descriptionText.textContent = "Return a DbgObject, an HTML string, an HTML node, modify \"element\", or return a promise.";
             }
+
+            if (editability == FieldEditability.FullyEditable) {
+                if (hasResultTypeCheckBox.checked) {
+                    functionEditContext.updateArguments(["dbgObject"]);
+                } else {
+                    functionEditContext.updateArguments(["dbgObject", "element"]);
+                }
+            }
         }
         hasResultTypeCheckBox.addEventListener("change", synchronizeHasResultType);
         resultTypeInput.addEventListener("input", synchronizeHasResultType);
         synchronizeHasResultType();
 
-        var updateFunction = UserEditableFunctions.Edit(editableFunction, editor.querySelector(".code-editor"));
-
-        if (editablity == FieldEditability.NotEditable) {
+        if (editability == FieldEditability.NotEditable) {
             nameInput.disabled = true;
             hasResultTypeCheckBox.disabled = true;
             resultTypeInput.disabled = true;
         } else {
-            if (editablity == FieldEditability.EditableExceptHasType) {
+            if (editability == FieldEditability.EditableExceptHasType) {
                 if (resultingTypeName == null) {
                     hasResultTypeCheckBox.parentNode.parentNode.style.display = "none";
                 } else {
@@ -674,7 +682,7 @@ var FieldSupport = (function() {
         editor.querySelector(".save").addEventListener("click", function() {
             try {
                 onSave(typename, nameInput.value, hasResultTypeCheckBox.checked ? resultTypeInput.value : null, editableFunction);
-                updateFunction();
+                functionEditContext.commit();
                 dismiss();
             } catch (ex) {
                 alert(ex);
@@ -821,7 +829,7 @@ var FieldSupport = (function() {
                 fieldListUIContainer.appendChild(newExtensionButton);
                 newExtensionButton.addEventListener("click", function() {
                     var editor = new FieldSupportFieldEditor();
-                    var newFunction = UserEditableFunctions.Create(function (dbgObject, element) { });
+                    var newFunction = UserEditableFunctions.Create(function () { });
                     newFunction.wasCreatedDynamically = true;
                     newFunction.initialType = type;
                     editor.beginEditing(

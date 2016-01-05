@@ -252,11 +252,20 @@ JsDbg.OnLoad(function() {
 
         // Epilogue for the closing curly bracket.
         codeRegion.appendChild(document.createTextNode("}"));
-        return function() { that._update(textArea.value); };
+
+        var editedArgumentNames = this.argumentNames;
+        return {
+            commit: function() { that._update(editedArgumentNames, textArea.value); },
+            updateArguments: function(names) {
+                editedArgumentNames = names;
+                preamble.textContent = "function (" + editedArgumentNames.join(", ") + ") {";
+            }
+        }
     }
 
-    EditableFunction.prototype._update = function(body) {
-        if (this.functionBody != body) {
+    EditableFunction.prototype._update = function(newArgumentNames, body) {
+        if (this.functionBody != body || newArgumentNames != this.argumentNames) {
+            this.argumentNames = newArgumentNames;
             this.functionBody = body;
             var functionArguments = this.argumentNames.concat([this.functionBody]);
             this.f = Function.apply(null, functionArguments);
@@ -307,13 +316,36 @@ JsDbg.OnLoad(function() {
             assert.equals(1, f(1), "Initial function definition.");
 
             var container = document.createElement("div");
-            var ensureUpdated = UserEditableFunctions.Edit(f, container);
+            var editContext = UserEditableFunctions.Edit(f, container);
             var editor = container.querySelector("textarea");
 
             assert.equals(editor.value, "return a;", "Editor value population.");
             editor.value = "return a + 1;";
-            ensureUpdated();
+            editContext.commit();
             assert.equals(2, f(1), "Edited function definition.");
+        })
+
+        Tests.AddTest(testSuite, "Changing Argument Names", function (assert) {
+            var f = UserEditableFunctions.Create(function (a, b) { return a; });
+            assert(UserEditableFunctions.IsEditable(f), "IsEditable");
+            assert.equals(1, f(1, 2, 3), "Initial function definition.");
+
+            var container = document.createElement("div");
+            var editContext = UserEditableFunctions.Edit(f, container);
+            var editor = container.querySelector("textarea");
+
+            editContext.updateArguments(["b", "a"]);
+            editContext.commit();
+            assert.equals(2, f(1, 2, 3), "Updated arguments.");
+
+            container = document.createElement("div");
+            editContext = UserEditableFunctions.Edit(f, container);
+            editor = container.querySelector("textarea");
+
+            editor.value = "return c;";
+            editContext.updateArguments(["a", "b", "c"]);
+            editContext.commit();
+            assert.equals(3, f(1, 2, 3), "Updated arguments and body.");
         })
     }
 });
