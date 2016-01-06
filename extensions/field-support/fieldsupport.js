@@ -7,6 +7,7 @@
 var FieldSupport = (function() {
     function PersistedFieldCollection() {
         this.persistedFields = [];
+        this.store = Catalog.Load("FieldSupport2");
     }
 
     PersistedFieldCollection.prototype.add = function(pf) {
@@ -20,22 +21,26 @@ var FieldSupport = (function() {
     }
 
     PersistedFieldCollection.prototype.serialize = function() {
-        window.sessionStorage.setItem(
-            "FieldSupport-UserFields", 
-            JSON.stringify(this.persistedFields.map(function (f) { return f.serialize(); }))
-        );
+        var that = this;
+        return new Promise(function (oncomplete, onerror) {
+            that.store.set("UserFields", that.persistedFields.map(function (f) { return f.serialize(); }), oncomplete);
+        });
     }
 
     PersistedFieldCollection.prototype.deserialize = function() {
-        var obj = window.sessionStorage.getItem("FieldSupport-UserFields");
-        if (obj) {
-            var that = this;
-            this.persistedFields = JSON.parse(obj).map(function (str) {
-                var f = new PersistedField(that);
-                f.deserialize(str);
-                return f;
+        var that = this;
+        return new Promise(function (oncomplete, onerror) {
+            that.store.all(function (results) {
+                if (results && results.UserFields) {
+                    that.persistedFields = results.UserFields.map(function (str) {
+                        var f = new PersistedField(that);
+                        f.deserialize(str);
+                        return f;
+                    });
+                }
+                oncomplete();
             });
-        }
+        });
     }
 
     function PersistedField(collection, module, typeName, name, resultingTypeName, editableFunction) {
@@ -981,9 +986,11 @@ var FieldSupport = (function() {
         this.typeListContainer = document.createElement("div");
         this.updateTreeUI = updateTreeUI;
         this.checkedFields = new CheckedFields();
-        this.checkedFields.deserialize();
         this.persistedFieldCollection = new PersistedFieldCollection();
-        this.persistedFieldCollection.deserialize();
+        var that = this;
+        this.deserializationPromise = this.persistedFieldCollection.deserialize().then(function () {
+            that.checkedFields.deserialize();
+        });
 
         var isHidden = window.sessionStorage.getItem("FieldSupport-HideTypes") == "true";
         var showHide = document.createElement("button");
@@ -1047,30 +1054,32 @@ var FieldSupport = (function() {
         }
 
         var that = this;
-        var newType = new FieldSupportAggregateType(module, typename, null, this, function() {
-            that.renderRootType(newType, newTypeContainer);
+        var newType = new FieldSupportAggregateType(module, typename, null, this, function() { that.renderRootType(newType, newTypeContainer); });
+
+        // Put it into the list, re-sort, and mirror the position in the DOM.
+        this.knownTypes.push(newType);
+        this.knownTypes.sort(function (a, b) {
+            return a.typename().localeCompare(b.typename());
         });
+        var index = this.knownTypes.indexOf(newType);
+        if (index < this.typeListContainer.childNodes.length) {
+            var nodeAfter = this.typeListContainer.childNodes[index];
+            this.typeListContainer.insertBefore(newTypeContainer, nodeAfter);
+        } else {
+            this.typeListContainer.appendChild(newTypeContainer);
+        }
+        newTypeContainer.style.display = "none";
 
         var that = this;
-        return this.checkedFields.reenableFields(newType)
-        .then(function () {
-            return that.renderRootType(newType, newTypeContainer)
+        return this.deserializationPromise.then(function () {
+            return that.checkedFields.reenableFields(newType)
         })
         .then(function () {
-            that.knownTypes.push(newType);
-
-            // Sort by type name.
-            that.knownTypes.sort(function (a, b) {
-                return a.typename().localeCompare(b.typename());
-            });
-
-            var index = that.knownTypes.indexOf(newType);
-            var nodeAfter = null;
-            if (index < that.typeListContainer.childNodes.length) {
-                nodeAfter = that.typeListContainer.childNodes[index];
-            }
-            that.typeListContainer.insertBefore(newTypeContainer, nodeAfter);
-        });
+            return that.renderRootType(newType, newTypeContainer);
+        })
+        .then(function() {
+            newTypeContainer.style.display = "";
+        })
     }
 
     FieldSupportController.prototype.renderRootType = function(rootType, typeContainer) {
