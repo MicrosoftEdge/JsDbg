@@ -56,70 +56,44 @@ JsDbg.OnLoad(function() {
         });
     }
 
-    var builtInFields = [
-        {
-            fullType: {
-                module: MSHTML.Module,
-                type: "CDispNode"
-            },
-            fullname: "Bounds",
-            shortname: "b",
-            html: function() {
-                var rect = this.f("_rctBounds");
-                return Promise.map(["left", "top", "right", "bottom"], function(f) { return rect.f(f).val(); })
-                    .then(function(values) { return values.join(" "); });
-            }
-        },
-        {
-            fullType: {
-                module: MSHTML.Module,
-                type: "CDispNode"
-            },
-            fullname: "Client",
-            shortname: "c",
-            html: function() {
-                // Get the latest patch...
-                return this.latestPatch()
+    DbgObject.AddExtendedField(MSHTML.Module, "CDispNode", "Client", "CDispClient", UserEditableFunctions.Create(function (dispNode) {
+        // Get the latest patch...
+        return dispNode.latestPatch()
 
-                // Check if it has advanced display...
-                .then(function(node) {
-                    return node.f("_flags._fAdvanced").val()
+        // Check if it has advanced display...
+        .then(function(latestPatch) {
+            return latestPatch.f("_flags._fAdvanced").val()
 
-                    // And get the disp client.
-                    .then(function(hasAdvanced) {
-                        if (hasAdvanced) {
-                            return node.f("_pAdvancedDisplay._pDispClient").vcast();
-                        } else {
-                            return node.f("_pDispClient").vcast();
-                        }
-                    });
-                });
+            // And get the disp client.
+            .then(function(hasAdvanced) {
+                if (hasAdvanced) {
+                    return latestPatch.f("_pAdvancedDisplay._pDispClient");
+                } else {
+                    return latestPatch.f("_pDispClient");
+                }
+            });
+        });
+    }));
+
+    DbgObject.AddExtendedField(MSHTML.Module, "CDispClient", "AsContainerBox", "Layout::ContainerBox", UserEditableFunctions.Create(function (client) {
+        return client.dcast("Layout::ContainerBox");
+    }));
+
+    DbgObject.AddTypeDescription(MSHTML.Module, "CDispFlags", "AllFlags", false, UserEditableFunctions.Create(function (flags) {
+        return Promise
+        .filter(flags.fields(), function(f) {
+            if (f.name.indexOf("_fUnused") != 0 && f.value.bitcount == 1) {
+                return f.value.val();
+            } else {
+                return false;
             }
-        },
-        {
-            fullType: {
-                module: MSHTML.Module,
-                type: "CDispNode"
-            },
-            fullname: "All Flags",
-            shortname: "flags",
-            html: function() {
-                return Promise
-                    .filter(this.f("_flags").fields(), function(f) {
-                        if (f.name.indexOf("_fUnused") != 0 && f.value.bitcount == 1) {
-                            return f.value.val();
-                        } else {
-                            return false;
-                        }
-                    })
-                    .then(function(flags) {
-                        return flags
-                            .map(function(flag) { return flag.name; })
-                            .join(" ");
-                    });
-            }
-        }
-    ];
+        })
+        .then(function(enabledFlags) {
+            return enabledFlags
+            .map(function(flag) { return flag.name; })
+            .join(" ");
+        });
+    }));
 
     DisplayTree = {
         Name: "DisplayTree",
