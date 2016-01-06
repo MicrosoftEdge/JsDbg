@@ -12,18 +12,14 @@ var FieldSupport = (function() {
 
     PersistedFieldCollection.prototype.add = function(pf) {
         this.persistedFields.push(pf);
-        this.serialize();
+        return pf.serialize();
     }
 
     PersistedFieldCollection.prototype.remove = function(pf) {
         this.persistedFields = this.persistedFields.filter(function (x) { return x != pf; });
-        this.serialize();
-    }
-
-    PersistedFieldCollection.prototype.serialize = function() {
         var that = this;
         return new Promise(function (oncomplete, onerror) {
-            that.store.set("UserFields", that.persistedFields.map(function (f) { return f.serialize(); }), oncomplete);
+            that.store.delete(pf.uniqueId, oncomplete);
         });
     }
 
@@ -31,12 +27,12 @@ var FieldSupport = (function() {
         var that = this;
         return new Promise(function (oncomplete, onerror) {
             that.store.all(function (results) {
-                if (results && results.UserFields) {
-                    that.persistedFields = results.UserFields.map(function (str) {
+                if (results) {
+                    for (var key in results) {
                         var f = new PersistedField(that);
-                        f.deserialize(str);
-                        return f;
-                    });
+                        f.deserialize(key, results[key]);
+                        that.persistedFields.push(f);
+                    }
                 }
                 oncomplete();
             });
@@ -44,6 +40,7 @@ var FieldSupport = (function() {
     }
 
     function PersistedField(collection, module, typeName, name, resultingTypeName, editableFunction) {
+        this.uniqueId = "UserField-" + (new Date() - 0) + "-" + Math.round(Math.random() * 1000000)
         this.module = module;
         this.typeName = typeName;
         this.name = name;
@@ -53,34 +50,39 @@ var FieldSupport = (function() {
 
         if (this.editableFunction) {
             var that = this;
-            UserEditableFunctions.OnChange(this.editableFunction, function() { that.collection.serialize(); });
+            UserEditableFunctions.OnChange(this.editableFunction, function() { that.serialize(); });
         }
     }
 
     PersistedField.prototype.delete = function() {
-        this.collection.remove(this);
+        return this.collection.remove(this);
     }
 
     PersistedField.prototype.serialize = function() {
-        return JSON.stringify({
+        var serialized = {
             module: this.module,
             typeName: this.typeName,
             name: this.name,
             resultingTypeName: this.resultingTypeName,
             editableFunction: UserEditableFunctions.Serialize(this.editableFunction)
+        };
+        var uniqueId = this.uniqueId;
+        var store = this.collection.store;
+        return new Promise(function (onsuccess, onerror) {
+            store.set(uniqueId, serialized, onsuccess);
         });
     }
 
-    PersistedField.prototype.deserialize = function(str) {
-        var obj = JSON.parse(str);
-        this.module = obj.module;
-        this.typeName = obj.typeName;
-        this.name = obj.name;
-        this.resultingTypeName = obj.resultingTypeName;
-        this.editableFunction = UserEditableFunctions.Deserialize(obj.editableFunction);
+    PersistedField.prototype.deserialize = function(id, serialized) {
+        this.uniqueId = id;
+        this.module = serialized.module;
+        this.typeName = serialized.typeName;
+        this.name = serialized.name;
+        this.resultingTypeName = serialized.resultingTypeName;
+        this.editableFunction = UserEditableFunctions.Deserialize(serialized.editableFunction);
         this.editableFunction.persistedField = this;
         var that = this;
-        UserEditableFunctions.OnChange(this.editableFunction, function() { that.collection.serialize(); });
+        UserEditableFunctions.OnChange(this.editableFunction, function() { that.serialize(); });
 
         if (this.resultingTypeName != null) {
             DbgObject.AddExtendedField(this.module, this.typeName, this.name, this.resultingTypeName, this.editableFunction);
@@ -112,7 +114,7 @@ var FieldSupport = (function() {
         }
 
         if (needsUpdate) {
-            this.collection.serialize();
+            this.serialize();
         }
     }
 
