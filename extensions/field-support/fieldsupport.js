@@ -439,8 +439,12 @@ var FieldSupport = (function() {
             } else if (operation == "rename") {
                 that.extendedFields.forEach(function (userField) {
                     if (userField.name == fieldName) {
+                        if (userField.isEnabled) {
+                            that.aggregateType.controller.checkedFields.disableField(userField);
+                        }
                         userField.name = argument;
                         if (userField.isEnabled) {
+                            that.aggregateType.controller.checkedFields.enableField(userField);
                             that.aggregateType.controller.updateTreeUI();
                         }
                     }
@@ -488,8 +492,12 @@ var FieldSupport = (function() {
             } else if (operation == "rename") {
                 that.descriptions.forEach(function (descriptionField) {
                     if (descriptionField.name == descriptionName) {
+                        if (descriptionField.isEnabled) {
+                            that.aggregateType.controller.checkedFields.disableField(descriptionField);
+                        }
                         descriptionField.name = argument;
                         if (descriptionField.isEnabled) {
+                            that.aggregateType.controller.checkedFields.enableField(descriptionField);
                             that.aggregateType.controller.updateTreeUI();
                         }
                     }
