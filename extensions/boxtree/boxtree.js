@@ -37,10 +37,6 @@ JsDbg.OnLoad(function() {
         }
     });
 
-    DbgObject.AddExtendedField(MSHTML.Module, "Layout::LayoutBox", "AsContainerBox", "Layout::ContainerBox", UserEditableFunctions.Create(function (box) {
-        return box.dcast("Layout::ContainerBox");
-    }))
-
     if (JsDbg.GetCurrentExtension() == "boxtree") {
         DbgObjectTree.AddRoot("Box Tree", function() {
             return Promise.map(MSHTML.GetRootCTreeNodes(), function(treeNode) {
@@ -195,6 +191,10 @@ JsDbg.OnLoad(function() {
         });
     }
 
+    DbgObject.AddExtendedField(MSHTML.Module, "Layout::LayoutBox", "AsContainerBox", "Layout::ContainerBox", UserEditableFunctions.Create(function (box) {
+        return box.dcast("Layout::ContainerBox");
+    }))
+
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::ContainerBox", "Validity", false, UserEditableFunctions.Create(function (dbgObject, e) {
         return Promise.join([dbgObject.f("isLayoutInvalid").val(), dbgObject.f("isDisplayInvalid").val()])
         .then(function(invalidBits) {
@@ -231,236 +231,129 @@ JsDbg.OnLoad(function() {
         return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode").f("_pts._pSvgFormatCache"), containerBox.f("sourceStyle").f("iSF", "_iSF").val());
     }));
 
-    var builtInFields = [
-        {
-            fullType: {
-                module: MSHTML.Module,
-                type: "Layout::ContainerBox"
-            },
-            fullname: "Element",
-            shortname: "e",
-            html: function() {
-                return this.f("elementInternal", "element.m_pT");
+    DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "DisplayNode", "CDispNode", UserEditableFunctions.Create(function (containerBox) {
+        return Promise.join([containerBox.f("isDisplayNodeExtracted").val(), containerBox.f("rawDisplayNode")])
+        .then(function (results) {
+            if (!results[0]) {
+                return results[1];
+            } else {
+                return new DbgObject(MSHTML.Module, "CDispNode", 0);
             }
-        },
+        })
+    }));
 
-        {
-            fullType: {
-                module: MSHTML.Module,
-                type: "Layout::ContainerBox"
-            },
-            fullname: "Tag",
-            shortname: "tag",
-            html: function() {
-                return MSHTML.GetCTreeNodeFromTreeElement(this.f("elementInternal", "element.m_pT")).f("_etag");
-            }
-        },
-        {
-            fullType: {
-                module: MSHTML.Module,
-                type: "Layout::ContainerBox"
-            },
-            fullname: "ContentBoxWidth",
-            shortname: "w",
-            html: function() {
-                return this.f("borderBoxModel.ContentBox.Width", "contentBoxWidth");
-            }
-        },
+    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LineBox", "Text", false, UserEditableFunctions.Create(function (lineBox) {
+        return Promise
+        .join([
+            this.f("textBlockRunIndexAtStartOfLine").val(), 
+            this.f("characterIndexInTextBlockRunAtStartOfLine").val(),
+            this.f("textBlockRunIndexAfterLine").val(),
+            this.f("characterIndexInTextBlockRunAfterLine").val(),
+            this.f("textBlockOrNode", "textBlock.m_pT")
+        ])
+        .then(function(fields) {
+            // Unpack the fields we just retrieved.
+            var runIndexAtStartOfLine = fields[0];
+            var characterIndexInTextBlockRunAtStartOfLine = fields[1];
+            var runIndexAfterLine = fields[2];
+            var characterIndexInTextBlockRunAfterLine = fields[3];
+            var textBlock = fields[4];
 
-        {
-            fullType: {
-                module: MSHTML.Module,
-                type: "Layout::ContainerBox"
-            },
-            fullname: "ContentBoxHeight",
-            shortname: "h",
-            html: function() {
-                return this.f("borderBoxModel.ContentBox.Height", "contentBoxHeight");
-            }
-        },
-
-        {
-            fullType: {
-                module: MSHTML.Module,
-                type: "Layout::ContainerBox"
-            },
-            fullname: "LayoutPlacement",
-            shortname: "lp",
-            html: function() {
-                var that = this;
-                var ff = that.f("sourceStyle.fancyFormat")
-                .then(null, function (err) {
-                    return MSHTML.GetObjectFromThreadstateCache(
-                        that.f("elementInternal"), 
-                        "FancyFormat", 
-                        that.f("sourceStyle.iFF").val()
-                    );
-                });
-                return ff.then(function (ff) { return ff.f("_layoutPlacement"); })
-            }
-        },
-
-        {
-            fullType: {
-                module: MSHTML.Module,
-                type: "Layout::ContainerBox"
-            },
-            fullname: "DisplayNode",
-            shortname: "d",
-            html: function() {
-                // Check if it's been extracted...
-                var that = this;
-                return this.f("isDisplayNodeExtracted").val()
-
-                // If it hasn't been extracted, grab the rawDisplayNode...
-                .then(function(isExtracted) { return isExtracted ? DbgObject.NULL : that.f("rawDisplayNode"); })
-            }
-        },
-
-        {
-            fullType: {
-                module: MSHTML.Module,
-                type: "Layout::ContainerBox"
-            },
-            fullname: "Validity",
-            shortname: "validity",
-            html: function(e) {
-                return Promise.join([this.f("isLayoutInvalid").val(), this.f("isDisplayInvalid").val()])
-                    .then(function(invalidBits) {
-                        if (invalidBits[0]) {
-                            // Layout is invalid.
-                            e.style.backgroundColor = "#fbc";
-                        } else if (invalidBits[1]) {
-                            // Display is invalid.
-                            e.style.backgroundColor = "#ffc";
-                        } else {
-                            // Box is valid.
-                            e.style.backgroundColor = "#bfc";
-                        }
-                    });
-            }
-        },
-
-        {
-            fullType: {
-                module: MSHTML.Module,
-                type: "Layout::LineBox"
-            },
-            fullname: "Text",
-            shortname: "text",
-            html: function() {
+            // Helper function to convert a text run to an HTML fragment.
+            function convertTextRunToHTML(textRun, runIndex, runArrayLength) {
+                // Get some fields from the text run...
                 return Promise
-                    .join([
-                        this.f("textBlockRunIndexAtStartOfLine").val(), 
-                        this.f("characterIndexInTextBlockRunAtStartOfLine").val(),
-                        this.f("textBlockRunIndexAfterLine").val(),
-                        this.f("characterIndexInTextBlockRunAfterLine").val(),
-                        this.f("textBlockOrNode", "textBlock.m_pT")
-                    ])
-                    .then(function(fields) {
-                        // Unpack the fields we just retrieved.
-                        var runIndexAtStartOfLine = fields[0];
-                        var characterIndexInTextBlockRunAtStartOfLine = fields[1];
-                        var runIndexAfterLine = fields[2];
-                        var characterIndexInTextBlockRunAfterLine = fields[3];
-                        var textBlock = fields[4];
+                .join([
+                    textRun.f("_cchOffset").val(),
+                    textRun.f("_cchRunLength").val(),
+                    textRun.f("_fHasTextTransformOrPassword").val()
+                ])
+                // Get the text data...
+                .then(function(textRunFields) {
+                    var offset = textRunFields[0];
+                    var textRunLength = textRunFields[1];
+                    var textData;
 
-                        // Helper function to convert a text run to an HTML fragment.
-                        function convertTextRunToHTML(textRun, runIndex, runArrayLength) {
-                            // Get some fields from the text run...
-                            return Promise
-                            .join([
-                                textRun.f("_cchOffset").val(),
-                                textRun.f("_cchRunLength").val(),
-                                textRun.f("_fHasTextTransformOrPassword").val()
-                            ])
-                            // Get the text data...
-                            .then(function(textRunFields) {
-                                var offset = textRunFields[0];
-                                var textRunLength = textRunFields[1];
-                                var textData;
+                    if (textRunFields[2]) {
+                        textData = textRun.f("_characterSourceUnion._pchTransformedCharacters");
+                        offset = 0; // No offset when transformed.
+                    } else {
+                        textData = textRun.f("_characterSourceUnion._pTextData").as("Tree::TextData").f("text", "_pText");
+                    }
 
-                                if (textRunFields[2]) {
-                                    textData = textRun.f("_characterSourceUnion._pchTransformedCharacters");
-                                    offset = 0; // No offset when transformed.
-                                } else {
-                                    textData = textRun.f("_characterSourceUnion._pTextData").as("Tree::TextData").f("text", "_pText");
-                                }
+                    var stringLength = textRunLength;
 
-                                var stringLength = textRunLength;
+                    if (runIndex == 0) {
+                        offset += characterIndexInTextBlockRunAtStartOfLine;
+                        stringLength -= characterIndexInTextBlockRunAtStartOfLine;
+                    }
 
-                                if (runIndex == 0) {
-                                    offset += characterIndexInTextBlockRunAtStartOfLine;
-                                    stringLength -= characterIndexInTextBlockRunAtStartOfLine;
-                                }
+                    if (runIndexAfterLine >= 0 && runIndex == (runArrayLength - 1)) {
+                        stringLength -= (textRunLength - characterIndexInTextBlockRunAfterLine);
+                    }
 
-                                if (runIndexAfterLine >= 0 && runIndex == (runArrayLength - 1)) {
-                                    stringLength -= (textRunLength - characterIndexInTextBlockRunAfterLine);
-                                }
+                    // Get the text as numbers...
+                    return textData.idx(offset).array(stringLength)
 
-                                // Get the text as numbers...
-                                return textData.idx(offset).array(stringLength)
-
-                                // and convert it to an HTML fragment.
-                                .then(function(characterArray) {
-                                    return characterArray.map(function(x) { return "&#" + x + ";"; }).join("");  
-                                })
-                            })
-                        }
-
-                        // Get the text.
-                        if (!textBlock.isNull() && runIndexAtStartOfLine >= 0) {
-                            // Get the TextBlockRuns...
-                            return textBlock.f("_aryRuns").array()
-
-                            // Get an array of HTML fragments...
-                            .then(function (runArray) {
-                                // Only consider runs within the scope of the line.
-                                runArray = runArray.slice(runIndexAtStartOfLine, runIndexAfterLine < 0 ? undefined : runIndexAfterLine + 1);
-
-                                // Map each run to a string.
-                                return Promise.map(
-                                    runArray,
-                                    function(run, runIndex) {
-                                        // Get the run type...
-                                        return run.f("_runType").as("Tree::TextBlockRunTypeEnum").desc()
-
-                                        // If it's a CharacterRun, get the text it represents.  Otherwise return a placeholder.
-                                        .then(function(runType) {
-                                            if (runType == "CharacterRun") {
-                                                // Get the text run...
-                                                return run.f("_u._pTextRun")
-
-                                                // and get the characters in the text run.
-                                                .then(function(textRun) { return convertTextRunToHTML(textRun, runIndex, runArray.length); })
-
-                                            } else {
-                                                // Return a placeholder for the other run type.
-                                                return "</em><strong>[" + runType + "]</strong><em>"
-                                            }
-                                        })
-                                    }
-                                );
-                            })
-
-                            // Join the fragments together.
-                            .then(function(htmlFragments) {
-                                return "<em>" + htmlFragments.join("") + "</em>";
-                            })
-                        } else {
-                            return "";
-                        }
-                    });
+                    // and convert it to an HTML fragment.
+                    .then(function(characterArray) {
+                        return characterArray.map(function(x) { return "&#" + x + ";"; }).join("");  
+                    })
+                })
             }
-        }
-    ];
+
+            // Get the text.
+            if (!textBlock.isNull() && runIndexAtStartOfLine >= 0) {
+                // Get the TextBlockRuns...
+                return textBlock.f("_aryRuns").array()
+
+                // Get an array of HTML fragments...
+                .then(function (runArray) {
+                    // Only consider runs within the scope of the line.
+                    runArray = runArray.slice(runIndexAtStartOfLine, runIndexAfterLine < 0 ? undefined : runIndexAfterLine + 1);
+
+                    // Map each run to a string.
+                    return Promise.map(
+                        runArray,
+                        function(run, runIndex) {
+                            // Get the run type...
+                            return run.f("_runType").as("Tree::TextBlockRunTypeEnum").desc()
+
+                            // If it's a CharacterRun, get the text it represents.  Otherwise return a placeholder.
+                            .then(function(runType) {
+                                if (runType == "CharacterRun") {
+                                    // Get the text run...
+                                    return run.f("_u._pTextRun")
+
+                                    // and get the characters in the text run.
+                                    .then(function(textRun) { return convertTextRunToHTML(textRun, runIndex, runArray.length); })
+
+                                } else {
+                                    // Return a placeholder for the other run type.
+                                    return "</em><strong>[" + runType + "]</strong><em>"
+                                }
+                            })
+                        }
+                    );
+                })
+
+                // Join the fragments together.
+                .then(function(htmlFragments) {
+                    return "<em>" + htmlFragments.join("") + "</em>";
+                })
+            } else {
+                return "";
+            }
+        });
+    }));
 
     BoxTree = {
         Name: "BoxTree",
         RootType: "LayoutBox",
         DefaultTypes: [
             { module: MSHTML.Module, type: "Layout::ContainerBox" },
-            { module: MSHTML.Module, type: "Layout::LayoutBox" }
+            { module: MSHTML.Module, type: "Layout::LayoutBox" },
+            { module: MSHTML.Module, type: "Layout::LineBox" }
         ]
     };
 });
