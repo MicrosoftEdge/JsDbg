@@ -626,6 +626,10 @@ var FieldSupport = (function() {
 
                 backingType.extendedFields.forEach(function (field) {
                     backingType.considerFieldWhenCollapsed(field, shownFields);
+                });
+
+                backingType.descriptions.forEach(function (field) {
+                    backingType.considerFieldWhenCollapsed(field, shownFields);
                 })
             });
         }
@@ -667,6 +671,11 @@ var FieldSupport = (function() {
             this.extendedFields.forEach(function (f) { hadEnabledFields = f.disableCompletely() || hadEnabledFields; });
             this.extendedFields = [];
         }
+
+        if (this.descriptions != null) {
+            this.descriptions.forEach(function (f) { hadEnabledFields = f.disableCompletely() || hadEnabledFields; });
+            this.descriptions = [];
+        }
         return hadEnabledFields;
     }
 
@@ -675,6 +684,7 @@ var FieldSupport = (function() {
         this.parentType = parentType;
         this.resultingTypeName = resultingTypeName;
         this.childType = null;
+        this.childTypePromise = null;
         this.isEnabled = false;
         this.getter = getter;
         this.renderer = renderer;
@@ -807,6 +817,13 @@ var FieldSupport = (function() {
     }
 
     FieldSupportField.prototype.getChildType = function() {
+        if (this.childTypePromise == null) {
+            this.childTypePromise = this._getChildType();
+        }
+        return this.childTypePromise;
+    }
+
+    FieldSupportField.prototype._getChildType = function() {
         var that = this;
         return Promise.as(this.childType)
         .then(function (childType) {
