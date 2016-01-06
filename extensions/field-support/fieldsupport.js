@@ -1235,6 +1235,14 @@ var FieldSupport = (function() {
     }
 
     FieldSupportController.prototype.renderFieldUI = function (field, renderingType, fieldContainer, nameCollisions) {
+        var currentType = field.parentType;
+        var areAllTypesExpanded = true;
+        while (areAllTypesExpanded && currentType != null) {
+            var isFiltered = currentType.aggregateType.parentField != null && currentType.aggregateType.parentField.parentType.aggregateType.isFiltered(currentType.aggregateType.parentField);
+            areAllTypesExpanded = currentType.isExpanded && !isFiltered;
+            currentType = currentType.aggregateType.parentField != null ? currentType.aggregateType.parentField.parentType : null;
+        }
+
         fieldContainer.innerHTML = "";
 
         if (renderingType.isFiltered(field)) {
@@ -1270,10 +1278,12 @@ var FieldSupport = (function() {
         
         var fieldType = field.getChildTypeName();
         if (fieldType != null) {
-            var fieldTypeContainer = document.createElement("span");
-            fieldTypeContainer.classList.add("field-type");
-            fieldTypeContainer.textContent = fieldType;
-            fieldContainer.appendChild(fieldTypeContainer);
+            if (areAllTypesExpanded) {
+                var fieldTypeContainer = document.createElement("span");
+                fieldTypeContainer.classList.add("field-type");
+                fieldTypeContainer.textContent = fieldType;
+                fieldContainer.appendChild(fieldTypeContainer);
+            }
             fieldContainer.title = fieldType + " " + field.name;
         } else {
             fieldContainer.title = field.name;
@@ -1297,20 +1307,7 @@ var FieldSupport = (function() {
 
         return field.getChildType()
         .then(function (childType) {
-            if (childType == null || renderingType.isFiltered(field)) {
-                return;
-            }
-
-            var currentType = field.parentType;
-            var areAllTypesExpanded = true;
-            while (areAllTypesExpanded && currentType != null) {
-                var isFiltered = currentType.parentField != null && currentType.parentField.parentType.aggregateType.isFiltered(currentType.parentField);
-                areAllTypesExpanded = currentType.isExpanded && !isFiltered;
-                currentType = currentType.parentField != null ? currentType.parentField.parentType.aggregateType : null;
-            }
-
-            if (!areAllTypesExpanded) {
-                // One of the parent types is collapsed, let the parent type render the fields.
+            if (childType == null || renderingType.isFiltered(field) || !areAllTypesExpanded) {
                 return;
             }
 
