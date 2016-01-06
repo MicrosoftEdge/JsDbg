@@ -940,7 +940,7 @@ var FieldSupport = (function() {
 
         if (editability == FieldEditability.NotEditable) {
             nameInput.disabled = true;
-            hasResultTypeCheckBox.disabled = true;
+            hasResultTypeCheckBox.style.display = "none";
             resultTypeInput.disabled = true;
         } else {
             if (editability == FieldEditability.EditableExceptHasType) {
