@@ -1245,7 +1245,7 @@ var FieldSupport = (function() {
 
         fieldContainer.innerHTML = "";
 
-        if (renderingType.isFiltered(field)) {
+        if (renderingType == field.parentType.aggregateType && renderingType.isFiltered(field)) {
             fieldContainer.classList.add("filtered");
         } else {
             fieldContainer.classList.remove("filtered");
