@@ -81,32 +81,26 @@ var MSHTML = undefined;
 
         function GetCTreeNodeFromTreeElement(element) {
             return new PromisedDbgObject(
-                element.f("placeholder")
-                .then(
-                    function() {
-                        // We're in legacy chk, offset by the size of a void*.
-                        return element.as("void*").idx(1).as("CTreeNode");
-                    }, function () {
-                        // TEXTNODEMERGE -- ElementNode is part of CTreeNode's virtual inheritance hierarchy
-                        return element.vcast().as("CTreeNode")
-                        .then(null, function () {
-                            // !TEXTNODEMERGE -- CTreeNode and ElementNode do not share a type hierarchy
-                            return new DbgObject(MSHTML.Module, "CTreeNode", 0).baseTypes()
-                            .then(function (baseTypes) {
-                                if (baseTypes.filter(function (b) { return b.typename == "CBase"; }).length > 0) {
-                                    // CBase is in CTreeNode's ancestry, unembed.
-                                    return element.as("CTreeNode").unembed("CTreeNode", "_fIsElementNode")
-                                    .then(null, function () {
-                                        return element.as("CTreePos").unembed("CTreeNode", "_tpBegin");
-                                    });
-                                } else {
-                                    // Not in the ancestry, just cast it.
-                                    return element.as("CTreeNode");
-                                }
+                element.unembed("CTreeNode", "_fIsElementNode")
+                .then(null, function () {
+                    return new DbgObject(MSHTML.Module, "CTreeNode", 0).baseTypes()
+                    .then(function (baseTypes) {
+                        if (baseTypes.filter(function(b) { return b.typeDescription() == "Tree::ElementNode"}).length > 0) {
+                            return element.as("CTreeNode");
+                        } else if (baseTypes.filter(function(b) { return b.typeDescription() == "CBase"; }).length > 0) {
+                            // CBase is in the ancestry.
+                            return element.as("CTreePos").unembed("CTreeNode", "_tpBegin");
+                        } else {
+                            return element.f("placeholder")
+                            .then(function () {
+                                // We're in legacy chk, offset by the size of a void*.
+                                return element.as("void*").idx(1).as("CTreeNode");
+                            }, function () {
+                                return element.as("CTreeNode");
                             })
-                        })
-                    }
-                )
+                        }
+                    })
+                })
             );
         }
 
