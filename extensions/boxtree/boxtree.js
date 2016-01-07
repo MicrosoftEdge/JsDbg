@@ -245,11 +245,11 @@ JsDbg.OnLoad(function() {
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LineBox", "Text", false, UserEditableFunctions.Create(function (lineBox) {
         return Promise
         .join([
-            this.f("textBlockRunIndexAtStartOfLine").val(), 
-            this.f("characterIndexInTextBlockRunAtStartOfLine").val(),
-            this.f("textBlockRunIndexAfterLine").val(),
-            this.f("characterIndexInTextBlockRunAfterLine").val(),
-            this.f("textBlockOrNode", "textBlock.m_pT")
+            lineBox.f("textBlockRunIndexAtStartOfLine").val(), 
+            lineBox.f("characterIndexInTextBlockRunAtStartOfLine").val(),
+            lineBox.f("textBlockRunIndexAfterLine").val(),
+            lineBox.f("characterIndexInTextBlockRunAfterLine").val(),
+            lineBox.f("textBlockOrNode", "textBlock.m_pT")
         ])
         .then(function(fields) {
             // Unpack the fields we just retrieved.
@@ -293,7 +293,7 @@ JsDbg.OnLoad(function() {
                     }
 
                     // Get the text as numbers...
-                    return textData.idx(offset).array(stringLength)
+                    return textData.idx(offset).vals(stringLength)
 
                     // and convert it to an HTML fragment.
                     .then(function(characterArray) {
