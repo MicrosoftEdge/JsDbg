@@ -43,7 +43,7 @@
     margin-right:5px;
 }
 
-.field-selection .collapsed .type-name::before {
+.field-selection .root-collapsed .type-name::before {
     content:">";
 }
 
