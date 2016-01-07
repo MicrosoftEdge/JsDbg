@@ -81,10 +81,10 @@ JsDbg.OnLoad(function() {
     LayoutBuilder = {
         Name: "LayoutBuilder",
         RootType: "LayoutBoxBuilder",
-        DefaultFieldType: {
-            module: MSHTML.Module,
-            type: "Layout::LayoutBoxBuilder"
-        },
-        BuiltInFields: []
+        DefaultTypes: [
+            { module: MSHTML.Module, type: "Layout::ContainerBoxBuilder" },
+            { module: MSHTML.Module, type: "Layout::LayoutBoxBuilder" },
+            { module: MSHTML.Module, type: "Layout::SvgBoxBuilder" }
+        ]
     };
 });
