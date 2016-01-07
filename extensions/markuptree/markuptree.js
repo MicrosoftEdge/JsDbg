@@ -21,7 +21,7 @@ JsDbg.OnLoad(function() {
             }
         });
     });
-    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextNode", function (textNode) {
+    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextNode", "MarkupTree", true, function (textNode) {
         return "<a href=\"/markuptree/#" + textNode.ptr() + "\">" + textNode.ptr() + "</a>";
     });
 
