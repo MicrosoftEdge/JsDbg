@@ -272,14 +272,6 @@ JsDbg.OnLoad(function() {
         })
     }
 
-    function renderDbgObject(dbgObject, element, fields) {
-        return dbgObject.desc().then(function (desc) {
-            var descriptionContainer = document.createElement("div");
-            element.appendChild(descriptionContainer);
-            descriptionContainer.innerHTML = fields + ":" + desc;
-        });
-    }
-
     TypeExplorerSingleType.prototype.addExtendedField = function (fieldName, typeName, getter) {
         var newField = new TypeExplorerField(fieldName, typeName, getter, this, "extendedFields");
         this.extendedFields.push(newField);
