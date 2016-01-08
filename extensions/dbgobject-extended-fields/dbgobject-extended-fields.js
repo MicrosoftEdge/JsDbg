@@ -4,8 +4,8 @@ JsDbg.OnLoad(function () {
     var registeredFields = new DbgObject.TypeExtension();
     DbgObject.ExtendedFields = registeredFields;
 
-    function ExtendedField(fieldName, typeName, getter) {
-        this.fieldName = fieldName;
+    function ExtendedField(name, typeName, getter) {
+        this.name = name;
         this.typeName = typeName;
         this.getter = getter;
     }
@@ -13,12 +13,12 @@ JsDbg.OnLoad(function () {
     ExtendedField.prototype.ensureCompatibleResult = function(result) {
         var that = this;
         if (!(result instanceof DbgObject)) {
-            throw new Error("The field \"" + this.fieldName + "\" did not return a DbgObject, but returned \"" + result + "\"");
+            throw new Error("The field \"" + this.name + "\" did not return a DbgObject, but returned \"" + result + "\"");
         } else {
             return result.isType(this.typeName)
             .then(function (isType) {
                 if (!isType) {
-                    throw new Error("The field \"" + that.fieldName + "\" was supposed to be type \"" + that.typeName + "\" but was unrelated type \"" + result.typeDescription() + "\".");
+                    throw new Error("The field \"" + that.name + "\" was supposed to be type \"" + that.typeName + "\" but was unrelated type \"" + result.typeDescription() + "\".");
                 } else {
                     return result;
                 }
@@ -44,7 +44,7 @@ JsDbg.OnLoad(function () {
             types.forEach(function (type) {
                 registeredFields.getAllExtensions(type.module, type.type).forEach(function (extension) {
                     if (typeof type.type == typeof "") {
-                        listFragments.push("<li>" + type.module + "!" + type.type + "." + extension.extension.fieldName + " (" + extension.extension.typeName + ")</li>");
+                        listFragments.push("<li>" + type.module + "!" + type.type + "." + extension.extension.name + " (" + extension.extension.typeName + ")</li>");
                     }
                 })
             });
@@ -141,7 +141,7 @@ JsDbg.OnLoad(function () {
             { name: "module", type: "string", description: "The module name of the type to get extended fields for." },
             { name: "typeName", type: "string", description: "The name of the type to get extended fields for." }
         ],
-        returns: "An array of extended fields with <code>fieldName</code>, <code>typeName</code>, and <code>getter</code> fields."
+        returns: "An array of extended fields with <code>name</code>, <code>typeName</code>, and <code>getter</code> fields."
     }
     DbgObject.GetExtendedFields = function(module, typeName) {
         return registeredFields.getAllExtensions(module, typeName).map(function (extension) {
@@ -224,7 +224,7 @@ JsDbg.OnLoad(function () {
             
             var extendedFields = DbgObject.GetExtendedFields("test", "TestType");
             assert.equals(extendedFields.length, 1);
-            assert.equals(extendedFields[0].fieldName, "field");
+            assert.equals(extendedFields[0].name, "field");
             assert.equals(extendedFields[0].typeName, "ResultType");
 
             DbgObject.RemoveExtendedField("test", "TestType", "field");

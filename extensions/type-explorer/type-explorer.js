@@ -201,7 +201,7 @@ JsDbg.OnLoad(function() {
 
         var that = this;
         DbgObject.GetExtendedFields(module, typename).forEach(function (extendedField) {
-            that.addExtendedField(extendedField.fieldName, extendedField.typeName, extendedField.getter);
+            that.addExtendedField(extendedField.name, extendedField.typeName, extendedField.getter);
         });
         DbgObject.OnExtendedFieldsChanged(module, typename, function (module, typename, fieldName, extendedField, operation, argument) {
             if (operation == "add") {
