@@ -69,7 +69,7 @@ var FieldSupport = (function() {
         this.checkedFields.deserialize();
 
         var that = this;
-        this.editableFunctionListener = function() {
+        this.activeFieldGetterListener = function() {
             that.queueUpdate();
         };
 
@@ -188,30 +188,25 @@ var FieldSupport = (function() {
         })
         typeContainer.appendChild(typeName);
 
-        var fieldsContainer = document.createElement("div");
-        fieldsContainer.classList.add("fields-container");
-        typeContainer.appendChild(fieldsContainer);
+        var typeExplorerContainer = document.createElement("div");
+        typeContainer.appendChild(typeExplorerContainer);
 
         typeContainer.style.display = "none";
-        return rootType.explorer.render(fieldsContainer)
+        return rootType.explorer.render(typeExplorerContainer)
         .then(function () {
             typeContainer.style.display = "";
         })
     }
 
-    FieldSupportController.prototype.onFieldChange = function(rootDbgObject, path, changeType, dbgObjectRenderer, editableFunction) {
+    FieldSupportController.prototype.onFieldChange = function(rootDbgObject, path, changeType, dbgObjectRenderer, fieldGetter) {
         if (changeType == "enabled") {
             DbgObjectTree.AddField(rootDbgObject.module, rootDbgObject.typeDescription(), dbgObjectRenderer);
             this.checkedFields.markEnabled(rootDbgObject.module, rootDbgObject.typeDescription(), path);
-            if (editableFunction) {
-                UserEditableFunctions.AddListener(editableFunction, this.editableFunctionListener);
-            }
+            UserEditableFunctions.AddListener(fieldGetter, this.activeFieldGetterListener);
             this.queueUpdate();
         } else if (changeType == "disabled") {
             DbgObjectTree.RemoveField(rootDbgObject.module, rootDbgObject.typeDescription(), dbgObjectRenderer);
-            if (editableFunction) {
-                UserEditableFunctions.RemoveListener(editableFunction, this.editableFunctionListener);
-            }
+            UserEditableFunctions.RemoveListener(fieldGetter, this.activeFieldGetterListener);
             this.checkedFields.markDisabled(rootDbgObject.module, rootDbgObject.typeDescription(), path);
             this.queueUpdate();
         }

@@ -5,135 +5,6 @@
 
 var TypeExplorer = undefined;
 JsDbg.OnLoad(function() {
-    var allPersistedFields = new PersistedFieldCollection();
-
-    function PersistedFieldCollection() {
-        this.persistedFields = [];
-        this.store = Catalog.Load("TypeExplorer2");
-        this.deserializationPromise = null;
-    }
-
-    PersistedFieldCollection.prototype.add = function(pf) {
-        this.persistedFields.push(pf);
-        return pf.serialize();
-    }
-
-    PersistedFieldCollection.prototype.remove = function(pf) {
-        this.persistedFields = this.persistedFields.filter(function (x) { return x != pf; });
-        var that = this;
-        return new Promise(function (oncomplete, onerror) {
-            that.store.delete(pf.uniqueId, oncomplete);
-        });
-    }
-
-    PersistedFieldCollection.prototype.deserialize = function() {
-        if (this.deserializationPromise == null) {
-            this.deserializationPromise = this._deserialize();
-        }
-        return this.deserializationPromise;
-    }
-
-    PersistedFieldCollection.prototype._deserialize = function() {
-        var that = this;
-        return new Promise(function (oncomplete, onerror) {
-            that.store.all(function (results) {
-                if (results) {
-                    for (var key in results) {
-                        var f = new PersistedField(that);
-                        f.deserialize(key, results[key]);
-                        that.persistedFields.push(f);
-                    }
-                }
-                oncomplete();
-            });
-        });
-    }
-
-    function PersistedField(collection, module, typeName, name, resultingTypeName, editableFunction) {
-        this.uniqueId = "UserField-" + (new Date() - 0) + "-" + Math.round(Math.random() * 1000000)
-        this.module = module;
-        this.typeName = typeName;
-        this.name = name;
-        this.resultingTypeName = resultingTypeName;
-        this.editableFunction = editableFunction;
-        this.collection = collection;
-        var that = this;
-        this.editableFunctionListener = function() {
-            that.serialize();
-        }
-
-        if (this.editableFunction) {
-            UserEditableFunctions.AddListener(this.editableFunction, this.editableFunctionListener);
-        }
-    }
-
-    PersistedField.prototype.delete = function() {
-        if (this.editableFunction) {
-            UserEditableFunctions.RemoveListener(this.editableFunction, this.editableFunctionListener);
-        }
-        return this.collection.remove(this);
-    }
-
-    PersistedField.prototype.serialize = function() {
-        var serialized = {
-            module: this.module,
-            typeName: this.typeName,
-            name: this.name,
-            resultingTypeName: this.resultingTypeName,
-            editableFunction: UserEditableFunctions.Serialize(this.editableFunction)
-        };
-        var uniqueId = this.uniqueId;
-        var store = this.collection.store;
-        return new Promise(function (onsuccess, onerror) {
-            store.set(uniqueId, serialized, onsuccess);
-        });
-    }
-
-    PersistedField.prototype.deserialize = function(id, serialized) {
-        this.uniqueId = id;
-        this.module = serialized.module;
-        this.typeName = serialized.typeName;
-        this.name = serialized.name;
-        this.resultingTypeName = serialized.resultingTypeName;
-        this.editableFunction = UserEditableFunctions.Deserialize(serialized.editableFunction);
-        this.editableFunction.persistedField = this;
-        var that = this;
-        UserEditableFunctions.AddListener(this.editableFunction, this.editableFunctionListener);
-
-        if (this.resultingTypeName != null) {
-            DbgObject.AddExtendedField(this.module, this.typeName, this.name, this.resultingTypeName, this.editableFunction);
-        } else {
-            DbgObject.AddTypeDescription(this.module, this.typeName, this.name, false, this.editableFunction);
-        }
-    }
-
-    PersistedField.prototype.update = function(module, typeName, name, resultingTypeName) {
-        var needsUpdate = false;
-        if (this.module != module) {
-            needsUpdate = true;
-            this.module = module;
-        }
-
-        if (this.typeName != typeName) {
-            needsUpdate = true;
-            this.typeName = typeName;
-        }
-
-        if (this.name != name) {
-            needsUpdate = true;
-            this.name = name;
-        }
-
-        if (this.resultingTypeName != resultingTypeName) {
-            needsUpdate = true;
-            this.resultingTypeName = resultingTypeName;
-        }
-
-        if (needsUpdate) {
-            this.serialize();
-        }
-    }
-
     function TypeExplorerAggregateType(module, typename, parentField, controller, rerender) {
         this.parentField = parentField;
         this.controller = controller;
@@ -423,7 +294,7 @@ JsDbg.OnLoad(function() {
         );
         this.extendedFields.push(newField);
 
-        if (getter.initialType == this.aggregateType) {
+        if (UserDbgObjectExtensions.GetCreationContext(getter) == this.aggregateType) {
             newField.setIsEnabled(true);
         }
     }
@@ -491,15 +362,14 @@ JsDbg.OnLoad(function() {
         .then(function (fields) {
             return fields.map(function (field) {
                 var dereferencedType = field.value.typeDescription().replace(/\**$/, "");
+                var getter = function(dbgObject) { return dbgObject.f(field.name); }
                 return new TypeExplorerField(
                     field.name, 
                     dereferencedType,
-                    function getter(dbgObject) {
-                        return dbgObject.f(field.name);
-                    },
+                    getter,
                     renderDbgObject,
                     that,
-                    null,
+                    getter,
                     "fields"
                 );
             })
@@ -579,7 +449,7 @@ JsDbg.OnLoad(function() {
         return hadEnabledFields;
     }
 
-    function TypeExplorerField(name, resultingTypeName, getter, renderer, parentType, editableFunction, sourceInParentType) {
+    function TypeExplorerField(name, resultingTypeName, getter, renderer, parentType, fieldGetter, sourceInParentType) {
         this.name = name;
         this.parentType = parentType;
         this.resultingTypeName = resultingTypeName;
@@ -588,7 +458,7 @@ JsDbg.OnLoad(function() {
         this.isEnabled = false;
         this.getter = getter;
         this.renderer = renderer;
-        this.editableFunction = editableFunction;
+        this.fieldGetter = fieldGetter;
         this.fieldRenderer = this.renderField.bind(this);
         this.sourceInParentType = sourceInParentType;
     }
@@ -629,45 +499,22 @@ JsDbg.OnLoad(function() {
     }
 
     TypeExplorerField.prototype.isEditable = function() {
-        return this.editableFunction && UserEditableFunctions.IsEditable(this.editableFunction);
+        return UserDbgObjectExtensions.IsEditableExtension(this.fieldGetter);
     }
 
     TypeExplorerField.prototype.canBeDeleted = function() {
-        return this.editableFunction && this.editableFunction.persistedField;
+        return UserDbgObjectExtensions.IsUserExtension(this.fieldGetter);
     }
 
     TypeExplorerField.prototype.beginEditing = function() {
         if (this.isEditable()) {
-            var editor = new TypeExplorerFieldEditor(this);
-            var that = this;
-            editor.beginEditing(
-                this.editableFunction.persistedField ? FieldEditability.EditableExceptHasType : FieldEditability.NotEditable, 
-                this.parentType.typename, 
-                this.name, 
-                this.resultingTypeName,
-                this.editableFunction,
-                function (typename, name, resultingTypeName, editableFunction) {
-                    if (that.editableFunction.persistedField) {
-                        if (that.resultingTypeName != null) {
-                            DbgObject.UpdateExtendedField(that.parentType.module, that.parentType.typename, that.name, name, resultingTypeName);
-                        } else {
-                            DbgObject.RenameTypeDescription(that.parentType.module, that.parentType.typename, that.name, name);
-                        }
-                        that.editableFunction.persistedField.update(that.parentType.module, that.parentType.typename, name, resultingTypeName);
-                    }
-                }
-            );
+            UserDbgObjectExtensions.Edit(this.fieldGetter);
         }
     }
 
     TypeExplorerField.prototype.delete = function() {
         if (this.canBeDeleted()) {
-            if (this.resultingTypeName) {
-                DbgObject.RemoveExtendedField(this.parentType.module, this.parentType.typename, this.name);
-            } else {
-                DbgObject.RemoveTypeDescription(this.parentType.module, this.parentType.typename, this.name);
-            }
-            this.editableFunction.persistedField.delete();
+            UserDbgObjectExtensions.Delete(this.fieldGetter);
         }
     }
 
@@ -692,7 +539,7 @@ JsDbg.OnLoad(function() {
                 rootType = rootType.parentField.parentType.aggregateType;
             }
 
-            rootType.controller._notifyFieldChange(this, isEnabled ? "enabled" : "disabled", this.fieldRenderer, this.editableFunction);
+            rootType.controller._notifyFieldChange(this, isEnabled ? "enabled" : "disabled", this.fieldRenderer, this.fieldGetter);
         }
     }
 
@@ -731,136 +578,30 @@ JsDbg.OnLoad(function() {
         })
     }
 
-    function TypeExplorerFieldEditor() {
-    }
-
-    var FieldEditability = {
-        FullyEditable: 0,
-        NotEditable: 1,
-        EditableExceptHasType: 2
-    };
-
-    TypeExplorerFieldEditor.prototype.beginEditing = function(editability, typename, fieldName, resultingTypeName, editableFunction, onSave) {
-        // Initialize the modal editor.
-        var backdrop = document.createElement("div");
-        backdrop.classList.add("field-editor");
-
-        document.body.appendChild(backdrop);
-
-        var editor = document.createElement("div");
-        editor.classList.add("modal-editor");
-        backdrop.appendChild(editor);
-
-        editor.innerHTML = "<table>\
-        <tr><td>Type:</td><td class=\"type\"></td></tr>\
-        <tr><td>Name:</td><td><input class=\"name\" type=\"text\"></td></tr>\
-        <tr><td>Result Type:</td><td><input class=\"has-result-type\" type=checkbox><input class=\"result-type\" type=\"text\"></td></tr>\
-        <tr><td>Documentation:</td><td><div class=\"documentation\"></div></td></tr>\
-        </table>\
-        <div class=\"description\"></div>\
-        <div class=\"code-editor\"></div>\
-        <div class=\"buttons\"><button class=\"small-button save\">Save</button><button class=\"small-button cancel\">Cancel</button></div>\
-        ";
-
-        var functionEditContext = UserEditableFunctions.Edit(editableFunction, editor.querySelector(".code-editor"));
-
-        var documentation = editor.querySelector(".documentation");
-        Help.List()
-        .map(Help.Link)
-        .forEach(function(e) {
-            // Tabbing should skip over the documentation links.
-            e.setAttribute("tabindex", -1);
-            documentation.appendChild(e);
-            documentation.appendChild(document.createTextNode(" "));
-        })
-
-        editor.querySelector(".type").textContent = typename;
-        var nameInput = editor.querySelector(".name");
-        nameInput.value = fieldName;
-        var hasResultTypeCheckBox = editor.querySelector(".has-result-type");
-        hasResultTypeCheckBox.checked = resultingTypeName != null;
-        var resultTypeInput = editor.querySelector(".result-type");
-        resultTypeInput.value = resultingTypeName;
-
-        var descriptionText = editor.querySelector(".description");
-        var synchronizeHasResultType = function() {
-            resultTypeInput.disabled = !hasResultTypeCheckBox.checked;
-            if (hasResultTypeCheckBox.checked) {
-                descriptionText.textContent = "Return a DbgObject (or a promise to a DbgObject) with type \"" + resultTypeInput.value + "\".";
-            } else {
-                descriptionText.textContent = "Return a DbgObject, an HTML string, an HTML node, modify \"element\", or return a promise.";
-            }
-
-            if (editability == FieldEditability.FullyEditable) {
-                if (hasResultTypeCheckBox.checked) {
-                    functionEditContext.updateArguments(["dbgObject"]);
-                } else {
-                    functionEditContext.updateArguments(["dbgObject", "element"]);
-                }
-            }
-        }
-        hasResultTypeCheckBox.addEventListener("change", synchronizeHasResultType);
-        resultTypeInput.addEventListener("input", synchronizeHasResultType);
-        synchronizeHasResultType();
-
-        if (editability == FieldEditability.NotEditable) {
-            nameInput.disabled = true;
-            hasResultTypeCheckBox.style.display = "none";
-            resultTypeInput.disabled = true;
-        } else {
-            if (editability == FieldEditability.EditableExceptHasType) {
-                if (resultingTypeName == null) {
-                    hasResultTypeCheckBox.parentNode.parentNode.style.display = "none";
-                } else {
-                    hasResultTypeCheckBox.style.display = "none";
-                }
-            }
-
-            if (fieldName == "") {
-                nameInput.focus();
-            } else {
-                editor.querySelector("textarea").focus();
-            }
-        }
-
-        var handleEscape = function (e) {
-            if (e.keyCode == 27) {
-                dismiss();
-            }
-        }
-
-        var dismiss = function() {
-            document.body.removeChild(backdrop);
-            window.removeEventListener("keydown", handleEscape);
-        }
-
-        window.addEventListener("keydown", handleEscape);
-        editor.querySelector(".cancel").addEventListener("click", dismiss);
-
-        editor.querySelector(".save").addEventListener("click", function() {
-            try {
-                onSave(typename, nameInput.value, hasResultTypeCheckBox.checked ? resultTypeInput.value : null, editableFunction);
-                functionEditContext.commit();
-                dismiss();
-            } catch (ex) {
-                alert(ex);
-            }
-        })
-    }
-
     function TypeExplorerController(dbgObject, options) {
         this.container = null;
         this.dbgObject = dbgObject;
         this.options = options;
         var that = this;
-        this.rootType = new TypeExplorerAggregateType(dbgObject.module, dbgObject.typeDescription(), null, this, function() { return that._renderType(that.rootType, that.container) });
-        this.deserializationPromise = allPersistedFields.deserialize();
+        this.rootType = new TypeExplorerAggregateType(
+            dbgObject.module, 
+            dbgObject.typeDescription(), 
+            null, 
+            this, 
+            function() { return that._renderType(that.rootType, that.container) }
+        );
     }
 
-    TypeExplorerController.prototype.render = function(container) {
-        this.container = container;
+    TypeExplorerController.prototype.render = function(explorerContainer) {
+        explorerContainer.classList.add("type-explorer");
+
+        var typeContainer = document.createElement("div");
+        typeContainer.classList.add("fields-container");
+        explorerContainer.appendChild(typeContainer);
+
+        this.container = typeContainer;
         var that = this;
-        return this.deserializationPromise
+        return UserDbgObjectExtensions.EnsureLoaded()
         .then(function () {
             that.container.classList.add("collapsed");
             return that._renderType(that.rootType, that.container);
@@ -869,7 +610,7 @@ JsDbg.OnLoad(function() {
 
     TypeExplorerController.prototype.enableField = function(path) {
         var that = this;
-        return this.deserializationPromise
+        return UserDbgObjectExtensions.EnsureLoaded()
         .then(function() {
             return that._enableRemainingPath(that.rootType, path, 0);
         });
@@ -954,6 +695,10 @@ JsDbg.OnLoad(function() {
     }
 
     TypeExplorerController.prototype._renderType = function(type, typeContainer) {
+        if (typeContainer == null) {
+            return Promise.as(null);
+        }
+
         typeContainer.innerHTML = "";
         var that = this;
         return type.prepareForRendering()
@@ -995,27 +740,7 @@ JsDbg.OnLoad(function() {
                 newExtensionButton.textContent = "Extend";
                 typeContainer.appendChild(newExtensionButton);
                 newExtensionButton.addEventListener("click", function() {
-                    var editor = new TypeExplorerFieldEditor();
-                    var newFunction = UserEditableFunctions.Create(function () { });
-                    newFunction.initialType = type;
-                    editor.beginEditing(
-                        FieldEditability.FullyEditable, 
-                        type.typename(), 
-                        "", 
-                        null, 
-                        newFunction,
-                        function onSave(typename, name, resultingTypeName, editableFunction) {
-                            editableFunction.persistedField = new PersistedField(allPersistedFields, type.module(), typename, name, resultingTypeName, editableFunction);
-
-                            if (resultingTypeName != null) {
-                                DbgObject.AddExtendedField(type.module(), typename, name, resultingTypeName, editableFunction);
-                            } else {
-                                DbgObject.AddTypeDescription(type.module(), typename, name, /*isPrimary*/false, editableFunction);
-                            }
-
-                            allPersistedFields.add(editableFunction.persistedField);
-                        }
-                    );
+                    UserDbgObjectExtensions.Create(type.module(), type.typename(), type);
                 });
             }
 

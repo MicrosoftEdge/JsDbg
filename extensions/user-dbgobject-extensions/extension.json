@@ -1,0 +1,7 @@
+{
+    "name": "user-dbgobject-extensions",
+    "headless": true,
+    "dependencies": ["dbgobject", "promise", "catalog", "user-editable-functions", "help"],
+    "includes": ["user-dbgobject-extensions.js", "user-dbgobject-extensions.css"],
+    "augments": ["dbgobject"]
+}

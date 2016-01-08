@@ -1,0 +1,72 @@
+.type-explorer .fields-container {
+    font-size:10pt;
+    margin-left:1em;
+}
+
+.type-explorer label:hover {
+    background:#eee;
+}
+
+.type-explorer label {
+    display:flex;
+    cursor:default;
+}
+
+.type-explorer .show-all-types .base-type {
+    display:block;
+}
+
+.type-explorer label input {
+    height:12px;
+    width:12px;
+    margin:0;
+    align-self:center;
+    flex-shrink: 0;
+    box-sizing:border-box;
+}
+
+.type-explorer .field-type:hover {
+    text-decoration:underline;
+}
+
+.type-explorer .field-type, .type-explorer .field-name {
+    box-sizing:border-box;
+    white-space: nowrap;
+    margin:0 3px;
+    overflow:hidden;
+    text-overflow: ellipsis;
+}
+
+.type-explorer .field-type {
+    min-width:0px;
+    flex-shrink:100000;
+}
+
+.type-explorer .field-name {
+    flex-shrink:0.001;
+}
+
+.type-explorer hr {
+    border-width:1px;
+    border-color:#ccc;
+    border-style:solid none none none;
+    margin:5px 0;
+}
+
+.type-explorer .filtered {
+    visibility: hidden;
+    height:0px;
+}
+
+.type-explorer .collapsed .field-type {
+    display:none;
+}
+
+.type-explorer .collapsed .field-name {
+    padding-right:3px;
+}
+
+.type-explorer .field-type {
+    color:#999;
+    font-style:italic;
+}

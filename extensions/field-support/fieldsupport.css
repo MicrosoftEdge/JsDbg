@@ -51,81 +51,8 @@
     cursor:pointer;
 }
 
-.field-selection .fields-container {
-    font-size:10pt;
-    margin-left:1em;
-}
-
-.field-selection .fields-container label:hover {
-    background:#eee;
-}
-
-.field-selection .fields-container label {
-    display:flex;
-    cursor:default;
-}
-
 .field-selection .base-type {
     display:none;
-}
-
-.field-selection .show-all-types .base-type {
-    display:block;
-}
-
-.field-selection .fields-container label input {
-    height:12px;
-    width:12px;
-    margin:0;
-    align-self:center;
-    flex-shrink: 0;
-    box-sizing:border-box;
-}
-
-.field-selection .fields-container .field-type:hover {
-    text-decoration:underline;
-}
-
-.field-selection .fields-container .field-type, .field-selection .fields-container .field-name {
-    box-sizing:border-box;
-    white-space: nowrap;
-    margin:0 3px;
-    overflow:hidden;
-    text-overflow: ellipsis;
-}
-
-.field-selection .fields-container .field-type {
-    min-width:0px;
-    flex-shrink:100000;
-}
-
-.field-selection .fields-container .field-name {
-    flex-shrink:0.001;
-}
-
-.field-selection .fields-container hr {
-    border-width:1px;
-    border-color:#ccc;
-    border-style:solid none none none;
-    margin:5px 0;
-}
-
-.field-selection .fields-container .filtered {
-    visibility: hidden;
-    height:0px;
-}
-
-.field-selection .collapsed .field-type {
-    display:none;
-}
-
-.field-selection .collapsed .field-name {
-    padding-right:3px;
-}
-
-.field-selection .field-type {
-    color:#999;
-    font-style:italic;
 }
 
 input.small-input {
@@ -164,42 +91,4 @@ button.small-button.light {
 
 button.small-button.light:hover {
     color:#9af;
-}
-
-.field-editor {
-    background:rgba(0, 0, 0, 0.8);
-    height:100%;
-    left:0px;
-    position:fixed;
-    top:0px;
-    width:100%;
-    z-index:100;
-    overflow: auto;
-    text-align: center;
-    font-size:10pt;
-}
-
-.field-editor .modal-editor {
-    background:white;
-    display:inline-block;
-    padding:20px 40px;
-    margin:20px;
-    text-align:left;
-}
-
-.field-editor .modal-editor td:first-child {
-    text-align:right;
-}
-
-.field-editor .modal-editor .buttons {
-    text-align: right;
-}
-
-.field-editor .modal-editor .code-editor {
-    margin-top:0.5em;
-}
-
-.field-editor .modal-editor .description {
-    font-size:8pt;
-    margin-top:1em;
 }
