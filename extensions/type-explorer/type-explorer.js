@@ -89,12 +89,10 @@ JsDbg.OnLoad(function() {
     }
 
     TypeExplorerAggregateType.prototype.disableCompletely = function() {
-        var hadEnabledFields = false;
         this.backingTypes.forEach(function (backingType) {
-            hadEnabledFields = backingType.disableCompletely() || hadEnabledFields;
+            backingType.disableCompletely();
         })
         this.backingTypes = [];
-        return hadEnabledFields;
     }
 
     TypeExplorerAggregateType.prototype.getFieldsToRender = function() {
@@ -280,71 +278,58 @@ JsDbg.OnLoad(function() {
         });
     }
 
+    TypeExplorerSingleType.prototype.forEachField = function (f) {
+        this.allFieldArrays.forEach(function (a) { a.forEach(f); });
+    }
+
     TypeExplorerSingleType.prototype.considerFieldWhenCollapsed = function (field, shownFields) {
         if (field.isEnabled) {
             shownFields.push(field);
         }
-        if (field.childType != null && field.childType != false) {
+        if (field.childType != null) {
             field.childType.backingTypes.forEach(function (backingType) {
-                if (backingType.fields != null) {
-                    backingType.fields.forEach(function (field) {
-                        backingType.considerFieldWhenCollapsed(field, shownFields);
-                    });
-                }
-
-                backingType.extendedFields.forEach(function (field) {
+                backingType.forEachField(function (field) {
                     backingType.considerFieldWhenCollapsed(field, shownFields);
                 });
-
-                backingType.descriptions.forEach(function (field) {
-                    backingType.considerFieldWhenCollapsed(field, shownFields);
-                })
             });
         }
+    }
+
+    TypeExplorerSingleType.prototype.selectFieldsToRender = function (fieldsArray) {
+        var that = this;
+        return Promise.as(fieldsArray).then(function (allFields) {
+            if (that.isExpanded) {
+                return allFields;
+            } else {
+                var shownFields = [];
+                allFields.forEach(function (f) {
+                    that.considerFieldWhenCollapsed(f, shownFields);
+                });
+                return shownFields;
+            }
+        })
     }
 
     TypeExplorerSingleType.prototype.getFieldsToRender = function () {
-        return this.getFields().then(this.adjustFieldsForCollapsing.bind(this));
+        return this.selectFieldsToRender(this.getFields());
     }
 
     TypeExplorerSingleType.prototype.getExtendedFieldsToRender = function() {
-        return Promise.as(this.extendedFields).then(this.adjustFieldsForCollapsing.bind(this));
+        return this.selectFieldsToRender(this.extendedFields);
     }
 
     TypeExplorerSingleType.prototype.getDescriptionsToRender = function() {
-        return Promise.as(this.descriptions).then(this.adjustFieldsForCollapsing.bind(this));
-    }
-
-    TypeExplorerSingleType.prototype.adjustFieldsForCollapsing = function(allFields) {
-        if (this.isExpanded) {
-            return allFields;
-        } else {
-            var shownFields = [];
-            var that = this;
-            allFields.forEach(function (f) {
-                that.considerFieldWhenCollapsed(f, shownFields);
-            });
-            return shownFields;
-        }
+        return this.selectFieldsToRender(this.descriptions);
     }
 
     TypeExplorerSingleType.prototype.disableCompletely = function() {
-        var hadEnabledFields = false;
-        if (this.fields != null) {
-            this.fields.forEach(function (f) { hadEnabledFields = f.disableCompletely() || hadEnabledFields; });
-            this.fields = [];
-        }
-
-        if (this.extendedFields != null) {
-            this.extendedFields.forEach(function (f) { hadEnabledFields = f.disableCompletely() || hadEnabledFields; });
-            this.extendedFields = [];
-        }
-
-        if (this.descriptions != null) {
-            this.descriptions.forEach(function (f) { hadEnabledFields = f.disableCompletely() || hadEnabledFields; });
-            this.descriptions = [];
-        }
-        return hadEnabledFields;
+        // Disable all the fields and trash the arrays.
+        this.forEachField(function (f) {
+            f.disableCompletely();
+        });
+        this.allFieldArrays.forEach(function (a) {
+            a.length = 0;
+        });
     }
 
     function TypeExplorerField(name, resultingTypeName, getter, parentType, sourceInParentType) {
@@ -417,12 +402,10 @@ JsDbg.OnLoad(function() {
     }
 
     TypeExplorerField.prototype.disableCompletely = function() {
-        var hadEnabledFields = this.isEnabled;
         this.setIsEnabled(false);
-        if (this.childType instanceof TypeExplorerAggregateType) {
-            hadEnabledFields = this.childType.disableCompletely() || hadEnabledFields;
+        if (this.childType != null) {
+            this.childType.disableCompletely();
         }
-        return hadEnabledFields
     }
 
     TypeExplorerField.prototype.setIsEnabled = function(isEnabled) {
