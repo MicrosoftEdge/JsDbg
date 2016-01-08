@@ -290,14 +290,14 @@ JsDbg.OnLoad(function() {
     }
 
     EditableFunction.prototype.serialize = function() {
-        return JSON.stringify({
+        return {
             args: this.argumentNames,
             body: this.functionBody
-        });
+        };
     }
 
     EditableFunction.deserialize = function(str) {
-        var obj = JSON.parse(str);
+        var obj = typeof str == typeof "" ? JSON.parse(str) : str;
         var functionArguments = obj.args.concat([obj.body]);
         return new EditableFunction(Function.apply(null, functionArguments)).caller;
     }
@@ -394,10 +394,10 @@ JsDbg.OnLoad(function() {
             var f = UserEditableFunctions.Create(function (a, b) { return a + b; });
             assert.equals(3, f(1, 2), "Initial function definition.");
 
-            var serialized = UserEditableFunctions.Serialize(f);
+            var serialized = JSON.stringify(UserEditableFunctions.Serialize(f));
             assert.equals(typeof "", typeof serialized, "Serialized type should be a string.");
 
-            var g = UserEditableFunctions.Deserialize(serialized);
+            var g = UserEditableFunctions.Deserialize(JSON.parse(serialized));
             assert.equals(3, g(1, 2), "Deserialized function definition.");
             assert(UserEditableFunctions.IsEditable(g), "Deserialized function should be editable.");
         })
