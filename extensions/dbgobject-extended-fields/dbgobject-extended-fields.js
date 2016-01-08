@@ -2,6 +2,7 @@
 
 JsDbg.OnLoad(function () {
     var registeredFields = new DbgObject.TypeExtension();
+    DbgObject.ExtendedFields = registeredFields;
 
     function ExtendedField(fieldName, typeName, getter) {
         this.fieldName = fieldName;
@@ -73,6 +74,10 @@ JsDbg.OnLoad(function () {
         var that = this;
         var result = registeredFields.getExtensionIncludingBaseTypes(this, fieldName)
         .then(function (result) {
+            if (result == null) {
+                throw new Error("There was no extended field \"" + fieldName + "\" on " + that.typeDescription())
+            }
+
             return Promise.as(result.extension.getter(result.dbgObject))
             .then(result.extension.ensureCompatibleResult.bind(result.extension));
         });

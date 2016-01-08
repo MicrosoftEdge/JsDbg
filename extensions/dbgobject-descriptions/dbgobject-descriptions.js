@@ -2,6 +2,7 @@
 
 JsDbg.OnLoad(function () {
     var registeredDescriptions = new DbgObject.TypeExtension();
+    DbgObject.TypeDescriptions = registeredDescriptions;
 
     function TypeDescription(name, isPrimary, getter) {
         this.name = name;

@@ -42,13 +42,13 @@ JsDbg.OnLoad(function() {
         .then(function (count) {
             if (!that._isArray && count === undefined) {
                 return registeredArrayTypes.getExtensionIncludingBaseTypes(that, "")
-                .then(
-                    function (result) {
+                .then(function (result) {
+                    if (result != null) {
                         return result.extension(result.dbgObject);
-                    }, function () {
+                    } else {
                         return undefined;
                     }
-                );
+                });
             } else {
                 return count;
             }

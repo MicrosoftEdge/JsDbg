@@ -17,7 +17,7 @@ JsDbg.OnLoad(function() {
 
     DbgObjectTypeExtension.prototype.addListener = function (module, type, listener) {
         this.listeners.push({
-            module: DbgObject.NormalizeModule(module),
+            module: module == null ? null : DbgObject.NormalizeModule(module),
             type: type,
             listener: listener
         });
@@ -27,32 +27,33 @@ JsDbg.OnLoad(function() {
         var that = this;
         return Promise.as(null)
         .then(function () {
-            try {
-                return that.getExtension(dbgObject, name);
-            } catch (ex) {
-                return dbgObject
-                .baseTypes()
-                .then(function (baseTypes) {
-                    for (var i = 0; i < baseTypes.length; ++i) {
-                        try {
-                            dbgObject = baseTypes[i];
-                            return that.getExtension(dbgObject, name);
-                        } catch (ex) {
-                            continue;
-                        }
-                    }
-
-                    throw new Error();
-                })
-                .then(null, function() {
-                    throw new Error("There was no \"" + name + "\" registered on " + type + " or its base types.");
-                });
+            var extension = that.getExtension(dbgObject, name);
+            if (extension != null) {
+                return extension;
             }
+
+            return dbgObject
+            .baseTypes()
+            .then(function (baseTypes) {
+                for (var i = 0; i < baseTypes.length; ++i) {
+                    dbgObject = baseTypes[i];
+                    var baseExtension = that.getExtension(dbgObject, name);
+                    if (baseExtension != null) {
+                        return baseExtension;
+                    }
+                }
+
+                return null;
+            })
         })
         .then(function (extension) {
-            return {
-                dbgObject: dbgObject,
-                extension: extension
+            if (extension == null) {
+                return null;
+            } else {
+                return {
+                    dbgObject: dbgObject,
+                    extension: extension
+                }
             }
         });
     }
@@ -73,7 +74,7 @@ JsDbg.OnLoad(function() {
             }
         }
 
-        throw new Error("There was no \"" + name + "\" registered on " + dbgObject.typename);
+        return null;
     }
 
     DbgObjectTypeExtension.prototype.addExtension = function (module, type, name, extension) {
@@ -173,16 +174,18 @@ JsDbg.OnLoad(function() {
 
     DbgObjectTypeExtension.prototype.notifyListeners = function (module, type, name, extension, operation, context) {
         this.listeners.forEach(function (listener) {
-            if (listener.module == module) {
+            if (listener.module == null || listener.module == module) {
                 var typeMatches = false;
-                if (typeof type == typeof "") {
+                if (listener.type == null) {
+                    typeMatches = true;
+                } else if (typeof type == typeof "") {
                     typeMatches = (type == listener.type);
                 } else {
                     typeMatches = type(listener.type);
                 }
 
                 if (typeMatches) {
-                    listener.listener(module, listener.type, name, extension, operation, context);
+                    listener.listener(module, listener.type == null ? type : listener.type, name, extension, operation, context);
                 }
             }
         });
