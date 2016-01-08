@@ -818,6 +818,25 @@ JsDbg.OnLoad(function() {
         })
     }
 
+    DbgObject.prototype._help_isType = {
+        description: "Indicates if a DbgObject is, or derives from, a given type.",
+        returns: "A promise to a bool",
+        arguments: [
+            {name: "type", type: "string", description: "The type to compare."}
+        ]
+    }
+    DbgObject.prototype.isType = function(type) {
+        if (this.typename == type) {
+            return Promise.as(true);
+        } else {
+            return this.baseTypes()
+            .then(function (baseTypes) {
+                var matchingBaseTypes = baseTypes.filter(function (baseType) { return baseType.typename == type; });
+                return (matchingBaseTypes.length > 0);
+            })
+        }
+    }
+
     DbgObject.prototype._help_baseTypes = {
         description: "Gets the base types of an object.",
         returns: "A promise to an array of DbgObjects representing each of the base types."

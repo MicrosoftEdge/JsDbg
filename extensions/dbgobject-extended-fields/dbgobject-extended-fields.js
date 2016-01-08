@@ -14,18 +14,14 @@ JsDbg.OnLoad(function () {
         var that = this;
         if (!(result instanceof DbgObject)) {
             throw new Error("The field \"" + this.fieldName + "\" did not return a DbgObject, but returned \"" + result + "\"");
-        } else if (result.typeDescription() == this.typeName) {
-            return result;
         } else {
-            return result.baseTypes()
-            .then(function (baseTypes) {
-                for (var i = 0; i < baseTypes.length; ++i) {
-                    if (baseTypes[i].typeDescription() == that.typeName) {
-                        return result;
-                    }
+            return result.isType(this.typeName)
+            .then(function (isType) {
+                if (!isType) {
+                    throw new Error("The field \"" + that.fieldName + "\" was supposed to be type \"" + that.typeName + "\" but was unrelated type \"" + result.typeDescription() + "\".");
+                } else {
+                    return result;
                 }
-
-                throw new Error("The field \"" + that.fieldName + "\" was supposed to be type \"" + that.typeName + "\" but was unrelated type \"" + result.typeDescription() + "\".");
             });
         }
     }
