@@ -57,14 +57,20 @@ JsDbg.OnLoad(function() {
         this.resultingTypeName = resultingTypeName;
         this.editableFunction = editableFunction;
         this.collection = collection;
+        var that = this;
+        this.editableFunctionListener = function() {
+            that.serialize();
+        }
 
         if (this.editableFunction) {
-            var that = this;
-            UserEditableFunctions.OnChange(this.editableFunction, function() { that.serialize(); });
+            UserEditableFunctions.AddListener(this.editableFunction, this.editableFunctionListener);
         }
     }
 
     PersistedField.prototype.delete = function() {
+        if (this.editableFunction) {
+            UserEditableFunctions.RemoveListener(this.editableFunction, this.editableFunctionListener);
+        }
         return this.collection.remove(this);
     }
 
@@ -92,7 +98,7 @@ JsDbg.OnLoad(function() {
         this.editableFunction = UserEditableFunctions.Deserialize(serialized.editableFunction);
         this.editableFunction.persistedField = this;
         var that = this;
-        UserEditableFunctions.OnChange(this.editableFunction, function() { that.serialize(); });
+        UserEditableFunctions.AddListener(this.editableFunction, this.editableFunction);
 
         if (this.resultingTypeName != null) {
             DbgObject.AddExtendedField(this.module, this.typeName, this.name, this.resultingTypeName, this.editableFunction);
@@ -585,16 +591,6 @@ JsDbg.OnLoad(function() {
         this.editableFunction = editableFunction;
         this.fieldRenderer = this.renderField.bind(this);
         this.sourceInParentType = sourceInParentType;
-
-        if (editableFunction) {
-            var that = this;
-            UserEditableFunctions.OnChange(editableFunction, function () {
-                if (that.isEnabled) {
-                    that.setIsEnabled(false);
-                    that.setIsEnabled(true);
-                }
-            });
-        }
     }
 
     TypeExplorerField.prototype.renderField = function(dbgObject, element) {
@@ -696,7 +692,7 @@ JsDbg.OnLoad(function() {
                 rootType = rootType.parentField.parentType.aggregateType;
             }
 
-            rootType.controller._notifyFieldChange(this, isEnabled ? "enabled" : "disabled", this.fieldRenderer);
+            rootType.controller._notifyFieldChange(this, isEnabled ? "enabled" : "disabled", this.fieldRenderer, this.editableFunction);
         }
     }
 
@@ -951,9 +947,9 @@ JsDbg.OnLoad(function() {
         }
     }
 
-    TypeExplorerController.prototype._notifyFieldChange = function(field, changeType, dbgObject, dbgObjectRenderer) {
+    TypeExplorerController.prototype._notifyFieldChange = function(field, changeType, dbgObject, dbgObjectRenderer, editableFunction) {
         if (this.options.onFieldChange) {
-            this.options.onFieldChange(this._computePath(field), changeType, dbgObject, dbgObjectRenderer);
+            this.options.onFieldChange(this._computePath(field), changeType, dbgObject, dbgObjectRenderer, editableFunction);
         }
     }
 

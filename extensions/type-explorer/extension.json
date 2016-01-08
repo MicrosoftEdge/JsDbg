@@ -2,7 +2,7 @@
     "name": "type-explorer",
     "description": "Provides UI for exploring the fields on a type.",
     "headless": true,
-    "dependencies": ["dbgobject", "user-editable-functions"],
+    "dependencies": ["dbgobject", "catalog", "user-editable-functions", "help"],
     "includes": ["type-explorer.js", "type-explorer.css"],
     "augments": ["tests"]
 }

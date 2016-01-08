@@ -68,6 +68,11 @@ var FieldSupport = (function() {
         this.checkedFields = new CheckedFields();
         this.checkedFields.deserialize();
 
+        var that = this;
+        this.editableFunctionListener = function() {
+            that.queueUpdate();
+        };
+
         var isHidden = window.sessionStorage.getItem("FieldSupport-HideTypes") == "true";
         var showHide = document.createElement("button");
         showHide.classList.add("small-button");
@@ -100,7 +105,6 @@ var FieldSupport = (function() {
         showAllTypes.classList.add("small-button");
         showAllTypes.classList.add("more-types");
         container.appendChild(showAllTypes);
-        var that = this;
         showAllTypes.addEventListener("click", function () {
             that.typeListContainer.classList.toggle("show-all-types");
             showAllTypes.textContent = that.typeListContainer.classList.contains("show-all-types") ? "Show Fewer Types" : "Show More Types";
@@ -109,6 +113,14 @@ var FieldSupport = (function() {
         container.appendChild(this.typeListContainer);
 
         container.classList.add("field-selection");
+    }
+
+    function curry(f, firstArgument) {
+        return function() {
+            var args = Array.prototype.slice.call(arguments);
+            args.unshift(firstArgument);
+            f.apply(this, args);
+        }
     }
 
     FieldSupportController.prototype.addType = function (module, typename, isBaseType) {
@@ -132,9 +144,7 @@ var FieldSupport = (function() {
         var that = this;
         var dbgObject = new DbgObject(module, typename, 0);
         var explorer = TypeExplorer.Create(dbgObject, {
-            onFieldChange: function(path, changeType, renderer) {
-                return that.onFieldChange(dbgObject, path, changeType, renderer);
-            }
+            onFieldChange: curry(this.onFieldChange.bind(this), dbgObject)
         });
 
         // Put it into the list, re-sort, and mirror the position in the DOM.
@@ -189,13 +199,19 @@ var FieldSupport = (function() {
         })
     }
 
-    FieldSupportController.prototype.onFieldChange = function(rootDbgObject, path, changeType, dbgObjectRenderer) {
+    FieldSupportController.prototype.onFieldChange = function(rootDbgObject, path, changeType, dbgObjectRenderer, editableFunction) {
         if (changeType == "enabled") {
             DbgObjectTree.AddField(rootDbgObject.module, rootDbgObject.typeDescription(), dbgObjectRenderer);
             this.checkedFields.markEnabled(rootDbgObject.module, rootDbgObject.typeDescription(), path);
+            if (editableFunction) {
+                UserEditableFunctions.AddListener(editableFunction, this.editableFunctionListener);
+            }
             this.queueUpdate();
         } else if (changeType == "disabled") {
             DbgObjectTree.RemoveField(rootDbgObject.module, rootDbgObject.typeDescription(), dbgObjectRenderer);
+            if (editableFunction) {
+                UserEditableFunctions.RemoveListener(editableFunction, this.editableFunctionListener);
+            }
             this.checkedFields.markDisabled(rootDbgObject.module, rootDbgObject.typeDescription(), path);
             this.queueUpdate();
         }

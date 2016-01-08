@@ -281,8 +281,12 @@ JsDbg.OnLoad(function() {
         }
     }
 
-    EditableFunction.prototype.onchange = function(listener) {
+    EditableFunction.prototype.addListener = function(listener) {
         this.listeners.push(listener);
+    }
+
+    EditableFunction.prototype.removeListener = function(listener) {
+        this.listeners = this.listeners.filter(function (l) { return l != listener; });
     }
 
     EditableFunction.prototype.serialize = function() {
@@ -314,9 +318,15 @@ JsDbg.OnLoad(function() {
         }
     }
 
-    function onchange(f, listener) {
+    function addListener(f, listener) {
         if (isEditable(f)) {
-            f.editableFunction.onchange(listener);
+            f.editableFunction.addListener(listener);
+        }
+    }
+
+    function removeListener(f, listener) {
+        if (isEditable(f)) {
+            f.editableFunction.removeListener(listener);
         }
     }
 
@@ -336,7 +346,8 @@ JsDbg.OnLoad(function() {
         Create: create,
         IsEditable: isEditable,
         Edit: edit,
-        OnChange: onchange,
+        AddListener: addListener,
+        RemoveListener: removeListener,
         Serialize: serialize,
         Deserialize: deserialize
     }

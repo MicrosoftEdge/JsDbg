@@ -6,12 +6,9 @@
     "dependencies": [
         "dbgobject",
         "dbgobject-tree",
-        "catalog",
-        "catalog-viewer",
         "promise",
         "type-explorer",
-        "user-editable-functions",
-        "help"
+        "user-editable-functions"
     ],
     "includes": [
         "fieldsupport.css",
