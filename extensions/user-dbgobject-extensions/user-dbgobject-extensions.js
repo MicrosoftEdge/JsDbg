@@ -4,7 +4,7 @@
 // Logic for creating, editing, and saving DbgObject extensions (extended fields, type descriptions, etc.) from the browser.
 var UserDbgObjectExtensions = undefined;
 JsDbg.OnLoad(function() {
-    var persistentStore = Catalog.Load("TypeExplorer2");
+    var persistentStore = Catalog.Load("UserDbgObjectExtensions");
 
     function EditableDbgObjectExtension(isPersisted, module, typeName, name, resultingTypeName, editableFunction, creationContext) {
         this.isPersisted = isPersisted;
