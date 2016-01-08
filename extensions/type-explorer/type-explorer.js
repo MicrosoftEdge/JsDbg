@@ -128,119 +128,6 @@ JsDbg.OnLoad(function() {
         }
     }
 
-    function CheckedFields() {
-        this.checkedFields = [];
-    }
-
-    CheckedFields.prototype.enableField = function (field) {
-        var path = this._computePath(field);
-        this.checkedFields.push(path);
-        this.serialize();
-    }
-
-    CheckedFields.prototype.disableField = function (field) {
-        var path = this._computePath(field);
-        this.checkedFields = this.checkedFields.filter(function (existingPath) {
-            var areEqual = existingPath.length == path.length;
-            for (var i = 0; i < path.length && areEqual; ++i) {
-                areEqual = path[i] == existingPath[i];
-            }
-            return !areEqual;
-        });
-        this.serialize();
-    }
-
-    CheckedFields.prototype._computePath = function (field) {
-        var path = [];
-        this._appendPath(field, path);
-        path.reverse();
-        return path;
-    }
-
-    CheckedFields.prototype._appendPath = function(obj, path) {
-        if (obj instanceof TypeExplorerField) {
-            path.push(obj.name);
-            path.push(obj.sourceInParentType);
-            return this._appendPath(obj.parentType, path);
-        } else if (obj instanceof TypeExplorerSingleType) {
-            path.push(obj.typename);
-            return this._appendPath(obj.aggregateType, path);
-        } else if (obj instanceof TypeExplorerAggregateType) {
-            path.push(obj.typename())
-            if (obj.parentField != null) {
-                return this._appendPath(obj.parentField, path);
-            }
-        }
-    }
-
-    CheckedFields.prototype.reenableFields = function (type) {
-        var that = this;
-        return Promise.map(this.checkedFields, function (path) { return that._reenableRemainingFields(type, path, 0); })
-        .then(function () {
-            return;
-        });
-    }
-
-    CheckedFields.prototype._reenableRemainingFields = function (obj, path, currentIndex) {
-        var that = this;
-        if (currentIndex == path.length) {
-            if (obj instanceof TypeExplorerField) {
-                obj.setIsEnabled(true, /*isDeserialization*/true);
-            }
-        } else {
-            if (obj instanceof TypeExplorerField) {
-                return obj.getChildType()
-                .then(function (childType) {
-                    if (childType != null) {
-                        return that._reenableRemainingFields(childType, path, currentIndex)
-                    }
-                });
-            } else if (obj instanceof TypeExplorerSingleType) {
-                var collection = path[currentIndex];
-                if (collection == "fields") {
-                    collection = obj.getFields();
-                } else {
-                    collection = obj[collection];
-                }
-                currentIndex++;
-
-                return Promise.as(collection)
-                .then(function (collection) {
-                    for (var i = 0; i < collection.length; ++i) {
-                        if (collection[i].name == path[currentIndex]) {
-                            return that._reenableRemainingFields(collection[i], path, currentIndex + 1);
-                        }
-                    }
-                })
-            } else if (obj instanceof TypeExplorerAggregateType) {
-                if (path[currentIndex] != obj.typename()) {
-                    return;
-                }
-                currentIndex++;
-
-                return obj.prepareForRendering()
-                .then(function () {
-                    for (var i = 0; i < obj.backingTypes.length; ++i) {
-                        if (obj.backingTypes[i].typename == path[currentIndex]) {
-                            return that._reenableRemainingFields(obj.backingTypes[i], path, currentIndex + 1);
-                        }
-                    }
-                });
-            }
-        }
-    }
-
-    CheckedFields.prototype.serialize = function() {
-        window.sessionStorage.setItem('TypeExplorer-CheckedFields', JSON.stringify(this.checkedFields));
-    }
-
-    CheckedFields.prototype.deserialize = function() {
-        var data = window.sessionStorage.getItem('TypeExplorer-CheckedFields');
-        if (data) {
-            this.checkedFields = JSON.parse(data);
-        }
-    }
-
     function TypeExplorerAggregateType(module, typename, parentField, controller, rerender) {
         this.parentField = parentField;
         this.controller = controller;
@@ -801,7 +688,7 @@ JsDbg.OnLoad(function() {
         return hadEnabledFields
     }
 
-    TypeExplorerField.prototype.setIsEnabled = function(isEnabled, isDeserialization) {
+    TypeExplorerField.prototype.setIsEnabled = function(isEnabled) {
         if (isEnabled != this.isEnabled) {
             this.isEnabled = isEnabled;
             var rootType = this.parentType.aggregateType;
@@ -809,15 +696,7 @@ JsDbg.OnLoad(function() {
                 rootType = rootType.parentField.parentType.aggregateType;
             }
 
-            if (!isDeserialization) {
-                if (isEnabled) {
-                    rootType.controller.checkedFields.enableField(this);
-                } else {
-                    rootType.controller.checkedFields.disableField(this);
-                }
-            }
-
-            rootType.controller.notifyFieldChange(null, isEnabled ? "enabled" : "disabled", this.fieldRenderer);
+            rootType.controller._notifyFieldChange(this, isEnabled ? "enabled" : "disabled", this.fieldRenderer);
         }
     }
 
@@ -978,13 +857,8 @@ JsDbg.OnLoad(function() {
         this.dbgObject = dbgObject;
         this.options = options;
         var that = this;
-        this.rootType = new TypeExplorerAggregateType(dbgObject.module, dbgObject.typeDescription(), null, this, function() { return that.renderType(that.rootType, that.container) });
-        this.checkedFields = new CheckedFields();
-        this.deserializationPromise = allPersistedFields.deserialize()
-        .then(function () {
-            that.checkedFields.deserialize();
-            return that.checkedFields.reenableFields(that.rootType);
-        });
+        this.rootType = new TypeExplorerAggregateType(dbgObject.module, dbgObject.typeDescription(), null, this, function() { return that._renderType(that.rootType, that.container) });
+        this.deserializationPromise = allPersistedFields.deserialize();
     }
 
     TypeExplorerController.prototype.render = function(container) {
@@ -993,23 +867,97 @@ JsDbg.OnLoad(function() {
         return this.deserializationPromise
         .then(function () {
             that.container.classList.add("collapsed");
-            return that.renderType(that.rootType, that.container);
+            return that._renderType(that.rootType, that.container);
+        });
+    }
+
+    TypeExplorerController.prototype.enableField = function(path) {
+        var that = this;
+        return this.deserializationPromise
+        .then(function() {
+            return that._enableRemainingPath(that.rootType, path, 0);
         });
     }
 
     TypeExplorerController.prototype.toggleExpansion = function() {
         this.rootType.toggleExpansion();
         this.container.classList.toggle("collapsed");
-        return this.renderType(this.rootType, this.container);
+        return this._renderType(this.rootType, this.container);
     }
 
-    TypeExplorerController.prototype.notifyFieldChange = function(path, changeType, dbgObject, dbgObjectRenderer) {
-        if (this.options.onFieldChange) {
-            this.options.onFieldChange(path, changeType, dbgObject, dbgObjectRenderer);
+    TypeExplorerController.prototype._computePath = function(field) {
+        var path = [];
+        this._appendPath(field, path);
+        path.reverse();
+        return path;
+    }
+
+    TypeExplorerController.prototype._appendPath = function (obj, path) {
+        if (obj instanceof TypeExplorerField) {
+            path.push(obj.name);
+            path.push(obj.sourceInParentType);
+            return this._appendPath(obj.parentType, path);
+        } else if (obj instanceof TypeExplorerSingleType) {
+            path.push(obj.typename);
+            return this._appendPath(obj.aggregateType, path);
+        } else if (obj instanceof TypeExplorerAggregateType) {
+            if (obj.parentField != null) {
+                return this._appendPath(obj.parentField, path);
+            }
         }
     }
 
-    TypeExplorerController.prototype.renderType = function(type, typeContainer) {
+    TypeExplorerController.prototype._enableRemainingPath = function (obj, path, currentIndex) {
+        var that = this;
+        if (currentIndex == path.length) {
+            if (obj instanceof TypeExplorerField) {
+                obj.setIsEnabled(true);
+            }
+        } else {
+            if (obj instanceof TypeExplorerField) {
+                return obj.getChildType()
+                .then(function (childType) {
+                    if (childType != null) {
+                        return that._enableRemainingPath(childType, path, currentIndex)
+                    }
+                });
+            } else if (obj instanceof TypeExplorerSingleType) {
+                var collection = path[currentIndex];
+                if (collection == "fields") {
+                    collection = obj.getFields();
+                } else {
+                    collection = obj[collection];
+                }
+                currentIndex++;
+
+                return Promise.as(collection)
+                .then(function (collection) {
+                    for (var i = 0; i < collection.length; ++i) {
+                        if (collection[i].name == path[currentIndex]) {
+                            return that._enableRemainingPath(collection[i], path, currentIndex + 1);
+                        }
+                    }
+                })
+            } else if (obj instanceof TypeExplorerAggregateType) {
+                return obj.prepareForRendering()
+                .then(function () {
+                    for (var i = 0; i < obj.backingTypes.length; ++i) {
+                        if (obj.backingTypes[i].typename == path[currentIndex]) {
+                            return that._enableRemainingPath(obj.backingTypes[i], path, currentIndex + 1);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    TypeExplorerController.prototype._notifyFieldChange = function(field, changeType, dbgObject, dbgObjectRenderer) {
+        if (this.options.onFieldChange) {
+            this.options.onFieldChange(this._computePath(field), changeType, dbgObject, dbgObjectRenderer);
+        }
+    }
+
+    TypeExplorerController.prototype._renderType = function(type, typeContainer) {
         typeContainer.innerHTML = "";
         var that = this;
         return type.prepareForRendering()
@@ -1030,7 +978,7 @@ JsDbg.OnLoad(function() {
                     }
                     searchTimeout = setTimeout(function () {
                         type.setSearchQuery(filterTextBox.value);
-                        that.renderFieldList(type, fieldListContainer);
+                        that._renderFieldList(type, fieldListContainer);
                     }, 100);
                 });
 
@@ -1042,7 +990,7 @@ JsDbg.OnLoad(function() {
                     showBaseTypesControl.addEventListener("click", function () {
                         type.toggleIncludeBaseTypes();
                         showBaseTypesControl.textContent = type.includeBaseTypes ? "Exclude Base Types" : "Include Base Types";
-                        that.renderFieldList(type, fieldListContainer);
+                        that._renderFieldList(type, fieldListContainer);
                     })
                 }
 
@@ -1076,7 +1024,7 @@ JsDbg.OnLoad(function() {
             }
 
             typeContainer.appendChild(fieldListContainer);
-            return that.renderFieldList(type, fieldListContainer);
+            return that._renderFieldList(type, fieldListContainer);
         });
     }
 
@@ -1099,7 +1047,7 @@ JsDbg.OnLoad(function() {
         return collisions;
     }
 
-    TypeExplorerController.prototype.renderFieldList = function(type, fieldsContainer) {
+    TypeExplorerController.prototype._renderFieldList = function(type, fieldsContainer) {
         var that = this;
 
         return Promise.join([type.getFieldsToRender(), type.getExtendedFieldsToRender(), type.getDescriptionsToRender()])
@@ -1115,7 +1063,7 @@ JsDbg.OnLoad(function() {
             return Promise.map(extendedFields, function (extendedField) {
                 var fieldContainer = document.createElement("label");
                 fieldsContainer.appendChild(fieldContainer);
-                return that.renderField(extendedField, type, fieldContainer, extendedFieldCollisions);
+                return that._renderField(extendedField, type, fieldContainer, extendedFieldCollisions);
             })
             .then(function() {
                 if (extendedFields.length > 0 && type.isExpanded()) {
@@ -1126,13 +1074,13 @@ JsDbg.OnLoad(function() {
                 return Promise.map(fields, function (field) {
                     var fieldContainer = document.createElement("label");
                     fieldsContainer.appendChild(fieldContainer);
-                    return that.renderField(field, type, fieldContainer, fieldCollisions);
+                    return that._renderField(field, type, fieldContainer, fieldCollisions);
                 })
             });
         });
     }
 
-    TypeExplorerController.prototype.renderField = function (field, renderingType, fieldContainer, nameCollisions) {
+    TypeExplorerController.prototype._renderField = function (field, renderingType, fieldContainer, nameCollisions) {
         var currentType = field.parentType;
         var areAllTypesExpanded = true;
         while (areAllTypesExpanded && currentType != null) {
@@ -1215,14 +1163,14 @@ JsDbg.OnLoad(function() {
             } else {
                 subFieldsContainer.classList.remove("collapsed");
             }
-            return that.renderType(childType, subFieldsContainer)
+            return that._renderType(childType, subFieldsContainer)
             .then(function () {
                 fieldContainer.parentNode.insertBefore(subFieldsContainer, fieldContainer.nextSibling);
                 fieldTypeContainer.addEventListener("click", function (e) {
                     e.preventDefault();
                     childType.toggleExpansion();
                     subFieldsContainer.classList.toggle("collapsed");
-                    that.renderType(childType, subFieldsContainer);
+                    that._renderType(childType, subFieldsContainer);
                 });
             });
         });

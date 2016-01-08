@@ -5,11 +5,68 @@
 //
 
 var FieldSupport = (function() {
+    function CheckedFields() {
+        this.checkedFields = {};
+    }
+
+    CheckedFields.prototype.markEnabled = function (module, type, path) {
+        var key = module + "!" + type;
+        if (!(key in this.checkedFields)) {
+            this.checkedFields[key] = [path];
+        } else {
+            var paths = this._removePath(this.checkedFields[key], path);
+            paths.push(path);
+            this.checkedFields[key] = paths;
+        }
+        this.serialize();
+    }
+
+    CheckedFields.prototype.markDisabled = function (module, type, path) {
+        var key = module + "!" + type;
+        if (!(key in this.checkedFields)) {
+            return;
+        }
+        this.checkedFields[key] = this._removePath(this.checkedFields[key], path);
+        this.serialize();
+    }
+
+    CheckedFields.prototype.getEnabledPaths = function (module, type) {
+        var key = module + "!" + type;
+        if (!(key in this.checkedFields)) {
+            return [];
+        } else {
+            return this.checkedFields[key];
+        }
+    }
+
+    CheckedFields.prototype._removePath = function(paths, path) {
+        return paths.filter(function (existingPath) {
+            var areEqual = existingPath.length == path.length;
+            for (var i = 0; i < path.length && areEqual; ++i) {
+                areEqual = path[i] == existingPath[i];
+            }
+            return !areEqual;
+        });
+    }
+
+    CheckedFields.prototype.serialize = function() {
+        window.sessionStorage.setItem('FieldSupport-CheckedFields', JSON.stringify(this.checkedFields));
+    }
+
+    CheckedFields.prototype.deserialize = function() {
+        var data = window.sessionStorage.getItem('FieldSupport-CheckedFields');
+        if (data) {
+            this.checkedFields = JSON.parse(data);
+        }
+    }
+
     function FieldSupportController(container, updateTreeUI) {
         this.knownTypes = [];
         this.typeListContainer = document.createElement("div");
         this.updateTreeUI = updateTreeUI;
         this.isUpdateQueued = false;
+        this.checkedFields = new CheckedFields();
+        this.checkedFields.deserialize();
 
         var isHidden = window.sessionStorage.getItem("FieldSupport-HideTypes") == "true";
         var showHide = document.createElement("button");
@@ -98,7 +155,12 @@ var FieldSupport = (function() {
             this.typeListContainer.appendChild(newTypeContainer);
         }
         
-        return this.renderRootType(newType, newTypeContainer);
+        var that = this;
+        var enabledPaths = this.checkedFields.getEnabledPaths(module, typename);
+        return Promise.map(enabledPaths, explorer.enableField.bind(explorer))
+        .then(function () {
+            return that.renderRootType(newType, newTypeContainer);
+        });
     }
 
     FieldSupportController.prototype.renderRootType = function(rootType, typeContainer) {
@@ -130,9 +192,11 @@ var FieldSupport = (function() {
     FieldSupportController.prototype.onFieldChange = function(rootDbgObject, path, changeType, dbgObjectRenderer) {
         if (changeType == "enabled") {
             DbgObjectTree.AddField(rootDbgObject.module, rootDbgObject.typeDescription(), dbgObjectRenderer);
+            this.checkedFields.markEnabled(rootDbgObject.module, rootDbgObject.typeDescription(), path);
             this.queueUpdate();
         } else if (changeType == "disabled") {
             DbgObjectTree.RemoveField(rootDbgObject.module, rootDbgObject.typeDescription(), dbgObjectRenderer);
+            this.checkedFields.markDisabled(rootDbgObject.module, rootDbgObject.typeDescription(), path);
             this.queueUpdate();
         }
     }
