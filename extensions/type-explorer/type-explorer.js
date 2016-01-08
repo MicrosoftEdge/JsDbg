@@ -98,7 +98,7 @@ JsDbg.OnLoad(function() {
         this.editableFunction = UserEditableFunctions.Deserialize(serialized.editableFunction);
         this.editableFunction.persistedField = this;
         var that = this;
-        UserEditableFunctions.AddListener(this.editableFunction, this.editableFunction);
+        UserEditableFunctions.AddListener(this.editableFunction, this.editableFunctionListener);
 
         if (this.resultingTypeName != null) {
             DbgObject.AddExtendedField(this.module, this.typeName, this.name, this.resultingTypeName, this.editableFunction);
