@@ -55,6 +55,10 @@
     display:none;
 }
 
+.field-selection .show-all-types .base-type {
+    display:block;
+}
+
 input.small-input {
     font-size:8pt;
     margin-right:0.3em;

@@ -12,10 +12,6 @@
     cursor:default;
 }
 
-.type-explorer .show-all-types .base-type {
-    display:block;
-}
-
 .type-explorer label input {
     height:12px;
     width:12px;
