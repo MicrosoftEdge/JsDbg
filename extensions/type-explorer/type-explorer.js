@@ -194,100 +194,67 @@ JsDbg.OnLoad(function() {
         this.isExpanded = false;
         this.module = module;
         this.typename = typename;
-        this.fields = null;
         this.fieldsPromise = null;
+        this.fields = [];
         this.extendedFields = [];
         this.descriptions = [];
+        this.allFieldArrays = [this.fields, this.extendedFields, this.descriptions];
 
+        this.monitorTypeExtensions(DbgObject.ExtendedFields, "extendedFields");
+        this.monitorTypeExtensions(DbgObject.TypeDescriptions, "descriptions");
+    }
+
+    TypeExplorerSingleType.prototype.monitorTypeExtensions = function(typeExtensions, arrayName) {
         var that = this;
-        DbgObject.GetExtendedFields(module, typename).forEach(function (extendedField) {
-            that.addExtendedField(extendedField.name, extendedField.typeName, extendedField.getter);
+        function addTypeExtensionField(name, extension) {
+            // For descriptions, ignore the primary descriptions.
+            if (extension.isPrimary) {
+                return;
+            }
+
+            var newField = new TypeExplorerField(name, extension.typeName ? extension.typeName : null, extension.getter, that, arrayName);
+            that[arrayName].push(newField);
+
+            if (UserDbgObjectExtensions.GetCreationContext(extension.getter) == that.aggregateType) {
+                newField.setIsEnabled(true);
+            }
+        }
+
+        typeExtensions.getAllExtensions(this.module, this.typename).forEach(function (nameAndExtension) {
+            addTypeExtensionField(nameAndExtension.name, nameAndExtension.extension);
         });
-        DbgObject.OnExtendedFieldsChanged(module, typename, function (module, typename, fieldName, extendedField, operation, argument) {
+
+        typeExtensions.addListener(this.module, this.typename, function (module, typename, extensionName, extension, operation, argument) {
             if (operation == "add") {
-                that.addExtendedField(fieldName, extendedField.typeName, extendedField.getter);
+                addTypeExtensionField(extensionName, extension);
             } else if (operation == "remove") {
-                that.extendedFields = that.extendedFields.filter(function (userField) {
-                    if (userField.name == fieldName) {
-                        userField.disableCompletely();
+                that[arrayName] = that[arrayName].filter(function (field) {
+                    if (field.name == extensionName) {
+                        field.disableCompletely();
                         return false;
                     } else {
                         return true;
                     }
                 });
             } else if (operation == "rename") {
-                that.extendedFields.forEach(function (userField) {
-                    if (userField.name == fieldName) {
-                        var wasEnabled = userField.isEnabled;
-                        userField.setIsEnabled(false);
-                        userField.name = argument;
-                        userField.setIsEnabled(wasEnabled);
+                that[arrayName].forEach(function (field) {
+                    if (field.name == extensionName) {
+                        var wasEnabled = field.isEnabled;
+                        field.setIsEnabled(false);
+                        field.name = argument;
+                        field.setIsEnabled(wasEnabled);
                     }
                 })
             } else if (operation == "typechange") {
-                that.extendedFields.forEach(function (userField) {
-                    if (userField.name == fieldName) {
-                        if (userField.childType != null) {
-                            userField.childType.disableCompletely();
-                            userField.childType = null;
-                            userField.resultingTypeName = argument;
-                        }
+                that[arrayName].forEach(function (field) {
+                    if (field.name == extensionName) {
+                        field.setChildType(argument);
                     }
                 });
             }
+
             that.aggregateType.rerender();
         });
-
-        DbgObject.GetDescriptions(module, typename).forEach(function (description) {
-            if (!description.isPrimary) {
-                that.addDescription(description.name, description.getter);
-            }
-        });
-
-        DbgObject.OnDescriptionsChanged(module, typename, function (module, typename, descriptionName, description, operation, argument) {
-            if (operation == "add") {
-                if (!description.isPrimary) {
-                    that.addDescription(description.name, description.getter);
-                }
-            } else if (operation == "remove") {
-                that.descriptions = that.descriptions.filter(function (descriptionField) {
-                    if (descriptionField.name == descriptionName) {
-                        descriptionField.disableCompletely();
-                        return false;
-                    } else {
-                        return true;
-                    }
-                });
-            } else if (operation == "rename") {
-                that.descriptions.forEach(function (descriptionField) {
-                    if (descriptionField.name == descriptionName) {
-                        var wasEnabled = descriptionField.isEnabled;
-                        descriptionField.setIsEnabled(false);
-                        descriptionField.name = argument;
-                        descriptionField.setIsEnabled(wasEnabled);
-                    }
-                })
-            }
-            that.aggregateType.rerender();
-        })
-    }
-
-    TypeExplorerSingleType.prototype.addExtendedField = function (fieldName, typeName, getter) {
-        var newField = new TypeExplorerField(fieldName, typeName, getter, this, "extendedFields");
-        this.extendedFields.push(newField);
-
-        if (UserDbgObjectExtensions.GetCreationContext(getter) == this.aggregateType) {
-            newField.setIsEnabled(true);
-        }
-    }
-
-    TypeExplorerSingleType.prototype.addDescription = function (name, getter) {
-        var newField = new TypeExplorerField(name, null, getter, this, "descriptions");
-        this.descriptions.push(newField);
-
-        if (UserDbgObjectExtensions.GetCreationContext(getter) == this.aggregateType) {
-            newField.setIsEnabled(true);
-        }
     }
 
     TypeExplorerSingleType.prototype.getFields = function() {
@@ -302,16 +269,13 @@ JsDbg.OnLoad(function() {
         return new DbgObject(this.module, this.typename, 0)
         .fields(/*includeBaseTypes*/false)
         .then(function (fields) {
-            return fields.map(function (field) {
+            return fields.forEach(function (field) {
                 var dereferencedType = field.value.typeDescription().replace(/\**$/, "");
                 var getter = function(dbgObject) { return dbgObject.f(field.name); }
-                return new TypeExplorerField(field.name, dereferencedType, getter, that, getter, "fields");
+                that.fields.push(new TypeExplorerField(field.name, dereferencedType, getter, that, getter, "fields"));
             })
         })
         .then(function (fields) {
-            if (that.fields == null) {
-                that.fields = fields;
-            }
             return that.fields;
         });
     }
@@ -468,6 +432,16 @@ JsDbg.OnLoad(function() {
         }
     }
 
+    TypeExplorerField.prototype.setChildType = function(newTypeName) {
+        if (this.childType != null) {
+            this.childType.disableCompletely();
+        }
+
+        this.resultingTypeName = newTypeName;
+        this.childTypePromise = null;
+        this.childType = null;
+    }
+
     TypeExplorerField.prototype.getChildType = function() {
         if (this.childTypePromise == null) {
             this.childTypePromise = this._getChildType();
@@ -477,30 +451,22 @@ JsDbg.OnLoad(function() {
 
     TypeExplorerField.prototype._getChildType = function() {
         var that = this;
-        return Promise.as(this.childType)
-        .then(function (childType) {
-            if (childType == null && that.resultingTypeName != null) {
-                return new DbgObject(that.parentType.module, that.resultingTypeName, 0)
-                .isTypeWithFields()
-                .then(function (isTypeWithFields) {
-                    if (!isTypeWithFields) {
-                        that.childType = false;
-                        return null;
-                    } else {
-                        that.childType = new TypeExplorerAggregateType(that.parentType.module, that.resultingTypeName, that, that.parentType.aggregateType.controller);
-                        return that.childType;
-                    }
-                }, function () {
-                    that.childType = false;
-                    return null;
-                });
-            } else if (childType === false || that.resultingTypeName == null) {
-                // There is no child type (i.e. there are no interesting fields).
-                return null;
-            } else {
-                return childType;
+        this.childType = null;
+        return Promise.as(null)
+        .then(function () {
+            if (that.resultingTypeName == null) {
+                return;
             }
+
+            return new DbgObject(that.parentType.module, that.resultingTypeName, 0)
+            .isTypeWithFields()
+            .then(function (isTypeWithFields) {
+                if (isTypeWithFields) {
+                    that.childType = new TypeExplorerAggregateType(that.parentType.module, that.resultingTypeName, that, that.parentType.aggregateType.controller);
+                }
+            });
         })
+        .then(function () { return that.childType; }, function() { return that.childType; });
     }
 
     function TypeExplorerController(dbgObject, options) {
