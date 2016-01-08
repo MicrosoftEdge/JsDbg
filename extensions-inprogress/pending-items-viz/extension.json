@@ -1,9 +1,0 @@
-{
-    "name": "PendingItemsDescriptions",
-    "author": "Peter Salas",
-    "description": "Describes the contents of PendingItems lists on ContainerBoxes.",
-    "headless": true,
-    "dependencies": ["dbgobject", "mshtml-helpers"],
-    "includes": ["pending-items-viz.js"],
-    "augments": ["dbgobject"]
-}
