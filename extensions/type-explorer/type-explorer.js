@@ -690,7 +690,7 @@ JsDbg.OnLoad(function() {
 
     TypeExplorerController.prototype._notifyFieldChange = function(field, changeType, dbgObject, dbgObjectRenderer, editableFunction) {
         if (this.options.onFieldChange) {
-            this.options.onFieldChange(this._computePath(field), changeType, dbgObject, dbgObjectRenderer, editableFunction);
+            this.options.onFieldChange(this.dbgObject, this._computePath(field), changeType, dbgObject, dbgObjectRenderer, editableFunction);
         }
     }
 

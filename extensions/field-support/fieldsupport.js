@@ -115,14 +115,6 @@ var FieldSupport = (function() {
         container.classList.add("field-selection");
     }
 
-    function curry(f, firstArgument) {
-        return function() {
-            var args = Array.prototype.slice.call(arguments);
-            args.unshift(firstArgument);
-            f.apply(this, args);
-        }
-    }
-
     FieldSupportController.prototype.addType = function (module, typename, isBaseType) {
         for (var i = 0; i < this.knownTypes.length; ++i) {
             var knownType = this.knownTypes[i];
@@ -144,7 +136,7 @@ var FieldSupport = (function() {
         var that = this;
         var dbgObject = new DbgObject(module, typename, 0);
         var explorer = TypeExplorer.Create(dbgObject, {
-            onFieldChange: curry(this.onFieldChange.bind(this), dbgObject)
+            onFieldChange: this.onFieldChange.bind(this)
         });
 
         // Put it into the list, re-sort, and mirror the position in the DOM.
