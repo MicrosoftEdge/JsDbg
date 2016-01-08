@@ -281,17 +281,7 @@ JsDbg.OnLoad(function() {
     }
 
     TypeExplorerSingleType.prototype.addExtendedField = function (fieldName, typeName, getter) {
-        var newField = new TypeExplorerField(
-            fieldName,
-            typeName,
-            function getter(dbgObject) {
-                return dbgObject.F(newField.name);
-            },
-            renderDbgObject,
-            this,
-            getter,
-            "extendedFields"
-        );
+        var newField = new TypeExplorerField(fieldName, typeName, getter, this, "extendedFields");
         this.extendedFields.push(newField);
 
         if (UserDbgObjectExtensions.GetCreationContext(getter) == this.aggregateType) {
@@ -299,51 +289,11 @@ JsDbg.OnLoad(function() {
         }
     }
 
-    function getDescs(obj) {
-        if (obj instanceof Node) {
-            return Promise.as(obj);
-        } else if (obj instanceof DbgObject) {
-            return obj.desc();
-        } else if (Array.isArray(obj)) {
-            return Promise.map(obj, getDescs)
-            .then(function (array) {
-                return array.join(", ").toString();
-            });
-        } else if (typeof(obj) != typeof(undefined)) {
-            return Promise.as(obj);
-        } else {
-            return Promise.as(undefined);
-        }
-    }
-
     TypeExplorerSingleType.prototype.addDescription = function (name, getter) {
-        var newField = new TypeExplorerField(
-            name,
-            null,
-            function getter(dbgObject) { return dbgObject; },
-            function renderer(dbgObject, element, fields) {
-                return Promise.as(getter(dbgObject, element))
-                .then(getDescs)
-                .then(function (desc) {
-                    if (desc instanceof Node) {
-                        var descriptionContainer = document.createElement("div");
-                        element.appendChild(descriptionContainer);
-                        descriptionContainer.appendChild(document.createTextNode(fields + ":"));
-                        descriptionContainer.appendChild(desc);
-                    } else if (typeof(desc) != typeof(undefined)) {
-                        var descriptionContainer = document.createElement("div");
-                        element.appendChild(descriptionContainer);
-                        descriptionContainer.innerHTML = fields + ":" + desc;
-                    }
-                });
-            },
-            this,
-            getter,
-            "descriptions"
-        );
+        var newField = new TypeExplorerField(name, null, getter, this, "descriptions");
         this.descriptions.push(newField);
 
-        if (getter.initialType == this.aggregateType) {
+        if (UserDbgObjectExtensions.GetCreationContext(getter) == this.aggregateType) {
             newField.setIsEnabled(true);
         }
     }
@@ -363,15 +313,7 @@ JsDbg.OnLoad(function() {
             return fields.map(function (field) {
                 var dereferencedType = field.value.typeDescription().replace(/\**$/, "");
                 var getter = function(dbgObject) { return dbgObject.f(field.name); }
-                return new TypeExplorerField(
-                    field.name, 
-                    dereferencedType,
-                    getter,
-                    renderDbgObject,
-                    that,
-                    getter,
-                    "fields"
-                );
+                return new TypeExplorerField(field.name, dereferencedType, getter, that, getter, "fields");
             })
         })
         .then(function (fields) {
@@ -449,72 +391,68 @@ JsDbg.OnLoad(function() {
         return hadEnabledFields;
     }
 
-    function TypeExplorerField(name, resultingTypeName, getter, renderer, parentType, fieldGetter, sourceInParentType) {
+    function TypeExplorerField(name, resultingTypeName, getter, parentType, sourceInParentType) {
         this.name = name;
         this.parentType = parentType;
         this.resultingTypeName = resultingTypeName;
         this.childType = null;
         this.childTypePromise = null;
-        this.isEnabled = false;
         this.getter = getter;
-        this.renderer = renderer;
-        this.fieldGetter = fieldGetter;
-        this.fieldRenderer = this.renderField.bind(this);
+        this.nestedFieldGetter = this.getNestedField.bind(this);
         this.sourceInParentType = sourceInParentType;
+        this.isEnabled = false;
+        this.clientContext = {};
     }
 
-    TypeExplorerField.prototype.renderField = function(dbgObject, element) {
-        var names = [];
+    TypeExplorerField.prototype.getNestedField = function(dbgObject, element) {
+        var parentField = this.parentType.aggregateType.parentField;
+        if (parentField == null) {
+            return Promise.as(this.getter(dbgObject, element));
+        } else {
+            var that = this;
+            return parentField.getNestedField(dbgObject)
+            .then(function(parentDbgObject) {
+                if (that.resultingTypeName == null) {
+                    return that.getter(parentDbgObject, element);
+                }
 
-        var parentFields = [];
-        var currentField = this;
-        while (currentField != null) {
-            parentFields.push(currentField);
-            currentField = currentField.parentType.aggregateType.parentField;
+                return that.getter(parentDbgObject)
+                .then(function checkType(result) {
+                    // Check that the field returned the proper type.
+                    if (!(result instanceof DbgObject)) {
+                        throw new Error("The field \"" + that.name + "\" did not return a DbgObject, but returned \"" + result + "\"");
+                    }
+
+                    return result.isType(that.resultingTypeName)
+                    .then(function (isType) {
+                        if (!isType) {
+                            throw new Error("The field \"" + that.name + "\" was supposed to be type \"" + that.resultingTypeName + "\" but was unrelated type \"" + result.typeDescription() + "\".");
+                        } else {
+                            return result;
+                        }
+                    });
+                });
+            });
         }
-
-        parentFields.reverse();
-        var fields = parentFields.map(function (field) { return field.name; }).join(".");
-        var getters = parentFields.map(function (field) { return field.getter; });
-
-        var dbgObjectToRender = Promise.as(dbgObject);
-        getters.forEach(function (getter) {
-            dbgObjectToRender = dbgObjectToRender.then(getter);
-        });
-
-        var that = this;
-        return dbgObjectToRender
-        .then(function (dbgObjectToRender) {
-            if (!dbgObjectToRender.isNull()) {
-                return that.renderer(dbgObjectToRender, element, fields);
-            }
-        })
-        .then(null, function (ex) {
-            var errorContainer = document.createElement("div");
-            errorContainer.style.color = "red";
-            element.appendChild(errorContainer);
-            var errorMsg = ex.stack ? ex.toString() : JSON.stringify(ex);
-            errorContainer.innerHTML = "(" + errorMsg + ")";
-        });
     }
 
     TypeExplorerField.prototype.isEditable = function() {
-        return UserDbgObjectExtensions.IsEditableExtension(this.fieldGetter);
+        return UserDbgObjectExtensions.IsEditableExtension(this.getter);
     }
 
     TypeExplorerField.prototype.canBeDeleted = function() {
-        return UserDbgObjectExtensions.IsUserExtension(this.fieldGetter);
+        return UserDbgObjectExtensions.IsUserExtension(this.getter);
     }
 
     TypeExplorerField.prototype.beginEditing = function() {
         if (this.isEditable()) {
-            UserDbgObjectExtensions.Edit(this.fieldGetter);
+            UserDbgObjectExtensions.Edit(this.getter);
         }
     }
 
     TypeExplorerField.prototype.delete = function() {
         if (this.canBeDeleted()) {
-            UserDbgObjectExtensions.Delete(this.fieldGetter);
+            UserDbgObjectExtensions.Delete(this.getter);
         }
     }
 
@@ -691,7 +629,8 @@ JsDbg.OnLoad(function() {
 
     TypeExplorerController.prototype._getFieldForNotification = function(field) {
         var result = {
-            getter: field.fieldRenderer,
+            context: field.clientContext,
+            getter: field.nestedFieldGetter,
             allGetters: [],
             isEnabled: field.isEnabled,
             names: [],
@@ -699,7 +638,7 @@ JsDbg.OnLoad(function() {
         };
 
         do {
-            result.allGetters.push(field.fieldGetter);
+            result.allGetters.push(field.getter);
             result.names.push(field.name);
             field = field.parentType.aggregateType.parentField;
         } while (field != null);

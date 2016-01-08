@@ -193,19 +193,86 @@ var FieldSupport = (function() {
     FieldSupportController.prototype.onFieldChange = function(rootDbgObject, field) {
         var that = this;
         if (field.isEnabled) {
-            DbgObjectTree.AddField(rootDbgObject.module, rootDbgObject.typeDescription(), field.getter);
+            field.context.renderer = this.createRenderer(field);
+            DbgObjectTree.AddField(rootDbgObject.module, rootDbgObject.typeDescription(), field.context.renderer);
             field.allGetters.forEach(function (getter) {
                 UserEditableFunctions.AddListener(getter, that.activeFieldGetterListener);
             });
             this.checkedFields.markEnabled(rootDbgObject.module, rootDbgObject.typeDescription(), field.path);
             this.queueUpdate();
-        } else {
-            DbgObjectTree.RemoveField(rootDbgObject.module, rootDbgObject.typeDescription(), field.getter);
+        } else if (field.context.renderer) {
+            DbgObjectTree.RemoveField(rootDbgObject.module, rootDbgObject.typeDescription(), field.context.renderer);
+            field.context.renderer = null;
             field.allGetters.forEach(function (getter) {
                 UserEditableFunctions.RemoveListener(getter, that.activeFieldGetterListener);
             });
             this.checkedFields.markDisabled(rootDbgObject.module, rootDbgObject.typeDescription(), field.path);
             this.queueUpdate();
+        }
+    }
+
+    function getDescs(obj) {
+        if (obj instanceof Node) {
+            return Promise.as(obj);
+        } else if (obj instanceof DbgObject) {
+            return obj.desc();
+        } else if (Array.isArray(obj)) {
+            return Promise.map(obj, getDescs)
+            .then(function (array) {
+                return array.join(", ").toString();
+            });
+        } else if (typeof(obj) != typeof(undefined)) {
+            return Promise.as(obj);
+        } else {
+            return Promise.as(undefined);
+        }
+    }
+
+    FieldSupportController.prototype.createRenderer = function(field) {
+        function insertFieldList(names, container) {
+            var fieldList = document.createElement("span");
+            container.appendChild(fieldList);
+            fieldList.textContent = names.join(".") + ":";
+        }
+
+        return function (dbgObject, element) {
+            return Promise.as(null)
+            .then(function () {
+                return field.getter(dbgObject, element)
+            })
+            .then(function(result) {
+                return getDescs(result);
+            })
+            .then(
+                function (nodeOrHtml) {
+                    if (typeof nodeOrHtml == typeof undefined) {
+                        return;
+                    }
+
+                    var result = document.createElement("span");
+                    element.appendChild(result);
+
+                    if (nodeOrHtml instanceof Node) {
+                        insertFieldList(field.names, result);
+                        result.appendChild(nodeOrHtml);
+                    } else {
+                        insertFieldList(field.names, result);
+                        var resultContainer = document.createElement("span");
+                        resultContainer.innerHTML = nodeOrHtml;
+                        result.appendChild(resultContainer);
+                    }
+                }, 
+                function (error) {
+                    var result = document.createElement("span");
+                    element.appendChild(result);
+                    insertFieldList(field.names, result);
+
+                    var errorContainer = document.createElement("span");
+                    errorContainer.style.color = "red";
+                    result.appendChild(errorContainer);
+                    errorContainer.textContent = "(" + (error instanceof Error ? error.toString() : JSON.stringify(error)) + ")";
+                }
+            )
         }
     }
 
