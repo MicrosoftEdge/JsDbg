@@ -190,16 +190,21 @@ var FieldSupport = (function() {
         })
     }
 
-    FieldSupportController.prototype.onFieldChange = function(rootDbgObject, path, changeType, dbgObjectRenderer, fieldGetter) {
-        if (changeType == "enabled") {
-            DbgObjectTree.AddField(rootDbgObject.module, rootDbgObject.typeDescription(), dbgObjectRenderer);
-            this.checkedFields.markEnabled(rootDbgObject.module, rootDbgObject.typeDescription(), path);
-            UserEditableFunctions.AddListener(fieldGetter, this.activeFieldGetterListener);
+    FieldSupportController.prototype.onFieldChange = function(rootDbgObject, field) {
+        var that = this;
+        if (field.isEnabled) {
+            DbgObjectTree.AddField(rootDbgObject.module, rootDbgObject.typeDescription(), field.getter);
+            field.allGetters.forEach(function (getter) {
+                UserEditableFunctions.AddListener(getter, that.activeFieldGetterListener);
+            });
+            this.checkedFields.markEnabled(rootDbgObject.module, rootDbgObject.typeDescription(), field.path);
             this.queueUpdate();
-        } else if (changeType == "disabled") {
-            DbgObjectTree.RemoveField(rootDbgObject.module, rootDbgObject.typeDescription(), dbgObjectRenderer);
-            UserEditableFunctions.RemoveListener(fieldGetter, this.activeFieldGetterListener);
-            this.checkedFields.markDisabled(rootDbgObject.module, rootDbgObject.typeDescription(), path);
+        } else {
+            DbgObjectTree.RemoveField(rootDbgObject.module, rootDbgObject.typeDescription(), field.getter);
+            field.allGetters.forEach(function (getter) {
+                UserEditableFunctions.RemoveListener(getter, that.activeFieldGetterListener);
+            });
+            this.checkedFields.markDisabled(rootDbgObject.module, rootDbgObject.typeDescription(), field.path);
             this.queueUpdate();
         }
     }

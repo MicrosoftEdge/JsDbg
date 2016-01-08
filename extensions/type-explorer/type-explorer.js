@@ -534,12 +534,7 @@ JsDbg.OnLoad(function() {
     TypeExplorerField.prototype.setIsEnabled = function(isEnabled) {
         if (isEnabled != this.isEnabled) {
             this.isEnabled = isEnabled;
-            var rootType = this.parentType.aggregateType;
-            while (rootType.parentField != null) {
-                rootType = rootType.parentField.parentType.aggregateType;
-            }
-
-            rootType.controller._notifyFieldChange(this, isEnabled ? "enabled" : "disabled", this.fieldRenderer, this.fieldGetter);
+            this.parentType.aggregateType.controller._notifyFieldChange(this);
         }
     }
 
@@ -688,10 +683,31 @@ JsDbg.OnLoad(function() {
         }
     }
 
-    TypeExplorerController.prototype._notifyFieldChange = function(field, changeType, dbgObject, dbgObjectRenderer, editableFunction) {
+    TypeExplorerController.prototype._notifyFieldChange = function(field, changeType) {
         if (this.options.onFieldChange) {
-            this.options.onFieldChange(this.dbgObject, this._computePath(field), changeType, dbgObject, dbgObjectRenderer, editableFunction);
+            this.options.onFieldChange(this.dbgObject, this._getFieldForNotification(field), changeType);
         }
+    }
+
+    TypeExplorerController.prototype._getFieldForNotification = function(field) {
+        var result = {
+            getter: field.fieldRenderer,
+            allGetters: [],
+            isEnabled: field.isEnabled,
+            names: [],
+            path: this._computePath(field)
+        };
+
+        do {
+            result.allGetters.push(field.fieldGetter);
+            result.names.push(field.name);
+            field = field.parentType.aggregateType.parentField;
+        } while (field != null);
+
+        result.allGetters.reverse();
+        result.names.reverse();
+
+        return result;
     }
 
     TypeExplorerController.prototype._renderType = function(type, typeContainer) {
