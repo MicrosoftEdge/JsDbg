@@ -643,7 +643,9 @@ JsDbg.OnLoad(function() {
         })
         .then(function() {
             typeContainer.style.display = "";
-            filterTextBox.focus();
+            if (filterTextBox != null) {
+                filterTextBox.focus();
+            }
         })
     }
 
