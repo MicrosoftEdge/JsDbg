@@ -112,6 +112,7 @@ namespace JsDbg {
             this.loadedExtensions = new List<JsDbgExtension>();
             this.cancellationSource = new CancellationTokenSource();
             this.openSockets = new HashSet<WebSocket>();
+            this.fileCache = new FileCache();
         }
 
         private void CreateHttpListener() {
@@ -290,7 +291,7 @@ namespace JsDbg {
             }
 
             try {
-                using (System.IO.FileStream fileStream = System.IO.File.OpenRead(filePath)) {
+                using (Stream fileStream = this.fileCache.ReadFile(filePath)) {
                     response.AddHeader("Cache-Control", "no-cache");
                     response.ContentType = System.Web.MimeMapping.GetMimeMapping(filePath);
                     response.ContentLength64 = fileStream.Length;
@@ -835,10 +836,12 @@ namespace JsDbg {
             if (this.LoadExtensionAndDependenciesHelper(extensionPath, extensionsToLoad, failedExtensions, out extensionName)) {
                 // Listen for file changes on the newly loaded extensions.
                 foreach (JsDbgExtension extensionToLoad in extensionsToLoad) {
-                    extensionToLoad.Watcher = new FileSystemWatcher(extensionToLoad.path, "extension.json");
-                    extensionToLoad.Watcher.NotifyFilter = NotifyFilters.LastWrite;
-                    extensionToLoad.Watcher.Changed += ExtensionChanged;
-                    extensionToLoad.Watcher.EnableRaisingEvents = true;
+                    if (!FileCache.PathIsNetworkPath(extensionToLoad.path)) {
+                        extensionToLoad.Watcher = new FileSystemWatcher(extensionToLoad.path, "extension.json");
+                        extensionToLoad.Watcher.NotifyFilter = NotifyFilters.LastWrite;
+                        extensionToLoad.Watcher.Changed += ExtensionChanged;
+                        extensionToLoad.Watcher.EnableRaisingEvents = true;
+                    }
                     this.loadedExtensions.Add(extensionToLoad);
                 }
                 return true;
@@ -989,8 +992,10 @@ namespace JsDbg {
         private bool UnloadExtension(string extensionName) {
             for (int i = 0; i < this.loadedExtensions.Count; ++i) {
                 if (this.loadedExtensions[i].name == extensionName) {
-                    this.loadedExtensions[i].Watcher.EnableRaisingEvents = false;
-                    this.loadedExtensions[i].Watcher.Dispose();
+                    if (this.loadedExtensions[i].Watcher != null) {
+                        this.loadedExtensions[i].Watcher.EnableRaisingEvents = false;
+                        this.loadedExtensions[i].Watcher.Dispose();
+                    }
                     this.loadedExtensions.RemoveAt(i);
                     return true;
                 }
@@ -1001,8 +1006,10 @@ namespace JsDbg {
         private void UnloadRelativeExtensions() {
             for (int i = this.loadedExtensions.Count - 1; i >= 0; --i) {
                 if (this.loadedExtensions[i].WasLoadedRelativeToExtensionRoot) {
-                    this.loadedExtensions[i].Watcher.EnableRaisingEvents = false;
-                    this.loadedExtensions[i].Watcher.Dispose();
+                    if (this.loadedExtensions[i].Watcher != null) {
+                        this.loadedExtensions[i].Watcher.EnableRaisingEvents = false;
+                        this.loadedExtensions[i].Watcher.Dispose();
+                    }
                     this.loadedExtensions.RemoveAt(i);
                 }
             }
@@ -1246,6 +1253,7 @@ namespace JsDbg {
         private IDebugger debugger;
         private PersistentStore persistentStore;
         private UserFeedback userFeedback;
+        private FileCache fileCache;
         private HashSet<WebSocket> openSockets;
         private List<JsDbgExtension> loadedExtensions;
         private string path;

@@ -73,6 +73,7 @@
     <Compile Include="BrowserLauncher.cs" />
     <Compile Include="DiaHelpers.cs" />
     <Compile Include="DiaSessionLoader.cs" />
+    <Compile Include="FileCache.cs" />
     <Compile Include="IConfiguration.cs" />
     <Compile Include="IDebugger.cs" />
     <Compile Include="IDiaSessionSource.cs" />
