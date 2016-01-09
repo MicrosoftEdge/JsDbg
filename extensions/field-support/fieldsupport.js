@@ -212,20 +212,23 @@ var FieldSupport = (function() {
     }
 
     function getDescs(obj) {
-        if (obj instanceof Node) {
-            return Promise.as(obj);
-        } else if (obj instanceof DbgObject) {
-            return obj.desc();
-        } else if (Array.isArray(obj)) {
-            return Promise.map(obj, getDescs)
-            .then(function (array) {
-                return array.join(", ").toString();
-            });
-        } else if (typeof(obj) != typeof(undefined)) {
-            return Promise.as(obj);
-        } else {
-            return Promise.as(undefined);
-        }
+        return Promise.as()
+        .then(function() {
+            if (obj instanceof DbgObject) {
+                if (obj.isNull()) {
+                    return undefined;
+                } else {
+                    return obj.desc();
+                }
+            } else if (Array.isArray(obj)) {
+                return Promise.map(obj, getDescs)
+                .then(function (array) {
+                    return array.join(", ").toString();
+                });
+            } else {
+                return obj;
+            }
+        });
     }
 
     FieldSupportController.prototype.createRenderer = function(field) {
