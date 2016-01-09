@@ -8,7 +8,6 @@ JsDbg.OnLoad(function() {
     function TypeExplorerAggregateType(module, typename, parentField, controller, rerender) {
         this.parentField = parentField;
         this.controller = controller;
-        this.rerender = rerender !== undefined ? rerender : function () { this.parentField.parentType.aggregateType.rerender(); };
         this.searchQuery = "";
         this.backingTypes = [new TypeExplorerSingleType(module, typename, this)];
         this.includeBaseTypes = false;
@@ -251,7 +250,7 @@ JsDbg.OnLoad(function() {
                 });
             }
 
-            that.aggregateType.rerender();
+            that.aggregateType.controller.requestRerender();
         });
     }
 
@@ -456,29 +455,33 @@ JsDbg.OnLoad(function() {
         this.container = null;
         this.dbgObject = dbgObject;
         this.options = options;
-        var that = this;
-        this.rootType = new TypeExplorerAggregateType(
-            dbgObject.module, 
-            dbgObject.typeDescription(), 
-            null, 
-            this, 
-            function() { return that._renderType(that.rootType, that.container) }
-        );
+        this.rootType = new TypeExplorerAggregateType(dbgObject.module, dbgObject.typeDescription(), null, this);
     }
 
     TypeExplorerController.prototype.render = function(explorerContainer) {
         explorerContainer.classList.add("type-explorer");
 
-        var typeContainer = document.createElement("div");
-        typeContainer.classList.add("fields-container");
-        explorerContainer.appendChild(typeContainer);
+        this.container = document.createElement("div");
+        explorerContainer.appendChild(this.container);
 
-        this.container = typeContainer;
         var that = this;
         return UserDbgObjectExtensions.EnsureLoaded()
         .then(function () {
             that.container.classList.add("collapsed");
             return that._renderType(that.rootType, that.container);
+        });
+    }
+
+    TypeExplorerController.prototype.requestRerender = function() {
+        if (this.hasRequestedRerender) {
+            return;
+        }
+
+        this.hasRequestedRerender = true;
+        var that = this;
+        window.requestAnimationFrame(function () {
+            that.hasRequestedRerender = false;
+            that._renderType(that.rootType, that.container);
         });
     }
 
@@ -492,8 +495,7 @@ JsDbg.OnLoad(function() {
 
     TypeExplorerController.prototype.toggleExpansion = function() {
         this.rootType.toggleExpansion();
-        this.container.classList.toggle("collapsed");
-        return this._renderType(this.rootType, this.container);
+        this.requestRerender();
     }
 
     TypeExplorerController.prototype._computePath = function(field) {
@@ -595,10 +597,18 @@ JsDbg.OnLoad(function() {
             return Promise.as(null);
         }
 
+        typeContainer.style.display = "none";
         typeContainer.innerHTML = "";
         var that = this;
         return type.prepareForRendering()
         .then(function () {
+            typeContainer.classList.add("fields-container");
+            if (!type.isExpanded()) {
+                typeContainer.classList.add("collapsed");
+            } else {
+                typeContainer.classList.remove("collapsed");
+            }
+
             var fieldListContainer = document.createElement("div");
             if (type.isExpanded()) {
                 var filterTextBox = document.createElement("input");
@@ -642,7 +652,10 @@ JsDbg.OnLoad(function() {
 
             typeContainer.appendChild(fieldListContainer);
             return that._renderFieldList(type, fieldListContainer);
-        });
+        })
+        .then(function() {
+            typeContainer.style.display = "";
+        })
     }
 
     function findFieldNameCollisions(fields, type) {
@@ -774,12 +787,6 @@ JsDbg.OnLoad(function() {
             }
 
             var subFieldsContainer = document.createElement("div");
-            subFieldsContainer.classList.add("fields-container");
-            if (!childType.isExpanded()) {
-                subFieldsContainer.classList.add("collapsed");
-            } else {
-                subFieldsContainer.classList.remove("collapsed");
-            }
             return that._renderType(childType, subFieldsContainer)
             .then(function () {
                 fieldContainer.parentNode.insertBefore(subFieldsContainer, fieldContainer.nextSibling);
