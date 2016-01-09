@@ -61,19 +61,16 @@ JsDbg.OnLoad(function() {
         return new DbgObject(this.backingTypes[0].module, this.backingTypes[0].typename, 0)
         .baseTypes()
         .then(function (baseTypes) {
-            if (!that.hasLoadedBaseTypes) {
-                that.hasLoadedBaseTypes = true;
-                baseTypes.forEach(function (baseType) {
-                    that.backingTypes.push(new TypeExplorerSingleType(baseType.module, baseType.typeDescription(), that));
-                })
+            baseTypes.forEach(function (baseType) {
+                that.backingTypes.push(new TypeExplorerSingleType(baseType.module, baseType.typeDescription(), that));
+            })
+
+            return Promise.map(that.backingTypes, function (bt) { return bt.prepareForRendering(); });
+        })
+        .then(function () {
+            if (!that.includeBaseTypes && that.backingTypes[0].fields.length == 0) {
+                that.toggleIncludeBaseTypes();
             }
-            return that.backingTypes;
-        })
-        .then(function (backingTypes) {
-            return Promise.map(backingTypes, function (bt) { return bt.prepareForRendering(); });
-        })
-        .then(function (primaryTypeFields) {
-            that.includeBaseTypes = (primaryTypeFields.length == 0);
             that.isPreparedForRendering = true;
         });
     }
