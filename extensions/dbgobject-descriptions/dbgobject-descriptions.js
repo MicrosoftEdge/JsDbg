@@ -120,7 +120,7 @@ JsDbg.OnLoad(function () {
                     } else if (x.isPointer()) {
                         return Promise.as(x.deref())
                         .then(function (dereferenced) {
-                            return dereferenced.htmlTypeDescription() + " " + dereferenced.ptr();
+                            return dereferenced.ptr();
                         });
                     } else {
                         return x.isEnum()
@@ -132,7 +132,7 @@ JsDbg.OnLoad(function () {
                             }
                         })
                         .then(null, function () {
-                            return x.htmlTypeDescription() + " " + x.ptr();
+                            return x.ptr();
                         })
                     }
                 };
@@ -150,7 +150,7 @@ JsDbg.OnLoad(function () {
                     } else if (obj.isNull()) {
                         return null;
                     } else {
-                        return obj.typename + " " + obj.ptr();
+                        return obj.ptr();
                     }
                 }); 
             }

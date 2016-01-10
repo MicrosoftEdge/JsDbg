@@ -1,0 +1,6 @@
+{
+    "name": "dbgobject-inspector",
+    "headless": true,
+    "dependencies": ["dbgobject", "type-explorer"],
+    "includes": ["dbgobject-inspector.js", "dbgobject-inspector.css"]
+}

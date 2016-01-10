@@ -42,6 +42,11 @@
     flex-shrink:0.001;
 }
 
+.type-explorer .rendering {
+    flex-grow:1;
+    text-align: right;
+}
+
 .type-explorer hr {
     border-width:1px;
     border-color:#ccc;

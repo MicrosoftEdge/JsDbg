@@ -450,6 +450,7 @@ JsDbg.OnLoad(function() {
 
         this.container = document.createElement("div");
         explorerContainer.appendChild(this.container);
+        this.hasRequestedRerender = false;
 
         var that = this;
         return UserDbgObjectExtensions.EnsureLoaded()
@@ -467,8 +468,10 @@ JsDbg.OnLoad(function() {
         this.hasRequestedRerender = true;
         var that = this;
         window.requestAnimationFrame(function () {
-            that.hasRequestedRerender = false;
-            that._renderType(that.rootType, that.container);
+            if (that.hasRequestedRerender) {
+                that.hasRequestedRerender = false;
+                that._renderType(that.rootType, that.container);
+            }
         });
     }
 
@@ -544,6 +547,14 @@ JsDbg.OnLoad(function() {
                 });
             }
         }
+    }
+
+    TypeExplorerController.prototype.allowFieldSelection = function() {
+        return !!this.options.onFieldChange;
+    }
+
+    TypeExplorerController.prototype.allowFieldRendering = function() {
+        return !this.dbgObject.isNull();
     }
 
     TypeExplorerController.prototype._notifyFieldChange = function(field, changeType) {
@@ -718,14 +729,16 @@ JsDbg.OnLoad(function() {
             fieldContainer.classList.remove("filtered");
         }
 
-        var input = document.createElement("input");
-        fieldContainer.appendChild(input);
-        input.type = "checkbox";
-        input.checked = field.isEnabled;
-        var that = this;
-        input.addEventListener("change", function () {
-            field.setIsEnabled(input.checked);
-        });
+        if (this.allowFieldSelection()) {
+            var input = document.createElement("input");
+            fieldContainer.appendChild(input);
+            input.type = "checkbox";
+            input.checked = field.isEnabled;
+            input.addEventListener("change", function () {
+                field.setIsEnabled(input.checked);
+            });
+        }
+
         var fieldNameContainer = document.createElement("span");
         fieldNameContainer.classList.add("field-name");
 
@@ -771,12 +784,40 @@ JsDbg.OnLoad(function() {
             deleteButton.addEventListener("click", function() { field.delete(); });
         }
 
-        if (field.childType == null || renderingType.isFiltered(field) || !areAllTypesExpanded) {
-            return Promise.as(null);
+        var renderingPromise = Promise.as(null);
+        if (this.allowFieldRendering()) {
+            var rendering = document.createElement("div");
+            rendering.classList.add("rendering");
+            fieldContainer.appendChild(rendering);
+            renderingPromise = field.getNestedField(this.dbgObject, fieldContainer)
+            .then(function (fieldValue) {
+                if (fieldValue instanceof DbgObject) {
+                    return fieldValue.desc();
+                } else if (fieldValue instanceof Node) {
+                    rendering.appendChild(fieldValue);
+                    return undefined;
+                } else {
+                    return fieldValue;
+                }
+            })
+            .then(function (desc) {
+                if (desc !== undefined) {
+                    rendering.innerHTML = desc;
+                }
+            }, function (err) {
+                rendering.innerHTML = err;
+            })
         }
 
+        if (field.childType == null || renderingType.isFiltered(field) || !areAllTypesExpanded) {
+            return renderingPromise;
+        }
+
+        var that = this;
         var subFieldsContainer = document.createElement("div");
-        return that._renderType(field.childType, subFieldsContainer)
+        return renderingPromise.then(function() {
+            return that._renderType(field.childType, subFieldsContainer);
+        })
         .then(function () {
             fieldContainer.parentNode.insertBefore(subFieldsContainer, fieldContainer.nextSibling);
 

@@ -826,12 +826,12 @@ JsDbg.OnLoad(function() {
         ]
     }
     DbgObject.prototype.isType = function(type) {
-        if (this.typename == type) {
+        if (this.typeDescription() == type) {
             return Promise.as(true);
         } else {
             return this.baseTypes()
             .then(function (baseTypes) {
-                var matchingBaseTypes = baseTypes.filter(function (baseType) { return baseType.typename == type; });
+                var matchingBaseTypes = baseTypes.filter(function (baseType) { return baseType.typeDescription() == type; });
                 return (matchingBaseTypes.length > 0);
             })
         }

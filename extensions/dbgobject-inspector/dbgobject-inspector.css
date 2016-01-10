@@ -1,0 +1,12 @@
+.dbgobject-inspector > .drop-down {
+    display:inline;
+    font-family:Segoe UI;
+    position:absolute;
+    border:thin solid #eee;
+    background:white;
+    z-index:20;
+    padding:1em 1em 1em 0;
+    max-width:500px;
+    max-height:300px;
+    overflow-y:auto;
+}
