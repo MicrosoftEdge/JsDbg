@@ -66,6 +66,8 @@ var MemoryCache = (function() {
     function extract(view, index) {
         if (view instanceof Uint64Viewer) {
             return view.extract(index);
+        } else if (view instanceof Float32Array || view instanceof Float64Array) {
+            return view[index];
         } else {
             return bigInt(view[index]);
         }
