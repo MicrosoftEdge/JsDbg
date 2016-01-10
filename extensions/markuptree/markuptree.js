@@ -314,6 +314,10 @@ JsDbg.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddTypeDescription(MSHTML.Module, "CDOMTextNode", "Text", false, UserEditableFunctions.Create(function (textNode) {
+        return textNode.f("textData.m_pT").desc("Text");
+    }))
+
     MarkupTree = {
         Name: "MarkupTree",
         RootType: "CDoc",

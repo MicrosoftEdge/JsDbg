@@ -99,7 +99,7 @@ JsDbg.OnLoad(function () {
         });
     }
     
-    function getTypeDescription(dbgObject) {
+    function getDefaultTypeDescription(dbgObject, element) {
         if (dbgObject.isNull()) {
             return Promise.as(null);
         }
@@ -140,7 +140,9 @@ JsDbg.OnLoad(function () {
 
             var description = function(obj) {
                 return Promise.as(obj)
-                .then(customDescription)
+                .then(function (obj) {
+                    return customDescription(obj, element);
+                })
                 .then(null, function(err) {
                     if (hasCustomDescription) {
                         // The custom description provider had an error.
@@ -196,7 +198,18 @@ JsDbg.OnLoad(function () {
             return html + "Currently registered types with descriptions: <ul>" + loadedDescriptionTypes.join("") + "</ul>";
         }
     }
-    DbgObject.prototype.desc = function() {
-        return getTypeDescription(this);
+    DbgObject.prototype.desc = function(name, element) {
+        if (name === undefined || name === null) {
+            return getDefaultTypeDescription(this, element);
+        } else {
+            var that = this;
+            return registeredDescriptions.getExtensionIncludingBaseTypes(this, name)
+            .then(function (result) {
+                if (result == null) {
+                    throw new Error("There was no description \"" + name + "\" on " + that.typeDescription());
+                }
+                return Promise.as(result.extension.getter(result.dbgObject, element));
+            })
+        }
     }
 });
