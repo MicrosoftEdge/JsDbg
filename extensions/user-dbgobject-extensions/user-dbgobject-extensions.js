@@ -40,7 +40,7 @@ JsDbg.OnLoad(function() {
                         for (var key in results) {
                             var f = new EditableDbgObjectExtension();
                             f.deserialize(key, results[key]);
-                            f.realizeExtension();
+                            f.forceRealization();
                         }
                     }
                     oncomplete();
@@ -55,6 +55,25 @@ JsDbg.OnLoad(function() {
             DbgObject.AddExtendedField(this.module, this.typeName, this.name, this.resultingTypeName, this.editableFunction);
         } else {
             DbgObject.AddTypeDescription(this.module, this.typeName, this.name, false, this.editableFunction);
+        }
+    }
+
+    EditableDbgObjectExtension.prototype.forceRealization = function() {
+        try {
+            this.realizeExtension();
+        } catch (ex) {
+            // Try removing one with the same name.
+            try {
+                if (this.resultingTypeName != null) {
+                    DbgObject.RemoveExtendedField(this.module, this.typeName, this.name);
+                } else {
+                    DbgObject.RemoveTypeDescription(this.module, this.typeName, this.name);
+                }
+                this.realizeExtension();
+                console.log("The user-created DbgObject extension " + this.typeName + "." + this.name + " conflicted with an existing extension.");
+            } catch (ex2) {
+                console.log("Unable to load a user-created extension. " + ex2.toString());
+            }
         }
     }
 
