@@ -250,9 +250,10 @@ namespace JsDbg
         private static string TypeKey(string module, string typename) {
             return String.Format("{0}!{1}", module, typename);
         }
-        // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx
+        // C++ fundamental types as per http://msdn.microsoft.com/en-us/library/cc953fe1.aspx + a void type for simplicity.
         public static Dictionary<string, uint> BuiltInTypes = new Dictionary<string, uint>()
             {
+                {"void", 0 },
                 {"bool", 1},
                 {"char", 1},
                 {"__int8", 1},
