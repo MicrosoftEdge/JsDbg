@@ -4,6 +4,35 @@
 // Functionality for retrieiving arrays of DbgObjects.
 JsDbg.OnLoad(function() {
     var registeredArrayTypes = new DbgObject.TypeExtension();
+    DbgObject.ArrayFields = registeredArrayTypes;
+
+    function ArrayField(name, typeName, getter) {
+        this.name = name;
+        this.typeName = typeName;
+        this.getter = getter;
+    }
+
+    ArrayField.prototype.ensureCompatibleResult = function(result, parentDbgObject) {
+        if (!Array.isArray(result)) {
+            throw new Error("The \"" + this.name + "\" array on " + parentDbgObject.typeDescription() + " did not return an array.");
+        }
+
+        var resultType = this.typeName instanceof Function ? this.typeName(parentDbgObject.typename) : this.typeName;
+        if (resultType == null) {
+            return Promise.as(result);
+        }
+
+        var that = this;
+        return Promise.map(result, function (obj) { return obj.isType(resultType); })
+        .then(function (areAllTypes) {
+            var incorrectIndex = areAllTypes.indexOf(false);
+            if (incorrectIndex != -1) {
+                throw new Error("The \"" + that.name + "\" array on " + parentDbgObject.typeDescription() + " was supposed to return an array of " + resultType + " but there was an unrelated " + result[incorrectIndex].typeDescription() + ".")
+            }
+
+            return result;
+        });
+    }
 
     DbgObject._help_AddDynamicArrayType = {
         description: "Registers a type as a dynamic array type and provides a transformation to get the contents as an array.",
@@ -14,7 +43,11 @@ JsDbg.OnLoad(function() {
         ]
     }
     DbgObject.AddDynamicArrayType = function(module, typeNameOrFn, transformation) {
-        return registeredArrayTypes.addExtension(module, typeNameOrFn, "", transformation);
+        return registeredArrayTypes.addExtension(module, typeNameOrFn, "", new ArrayField(null, null, transformation));
+    }
+
+    DbgObject.AddArrayField = function(module, typeNameOrFn, name, resultingTypeNameOrFn, getter) {
+        return registeredArrayTypes.addExtension(module, typeNameOrFn, name, new ArrayField(name, resultingTypeNameOrFn, getter));
     }
 
     DbgObject.prototype._help_array = {
@@ -24,6 +57,20 @@ JsDbg.OnLoad(function() {
     }
     DbgObject.prototype.array = function(count) {
         var that = this;
+        if (typeof count == typeof "") {
+            var name = count;
+            return registeredArrayTypes.getExtensionIncludingBaseTypes(this, name)
+            .then(function (result) {
+                if (result == null) {
+                    throw new Error("There was no array \"" + name + "\" on " + that.typeDescription());
+                }
+                return result.extension.getter(result.dbgObject)
+                .then(function (resultArray) {
+                    return result.extension.ensureCompatibleResult(resultArray, that);
+                })
+            })
+        }
+
         // "count" might be a promise...
         return Promise.as(count)
         .then(function (count) {
@@ -44,7 +91,7 @@ JsDbg.OnLoad(function() {
                 return registeredArrayTypes.getExtensionIncludingBaseTypes(that, "")
                 .then(function (result) {
                     if (result != null) {
-                        return result.extension(result.dbgObject);
+                        return result.extension.getter(result.dbgObject);
                     } else {
                         return undefined;
                     }

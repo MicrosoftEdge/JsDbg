@@ -124,6 +124,11 @@ JsDbg.OnLoad(function() {
         return reverseAndFlatten(this.backingTypes.map(function (backingType) { return backingType.getExtendedFieldsToRender(); }));
     }
 
+    TypeExplorerAggregateType.prototype.getArrayFieldsToRender = function() {
+        console.assert(this.isPreparedForRendering);
+        return reverseAndFlatten(this.backingTypes.map(function (backingType) { return backingType.getArrayFieldsToRender(); }));
+    }
+
     TypeExplorerAggregateType.prototype.getDescriptionsToRender = function() {
         console.assert(this.isPreparedForRendering);
         return reverseAndFlatten(this.backingTypes.map(function (backingType) { return backingType.getDescriptionsToRender(); }));
@@ -200,7 +205,8 @@ JsDbg.OnLoad(function() {
         this.fields = [];
         this.extendedFields = [];
         this.descriptions = [];
-        this.allFieldArrays = [this.fields, this.extendedFields, this.descriptions];
+        this.arrayFields = [];
+        this.allFieldArrays = [this.fields, this.extendedFields, this.arrayFields, this.descriptions];
         this.preparedForRenderingPromise = null;
     }
 
@@ -277,6 +283,7 @@ JsDbg.OnLoad(function() {
 
             that.monitorTypeExtensions(DbgObject.ExtendedFields, "extendedFields");
             that.monitorTypeExtensions(DbgObject.TypeDescriptions, "descriptions");
+            that.monitorTypeExtensions(DbgObject.ArrayFields, "arrayFields");
         });
     }
 
@@ -330,6 +337,10 @@ JsDbg.OnLoad(function() {
         return this.selectFieldsToRender(this.extendedFields);
     }
 
+    TypeExplorerSingleType.prototype.getArrayFieldsToRender = function() {
+        return this.selectFieldsToRender(this.arrayFields);
+    }
+
     TypeExplorerSingleType.prototype.getDescriptionsToRender = function() {
         return this.selectFieldsToRender(this.descriptions);
     }
@@ -353,38 +364,67 @@ JsDbg.OnLoad(function() {
         this.isEnabled = false;
         this.clientContext = {};
         this.childType = null;
+
+        if (fieldTypeName instanceof Function) {
+            fieldTypeName = fieldTypeName(this.parentType.typename);
+        }
         this.setChildType(fieldTypeName);
     }
 
+    TypeExplorerField.prototype.isArray = function() {
+        return this.sourceInParentType == "arrayFields";
+    }
+
     TypeExplorerField.prototype.getNestedField = function(dbgObject, element) {
+        var that = this;
+        function checkType(result) {
+            // Check that the field returned the proper type.
+            if (!(result instanceof DbgObject)) {
+                throw new Error("The field \"" + that.name + "\" did not return a DbgObject, but returned \"" + result + "\"");
+            }
+
+            return result.isType(that.childType.typename())
+            .then(function (isType) {
+                if (!isType) {
+                    throw new Error("The field \"" + that.name + "\" was supposed to be type \"" + that.childType.typename() + "\" but was unrelated type \"" + result.typeDescription() + "\".");
+                } else {
+                    return result;
+                }
+            });
+        }
+
+        function getFromParentDbgObject(parentDbgObject) {
+            parentDbgObject = parentDbgObject.as(that.parentType.typename);
+            if (that.childType == null) {
+                return that.getter(parentDbgObject, element);
+            }
+
+            return that.getter(parentDbgObject)
+            .then(function(result) {
+                if (that.isArray()) {
+                    if (!Array.isArray(result)) {
+                        throw new Error("The array \"" + that.name + "\" did not return an array, but returned \"" + result + "\"");
+                    }
+                    return Promise.map(result, checkType);
+                } else {
+                    return checkType(result);
+                }
+            });
+        }
+
+        function getFromParentResult(parentResult) {
+            if (Array.isArray(parentResult)) {
+                return Promise.map(parentResult, getFromParentResult);
+            } else {
+                return getFromParentDbgObject(parentResult);
+            }
+        }
+
         var parentField = this.parentType.aggregateType.parentField;
         if (parentField == null) {
             return Promise.as(this.getter(dbgObject, element));
         } else {
-            var that = this;
-            return parentField.getNestedField(dbgObject)
-            .then(function(parentDbgObject) {
-                if (that.childType == null) {
-                    return that.getter(parentDbgObject, element);
-                }
-
-                return that.getter(parentDbgObject)
-                .then(function checkType(result) {
-                    // Check that the field returned the proper type.
-                    if (!(result instanceof DbgObject)) {
-                        throw new Error("The field \"" + that.name + "\" did not return a DbgObject, but returned \"" + result + "\"");
-                    }
-
-                    return result.isType(that.childType.typename())
-                    .then(function (isType) {
-                        if (!isType) {
-                            throw new Error("The field \"" + that.name + "\" was supposed to be type \"" + that.childType.typename() + "\" but was unrelated type \"" + result.typeDescription() + "\".");
-                        } else {
-                            return result;
-                        }
-                    });
-                });
-            });
+            return parentField.getNestedField(dbgObject).then(getFromParentResult);
         }
     }
 
@@ -669,8 +709,9 @@ JsDbg.OnLoad(function() {
 
         var fields = type.getFieldsToRender();
         var extendedFields = type.getExtendedFieldsToRender();
+        var arrayFields = type.getArrayFieldsToRender();
         var descriptions = type.getDescriptionsToRender()
-        extendedFields = extendedFields.concat(descriptions);
+        extendedFields = extendedFields.concat(arrayFields).concat(descriptions);
 
         fieldsContainer.innerHTML = "";
 
@@ -743,7 +784,7 @@ JsDbg.OnLoad(function() {
             if (areAllTypesExpanded) {
                 var fieldTypeContainer = document.createElement("span");
                 fieldTypeContainer.classList.add("field-type");
-                fieldTypeContainer.textContent = fieldTypeName;
+                fieldTypeContainer.textContent = fieldTypeName + (field.isArray() ? "[]" : "");
                 fieldContainer.appendChild(fieldTypeContainer);
             }
             fieldContainer.title = fieldTypeName + " " + field.name;

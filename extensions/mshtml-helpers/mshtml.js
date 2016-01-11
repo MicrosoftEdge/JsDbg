@@ -586,6 +586,17 @@ var MSHTML = undefined;
             return arrayStart.array(arrayStart.as("SArrayHeader").idx(-1).f("Length"));
         });
 
+        DbgObject.AddArrayField(
+            moduleName,
+            function (type) { return type.match(/^SArray<.*>$/) != null; },
+            "Items",
+            function (type) { return type.match(/^SArray<(.*)>$/)[1]; },
+            function (array) {
+                var arrayStart = array.f("_array");
+                return arrayStart.array(arrayStart.as("SArrayHeader").idx(-1).f("Length"));
+            }
+        );
+
         DbgObject.AddDynamicArrayType(moduleName, function(type) { return type.match(/^Layout::PatchableArray<.*>$/) != null; }, function(array) {
             return array.f("data.Array").array();
         });
@@ -598,6 +609,22 @@ var MSHTML = undefined;
             var innerType = array.typeDescription().match(/^(CDataAry|CPtrAry)<(.*)>$/)[2];
             return array.f("_pv").as(innerType).array(array.f("_c"));
         });
+
+        DbgObject.AddArrayField(
+            moduleName, 
+            function(type) { return type.match(/^(CDataAry|CPtrAry)<.*>$/) != null; },
+            "Items",
+            function(type) { return type.match(/^(CDataAry|CPtrAry)<(.*)>$/)[2]; },
+            function (dbgObject) {
+                var innerType = dbgObject.typeDescription().match(/^(CDataAry|CPtrAry)<(.*)>$/)[2];
+                return dbgObject.f("_pv").as(innerType).array(dbgObject.f("_c"))
+                .then(function (x) {
+                    debugger;
+                    console.log(x);
+                    return x;
+                })
+            }
+        );
 
         MSHTML = {
             _help : {

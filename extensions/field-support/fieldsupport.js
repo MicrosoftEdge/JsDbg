@@ -221,10 +221,14 @@ var FieldSupport = (function() {
                     return obj.desc();
                 }
             } else if (Array.isArray(obj)) {
-                return Promise.map(obj, getDescs)
-                .then(function (array) {
-                    return array.join(", ").toString();
-                });
+                if (obj.length == 0) {
+                    return undefined;
+                } else {
+                    return Promise.map(obj, getDescs)
+                    .then(function (array) {
+                        return "[" + array.join(", ").toString() + "]";
+                    });
+                }
             } else {
                 return obj;
             }
