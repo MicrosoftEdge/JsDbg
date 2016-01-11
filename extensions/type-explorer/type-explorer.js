@@ -272,7 +272,7 @@ JsDbg.OnLoad(function() {
             fields.forEach(function (field) {
                 var dereferencedType = field.value.typeDescription().replace(/\**$/, "");
                 var getter = function(dbgObject) { return dbgObject.f(field.name); }
-                that.fields.push(new TypeExplorerField(field.name, dereferencedType, getter, that, getter, "fields"));
+                that.fields.push(new TypeExplorerField(field.name, dereferencedType, getter, that, "fields"));
             })
 
             that.monitorTypeExtensions(DbgObject.ExtendedFields, "extendedFields");
@@ -518,11 +518,7 @@ JsDbg.OnLoad(function() {
                 return that._enableRemainingPath(obj.childType, path, currentIndex);
             } else if (obj instanceof TypeExplorerSingleType) {
                 var collection = path[currentIndex];
-                if (collection == "fields") {
-                    collection = obj.getFields();
-                } else {
-                    collection = obj[collection];
-                }
+                collection = obj[collection];
                 currentIndex++;
 
                 return Promise.as(collection)
