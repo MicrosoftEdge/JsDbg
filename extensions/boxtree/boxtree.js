@@ -242,19 +242,19 @@ JsDbg.OnLoad(function() {
         })
     }));
 
-    DbgObject.AddArrayField(MSHTML.Module, "Layout::BoxItem", "Items", "Layout::BoxItemDataMembers", function (flowItem) {
+    DbgObject.AddArrayField(MSHTML.Module, "Layout::BoxItem", "Items", "Layout::BoxItemDataMembers", UserEditableFunctions.Create(function (flowItem) {
         return flowItem.latestPatch().f("data").list(function (current) {
             return current.f("next").latestPatch().f("data");
         })
-    });
+    }));
 
-    DbgObject.AddArrayField(MSHTML.Module, "Layout::FlowBox", "FlowItems", "Layout::BoxItemDataMembers", function (flowBox) {
+    DbgObject.AddArrayField(MSHTML.Module, "Layout::FlowBox", "FlowItems", "Layout::BoxItemDataMembers", UserEditableFunctions.Create(function (flowBox) {
         return flowBox.f("flow").array("Items");
-    });
+    }));
 
-    DbgObject.AddArrayField(MSHTML.Module, "Layout::LineBox", "Runs", "Layout::LineBox::SRenderSafeTextBlockRunAndCp", function (lineBox) {
+    DbgObject.AddArrayField(MSHTML.Module, "Layout::LineBox", "Runs", "Layout::LineBox::SRenderSafeTextBlockRunAndCp", UserEditableFunctions.Create(function (lineBox) {
         return lineBox.vcast().f("Runs").array(lineBox.f("numberOfRuns"));
-    })
+    }));
 
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LineBox", "Text", false, UserEditableFunctions.Create(function (lineBox) {
         return Promise
