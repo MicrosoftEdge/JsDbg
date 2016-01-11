@@ -13,11 +13,11 @@ JsDbg.OnLoad(function() {
         })
 
         DbgObjectTree.AddType("nodes", MSHTML.Module, "Tree::CArrayTextNodeCounter", null, function(object) {
-            return object.array();
+            return object.array("Items");
         })
 
         DbgObjectTree.AddType("counters", MSHTML.Module, "CCPIndexedArray<CElementCounter>", null, function(object) {
-            return new PromisedDbgObject.Array(object.f("_aItems").array()).f("data");
+            return new PromisedDbgObject.Array(object.f("_aItems").array("Items")).f("data");
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CCPIndexedArray<CElementCounter>::SArrayItem", null, function (object) {
@@ -29,7 +29,7 @@ JsDbg.OnLoad(function() {
         }, function (object) { return object.f("_bstrName").string(); });
 
         DbgObjectTree.AddType("mutations", MSHTML.Module, "CCPIndexedArray<CCounterValue>", null, function(object) {
-            return new PromisedDbgObject.Array(object.f("_aItems").array()).f("data");
+            return new PromisedDbgObject.Array(object.f("_aItems").array("Items")).f("data");
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CCounterValue", null, null, function (object) {
