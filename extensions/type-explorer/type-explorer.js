@@ -399,7 +399,7 @@ JsDbg.OnLoad(function() {
                 return that.getter(parentDbgObject, element);
             }
 
-            return that.getter(parentDbgObject)
+            return Promise.as(that.getter(parentDbgObject))
             .then(function(result) {
                 if (that.isArray()) {
                     if (!Array.isArray(result)) {
@@ -422,7 +422,7 @@ JsDbg.OnLoad(function() {
 
         var parentField = this.parentType.aggregateType.parentField;
         if (parentField == null) {
-            return Promise.as(this.getter(dbgObject, element));
+            return Promise.as(dbgObject).then(getFromParentDbgObject);
         } else {
             return parentField.getNestedField(dbgObject).then(getFromParentResult);
         }
