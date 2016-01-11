@@ -6,11 +6,12 @@ var UserDbgObjectExtensions = undefined;
 JsDbg.OnLoad(function() {
     var persistentStore = Catalog.Load("UserDbgObjectExtensions");
 
-    function EditableDbgObjectExtension(isPersisted, module, typeName, name, resultingTypeName, editableFunction, creationContext) {
+    function EditableDbgObjectExtension(isPersisted, module, typeName, name, resultingTypeName, isArray, editableFunction, creationContext) {
         this.isPersisted = isPersisted;
         this.uniqueId = "UserField-" + (new Date() - 0) + "-" + Math.round(Math.random() * 1000000)
         this.module = module;
         this.typeName = typeName;
+        this.isArray = isArray;
         this.name = name;
         this.resultingTypeName = resultingTypeName;
         this.editableFunction = editableFunction;
@@ -26,8 +27,8 @@ JsDbg.OnLoad(function() {
         }
     }
 
-    EditableDbgObjectExtension.Create = function(module, typename, name, resultingTypeName, editableFunction, creationContext) {
-        var editableExtension = new EditableDbgObjectExtension(/*isPersisted*/true, module, typename, name, resultingTypeName, editableFunction, creationContext);
+    EditableDbgObjectExtension.Create = function(module, typename, name, resultingTypeName, isArray, editableFunction, creationContext) {
+        var editableExtension = new EditableDbgObjectExtension(/*isPersisted*/true, module, typename, name, resultingTypeName, isArray, editableFunction, creationContext);
         editableExtension.realizeExtension();
     }
 
@@ -51,7 +52,9 @@ JsDbg.OnLoad(function() {
     }
 
     EditableDbgObjectExtension.prototype.realizeExtension = function() {
-        if (this.resultingTypeName != null) {
+        if (this.isArray) {
+            DbgObject.AddArrayField(this.module, this.typeName, this.name, this.resultingTypeName, this.editableFunction);
+        } else if (this.resultingTypeName != null) {
             DbgObject.AddExtendedField(this.module, this.typeName, this.name, this.resultingTypeName, this.editableFunction);
         } else {
             DbgObject.AddTypeDescription(this.module, this.typeName, this.name, false, this.editableFunction);
@@ -64,7 +67,9 @@ JsDbg.OnLoad(function() {
         } catch (ex) {
             // Try removing one with the same name.
             try {
-                if (this.resultingTypeName != null) {
+                if (this.isArray) {
+                    DbgObject.RemoveArrayField(this.module, this.typeName, this.name);
+                } else if (this.resultingTypeName != null) {
                     DbgObject.RemoveExtendedField(this.module, this.typeName, this.name);
                 } else {
                     DbgObject.RemoveTypeDescription(this.module, this.typeName, this.name);
@@ -82,7 +87,9 @@ JsDbg.OnLoad(function() {
             UserEditableFunctions.RemoveListener(this.editableFunction, this.editableFunctionListener);
         }
 
-        if (this.resultingTypeName) {
+        if (this.isArray) {
+            DbgObject.RemoveArrayField(this.module, this.typeName, this.name);
+        } else if (this.resultingTypeName) {
             DbgObject.RemoveExtendedField(this.module, this.typeName, this.name);
         } else {
             DbgObject.RemoveTypeDescription(this.module, this.typeName, this.name);
@@ -103,6 +110,7 @@ JsDbg.OnLoad(function() {
                 typeName: this.typeName,
                 name: this.name,
                 resultingTypeName: this.resultingTypeName,
+                isArray: this.isArray,
                 editableFunction: UserEditableFunctions.Serialize(this.editableFunction)
             };
             var uniqueId = this.uniqueId;
@@ -119,6 +127,7 @@ JsDbg.OnLoad(function() {
         this.typeName = serialized.typeName;
         this.name = serialized.name;
         this.resultingTypeName = serialized.resultingTypeName;
+        this.isArray = serialized.isArray;
         this.editableFunction = UserEditableFunctions.Deserialize(serialized.editableFunction);
         this.editableFunction.editableDbgObjectExtension = this;
         this.creationContext = undefined;
@@ -126,7 +135,7 @@ JsDbg.OnLoad(function() {
         UserEditableFunctions.AddListener(this.editableFunction, this.editableFunctionListener);
     }
 
-    EditableDbgObjectExtension.prototype.update = function(module, typeName, name, resultingTypeName) {
+    EditableDbgObjectExtension.prototype.update = function(module, typeName, name, resultingTypeName, isArray) {
         var needsUpdate = false;
         if (this.module != module) {
             needsUpdate = true;
@@ -152,8 +161,14 @@ JsDbg.OnLoad(function() {
             this.resultingTypeName = resultingTypeName;
         }
 
+        if (this.isArray != isArray) {
+            throw new Error("EditableDbgObjectExtension does not support changing extension types.");
+        }
+
         if (needsUpdate) {
-            if (this.resultingTypeName != null) {
+            if (this.isArray) {
+                DbgObject.UpdateArrayField(this.module, this.typeName, oldName, this.name, this.resultingTypeName);
+            } else if (this.resultingTypeName != null) {
                 DbgObject.UpdateExtendedField(this.module, this.typeName, oldName, this.name, this.resultingTypeName);
             } else {
                 DbgObject.RenameTypeDescription(this.module, this.typeName, oldName, this.name);
@@ -168,7 +183,7 @@ JsDbg.OnLoad(function() {
         EditableExceptHasType: 2
     };
 
-    function beginEditing(editability, typename, fieldName, resultingTypeName, editableFunction, onSave) {
+    function beginEditing(editability, typename, fieldName, resultingTypeName, isArray, editableFunction, onSave) {
         // Initialize the modal editor.
         var backdrop = document.createElement("div");
         backdrop.classList.add("field-editor");
@@ -183,6 +198,7 @@ JsDbg.OnLoad(function() {
         <tr><td>Type:</td><td class=\"type\"></td></tr>\
         <tr><td>Name:</td><td><input class=\"name\" type=\"text\"></td></tr>\
         <tr><td>Result Type:</td><td><input class=\"has-result-type\" type=checkbox><input class=\"result-type\" type=\"text\"></td></tr>\
+        <tr><td>Array:</td><td><input class=\"is-array\" type=checkbox></td></tr>\
         <tr><td>Documentation:</td><td><div class=\"documentation\"></div></td></tr>\
         </table>\
         <div class=\"description\"></div>\
@@ -209,12 +225,19 @@ JsDbg.OnLoad(function() {
         hasResultTypeCheckBox.checked = resultingTypeName != null;
         var resultTypeInput = editor.querySelector(".result-type");
         resultTypeInput.value = resultingTypeName;
+        var resultIsArray = editor.querySelector(".is-array");
+        resultIsArray.checked = isArray;
 
         var descriptionText = editor.querySelector(".description");
         var synchronizeHasResultType = function() {
             resultTypeInput.disabled = !hasResultTypeCheckBox.checked;
+            resultIsArray.disabled = !hasResultTypeCheckBox.checked;
             if (hasResultTypeCheckBox.checked) {
-                descriptionText.textContent = "Return a DbgObject (or a promise to a DbgObject) with type \"" + resultTypeInput.value + "\".";
+                if (resultIsArray.checked) {
+                    descriptionText.textContent = "Return an array of DbgObjects (or a promise to an array of DbgObjects) with type \"" + resultTypeInput.value + "\".";
+                } else {
+                    descriptionText.textContent = "Return a DbgObject (or a promise to a DbgObject) with type \"" + resultTypeInput.value + "\".";
+                }
             } else {
                 descriptionText.textContent = "Return a DbgObject, an HTML string, an HTML node, modify \"element\", or return a promise.";
             }
@@ -229,13 +252,16 @@ JsDbg.OnLoad(function() {
         }
         hasResultTypeCheckBox.addEventListener("change", synchronizeHasResultType);
         resultTypeInput.addEventListener("input", synchronizeHasResultType);
+        resultIsArray.addEventListener("change", synchronizeHasResultType);
         synchronizeHasResultType();
 
         if (editability != FieldEditability.FullyEditable) {
             if (resultingTypeName == null) {
                 hasResultTypeCheckBox.parentNode.parentNode.style.display = "none";
+                resultIsArray.parentNode.parentNode.style.display = "none";
             } else {
                 hasResultTypeCheckBox.style.display = "none";
+                resultIsArray.disabled = "true";
             }
         }
 
@@ -268,7 +294,13 @@ JsDbg.OnLoad(function() {
 
         editor.querySelector(".save").addEventListener("click", function() {
             try {
-                onSave(typename, nameInput.value, hasResultTypeCheckBox.checked ? resultTypeInput.value : null, editableFunction);
+                onSave(
+                    typename, 
+                    nameInput.value, 
+                    hasResultTypeCheckBox.checked ? resultTypeInput.value : null,
+                    hasResultTypeCheckBox.checked ? resultIsArray.checked : false,
+                    editableFunction
+                );
                 functionEditContext.commit();
                 dismiss();
             } catch (ex) {
@@ -297,13 +329,19 @@ JsDbg.OnLoad(function() {
         // Ensure every DbgObject extension has an EditableDbgObjectExtension attached to it.
         attachEditableExtensions(DbgObject.ExtendedFields, function (module, type, name, extension) {
             if (UserEditableFunctions.IsEditable(extension.getter) && !isUserExtension(extension.getter)) {
-                extension.getter.editableDbgObjectExtension = new EditableDbgObjectExtension(/*isPersisted*/false, module, type, name, extension.typeName, extension.getter);
+                extension.getter.editableDbgObjectExtension = new EditableDbgObjectExtension(/*isPersisted*/false, module, type, name, extension.typeName, /*isArray*/false, extension.getter);
             }
         });
 
         attachEditableExtensions(DbgObject.TypeDescriptions, function (module, type, name, extension) {
             if (UserEditableFunctions.IsEditable(extension.getter) && !isUserExtension(extension.getter)) {
-                extension.getter.editableDbgObjectExtension = new EditableDbgObjectExtension(/*isPersisted*/false, module, type, name, null, extension.getter);
+                extension.getter.editableDbgObjectExtension = new EditableDbgObjectExtension(/*isPersisted*/false, module, type, name, null, /*isArray*/false, extension.getter);
+            }
+        });
+
+        attachEditableExtensions(DbgObject.ArrayFields, function (module, type, name, extension) {
+            if (UserEditableFunctions.IsEditable(extension.getter) && !isUserExtension(extension.getter)) {
+                extension.getter.editableDbgObjectExtension = new EditableDbgObjectExtension(/*isPersisted*/false, module, type, name, extension.typeName, /*isArray*/true, extension.getter);
             }
         });
 
@@ -321,12 +359,12 @@ JsDbg.OnLoad(function() {
 
         var editableExtension = editableFunction.editableDbgObjectExtension;
         var editability = (editableExtension.isPersisted ? FieldEditability.EditableExceptHasType : FieldEditability.NotEditable);
-        beginEditing(editability, editableExtension.typeName, editableExtension.name, editableExtension.resultingTypeName, editableFunction, onSave);
+        beginEditing(editability, editableExtension.typeName, editableExtension.name, editableExtension.resultingTypeName, editableExtension.isArray, editableFunction, onSave);
     }
 
-    function onSave(typeName, name, resultingTypeName, editableFunction) {
+    function onSave(typeName, name, resultingTypeName, isArray, editableFunction) {
         var editableExtension = editableFunction.editableDbgObjectExtension;
-        editableExtension.update(editableExtension.module, typeName, name, resultingTypeName);
+        editableExtension.update(editableExtension.module, typeName, name, resultingTypeName, isArray);
     }
 
     function createExtension(module, typeName, creationContext) {
@@ -335,10 +373,11 @@ JsDbg.OnLoad(function() {
             FieldEditability.FullyEditable, 
             typeName, 
             "", 
-            null, 
+            null,
+            /*isArray*/false,
             newGetter,
-            function onSave(typename, name, resultingTypeName, editableFunction) {
-                EditableDbgObjectExtension.Create(module, typename, name, resultingTypeName, editableFunction, creationContext);
+            function onSave(typename, name, resultingTypeName, isArray, editableFunction) {
+                EditableDbgObjectExtension.Create(module, typename, name, resultingTypeName, isArray, editableFunction, creationContext);
             }
         );
     }

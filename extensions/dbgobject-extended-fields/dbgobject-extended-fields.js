@@ -128,7 +128,7 @@ JsDbg.OnLoad(function () {
         }
 
         registeredFields.renameExtension(module, typeName, oldFieldName, newFieldName);
-        var extension = registeredFields.getExtension(new DbgObject(module, typeName, 0), newFieldName);
+        var extension = registeredFields.getExtension(module, typeName, newFieldName);
         if (extension.typeName != newFieldType) {
             extension.typeName = newFieldType;
             registeredFields.notifyListeners(module, typeName, newFieldName, extension, "typechange", newFieldType);

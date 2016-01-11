@@ -23,7 +23,7 @@ JsDbg.OnLoad(function() {
         }
 
         var that = this;
-        return Promise.map(result, function (obj) { return obj.isType(resultType); })
+        return Promise.map(Promise.join(result), function (obj) { return obj.isType(resultType); })
         .then(function (areAllTypes) {
             var incorrectIndex = areAllTypes.indexOf(false);
             if (incorrectIndex != -1) {
@@ -49,6 +49,19 @@ JsDbg.OnLoad(function() {
         return registeredArrayTypes.addExtension(module, typeNameOrFn, name, new ArrayField(name, resultingTypeNameOrFn, getter));
     }
 
+    DbgObject.RemoveArrayField = function(module, typeNameOrFn, name) {
+        return registeredArrayTypes.removeExtension(module, typeNameOrFn, name);
+    }
+
+    DbgObject.UpdateArrayField = function(module, typeNameOrFn, oldName, newName, newResultingTypeNameOrFn) {
+        registeredArrayTypes.renameExtension(module, typeNameOrFn, oldName, newName);
+        var extension = registeredArrayTypes.getExtension(module, typeNameOrFn, newName);
+        if (extension.typeName != newResultingTypeNameOrFn) {
+            extension.typeName = newResultingTypeNameOrFn;
+            registeredArrayTypes.notifyListeners(module, typeNameOrFn, newName, extension, "typechange", newResultingTypeNameOrFn);
+        }
+    }
+
     DbgObject.prototype._help_array = {
         description: "Given a DbgObject that represents an array, retrieves an array of corresponding DbgObjects.",
         returns: "A promise to an array of DbgObjects.  If the array is an array of pointers, the pointers will be dereferenced.",
@@ -63,7 +76,7 @@ JsDbg.OnLoad(function() {
                 if (result == null) {
                     throw new Error("There was no array \"" + name + "\" on " + that.typeDescription());
                 }
-                return result.extension.getter(result.dbgObject)
+                return Promise.as(result.extension.getter(result.dbgObject))
                 .then(function (resultArray) {
                     return result.extension.ensureCompatibleResult(resultArray, result.dbgObject);
                 })

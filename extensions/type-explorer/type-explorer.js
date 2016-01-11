@@ -380,7 +380,11 @@ JsDbg.OnLoad(function() {
         function checkType(result) {
             // Check that the field returned the proper type.
             if (!(result instanceof DbgObject)) {
-                throw new Error("The field \"" + that.name + "\" did not return a DbgObject, but returned \"" + result + "\"");
+                var resultString = result.toString();
+                if (Array.isArray(result)) {
+                    resultString = "an array";
+                }
+                throw new Error("The field \"" + that.name + "\" should have returned a DbgObject but instead returned " + resultString + ".");
             }
 
             return result.isType(that.childType.typename())
@@ -405,7 +409,7 @@ JsDbg.OnLoad(function() {
                     if (!Array.isArray(result)) {
                         throw new Error("The array \"" + that.name + "\" did not return an array, but returned \"" + result + "\"");
                     }
-                    return Promise.map(result, checkType);
+                    return Promise.map(Promise.join(result), checkType);
                 } else {
                     return checkType(result);
                 }
