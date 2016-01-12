@@ -190,23 +190,36 @@ JsDbg.OnLoad(function() {
 
             // During the CTreeNode/CElement merger the LOOKASIDE_SUBORDINATE enum value moved around.  Currently, it's on the CTreeNode type.
             var lookasideSubordinatePromise = DbgObject.constantValue(MSHTML.Module, "CTreeNode", "LOOKASIDE_SUBORDINATE")
-            .then(null, function() {
-                // Two additional cases to try: first (in reverse chronological order), when the CElement lookasides were offset by CTreeNode::LOOKASIDE_NODE_NUMBER
-                return DbgObject.constantValue(MSHTML.Module, "CTreeNode", "LOOKASIDE_NODE_NUMBER")
-                .then(
-                    // Success
-                    function(lookasideNodeNumber) {
-                        // Add this number to the CElement::LOOKASIDE_SUBORDINATE
-                        return DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE", "LOOKASIDE_SUBORDINATE")
-                        .then(function(lookasideSubordinate) {
-                            return lookasideSubordinate + lookasideNodeNumber;
-                        });
-                    },
-                    // Failed, try second case when CElement had a LOOKASIDE_SUBORDINATE value that could be used directly
-                    function() {
-                        return DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE", "LOOKASIDE_SUBORDINATE");
-                    }
-                );
+            .then(function (index) {
+                return {
+                    offset:0,
+                    index:index
+                };
+            }, function() {
+                // The index is not on the CTreeNode, so it must be on the CElement.
+                return DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE", "LOOKASIDE_SUBORDINATE")
+                .then(function (lookasideSubordinate) {
+                    // Two additional cases to try: first (in reverse chronological order), when the CElement lookasides were offset by CTreeNode::LOOKASIDE_NODE_NUMBER.
+                    // We identify this case by the presence of the _dwNodeFlags1 field which was added in inetcore 1563867.
+                    return (new DbgObject("edgehtml", "CTreeNode", 0)).f("_dwNodeFlags1")
+                    .then(
+                        function () {
+                            return DbgObject.constantValue(MSHTML.Module, "CTreeNode", "LOOKASIDE_NODE_NUMBER")
+                            .then(function(lookasideNodeNumber) {
+                                // Add this number to the CElement::LOOKASIDE_SUBORDINATE
+                                return {
+                                    offset: lookasideNodeNumber,
+                                    index: lookasideSubordinate
+                                };
+                            });
+                        }, function () {
+                            return {
+                                offset:0,
+                                index: lookasideSubordinate
+                            }
+                        }
+                    )
+                })
             });
 
             return Promise.join([
@@ -217,11 +230,12 @@ JsDbg.OnLoad(function() {
             .then(function (results) {
                 var element = results[0];
                 var lookasides = results[1];
-                var lookasideSubordinate = results[2];
+                var lookasideSubordinateOffset = results[2].offset;
+                var lookasideSubordinateIndex = results[2].index;
 
-                if (lookasides & (1 << lookasideSubordinate)) {
+                if (lookasides & (1 << lookasideSubordinateIndex)) {
                     var hashtable = MSHTML.GetDocFromMarkup(MSHTML.GetMarkupFromElement(element)).f("_HtPvPv");
-                    return MSHTML.GetObjectLookasidePointer(element, lookasideSubordinate, hashtable)
+                    return MSHTML.GetObjectLookasidePointer(element, lookasideSubordinateOffset + lookasideSubordinateIndex, hashtable)
                     .then(function (result) {
                         if (!result.isNull()) {
                             return MSHTML.GetMarkupFromElement(result.as("CElement"))
