@@ -27,7 +27,7 @@ JsDbg.OnLoad(function() {
         var that = this;
         return Promise.as(null)
         .then(function () {
-            var extension = that.getExtension(dbgObject, name);
+            var extension = that.getExtension(dbgObject.module, dbgObject.typename, name);
             if (extension != null) {
                 return extension;
             }
@@ -37,7 +37,7 @@ JsDbg.OnLoad(function() {
             .then(function (baseTypes) {
                 for (var i = 0; i < baseTypes.length; ++i) {
                     dbgObject = baseTypes[i];
-                    var baseExtension = that.getExtension(dbgObject, name);
+                    var baseExtension = that.getExtension(dbgObject.module, dbgObject.typename, name);
                     if (baseExtension != null) {
                         return baseExtension;
                     }
@@ -58,19 +58,28 @@ JsDbg.OnLoad(function() {
         });
     }
 
-    DbgObjectTypeExtension.prototype.getExtension = function (dbgObject, name) {
-        var key = typeKey(dbgObject.module, dbgObject.typename);
-        if (key in this.types) {
-            var collection = this.types[key];
-            if (name in collection) {
-                return collection[name];
+    DbgObjectTypeExtension.prototype.getExtension = function (module, type, name) {
+        if (typeof type == typeof "") {
+            var key = typeKey(module, type);
+            if (key in this.types) {
+                var collection = this.types[key];
+                if (name in collection) {
+                    return collection[name];
+                }
             }
-        }
 
-        for (var i = 0; i < this.functions.length; ++i) {
-            var entry = this.functions[i];
-            if (entry.module == dbgObject.module && entry.type(dbgObject.typename) && entry.name == name) {
-                return entry.extension;
+            for (var i = 0; i < this.functions.length; ++i) {
+                var entry = this.functions[i];
+                if (entry.module == module && entry.type(type) && entry.name == name) {
+                    return entry.extension;
+                }
+            }
+        } else {
+            for (var i = 0; i < this.functions.length; ++i) {
+                var entry = this.functions[i];
+                if (entry.module == module && entry.type == type && entry.name == name) {
+                    return entry.extension;
+                }
             }
         }
 
@@ -237,7 +246,7 @@ JsDbg.OnLoad(function() {
         }
 
         this.functions.forEach(function (entry) {
-            results.push({module: module, type: entry.type});
+            results.push({module: entry.module, type: entry.type});
         });
 
         return results;

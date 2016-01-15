@@ -93,7 +93,7 @@ JsDbg.OnLoad(function() {
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
             // Collect floaters.
-            return object.f("geometry").array()
+            return object.f("geometry").array("Items")
                 .f("floaterBoxReference.m_pT")
                 .latestPatch()
                 .f("data.BoxReference.m_pT")
@@ -117,20 +117,20 @@ JsDbg.OnLoad(function() {
             .list("nextRowLayout.m_pT")
                 .f("Columns.m_pT").latestPatch()
             .map(function(columns) {
-                return columns.array()
+                return columns.array("Items")
                     .f("cellBoxReference.m_pT").vcast()
             });
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::GridBox", null, function (object) {
-            return object.f("Items.m_pT").latestPatch().array().f("BoxReference.m_pT").vcast()
+            return object.f("Items.m_pT").latestPatch().array("Items").f("BoxReference.m_pT").vcast()
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::FlexBox", null, function (object) {
             return object.f("items", "flow")
             .then(function (items) {
                 if (items.typeDescription().indexOf("FlexBoxItemArray") != -1) {
-                    return items.f("m_pT").latestPatch().array().f("BoxReference.m_pT").vcast();
+                    return items.f("m_pT").latestPatch().array("Items").f("BoxReference.m_pT").vcast();
                 } else if (items.typeDescription() == "Layout::BoxItem") {
                     return collectChildrenInFlow(items);
                 } else if (items.typeDescription() == "SArray<Layout::FlexBox::SFlexBoxItem>") {
@@ -142,7 +142,7 @@ JsDbg.OnLoad(function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::MultiColumnBox", null, function (object) {
-            return object.f("items.m_pT").latestPatch().array().f("BoxReference.m_pT").vcast();
+            return object.f("items.m_pT").latestPatch().array("Items").f("BoxReference.m_pT").vcast();
         });
 
         DbgObjectTree.AddType("LineBox", MSHTML.Module, "Layout::LineBox", null, function(object) {
@@ -242,6 +242,20 @@ JsDbg.OnLoad(function() {
         })
     }));
 
+    DbgObject.AddArrayField(MSHTML.Module, "Layout::BoxItem", "Items", "Layout::BoxItemDataMembers", UserEditableFunctions.Create(function (flowItem) {
+        return flowItem.latestPatch().f("data").list(function (current) {
+            return current.f("next").latestPatch().f("data");
+        })
+    }));
+
+    DbgObject.AddArrayField(MSHTML.Module, "Layout::FlowBox", "FlowItems", "Layout::BoxItemDataMembers", UserEditableFunctions.Create(function (flowBox) {
+        return flowBox.f("flow").array("Items");
+    }));
+
+    DbgObject.AddArrayField(MSHTML.Module, "Layout::LineBox", "Runs", "Layout::LineBox::SRenderSafeTextBlockRunAndCp", UserEditableFunctions.Create(function (lineBox) {
+        return lineBox.vcast().f("Runs").array(lineBox.f("numberOfRuns"));
+    }));
+
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LineBox", "Text", false, UserEditableFunctions.Create(function (lineBox) {
         return Promise
         .join([
@@ -305,7 +319,7 @@ JsDbg.OnLoad(function() {
             // Get the text.
             if (!textBlock.isNull() && runIndexAtStartOfLine >= 0) {
                 // Get the TextBlockRuns...
-                return textBlock.f("_aryRuns").array()
+                return textBlock.f("_aryRuns").array("Items")
 
                 // Get an array of HTML fragments...
                 .then(function (runArray) {

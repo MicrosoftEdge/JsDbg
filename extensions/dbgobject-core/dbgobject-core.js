@@ -674,7 +674,7 @@ JsDbg.OnLoad(function() {
                 };
                 return getRestOfString(that, "");
             } else {
-                return that.array(length)
+                return that.vals(length)
                 .then(function (chars) {
                     return chars.map(String.fromCharCode).join("");
                 });

@@ -12,7 +12,7 @@ JsDbg.OnLoad(function() {
             return [];
         });
         DbgObjectTree.AddType(null, MSHTML.Module, "Tree::TextBlock", null, function (object) {
-            return object.f("_aryRuns").array();
+            return object.f("_aryRuns").array("Items");
         });
 
         DbgObjectTree.AddAddressInterpreter(function (address) {

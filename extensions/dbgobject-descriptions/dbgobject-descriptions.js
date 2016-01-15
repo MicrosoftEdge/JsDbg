@@ -172,22 +172,15 @@ JsDbg.OnLoad(function () {
         });
     }
 
-    DbgObject.prototype._help_hasDesc = {
-        description: "Indicates if the DbgObject has a type-specific <code>desc()</code> representation.",
-        returns: "(A promise to a) bool."
-    }
-    DbgObject.prototype.hasDesc = function() {
-        return getTypeDescriptionFunctionIncludingBaseTypes(this.module, this.typename)
-        .then(function (result) {
-            return result != null;
-        });
-    }
-
     DbgObject.prototype._help_desc = {
         description: "Provides a human-readable description of the object.",
         returns: "A promise to an HTML fragment.",
+        arguments: [
+            {name: "name (optional)", type:"string", description: "The optional name of the description to use."},
+            {name: "element (optional)", type:"HTML Element", description: "The element representing the DbgObject, if it exists."}
+        ],
         notes: function() {
-            var html = "<p>Type-specific description generators can be registered with <code>DbgObject.AddTypeDescription</code>.</p>";
+            var html = "<p>Calling with no arguments will use the default description function. Type-specific description generators can be registered with <code>DbgObject.AddTypeDescription</code>.</p>";
             var loadedDescriptionTypes = registeredDescriptions.getAllTypes().map(function (type) {
                 if (typeof type.type == typeof "") {
                     return "<li>" + type.module + "!" + type.type + "</li>";
