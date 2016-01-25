@@ -31,7 +31,12 @@ JsDbg.OnLoad(function() {
         return treePos.f("_elementTypeAndFlags", "_cElemLeftAndFlags").val()
         .then(function (treePosFlags) {
             if (treePosFlags & 0x01) {
-                return treePos.unembed("CTreeNode", "_tpBegin").vcast();
+                return treePos.unembed("CTreeNode", "_tpBegin").then(function (treeNode) {
+                    return treeNode.vcast()
+                    .then(null, function () {
+                        return treeNode;
+                    })
+                });
             } else if (treePosFlags & 0x04) {
                 return treePos.unembed("CDOMTextNode", "treePos")
                 .then(null, function () {
