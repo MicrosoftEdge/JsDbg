@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-set VERSION=2015-12-11-01
+set VERSION=2016-01-11-01
 set JSDBG_ROOT=%~dp0
 
 echo Copying wwwroot...
