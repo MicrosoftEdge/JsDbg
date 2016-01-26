@@ -831,7 +831,9 @@ JsDbg.OnLoad(function() {
     }
     DbgObject.prototype.isType = function(type) {
         type = cleanupTypeName(type);
-        if (this.typename == type) {
+        if (this == DbgObject.NULL) {
+            return Promise.as(true);
+        } else if (this.typename == type) {
             return Promise.as(true);
         } else {
             return this.baseTypes()
