@@ -64,15 +64,37 @@ var MSHTML = undefined;
             );
         }
 
-        function GetRootCTreeNodes() {
-            var markups = GetCDocs().f("_pWindowPrimary._pCWindow._pMarkup");
-
-            return markups.f("root").unembed("CTreeNode", "_fIsElementNode")
-                .filter(function (treeNode) { return !treeNode.isNull(); })
+        DbgObject.AddExtendedField(moduleName, "CMarkup", "Root", "CTreeNode", function (markup) {
+            return markup.f("root")
+            .then(function (root) {
+                // !TEXTNODEMERGE && NEWTREECONNECTION
+                return root.unembed("CTreeDataPos", "_fIsElementNode")
                 .then(null, function () {
-                    return markups.f("_ptpFirst").unembed("CTreeNode", "_tpBegin")
-                    .filter(function (treeNode) { return !treeNode.isNull(); });
-                });
+                    // TEXTNODEMERGE && NEWTREECONNECTION
+                    return root.as("CTreeNode");
+                })
+            }, function () {
+                // !TEXTNODEMERGE && !NEWTREECONNECTION
+                return promoteTreePos(markup.f("_ptpFirst"));
+            })
+        })
+
+        DbgObject.AddTypeDescription(moduleName, "CMarkup", "URL", false, function (markup) {
+            return markup.f("_pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
+            .then(function (str) {
+                 if (!str.isNull()) {
+                    return str.string();
+                 } else {
+                    return null;
+                 }
+            })
+        })
+
+        function GetRootCTreeNodes() {
+            return GetCDocs().f("_pWindowPrimary._pCWindow._pMarkup").F("Root")
+            .filter(function (root) {
+                 return !root.isNull();
+            });
         }
 
         DbgObject.AddExtendedField(moduleName, "Tree::ElementNode", "TreeNode", "CTreeNode", function (element) {

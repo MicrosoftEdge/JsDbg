@@ -262,27 +262,9 @@ JsDbg.OnLoad(function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
-            return markup.f("root")
-            .then(function (root) {
-                // !TEXTNODEMERGE && NEWTREECONNECTION
-                return root.unembed("CTreeDataPos", "_fIsElementNode")
-                .then(null, function () {
-                    // TEXTNODEMERGE && NEWTREECONNECTION
-                    return root.as("CTreeNode");
-                })
-            }, function () {
-                // !TEXTNODEMERGE && !NEWTREECONNECTION
-                return promoteTreePos(markup.f("_ptpFirst"));
-            })
+            return markup.F("Root");
         }, function (markup) {
-            return markup.f("_pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
-            .then(function (str) {
-                 if (!str.isNull()) {
-                    return str.string();
-                 } else {
-                    return null;
-                 }
-            })
+            return markup.desc("URL")
             .then(function (url) {
                 if (url != null) {
                     return "CMarkup (" + url + ")";
