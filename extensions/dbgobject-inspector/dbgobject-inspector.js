@@ -16,30 +16,66 @@ JsDbg.OnLoad(function() {
         container.classList.add("drop-down");
         container.style.display = "none";
 
-        var mouseleavePending = false;
-        inspector.addEventListener("mouseover", function () {
-            console.log(activeDropDown);
+        var isInitialized = false;
+        inspector.addEventListener("click", function () {
             if (activeDropDown != null && activeDropDown != container) {
                 activeDropDown.style.display = "none";
             }
 
-            container.style.display = "";
-            activeDropDown = container;
+            if (!isInitialized) {
+                isInitialized = true;
+                typeExplorer.toggleExpansion();
+                typeExplorer.render(container)
+                .then(function () {
+                    container.style.display = "";
+                    activeDropDown = container;
+                })
+            } else {
+                if (activeDropDown != container) {
+                    container.style.display = "";
+                    container.style.transform = "";
+                    currentAdjustment = {x: 0, y:0};
+                    activeDropDown = container;
+                }
+            }
         });
 
-        inspector.addEventListener("mouseleave", function () {
-            if (activeDropDown == container) {
-                mouseleavePending = true;
-                setTimeout(function () {
-                    if (mouseleavePending && activeDropDown == container) {
-                        container.style.display = "none";
-                        activeDropDown = null;
-                    }
-                }, 500);
+        var currentAdjustment = { x: 0, y: 0 };
+        container.addEventListener("mousedown", function(e) {
+            if (e.target == container && e.offsetY < parseInt(getComputedStyle(container).borderTopWidth)) {
+                var lastPoint = {x: e.clientX, y: e.clientY};
+                var drag = function(e) {
+                    var thisPoint = {x: e.clientX, y: e.clientY};
+                    var delta = {x:thisPoint.x - lastPoint.x, y:thisPoint.y - lastPoint.y};
+                    lastPoint = thisPoint;
+                    currentAdjustment.x += delta.x;
+                    currentAdjustment.y += delta.y;
+                    var transform = "translate(" + currentAdjustment.x + "px, " + currentAdjustment.y + "px)";
+                    container.style.transform = transform;
+                }
+
+                var mouseUpHandler = function() {
+                    window.removeEventListener("mousemove", drag);
+                    window.removeEventListener("mouseup", mouseUpHandler);
+                    blocker.parentNode.removeChild(blocker);
+                }
+                window.addEventListener("mousemove", drag);
+                window.addEventListener("mouseup", mouseUpHandler);
+
+
+                var blocker = document.createElement("div");
+                blocker.style.position = "fixed";
+                blocker.style.top = "0";
+                blocker.style.bottom = "0";
+                blocker.style.left = "0";
+                blocker.style.right = "0";
+                blocker.style.zIndex = "10000";
+
+                inspector.appendChild(blocker);
+                e.preventDefault();
             }
         })
-        typeExplorer.toggleExpansion();
-        typeExplorer.render(container);
+
         inspector.appendChild(document.createTextNode(dbgObject.ptr()));
         return inspector;
     }

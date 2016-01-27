@@ -45,6 +45,7 @@
 .type-explorer .rendering {
     flex-grow:1;
     text-align: right;
+    white-space: normal;
 }
 
 .type-explorer hr {

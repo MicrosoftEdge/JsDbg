@@ -829,7 +829,7 @@ JsDbg.OnLoad(function() {
                     "<span class=\"field-type\"></span>",
                     "<button class=\"small-button edit-button\">Edit</button>",
                     "<button class=\"small-button delete-button\">Delete</button>",
-                    "<div class=\"rendering\"></div>"
+                    "<div class=\"rendering\"></div>",
                 "</label>",
                 "<div class=\"subfields\"></div>"
             ].join("");
