@@ -658,71 +658,62 @@ JsDbg.OnLoad(function() {
             return Promise.as(null);
         }
 
-        typeContainer.style.display = "none";
-        typeContainer.innerHTML = "";
+        if (!typeContainer.currentType) {
+            typeContainer.classList.add("fields-container");
+            typeContainer.innerHTML = [
+                "<input class=\"small-input\" placeholder=\"Search...\" type=\"search\">",
+                "<button class=\"small-button base-types\"></button>",
+                "<button class=\"small-button extend\">Extend</button>",
+                "<div></div>"
+            ].join("");
+            typeContainer.querySelector("input").addEventListener("input", function () {
+                typeContainer.currentType.setSearchQuery(filterTextBox.value);
+                typeContainer.currentType.controller._renderFieldList(typeContainer.currentType, fieldListContainer);
+            });
+            typeContainer.querySelector(".base-types").addEventListener("click", function() {
+                var type = typeContainer.currentType;
+                type.toggleIncludeBaseTypes();
+                showBaseTypesControl.textContent = type.includeBaseTypes ? "Exclude Base Types" : "Include Base Types";
+                type.controller._renderFieldList(type, fieldListContainer);
+            });
+            typeContainer.querySelector(".extend").addEventListener("click", function() {
+                var type = typeContainer.currentType;
+                UserDbgObjectExtensions.Create(type.module(), type.typename(), type);
+            });
+        }
+        typeContainer.currentType = type;
+        var filterTextBox = typeContainer.firstChild;
+        var showBaseTypesControl = filterTextBox.nextSibling;
+        var newExtensionButton = showBaseTypesControl.nextSibling;
+        var fieldListContainer = newExtensionButton.nextSibling;
 
         if (!type.requiresRendering()) {
+            typeContainer.style.display = "none";
             return Promise.as(null);
         }
-
-        var filterTextBox = null;
 
         var that = this;
         return type.prepareForRendering()
         .then(function () {
-            typeContainer.classList.add("fields-container");
             if (!type.isExpanded()) {
                 typeContainer.classList.add("collapsed");
             } else {
                 typeContainer.classList.remove("collapsed");
-            }
-
-            var fieldListContainer = document.createElement("div");
-            if (type.isExpanded()) {
-                filterTextBox = document.createElement("input");
-                filterTextBox.classList.add("small-input");
-                filterTextBox.placeholder = "Search...";
-                filterTextBox.type = "search";
                 filterTextBox.value = type.searchQuery;
-                typeContainer.appendChild(filterTextBox);
-                var searchTimeout = null;
-                filterTextBox.addEventListener("input", function () {
-                    if (searchTimeout != null) {
-                        clearTimeout(searchTimeout);
-                    }
-                    searchTimeout = setTimeout(function () {
-                        type.setSearchQuery(filterTextBox.value);
-                        that._renderFieldList(type, fieldListContainer);
-                    }, 100);
-                });
 
                 if (type.hasBaseTypes()) {
-                    var showBaseTypesControl = document.createElement("button");
-                    showBaseTypesControl.classList.add("small-button");
                     showBaseTypesControl.textContent = type.includeBaseTypes ? "Exclude Base Types" : "Include Base Types";
-                    typeContainer.appendChild(showBaseTypesControl);
-                    showBaseTypesControl.addEventListener("click", function () {
-                        type.toggleIncludeBaseTypes();
-                        showBaseTypesControl.textContent = type.includeBaseTypes ? "Exclude Base Types" : "Include Base Types";
-                        that._renderFieldList(type, fieldListContainer);
-                    })
+                    showBaseTypesControl.style.display = "";
+                } else {
+                    showBaseTypesControl.style.display = "none";
                 }
-
-                var newExtensionButton = document.createElement("button");
-                newExtensionButton.classList.add("small-button");
-                newExtensionButton.textContent = "Extend";
-                typeContainer.appendChild(newExtensionButton);
-                newExtensionButton.addEventListener("click", function() {
-                    UserDbgObjectExtensions.Create(type.module(), type.typename(), type);
-                });
             }
 
-            typeContainer.appendChild(fieldListContainer);
             return that._renderFieldList(type, fieldListContainer);
         })
         .then(function() {
             typeContainer.style.display = "";
-            if (filterTextBox != null) {
+            if (type.isExpanded()) {
                 filterTextBox.focus();
             }
         })
@@ -756,58 +747,108 @@ JsDbg.OnLoad(function() {
         var descriptions = type.getDescriptionsToRender()
         extendedFields = extendedFields.concat(arrayFields).concat(descriptions);
 
-        fieldsContainer.innerHTML = "";
-
         // Find any collisions in the fields.
         var fieldCollisions = findFieldNameCollisions(fields, type);
         var extendedFieldCollisions = findFieldNameCollisions(extendedFields, type);
+        
+        var existingFields = Array.prototype.slice.call(fieldsContainer.childNodes).filter(function (x) { return x.tagName == "DIV"; });
+        var existingFieldIndex = 0;
+        function getNextFieldContainer() {
+            var fieldContainer = null;
+            if (existingFieldIndex < existingFields.length) {
+                fieldContainer = existingFields[existingFieldIndex++];
+                fieldContainer.style.display = "";
+            } else {
+                fieldContainer = document.createElement("div");
+                fieldsContainer.appendChild(fieldContainer);
+            }
+            return fieldContainer;
+        }
 
         return Promise.map(extendedFields, function (extendedField) {
-            var fieldContainer = document.createElement("label");
-            fieldsContainer.appendChild(fieldContainer);
-            return that._renderField(extendedField, type, fieldContainer, extendedFieldCollisions);
+            return that._renderField(extendedField, type, getNextFieldContainer(), extendedFieldCollisions);
         })
         .then(function() {
-            if (extendedFields.length > 0 && type.isExpanded()) {
-                var hr = document.createElement("hr");
+            var hr = Array.prototype.slice.call(fieldsContainer.childNodes).filter(function (x) { return x.tagName == "HR"; }).pop();
+            if (!hr) {
+                hr = document.createElement("hr");
                 fieldsContainer.appendChild(hr);
             }
 
+            if (extendedFields.length > 0 && type.isExpanded()) {
+                if (existingFieldIndex < existingFields.length) {
+                    fieldsContainer.insertBefore(hr, existingFields[existingFieldIndex]);
+                } else {
+                    fieldsContainer.appendChild(hr);
+                }
+                hr.style.display = "";
+            } else {
+                hr.style.display = "none";
+            }
+
             return Promise.map(fields, function (field) {
-                var fieldContainer = document.createElement("label");
-                fieldsContainer.appendChild(fieldContainer);
-                return that._renderField(field, type, fieldContainer, fieldCollisions);
+                return that._renderField(field, type, getNextFieldContainer(), fieldCollisions);
             })
-        });
+        })
+        .then(function () {
+            while (existingFieldIndex < existingFields.length) {
+                var container = existingFields[existingFieldIndex];
+                container.style.display = "none";
+                ++existingFieldIndex;
+            }
+        })
     }
 
     TypeExplorerController.prototype._renderField = function (field, renderingType, fieldContainer, nameCollisions) {
+        if (!fieldContainer.currentField) {
+            fieldContainer.innerHTML = [
+                "<label>",
+                    "<input type=\"checkbox\">",
+                    "<span class=\"field-name\"></span>",
+                    "<span class=\"field-type\"></span>",
+                    "<button class=\"small-button edit-button\">Edit</button>",
+                    "<button class=\"small-button delete-button\">Delete</button>",
+                "</label>",
+                "<div class=\"subfields\"></div>"
+            ].join("");
+
+            fieldContainer.querySelector("input").addEventListener("change", function () {
+                fieldContainer.currentField.setIsEnabled(input.checked);
+            });
+            fieldContainer.querySelector(".field-type").addEventListener("click", function(e) {
+                var field = fieldContainer.currentField;
+                if (field.childType != null) {
+                    e.preventDefault();
+                    field.childType.toggleExpansion();
+                    subFieldsContainer.classList.toggle("collapsed");
+                    field.parentType.aggregateType.controller._renderType(field.childType, subFieldsContainer);
+                }
+            })
+            fieldContainer.querySelector(".edit-button").addEventListener("click", function() {
+                fieldContainer.currentField.beginEditing();
+            });
+            fieldContainer.querySelector(".delete-button").addEventListener("click", function() {
+                fieldContainer.currentField.delete();
+            });
+        }
+
+        fieldContainer.currentField = field;
+        var label = fieldContainer.firstChild;
+        var subFieldsContainer = label.nextSibling;
+        var input = label.firstChild;
+        var fieldNameContainer = input.nextSibling;
+        var fieldTypeContainer = fieldNameContainer.nextSibling;
+        var editButton = fieldTypeContainer.nextSibling;
+        var deleteButton = editButton.nextSibling;
+
         var currentType = field.parentType;
         var areAllTypesExpanded = true;
         while (areAllTypesExpanded && currentType != null) {
-            var isFiltered = currentType.aggregateType.parentField != null && currentType.aggregateType.parentField.parentType.aggregateType.isFiltered(currentType.aggregateType.parentField);
-            areAllTypesExpanded = currentType.isExpanded && !isFiltered;
+            areAllTypesExpanded = currentType.isExpanded;
             currentType = currentType.aggregateType.parentField != null ? currentType.aggregateType.parentField.parentType : null;
         }
 
-        fieldContainer.innerHTML = "";
-
-        if (renderingType == field.parentType.aggregateType && renderingType.isFiltered(field)) {
-            fieldContainer.classList.add("filtered");
-        } else {
-            fieldContainer.classList.remove("filtered");
-        }
-
-        var input = document.createElement("input");
-        fieldContainer.appendChild(input);
-        input.type = "checkbox";
         input.checked = field.isEnabled;
-        var that = this;
-        input.addEventListener("change", function () {
-            field.setIsEnabled(input.checked);
-        });
-        var fieldNameContainer = document.createElement("span");
-        fieldNameContainer.classList.add("field-name");
 
         var currentField = field;
         var names = [field.name];
@@ -820,53 +861,30 @@ JsDbg.OnLoad(function() {
         }
 
         fieldNameContainer.textContent = names.reverse().join(".");
-        fieldContainer.appendChild(fieldNameContainer);
         
         var fieldTypeName = field.getChildTypeName();
         if (fieldTypeName != null) {
             if (areAllTypesExpanded) {
-                var fieldTypeContainer = document.createElement("span");
-                fieldTypeContainer.classList.add("field-type");
                 fieldTypeContainer.textContent = fieldTypeName + (field.isArray() ? "[]" : "");
-                fieldContainer.appendChild(fieldTypeContainer);
+                fieldTypeContainer.style.display = "";
+            } else {
+                fieldTypeContainer.style.display = "none";
             }
-            fieldContainer.title = fieldTypeName + " " + field.name;
+            label.title = fieldTypeName + " " + field.name;
         } else {
-            fieldContainer.title = field.name;
+            label.title = field.name;
+            fieldTypeContainer.style.display = "none";
         }
 
-        if (field.isEditable()) {
-            var editButton = document.createElement("button");
-            fieldContainer.appendChild(editButton);
-            editButton.classList.add("small-button");
-            editButton.textContent = "Edit";
-            editButton.addEventListener("click", function() { field.beginEditing(); });
-        }
+        editButton.style.display = field.isEditable() ? "" : "none";
+        deleteButton.style.display = field.canBeDeleted() ? "" : "none";
 
-        if (field.canBeDeleted()) {
-            var deleteButton = document.createElement("button");
-            fieldContainer.appendChild(deleteButton);
-            deleteButton.classList.add("small-button");
-            deleteButton.textContent = "Delete";
-            deleteButton.addEventListener("click", function() { field.delete(); });
-        }
-
-        if (field.childType == null || renderingType.isFiltered(field) || !areAllTypesExpanded) {
+        if (field.childType == null || !areAllTypesExpanded) {
+            subFieldsContainer.style.display = "none";
             return Promise.as(null);
         }
 
-        var subFieldsContainer = document.createElement("div");
-        return that._renderType(field.childType, subFieldsContainer)
-        .then(function () {
-            fieldContainer.parentNode.insertBefore(subFieldsContainer, fieldContainer.nextSibling);
-
-            fieldTypeContainer.addEventListener("click", function (e) {
-                e.preventDefault();
-                field.childType.toggleExpansion();
-                subFieldsContainer.classList.toggle("collapsed");
-                that._renderType(field.childType, subFieldsContainer);
-            });
-        });
+        return this._renderType(field.childType, subFieldsContainer);
     }
 
     function create(dbgObject, options) {
