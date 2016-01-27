@@ -114,27 +114,49 @@ JsDbg.OnLoad(function() {
         return result;
     }
 
+    TypeExplorerAggregateType.prototype.arrangeFields = function(fields) {
+        fields = reverseAndFlatten(fields);
+        if (this.searchQuery != "") {
+            var searchQuery = this.searchQuery.toLowerCase();
+            var augmentedFields = fields.map(function (field) {
+                var base = field.name.toLowerCase();
+                var context = {};
+                if (fuzzyMatch(base, searchQuery, context)) {
+                    return {field: field, score: context.score };
+                } else {
+                    return null;
+                }
+            });
+            augmentedFields = augmentedFields.filter(function (x) { return x != null; });
+            augmentedFields.sort(function (a, b) {
+                return a.score - b.score;
+            });
+            fields = augmentedFields.map(function (x) { return x.field; });
+        }
+        return fields;
+    }
+
     TypeExplorerAggregateType.prototype.getFieldsToRender = function() {
         console.assert(this.isPreparedForRendering);
-        return reverseAndFlatten(this.backingTypes.map(function (backingType) { return backingType.getFieldsToRender(); }));
+        return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getFieldsToRender(); }));
     }
 
     TypeExplorerAggregateType.prototype.getExtendedFieldsToRender = function() {
         console.assert(this.isPreparedForRendering);
-        return reverseAndFlatten(this.backingTypes.map(function (backingType) { return backingType.getExtendedFieldsToRender(); }));
+        return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getExtendedFieldsToRender(); }));
     }
 
     TypeExplorerAggregateType.prototype.getArrayFieldsToRender = function() {
         console.assert(this.isPreparedForRendering);
-        return reverseAndFlatten(this.backingTypes.map(function (backingType) { return backingType.getArrayFieldsToRender(); }));
+        return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getArrayFieldsToRender(); }));
     }
 
     TypeExplorerAggregateType.prototype.getDescriptionsToRender = function() {
         console.assert(this.isPreparedForRendering);
-        return reverseAndFlatten(this.backingTypes.map(function (backingType) { return backingType.getDescriptionsToRender(); }));
+        return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getDescriptionsToRender(); }));
     }
 
-    function fuzzyMatch(body, term) {
+    function fuzzyMatch(body, term, context) {
         if (term.length == 0) {
             return true;
         }
@@ -144,13 +166,37 @@ JsDbg.OnLoad(function() {
             return false;
         }
 
-        // Allow slightly transposed fuzzy matches by grabbing the character before the hit.
-        var prefix = "";
-        if (firstCharacterIndex > 0) {
-            prefix = body[firstCharacterIndex - 1];
+        if (context === undefined) {
+            context = {};
+        }
+        if (context.score === undefined) {
+            // Initial offset counts much less than subsequent offsets.
+            context.score = firstCharacterIndex / 100;
+        } else {
+            var score = 0;
+            if (context.isFirstCharacterTransposed) {
+                if (firstCharacterIndex == 0) {
+                    // A first character hit means the characters were transposed.
+                    score = 4;
+                } else {
+                    score = firstCharacterIndex - 1;
+                }
+            } else {
+                score = firstCharacterIndex;
+            }
+            context.score += score;
         }
 
-        return fuzzyMatch(prefix + body.substr(firstCharacterIndex + 1), term.substr(1));
+        // Allow slightly transposed fuzzy matches by grabbing the character before the hit.
+        var prefix = "";
+        if (firstCharacterIndex > 0 && !(context.isFirstCharacterTransposed && firstCharacterIndex == 1)) {
+            prefix = body[firstCharacterIndex - 1];
+            context.isFirstCharacterTransposed = true;
+        } else {
+            context.isFirstCharacterTransposed = false;
+        }
+
+        return fuzzyMatch(prefix + body.substr(firstCharacterIndex + 1), term.substr(1), context);
     }
 
     JsDbg.OnLoad(function() {
@@ -180,17 +226,10 @@ JsDbg.OnLoad(function() {
                 assert(!fuzzyMatch("abcde", "acbce"), "acbce -> abcde");
                 assert(!fuzzyMatch("abcde", "abb"), "abb -> abcde");
                 assert(!fuzzyMatch("abcde", "aeb"), "aeb !-> abcde");
+                assert(!fuzzyMatch("abcde", "bca"), "bca !-> abcde");
             });
         }
     })
-
-    TypeExplorerAggregateType.prototype.isFiltered = function (field) {
-        var base = field.name.toLowerCase();
-        if (field.getChildTypeName() != null) {
-            base += " " + field.getChildTypeName().toLowerCase();
-        }
-        return !fuzzyMatch(base, this.searchQuery.toLowerCase());
-    }
 
     TypeExplorerAggregateType.prototype.setSearchQuery = function(query) {
         this.searchQuery = query;
