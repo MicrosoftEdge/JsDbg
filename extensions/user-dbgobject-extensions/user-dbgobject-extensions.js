@@ -127,7 +127,7 @@ JsDbg.OnLoad(function() {
         this.typeName = serialized.typeName;
         this.name = serialized.name;
         this.resultingTypeName = serialized.resultingTypeName;
-        this.isArray = serialized.isArray;
+        this.isArray = !!serialized.isArray;
         this.editableFunction = UserEditableFunctions.Deserialize(serialized.editableFunction);
         this.editableFunction.editableDbgObjectExtension = this;
         this.creationContext = undefined;
