@@ -833,7 +833,7 @@ JsDbg.OnLoad(function() {
         type = cleanupTypeName(type);
         if (this == DbgObject.NULL) {
             return Promise.as(true);
-        } else if (this.typename == type) {
+        } else if (this.typeDescription() == type) {
             return Promise.as(true);
         } else {
             return this.baseTypes()
