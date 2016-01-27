@@ -80,6 +80,16 @@ JsDbg.OnLoad(function() {
         this.backingTypes.forEach(function (backingType, i) {
             backingType.isExpanded = !backingType.isExpanded && (i == 0 || that.includeBaseTypes);
         });
+        if (!this.isExpanded()) {
+            // Recursive toggle any child types that are expanded.
+            this.backingTypes.forEach(function (backingType) {
+                backingType.forEachField(function (field) {
+                    if (field.childType != null && field.childType.isExpanded()) {
+                        field.childType.toggleExpansion();
+                    }
+                })
+            })
+        }
     }
 
     TypeExplorerAggregateType.prototype.hasBaseTypes = function() {
