@@ -90,8 +90,12 @@ var MSHTML = undefined;
             })
         })
 
+        DbgObject.AddExtendedField(moduleName, "CDoc", "PrimaryMarkup", "CMarkup", function (doc) {
+            return doc.f("_pWindowPrimary._pCWindow._pMarkup");
+        })
+
         function GetRootCTreeNodes() {
-            return GetCDocs().f("_pWindowPrimary._pCWindow._pMarkup").F("Root")
+            return GetCDocs().F("PrimaryMarkup.Root")
             .filter(function (root) {
                  return !root.isNull();
             });
