@@ -59,6 +59,10 @@
     height:0px;
 }
 
+.fields-container.collapsed > input, .fields-container.collapsed > button {
+    display:none;
+} 
+
 .type-explorer .collapsed .field-type {
     display:none;
 }

@@ -7,6 +7,12 @@
 // Documentation is provided via _help_ properties and can be viewed with the Documentation extension.
 var DbgObject = undefined
 JsDbg.OnLoad(function() {
+    function cleanupTypeName(type) {
+        return type
+            .replace(/\s+$/g, '')
+            .replace(/^\s+/g, '');
+    }
+
     // bitcount and bitoffset are optional.
     DbgObject = function DbgObject(module, type, pointer, bitcount, bitoffset, structSize) {
         this.module = DbgObject.NormalizeModule(module);
@@ -17,9 +23,7 @@ JsDbg.OnLoad(function() {
 
         // Cleanup type name:
         //  - remove whitespace from the beginning and end
-        this.typename = type
-            .replace(/\s+$/g, '')
-            .replace(/^\s+/g, '');
+        this.typename = cleanupTypeName(type);
 
         // Treat "char" as unsigned.
         this._isUnsigned = (this.typename.indexOf("unsigned ") == 0 || this.typename == "char");
@@ -826,7 +830,10 @@ JsDbg.OnLoad(function() {
         ]
     }
     DbgObject.prototype.isType = function(type) {
-        if (this.typeDescription() == type) {
+        type = cleanupTypeName(type);
+        if (this == DbgObject.NULL) {
+            return Promise.as(true);
+        } else if (this.typename == type) {
             return Promise.as(true);
         } else {
             return this.baseTypes()

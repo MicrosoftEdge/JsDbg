@@ -123,12 +123,14 @@ JsDbg.OnLoad(function() {
                     return values.map(function(x) { return new DbgObject(that.module, itemTypename, x); });
                 });
             } else {
-                // The array isn't an array of pointers.  Provide an array of idx calls instead.
-                var array = [];
-                for (var i = 0; i < count; ++i) {
-                    array.push(that.idx(i));
-                }
-                return Promise.join(array);
+                return that._getStructSize()
+                .then(function (structSize) {
+                    var array = [];
+                    for (var i = 0; i < count; ++i) {
+                        array.push(that._off(i * structSize));
+                    }
+                    return array;
+                })
             }
         });
     }
