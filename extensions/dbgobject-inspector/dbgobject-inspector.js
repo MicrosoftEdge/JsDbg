@@ -58,11 +58,15 @@ JsDbg.OnLoad(function() {
             if (!isInitialized) {
                 isInitialized = true;
                 typeExplorer.toggleExpansion();
-                typeExplorer.render(container).then(function () { activateInspector(inspector); })
+                typeExplorer.render(container).then(function () {
+                    activateInspector(inspector);
+                    typeExplorer.focus();
+                })
             } else if (activeInspector != inspector) {
                 dropDown.style.transform = "";
                 currentAdjustment = {x: 0, y:0};
                 activateInspector(inspector);
+                typeExplorer.focus();
             } else if (e.target == objectPtr) {
                 // Close it out.
                 deactivateCurrentInspector();

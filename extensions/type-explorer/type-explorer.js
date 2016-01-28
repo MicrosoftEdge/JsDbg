@@ -559,6 +559,10 @@ JsDbg.OnLoad(function() {
         });
     }
 
+    TypeExplorerController.prototype.focus = function() {
+        this.container.querySelector("input").focus();
+    }
+
     TypeExplorerController.prototype.requestRerender = function() {
         if (this.hasRequestedRerender) {
             return;
@@ -861,7 +865,14 @@ JsDbg.OnLoad(function() {
             })
             node.appendChild(document.createTextNode("]"));
         } else if (realizedContent instanceof Function) {
-            realizedContent(node);
+            return Promise.as(realizedContent(node))
+            .then(function (descriptionResult) {
+                if (descriptionResult instanceof Node) {
+                    node.appendChild(descriptionResult);
+                } else if (descriptionResult !== undefined) {
+                    node.innerHTML = descriptionResult;
+                }
+            })
         } else if (realizedContent !== undefined) {
             node.innerHTML = realizedContent;
         }

@@ -12,7 +12,7 @@
     background:white;
     padding:1em 1em 1em 0;
     max-width:500px;
-    max-height:300px;
+    max-height:600px;
     overflow-y:auto;
 }
 .dbgobject-inspector > .drop-down > .close {
