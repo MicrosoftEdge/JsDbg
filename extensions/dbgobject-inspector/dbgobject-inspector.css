@@ -31,17 +31,6 @@
     background:#333338;
 }
 
-.dbgobject-inspector > .line {
-    border-top:1px solid #333338;
-    width:1px;
-    display:inline;
-    position:absolute;
-    z-index:15;
-    transform-origin: 0 0;
-    margin-top:1em;
-}
-
-.dbgobject-inspector:not(.active) > .drop-down,
-.dbgobject-inspector:not(.active) > .line {
+.dbgobject-inspector:not(.active) > .drop-down {
     display:none;
 }

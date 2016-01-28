@@ -25,10 +25,6 @@ JsDbg.OnLoad(function() {
         var inspector = document.createElement("div");
         inspector.classList.add("dbgobject-inspector")
 
-        var startLine = document.createElement("div");
-        startLine.classList.add("line");
-        inspector.appendChild(startLine);
-
         var dropDown = document.createElement("div");
         inspector.appendChild(dropDown);
         dropDown.classList.add("drop-down");
@@ -53,10 +49,6 @@ JsDbg.OnLoad(function() {
         objectPtr.textContent = dbgObject.ptr();
         inspector.appendChild(objectPtr);
 
-        var endLine = document.createElement("div");
-        endLine.classList.add("line");
-        inspector.appendChild(endLine);
-
         var isInitialized = false;
         inspector.addEventListener("click", function (e) {
             if (activeInspector != inspector) {
@@ -68,14 +60,12 @@ JsDbg.OnLoad(function() {
                 typeExplorer.toggleExpansion();
                 typeExplorer.render(container).then(function () {
                     activateInspector(inspector);
-                    adjustLines();
                     typeExplorer.focus();
                 })
             } else if (activeInspector != inspector) {
                 dropDown.style.transform = "";
                 currentAdjustment = {x: 0, y:0};
                 activateInspector(inspector);
-                adjustLines();
                 typeExplorer.focus();
             } else if (e.target == objectPtr) {
                 // Close it out.
@@ -84,28 +74,6 @@ JsDbg.OnLoad(function() {
         });
 
         var currentAdjustment = { x: 0, y: 0 };
-
-        function adjustLines() {
-            computeLineTransform(startLine, { x: dropDown.offsetLeft - startLine.offsetLeft, y: dropDown.offsetTop - startLine.offsetTop });
-            computeLineTransform(endLine, { x: (dropDown.offsetLeft + dropDown.offsetWidth) - endLine.offsetLeft, y: dropDown.offsetTop - endLine.offsetTop });
-        }
-
-        function computeLineTransform(line, shift) {
-            var lineAdjustment = {x: currentAdjustment.x + shift.x + 1, y:currentAdjustment.y + shift.y + 1};
-            var lineLength = Math.round(Math.sqrt(lineAdjustment.x * lineAdjustment.x + lineAdjustment.y * lineAdjustment.y));
-            var lineAngle;
-            if (lineAdjustment.x == 0) {
-                lineAngle = 90;
-            } else if (lineAdjustment.x < 0) {
-                lineAngle = 180 - (Math.atan(lineAdjustment.y / Math.abs(lineAdjustment.x)) * 360 / (2 * Math.PI));
-            } else {
-                lineAngle = (Math.atan(lineAdjustment.y / lineAdjustment.x) * 360 / (2 * Math.PI));
-            }
-            lineAngle = Math.round(lineAngle * 100) / 100;
-            var transform = "rotate(" + lineAngle + "deg) scaleX(" + lineLength + ")";
-            line.style.transform = transform;
-        }
-
         container.addEventListener("mousedown", function(e) {
             if (e.target == container && e.offsetY < parseInt(getComputedStyle(container).borderTopWidth)) {
                 var lastPoint = {x: e.clientX, y: e.clientY};
@@ -117,7 +85,6 @@ JsDbg.OnLoad(function() {
                     currentAdjustment.y += delta.y;
                     var transform = "translate(" + currentAdjustment.x + "px, " + currentAdjustment.y + "px)";
                     dropDown.style.transform = transform;
-                    adjustLines();
                 }
 
                 var mouseUpHandler = function() {
