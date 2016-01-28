@@ -424,7 +424,7 @@ JsDbg.OnLoad(function() {
         return this.sourceInParentType == "arrayFields";
     }
 
-    TypeExplorerField.prototype.getNestedField = function(dbgObject, element) {
+    TypeExplorerField.prototype.getNestedField = function(dbgObject) {
         var that = this;
         function checkType(result) {
             // Check that the field returned the proper type.
@@ -449,7 +449,9 @@ JsDbg.OnLoad(function() {
         function getFromParentDbgObject(parentDbgObject) {
             parentDbgObject = parentDbgObject.as(that.parentType.typename);
             if (that.childType == null) {
-                return that.getter(parentDbgObject, element);
+                return function (element) {
+                    return that.getter(parentDbgObject, element);
+                }
             }
 
             return Promise.as(that.getter(parentDbgObject))
@@ -828,17 +830,17 @@ JsDbg.OnLoad(function() {
         })
     }
 
-    function realizeDbgObjectOrArray(dbgObjectOrArray) {
-        if (dbgObjectOrArray instanceof DbgObject) {
-            if (dbgObjectOrArray.isNull()) {
+    function realizeDbgObjectOrArrayOrFunction(dbgObjectOrArrayOrFunction) {
+        if (dbgObjectOrArrayOrFunction instanceof DbgObject) {
+            if (dbgObjectOrArrayOrFunction.isNull()) {
                 return "nullptr";
             } else {
-                return dbgObjectOrArray.desc();
+                return dbgObjectOrArrayOrFunction.desc();
             }
-        } else if (Array.isArray(dbgObjectOrArray)) {
-            return Promise.map(dbgObjectOrArray, realizeDbgObjectOrArray);
+        } else if (Array.isArray(dbgObjectOrArrayOrFunction)) {
+            return Promise.map(dbgObjectOrArrayOrFunction, realizeDbgObjectOrArrayOrFunction);
         } else {
-            return Promise.as(dbgObjectOrArray);
+            return Promise.as(dbgObjectOrArrayOrFunction);
         }
     }
 
@@ -858,7 +860,9 @@ JsDbg.OnLoad(function() {
                 }
             })
             node.appendChild(document.createTextNode("]"));
-        } else {
+        } else if (realizedContent instanceof Function) {
+            realizedContent(node);
+        } else if (realizedContent !== undefined) {
             node.innerHTML = realizedContent;
         }
     }
@@ -957,7 +961,7 @@ JsDbg.OnLoad(function() {
         if (this.allowFieldRendering()) {
             renderingPromise = field.getNestedField(this.dbgObject, rendering)
             .then(function (fieldValue) {
-                return realizeDbgObjectOrArray(fieldValue);
+                return realizeDbgObjectOrArrayOrFunction(fieldValue);
             })
             .then(
                 function (result) {
