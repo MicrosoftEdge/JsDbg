@@ -30,9 +30,15 @@ namespace Core {
             // Try to load the type from DIA.
             IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(module);
 
-            JsDbg.Type type = this.typeCache.GetCachedType(session, module, typename);
-            if (type != null) {
-                return type;
+            bool foundType;
+            JsDbg.Type type = this.typeCache.GetCachedType(session, module, typename, out foundType);
+            if (foundType) {
+                if (type != null) {
+                    return type;
+                } else {
+                    // We previously tried to load the type but were unable to.
+                    throw new DebuggerException(String.Format("Unable to load type: {0}!{1}", module, typename));
+                }
             }
 
             Console.Out.WriteLine("Loading type information for {0}!{1}...", module, typename);
@@ -48,6 +54,7 @@ namespace Core {
                     return type;
                 } else {
                     // We have a DIA session but couldn't find the type.  Assume the type is invalid rather than falling back to the debugger.
+                    this.typeCache.AddInvalidType(module, typename);
                     throw new DebuggerException(String.Format("Unable to load type: {0}!{1}", module, typename));
                 }
             }
@@ -59,6 +66,7 @@ namespace Core {
                 this.typeCache.AddType(type);
                 return type;
             } else {
+                this.typeCache.AddInvalidType(module, typename);
                 throw new DebuggerException(String.Format("Unable to load type: {0}!{1}", module, typename));
             }
         }

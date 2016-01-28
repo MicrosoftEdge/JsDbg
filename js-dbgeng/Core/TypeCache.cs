@@ -227,9 +227,10 @@ namespace JsDbg
             this.isPointer64Bit = isPointer64Bit;
         }
 
-        public Type GetCachedType(IDiaSession session, string module, string typename) {
+        public Type GetCachedType(IDiaSession session, string module, string typename, out bool foundType) {
             string key = TypeKey(module, typename);
             if (this.types.ContainsKey(key)) {
+                foundType = true;
                 return this.types[key];
             }
 
@@ -237,9 +238,11 @@ namespace JsDbg
             Type builtinType = this.GetBuiltinType(session, module, typename);
             if (builtinType != null) {
                 this.types.Add(key, builtinType);
+                foundType = true;
                 return builtinType;
             }
 
+            foundType = false;
             return null;
         }
 
@@ -247,6 +250,11 @@ namespace JsDbg
             string key = TypeKey(type.Module, type.Name);
             this.types.Add(key, type);
         }
+
+        public void AddInvalidType(string module, string name) {
+            this.types.Add(TypeKey(module, name), null);
+        }
+
         private static string TypeKey(string module, string typename) {
             return String.Format("{0}!{1}", module, typename);
         }
