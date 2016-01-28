@@ -22,7 +22,8 @@
 }
 
 .dbgobject-inspector > .object-ptr:hover {
-    text-decoration: underline;
+    color:white;
+    background:#333338;
     cursor:pointer;
 }
 
