@@ -5,38 +5,67 @@
 var DbgObjectInspector = undefined;
 JsDbg.OnLoad(function() {
 
-    var activeDropDown = null;
+    var activeInspector = null;
+
+    function activateInspector(inspector) {
+        deactivateCurrentInspector();
+        inspector.classList.add("active");
+        activeInspector = inspector;
+    }
+
+    function deactivateCurrentInspector() {
+        if (activeInspector != null) {
+            activeInspector.classList.remove("active");
+            activeInspector = null;
+        }
+    }
 
     function inspect(dbgObject) {
         var typeExplorer = TypeExplorer.Create(dbgObject, {});
         var inspector = document.createElement("div");
         inspector.classList.add("dbgobject-inspector")
+
+        var dropDown = document.createElement("div");
+        inspector.appendChild(dropDown);
+        dropDown.classList.add("drop-down");
+
         var container = document.createElement("div");
-        inspector.appendChild(container);
-        container.classList.add("drop-down");
-        container.style.display = "none";
+        container.classList.add("window");
+        dropDown.appendChild(container);
+
+        var close = document.createElement("button");
+        close.classList.add("small-button");
+        close.classList.add("light");
+        close.classList.add("close");
+        dropDown.appendChild(close);
+        close.textContent = "Close";
+        close.addEventListener("click", function (e) {
+            deactivateCurrentInspector();
+            e.stopPropagation();
+        });
+
+        var objectPtr = document.createElement("span");
+        objectPtr.classList.add("object-ptr");
+        objectPtr.textContent = dbgObject.ptr();
+        inspector.appendChild(objectPtr);
 
         var isInitialized = false;
-        inspector.addEventListener("click", function () {
-            if (activeDropDown != null && activeDropDown != container) {
-                activeDropDown.style.display = "none";
+        inspector.addEventListener("click", function (e) {
+            if (activeInspector != inspector) {
+                deactivateCurrentInspector();
             }
 
             if (!isInitialized) {
                 isInitialized = true;
                 typeExplorer.toggleExpansion();
-                typeExplorer.render(container)
-                .then(function () {
-                    container.style.display = "";
-                    activeDropDown = container;
-                })
-            } else {
-                if (activeDropDown != container) {
-                    container.style.display = "";
-                    container.style.transform = "";
-                    currentAdjustment = {x: 0, y:0};
-                    activeDropDown = container;
-                }
+                typeExplorer.render(container).then(function () { activateInspector(inspector); })
+            } else if (activeInspector != inspector) {
+                dropDown.style.transform = "";
+                currentAdjustment = {x: 0, y:0};
+                activateInspector(inspector);
+            } else if (e.target == objectPtr) {
+                // Close it out.
+                deactivateCurrentInspector();
             }
         });
 
@@ -51,7 +80,7 @@ JsDbg.OnLoad(function() {
                     currentAdjustment.x += delta.x;
                     currentAdjustment.y += delta.y;
                     var transform = "translate(" + currentAdjustment.x + "px, " + currentAdjustment.y + "px)";
-                    container.style.transform = transform;
+                    dropDown.style.transform = transform;
                 }
 
                 var mouseUpHandler = function() {
@@ -76,7 +105,6 @@ JsDbg.OnLoad(function() {
             }
         })
 
-        inspector.appendChild(document.createTextNode(dbgObject.ptr()));
         return inspector;
     }
 

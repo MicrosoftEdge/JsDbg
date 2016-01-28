@@ -513,6 +513,10 @@ JsDbg.OnLoad(function() {
     }
 
     TypeExplorerField.prototype.setIsEnabled = function(isEnabled) {
+        if (!this.parentType.aggregateType.controller.allowFieldSelection()) {
+            return;
+        }
+
         if (isEnabled != this.isEnabled) {
             this.isEnabled = isEnabled;
             this.parentType.aggregateType.controller._notifyFieldChange(this);
@@ -820,6 +824,41 @@ JsDbg.OnLoad(function() {
         })
     }
 
+    function realizeDbgObjectOrArray(dbgObjectOrArray) {
+        if (dbgObjectOrArray instanceof DbgObject) {
+            if (dbgObjectOrArray.isNull()) {
+                return "nullptr";
+            } else {
+                return dbgObjectOrArray.desc();
+            }
+        } else if (Array.isArray(dbgObjectOrArray)) {
+            return Promise.map(dbgObjectOrArray, realizeDbgObjectOrArray);
+        } else {
+            return Promise.as(dbgObjectOrArray);
+        }
+    }
+
+    function renderRealizedContent(realizedContent, node) {
+        node.innerHTML = "";
+        if (realizedContent instanceof Node) {
+            node.appendChild(realizedContent);
+        } else if (Array.isArray(realizedContent)) {
+            node.appendChild(document.createTextNode("["));
+            realizedContent.forEach(function (content, i) {
+                var ib = document.createElement("div");
+                ib.style.display = "inline-block";
+                node.appendChild(ib);
+                renderRealizedContent(content, ib);
+                if (i < realizedContent.length - 1) {
+                    node.appendChild(document.createTextNode(", "));
+                }
+            })
+            node.appendChild(document.createTextNode("]"));
+        } else {
+            node.innerHTML = realizedContent;
+        }
+    }
+
     TypeExplorerController.prototype._renderField = function (field, renderingType, fieldContainer, nameCollisions) {
         if (!fieldContainer.currentField) {
             fieldContainer.innerHTML = [
@@ -841,7 +880,7 @@ JsDbg.OnLoad(function() {
             fieldContainer.querySelector("input").addEventListener("change", function () {
                 fieldContainer.currentField.setIsEnabled(input.checked);
             });
-            fieldContainer.querySelector(".field-type").addEventListener("click", function(e) {
+            fieldContainer.querySelector(this.allowFieldSelection() ? ".field-type" : "label").addEventListener("click", function(e) {
                 var field = fieldContainer.currentField;
                 if (field.childType != null) {
                     e.preventDefault();
@@ -912,24 +951,19 @@ JsDbg.OnLoad(function() {
 
         var renderingPromise = Promise.as(null);
         if (this.allowFieldRendering()) {
-            renderingPromise = field.getNestedField(this.dbgObject, fieldContainer)
+            renderingPromise = field.getNestedField(this.dbgObject, rendering)
             .then(function (fieldValue) {
-                if (fieldValue instanceof DbgObject) {
-                    return fieldValue.desc();
-                } else if (fieldValue instanceof Node) {
-                    rendering.appendChild(fieldValue);
-                    return undefined;
-                } else {
-                    return fieldValue;
-                }
+                return realizeDbgObjectOrArray(fieldValue);
             })
-            .then(function (desc) {
-                if (desc !== undefined) {
-                    rendering.innerHTML = desc;
+            .then(
+                function (result) {
+                    if (result !== undefined) {
+                        renderRealizedContent(result, rendering);
+                    }
+                }, function (err) {
+                    renderRealizedContent(err, rendering);
                 }
-            }, function (err) {
-                rendering.innerHTML = err;
-            })
+            );
         }
 
         if (field.childType == null || !areAllTypesExpanded) {

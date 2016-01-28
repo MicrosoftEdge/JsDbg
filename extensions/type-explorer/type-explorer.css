@@ -43,9 +43,9 @@
 }
 
 .type-explorer .rendering {
-    flex-grow:1;
-    text-align: right;
-    white-space: normal;
+    margin-left:auto;
+    max-width:50%;
+    padding-left:2em;
 }
 
 .type-explorer hr {

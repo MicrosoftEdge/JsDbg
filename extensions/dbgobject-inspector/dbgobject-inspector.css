@@ -2,13 +2,34 @@
     display:inline;
     font-family:Segoe UI;
     position:absolute;
-    border:thin solid #aaa;
-    border-top:10px solid #aaa;
-    background:white;
     z-index:20;
-    padding:1em 1em 1em 0;
     margin-top:20px;
+}
+
+.dbgobject-inspector > .drop-down > .window {
+    border:2px solid #333338;
+    border-top:1.5em solid #333338;
+    background:white;
+    padding:1em 1em 1em 0;
     max-width:500px;
     max-height:300px;
     overflow-y:auto;
+}
+.dbgobject-inspector > .drop-down > .close {
+    position:absolute;
+    top:0;
+    right:0;
+}
+
+.dbgobject-inspector > .object-ptr:hover {
+    text-decoration: underline;
+    cursor:pointer;
+}
+
+.dbgobject-inspector.active > .object-ptr {
+    color:blue;
+}
+
+.dbgobject-inspector:not(.active) > .drop-down {
+    display:none;
 }
