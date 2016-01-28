@@ -900,6 +900,11 @@ JsDbg.OnLoad(function() {
                 fieldContainer.currentField.setIsEnabled(input.checked);
             });
             fieldContainer.querySelector(this.allowFieldSelection() ? ".field-type" : "label").addEventListener("click", function(e) {
+                if (e.target == fieldContainer.querySelector(".rendering")) {
+                    e.preventDefault();
+                    return;
+                }
+
                 var field = fieldContainer.currentField;
                 if (field.childType != null) {
                     e.preventDefault();
