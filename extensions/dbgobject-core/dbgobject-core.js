@@ -295,7 +295,7 @@ JsDbg.OnLoad(function() {
         if (arguments.length < 0) {
             throw new Error("You must provide a field.");
         } else if (this == DbgObject.NULL) {
-            return new PromisedDbgObject(this);
+            return new PromisedDbgObject(DbgObject.NULL);
         } else if (arguments.length == 1) {
             return this._fHelper(field);
         } else {
@@ -400,7 +400,11 @@ JsDbg.OnLoad(function() {
                 If the flag is given, this cast becomes roughly equivalent to <code>*(T*)&value</code>."
     }
     DbgObject.prototype.as = function(type, disregardSize) {
-        return new DbgObject(this.module, type, this._pointer, this.bitcount, this.bitoffset, disregardSize ? undefined : this.structSize);
+        if (this == DbgObject.NULL) {
+            return this;
+        } else {
+            return new DbgObject(this.module, type, this._pointer, this.bitcount, this.bitoffset, disregardSize ? undefined : this.structSize);
+        }
     }
 
     DbgObject.prototype._help_idx = {
