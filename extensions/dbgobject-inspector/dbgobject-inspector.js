@@ -21,7 +21,7 @@ JsDbg.OnLoad(function() {
     }
 
     function inspect(dbgObject) {
-        var typeExplorer = TypeExplorer.Create(dbgObject, {});
+        var typeExplorer = TypeExplorer.Create(dbgObject, { includeBaseTypesByDefault: true });
         var inspector = document.createElement("div");
         inspector.classList.add("dbgobject-inspector")
 

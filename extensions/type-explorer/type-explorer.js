@@ -10,7 +10,7 @@ JsDbg.OnLoad(function() {
         this.controller = controller;
         this.searchQuery = "";
         this.backingTypes = [new TypeExplorerSingleType(module, typename, this)];
-        this.includeBaseTypes = false;
+        this.includeBaseTypes = false;;
         this.preparedForRenderingPromise = null;
     }
 
@@ -68,7 +68,7 @@ JsDbg.OnLoad(function() {
             return Promise.map(that.backingTypes, function (bt) { return bt.prepareForRendering(); });
         })
         .then(function () {
-            if (!that.includeBaseTypes && that.backingTypes[0].fields.length == 0) {
+            if (that.controller.includeBaseTypesByDefault() || (!that.includeBaseTypes && that.backingTypes[0].fields.length == 0)) {
                 that.toggleIncludeBaseTypes();
             }
             that.isPreparedForRendering = true;
@@ -648,6 +648,10 @@ JsDbg.OnLoad(function() {
 
     TypeExplorerController.prototype.allowFieldRendering = function() {
         return !this.dbgObject.isNull();
+    }
+
+    TypeExplorerController.prototype.includeBaseTypesByDefault = function() {
+        return !!this.options.includeBaseTypesByDefault;
     }
 
     TypeExplorerController.prototype._notifyFieldChange = function(field, changeType) {
