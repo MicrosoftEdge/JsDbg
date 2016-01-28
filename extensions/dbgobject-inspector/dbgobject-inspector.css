@@ -4,6 +4,7 @@
     position:absolute;
     z-index:20;
     margin-top:20px;
+    margin-left:20px;
 }
 
 .dbgobject-inspector > .drop-down > .window {
