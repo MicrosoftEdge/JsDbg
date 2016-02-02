@@ -408,7 +408,17 @@ JsDbg.OnLoad(function() {
         this.name = name;
         this.parentType = parentType;
         this.getter = getter;
-        this.nestedFieldGetter = this.getNestedField.bind(this);
+        var that = this;
+        this.nestedFieldGetter = function (dbgObject, element) {
+            return that.getNestedField(dbgObject)
+            .then(function (result) {
+                if (that.childType == null) {
+                    return result(element);
+                } else {
+                    return result;
+                }
+            });
+        };
         this.sourceInParentType = sourceInParentType;
         this.isEnabled = false;
         this.clientContext = {};
