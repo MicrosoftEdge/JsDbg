@@ -42,12 +42,27 @@ JsDbg.OnLoad(function() {
     }
 
     function inspect(dbgObject) {
-        var typeExplorer = TypeExplorer.Create(dbgObject, { includeBaseTypesByDefault: true });
         var inspector = document.createElement("span");
         inspector.classList.add("dbgobject-inspector")
 
+        var objectPtr = document.createElement("span");
+        objectPtr.classList.add("object-ptr");
+        objectPtr.textContent = dbgObject.ptr();
+        inspector.appendChild(objectPtr);
+
+        function initialize() {
+            inspector.removeEventListener("click", initialize);
+            initializeInspector(dbgObject, inspector, objectPtr);
+        }
+        inspector.addEventListener("click", initialize);
+        return inspector;
+    }
+
+    function initializeInspector(dbgObject, inspector, objectPtr) {
+        var typeExplorer = TypeExplorer.Create(dbgObject, { includeBaseTypesByDefault: true });
+
         var dropDown = document.createElement("div");
-        inspector.appendChild(dropDown);
+        inspector.insertBefore(dropDown, objectPtr);
         dropDown.classList.add("drop-down");
 
         var title = document.createElement("div");
@@ -70,25 +85,12 @@ JsDbg.OnLoad(function() {
             e.stopPropagation();
         });
 
-        var objectPtr = document.createElement("span");
-        objectPtr.classList.add("object-ptr");
-        objectPtr.textContent = dbgObject.ptr();
-        inspector.appendChild(objectPtr);
-
-        var isInitialized = false;
         inspector.addEventListener("click", function (e) {
             if (activeInspector != inspector) {
                 deactivateCurrentInspector();
             }
 
-            if (!isInitialized) {
-                isInitialized = true;
-                typeExplorer.toggleExpansion();
-                typeExplorer.render(container).then(function () {
-                    activateInspector(inspector);
-                    typeExplorer.focus();
-                })
-            } else if (activeInspector != inspector) {
+            if (activeInspector != inspector) {
                 dropDown.style.transform = "";
                 currentWindowAdjustment = {x: 0, y:0};
                 activateInspector(inspector);
@@ -177,8 +179,12 @@ JsDbg.OnLoad(function() {
                 return beginWindowResize(e);
             }
         })
-
-        return inspector;
+        
+        typeExplorer.toggleExpansion();
+        typeExplorer.render(container).then(function () {
+            activateInspector(inspector);
+            typeExplorer.focus();
+        })
     }
 
     DbgObjectInspector = {
