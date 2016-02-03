@@ -218,7 +218,7 @@ var FieldSupport = (function() {
                 if (obj.isNull()) {
                     return undefined;
                 } else {
-                    return obj.desc();
+                    return DbgObjectInspector.Inspect(obj);
                 }
             } else if (Array.isArray(obj)) {
                 if (obj.length == 0) {

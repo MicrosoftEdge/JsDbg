@@ -43,7 +43,7 @@ JsDbg.OnLoad(function() {
 
     function inspect(dbgObject) {
         var typeExplorer = TypeExplorer.Create(dbgObject, { includeBaseTypesByDefault: true });
-        var inspector = document.createElement("div");
+        var inspector = document.createElement("span");
         inspector.classList.add("dbgobject-inspector")
 
         var dropDown = document.createElement("div");
