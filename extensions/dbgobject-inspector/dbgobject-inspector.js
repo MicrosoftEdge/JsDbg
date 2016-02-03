@@ -122,9 +122,54 @@ JsDbg.OnLoad(function() {
             mouseDownEvent.preventDefault();
         }
 
-        container.addEventListener("mousedown", function(e) {
+        var currentWindowSize = { x: 0, y: 0};
+        function beginWindowResize(mouseDownEvent) {
+            function getBorderPaddingFrame(element) {
+                var computedStyle = getComputedStyle(element);
+                return {
+                    top: parseFloat(computedStyle.paddingTop) + parseFloat(computedStyle.borderTopWidth),
+                    right: parseFloat(computedStyle.paddingRight) + parseFloat(computedStyle.borderRightWidth),
+                    bottom: parseFloat(computedStyle.paddingBottom) + parseFloat(computedStyle.borderBottomWidth),
+                    left: parseFloat(computedStyle.paddingLeft) + parseFloat(computedStyle.borderLeftWidth)
+                };
+            }
+
+            var frame = getBorderPaddingFrame(container);
+            currentWindowSize.x = container.offsetWidth - frame.left - frame.right;
+            currentWindowSize.y = container.offsetHeight - frame.top - frame.bottom;
+
+            trackMouseDrag(
+                mouseDownEvent,
+                currentWindowSize,
+                function onWindowResize(newX, newY) {
+                    currentWindowSize.x = Math.max(newX, 200);
+                    currentWindowSize.y = Math.max(newY, 100);
+                    container.style.width = currentWindowSize.x + "px";
+                    container.style.height = currentWindowSize.y + "px";
+                },
+                function onWindowMoveFinish() {
+                    blocker.parentNode.removeChild(blocker);
+                }
+            );
+
+            var blocker = document.createElement("div");
+            blocker.style.position = "fixed";
+            blocker.style.top = "0";
+            blocker.style.bottom = "0";
+            blocker.style.left = "0";
+            blocker.style.right = "0";
+            blocker.style.zIndex = "10000";
+            blocker.style.cursor = "nwse-resize";
+
+            inspector.appendChild(blocker);
+            mouseDownEvent.preventDefault();
+        }
+
+        dropDown.addEventListener("mousedown", function(e) {
             if (e.target == container && e.offsetY < parseInt(getComputedStyle(container).borderTopWidth)) {
                 return beginWindowMove(e);
+            } else if (e.target == dropDown) {
+                return beginWindowResize(e);
             }
         })
 

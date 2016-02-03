@@ -5,16 +5,24 @@
     z-index:20;
     margin-top:20px;
     margin-left:20px;
+    /* Kind of a hack, but the right/bottom borders are actually the padding in drop-down so that they act as drag handles. */
+    padding:0 2px 2px 0px;
+    background:#333338;
+    background-clip:padding-box;
+    border-right:10px solid transparent;
+    border-bottom:10px solid transparent;
+    cursor:nwse-resize;
 }
 
 .dbgobject-inspector > .drop-down > .window {
-    border:2px solid #333338;
+    cursor:default;
+    border-left:2px solid #333338;
     border-top:1.5em solid #333338;
     background:white;
     padding:1em 1em 1em 0;
-    max-width:500px;
-    max-height:600px;
-    overflow-y:auto;
+    width:400px;
+    height:500px;
+    overflow:auto;
 }
 .dbgobject-inspector > .drop-down > .close {
     position:absolute;
