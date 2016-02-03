@@ -14,6 +14,14 @@
     cursor:nwse-resize;
 }
 
+.dbgobject-inspector > .drop-down > .title {
+    margin-top:0.1em;
+    margin-left:0.3em;
+    cursor:text;
+    height:0px;
+    color:white;
+}
+
 .dbgobject-inspector > .drop-down > .window {
     cursor:default;
     border-left:2px solid #333338;
@@ -25,6 +33,7 @@
     overflow:auto;
 }
 .dbgobject-inspector > .drop-down > .close {
+    margin-top:0.1em;
     position:absolute;
     top:0;
     right:0;

@@ -50,6 +50,11 @@ JsDbg.OnLoad(function() {
         inspector.appendChild(dropDown);
         dropDown.classList.add("drop-down");
 
+        var title = document.createElement("div");
+        title.classList.add("title");
+        title.textContent = dbgObject.htmlTypeDescription() + " " + dbgObject.ptr();
+        dropDown.appendChild(title);
+
         var container = document.createElement("div");
         container.classList.add("window");
         dropDown.appendChild(container);
