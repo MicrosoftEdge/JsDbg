@@ -191,7 +191,7 @@ var DbgObjectTree = (function() {
             result.appendChild(description);
             result.appendChild(document.createTextNode(" "));
 
-            var pointer = DbgObjectInspector.Inspect(that.dbgObject);
+            var pointer = DbgObjectInspector.Inspect(that.dbgObject, that.dbgObject.ptr());
             result.appendChild(pointer);
             result.appendChild(document.createTextNode(" "));
 

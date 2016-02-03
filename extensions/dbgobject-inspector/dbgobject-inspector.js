@@ -41,13 +41,13 @@ JsDbg.OnLoad(function() {
         window.addEventListener("mouseup", mouseUpHandler);
     }
 
-    function inspect(dbgObject) {
+    function inspect(dbgObject, html) {
         var inspector = document.createElement("span");
         inspector.classList.add("dbgobject-inspector")
 
         var objectPtr = document.createElement("span");
         objectPtr.classList.add("object-ptr");
-        objectPtr.textContent = dbgObject.ptr();
+        objectPtr.innerHTML = html;
         inspector.appendChild(objectPtr);
 
         function initialize() {
