@@ -20,6 +20,27 @@ JsDbg.OnLoad(function() {
         }
     }
 
+    function trackMouseDrag(mouseDownEvent, current, onChange, onFinish) {
+        var lastPoint = {x: mouseDownEvent.clientX, y: mouseDownEvent.clientY};
+        var currentAdjustment = {x: current.x, y: current.y};
+        var drag = function(e) {
+            var thisPoint = {x: e.clientX, y: e.clientY};
+            var delta = {x:thisPoint.x - lastPoint.x, y:thisPoint.y - lastPoint.y};
+            lastPoint = thisPoint;
+            currentAdjustment.x += delta.x;
+            currentAdjustment.y += delta.y;
+            onChange(currentAdjustment.x, currentAdjustment.y);
+        }
+
+        var mouseUpHandler = function() {
+            window.removeEventListener("mousemove", drag);
+            window.removeEventListener("mouseup", mouseUpHandler);
+            onFinish();
+        }
+        window.addEventListener("mousemove", drag);
+        window.addEventListener("mouseup", mouseUpHandler);
+    }
+
     function inspect(dbgObject) {
         var typeExplorer = TypeExplorer.Create(dbgObject, { includeBaseTypesByDefault: true });
         var inspector = document.createElement("div");
@@ -64,7 +85,7 @@ JsDbg.OnLoad(function() {
                 })
             } else if (activeInspector != inspector) {
                 dropDown.style.transform = "";
-                currentAdjustment = {x: 0, y:0};
+                currentWindowAdjustment = {x: 0, y:0};
                 activateInspector(inspector);
                 typeExplorer.focus();
             } else if (e.target == objectPtr) {
@@ -73,39 +94,37 @@ JsDbg.OnLoad(function() {
             }
         });
 
-        var currentAdjustment = { x: 0, y: 0 };
-        container.addEventListener("mousedown", function(e) {
-            if (e.target == container && e.offsetY < parseInt(getComputedStyle(container).borderTopWidth)) {
-                var lastPoint = {x: e.clientX, y: e.clientY};
-                var drag = function(e) {
-                    var thisPoint = {x: e.clientX, y: e.clientY};
-                    var delta = {x:thisPoint.x - lastPoint.x, y:thisPoint.y - lastPoint.y};
-                    lastPoint = thisPoint;
-                    currentAdjustment.x += delta.x;
-                    currentAdjustment.y += delta.y;
-                    var transform = "translate(" + currentAdjustment.x + "px, " + currentAdjustment.y + "px)";
+        var currentWindowAdjustment = { x: 0, y: 0 };
+        function beginWindowMove(mouseDownEvent) {
+            trackMouseDrag(
+                mouseDownEvent, 
+                currentWindowAdjustment, 
+                function onWindowMove(newX, newY) {
+                    currentWindowAdjustment.x = newX;
+                    currentWindowAdjustment.y = newY;
+                    var transform = "translate(" + currentWindowAdjustment.x + "px, " + currentWindowAdjustment.y + "px)";
                     dropDown.style.transform = transform;
-                }
-
-                var mouseUpHandler = function() {
-                    window.removeEventListener("mousemove", drag);
-                    window.removeEventListener("mouseup", mouseUpHandler);
+                },
+                function onWindowMoveFinish() {
                     blocker.parentNode.removeChild(blocker);
                 }
-                window.addEventListener("mousemove", drag);
-                window.addEventListener("mouseup", mouseUpHandler);
+            );
 
+            var blocker = document.createElement("div");
+            blocker.style.position = "fixed";
+            blocker.style.top = "0";
+            blocker.style.bottom = "0";
+            blocker.style.left = "0";
+            blocker.style.right = "0";
+            blocker.style.zIndex = "10000";
 
-                var blocker = document.createElement("div");
-                blocker.style.position = "fixed";
-                blocker.style.top = "0";
-                blocker.style.bottom = "0";
-                blocker.style.left = "0";
-                blocker.style.right = "0";
-                blocker.style.zIndex = "10000";
+            inspector.appendChild(blocker);
+            mouseDownEvent.preventDefault();
+        }
 
-                inspector.appendChild(blocker);
-                e.preventDefault();
+        container.addEventListener("mousedown", function(e) {
+            if (e.target == container && e.offsetY < parseInt(getComputedStyle(container).borderTopWidth)) {
+                return beginWindowMove(e);
             }
         })
 
