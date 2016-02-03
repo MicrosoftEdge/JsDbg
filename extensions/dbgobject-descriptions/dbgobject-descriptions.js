@@ -101,7 +101,7 @@ JsDbg.OnLoad(function () {
     
     function getDefaultTypeDescription(dbgObject, element) {
         if (dbgObject.isNull()) {
-            return Promise.as(null);
+            return Promise.as("nullptr");
         }
 
         return getTypeDescriptionFunctionIncludingBaseTypes(dbgObject.module, dbgObject.typename)

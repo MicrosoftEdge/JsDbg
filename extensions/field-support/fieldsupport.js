@@ -248,38 +248,29 @@ var FieldSupport = (function() {
                 return field.getter(dbgObject, element)
             })
             .then(function(result) {
-                return getDescs(result);
-            })
-            .then(
-                function (nodeOrHtml) {
-                    if (typeof nodeOrHtml == typeof undefined) {
-                        return;
-                    }
-
-                    var result = document.createElement("span");
-                    element.appendChild(result);
-
-                    if (nodeOrHtml instanceof Node) {
-                        insertFieldList(field.names, result);
-                        result.appendChild(nodeOrHtml);
-                    } else {
-                        insertFieldList(field.names, result);
-                        var resultContainer = document.createElement("span");
-                        resultContainer.innerHTML = nodeOrHtml;
-                        result.appendChild(resultContainer);
-                    }
-                }, 
-                function (error) {
-                    var result = document.createElement("span");
-                    element.appendChild(result);
-                    insertFieldList(field.names, result);
-
-                    var errorContainer = document.createElement("span");
-                    errorContainer.style.color = "red";
-                    result.appendChild(errorContainer);
-                    errorContainer.textContent = "(" + (error instanceof Error ? error.toString() : JSON.stringify(error)) + ")";
+                if (result === undefined || (result instanceof DbgObject && result.isNull())) {
+                    return;
                 }
-            )
+
+                var fieldAndValue = document.createElement("span");
+                element.appendChild(fieldAndValue);
+                insertFieldList(field.names, fieldAndValue);
+                var valueContainer = document.createElement("span");
+                fieldAndValue.appendChild(valueContainer);
+                return DbgObject.render(
+                    result, 
+                    valueContainer, 
+                    function (dbgObject) {
+                        if (dbgObject.isArray()) {
+                            return dbgObject.array();
+                        } else {
+                            return dbgObject.desc().then(function (desc) {
+                                return DbgObjectInspector.Inspect(dbgObject, desc);
+                            })
+                        }
+                    }
+                );
+            });
         }
     }
 

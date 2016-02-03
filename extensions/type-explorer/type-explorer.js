@@ -326,7 +326,7 @@ JsDbg.OnLoad(function() {
         .then(function (fields) {
             fields.forEach(function (field) {
                 var dereferencedType = field.value.typeDescription().replace(/\**$/, "");
-                var getter = function(dbgObject) { return dbgObject.f(field.name); }
+                var getter = field.value.isArray() ? function (dbgObject) { return dbgObject.f(field.name).array(); } : function(dbgObject) { return dbgObject.f(field.name); };
                 that.fields.push(new TypeExplorerField(field.name, dereferencedType, getter, that, "fields"));
             })
 
@@ -430,8 +430,12 @@ JsDbg.OnLoad(function() {
         this.setChildType(fieldTypeName);
     }
 
-    TypeExplorerField.prototype.isArray = function() {
+    TypeExplorerField.prototype.isUserDefinedArray = function() {
         return this.sourceInParentType == "arrayFields";
+    }
+
+    TypeExplorerField.prototype.returnsArray = function() {
+        return this.isUserDefinedArray() || (this.getChildTypeName() != null && this.getChildTypeName().match(/\[[0-9]+\]/));
     }
 
     TypeExplorerField.prototype.getNestedField = function(dbgObject) {
@@ -446,7 +450,11 @@ JsDbg.OnLoad(function() {
                 throw new Error("The field \"" + that.name + "\" should have returned a DbgObject but instead returned " + resultString + ".");
             }
 
-            return result.isType(that.childType.typename())
+            var typeName = that.childType.typename();
+            if (that.returnsArray()) {
+                typeName = typeName.replace(/\**\[.*\]/g, "");
+            }
+            return result.isType(typeName)
             .then(function (isType) {
                 if (!isType) {
                     throw new Error("The field \"" + that.name + "\" was supposed to be type \"" + that.childType.typename() + "\" but was unrelated type \"" + result.typeDescription() + "\".");
@@ -466,7 +474,7 @@ JsDbg.OnLoad(function() {
 
             return Promise.as(that.getter(parentDbgObject))
             .then(function(result) {
-                if (that.isArray()) {
+                if (that.returnsArray()) {
                     if (!Array.isArray(result)) {
                         throw new Error("The array \"" + that.name + "\" did not return an array, but returned \"" + result + "\"");
                     }
@@ -844,50 +852,6 @@ JsDbg.OnLoad(function() {
         })
     }
 
-    function realizeDbgObjectOrArrayOrFunction(dbgObjectOrArrayOrFunction) {
-        if (dbgObjectOrArrayOrFunction instanceof DbgObject) {
-            if (dbgObjectOrArrayOrFunction.isNull()) {
-                return "nullptr";
-            } else {
-                return dbgObjectOrArrayOrFunction.desc();
-            }
-        } else if (Array.isArray(dbgObjectOrArrayOrFunction)) {
-            return Promise.map(dbgObjectOrArrayOrFunction, realizeDbgObjectOrArrayOrFunction);
-        } else {
-            return Promise.as(dbgObjectOrArrayOrFunction);
-        }
-    }
-
-    function renderRealizedContent(realizedContent, node) {
-        node.innerHTML = "";
-        if (realizedContent instanceof Node) {
-            node.appendChild(realizedContent);
-        } else if (Array.isArray(realizedContent)) {
-            node.appendChild(document.createTextNode("["));
-            realizedContent.forEach(function (content, i) {
-                var ib = document.createElement("div");
-                ib.style.display = "inline-block";
-                node.appendChild(ib);
-                renderRealizedContent(content, ib);
-                if (i < realizedContent.length - 1) {
-                    node.appendChild(document.createTextNode(", "));
-                }
-            })
-            node.appendChild(document.createTextNode("]"));
-        } else if (realizedContent instanceof Function) {
-            return Promise.as(realizedContent(node))
-            .then(function (descriptionResult) {
-                if (descriptionResult instanceof Node) {
-                    node.appendChild(descriptionResult);
-                } else if (descriptionResult !== undefined) {
-                    node.innerHTML = descriptionResult;
-                }
-            })
-        } else if (realizedContent !== undefined) {
-            node.innerHTML = realizedContent;
-        }
-    }
-
     TypeExplorerController.prototype._renderField = function (field, renderingType, fieldContainer, nameCollisions) {
         if (!fieldContainer.currentField) {
             fieldContainer.innerHTML = [
@@ -910,7 +874,7 @@ JsDbg.OnLoad(function() {
                 fieldContainer.currentField.setIsEnabled(input.checked);
             });
             fieldContainer.querySelector(this.allowFieldSelection() ? ".field-type" : "label").addEventListener("click", function(e) {
-                if (e.target == fieldContainer.querySelector(".rendering")) {
+                if (fieldContainer.querySelector(".rendering").contains(e.target)) {
                     e.preventDefault();
                     return;
                 }
@@ -969,7 +933,7 @@ JsDbg.OnLoad(function() {
         var fieldTypeName = field.getChildTypeName();
         if (fieldTypeName != null) {
             if (areAllTypesExpanded) {
-                fieldTypeContainer.textContent = fieldTypeName + (field.isArray() ? "[]" : "");
+                fieldTypeContainer.textContent = fieldTypeName + (field.isUserDefinedArray() ? "[]" : "");
                 fieldTypeContainer.style.display = "";
             } else {
                 fieldTypeContainer.style.display = "none";
@@ -987,17 +951,11 @@ JsDbg.OnLoad(function() {
         if (this.allowFieldRendering()) {
             renderingPromise = field.getNestedField(this.dbgObject, rendering)
             .then(function (fieldValue) {
-                return realizeDbgObjectOrArrayOrFunction(fieldValue);
+                rendering.innerHTML = "";
+                DbgObject.render(fieldValue, rendering, function (dbgObject) {
+                    return dbgObject.desc();
+                });
             })
-            .then(
-                function (result) {
-                    if (result !== undefined) {
-                        renderRealizedContent(result, rendering);
-                    }
-                }, function (err) {
-                    renderRealizedContent(err, rendering);
-                }
-            );
         }
 
         if (field.childType == null || !areAllTypesExpanded) {

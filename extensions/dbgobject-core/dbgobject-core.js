@@ -197,6 +197,50 @@ JsDbg.OnLoad(function() {
         });
     }
 
+    DbgObject._help_render = {
+        description: "Renders an object or an array of objects, some of which may be DbgObjects.",
+        returns: "A promise.",
+        arguments: [
+            {name:"object", type:"any", description:"The object or array of objects to render."},
+            {name:"element", type:"HTML element", description:"The element to render into." },
+            {name:"dbgObjectMapping", type:"function(DbgObject) -> any", description:"A function to transform DbgObjects into something renderable."}
+        ]
+    }
+    DbgObject.render = function(object, element, dbgObjectMapping) {
+        return Promise.as(object)
+        .then(function (object) {
+            if (Array.isArray(object)) {
+                element.appendChild(document.createTextNode("["));
+                return Promise.map(object, function (item, index) {
+                    if (index > 0) {
+                        element.appendChild(document.createTextNode(", "));
+                    }
+                    var inlineBlock = document.createElement("span");
+                    inlineBlock.style.display = "inline-block";
+                    element.appendChild(inlineBlock);
+                    return DbgObject.render(item, inlineBlock, dbgObjectMapping);
+                })
+                .then(function() {
+                    element.appendChild(document.createTextNode("]"));
+                })
+            } else if (object instanceof DbgObject) {
+                return DbgObject.render(dbgObjectMapping(object), element, dbgObjectMapping);
+            } else if (object instanceof Function) {
+                return DbgObject.render(object(element), element, dbgObjectMapping);
+            } else if (object instanceof Node) {
+                element.appendChild(object);
+            } else if (object !== undefined) {
+                element.innerHTML = object;
+            }
+        })
+        .then(null, function (error) {
+            var errorSpan = document.createElement("span");
+            errorSpan.style.color = "red";
+            errorSpan.textContent = "(" + (error instanceof Error ? error.toString() : JSON.stringify(error)) + ")";
+            element.appendChild(errorSpan);
+        })
+    }
+
     DbgObject._help_NULL = {description: "A DbgObject that represents a null value."}
     DbgObject.NULL = new DbgObject("", "", 0, 0, 0);
 
