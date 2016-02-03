@@ -262,7 +262,9 @@ JsDbg.OnLoad(function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
-            return markup.F("Root");
+            return markup.F("Root").then(function (root) {
+                return root.vcast().then(null, function () { return root; })
+            });
         }, function (markup) {
             return markup.desc("URL")
             .then(function (url) {
