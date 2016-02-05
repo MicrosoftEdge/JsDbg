@@ -887,11 +887,15 @@ JsDbg.OnLoad(function() {
                     field.parentType.aggregateType.controller._renderType(field.childType, subFieldsContainer);
                 }
             })
-            fieldContainer.querySelector(".edit-button").addEventListener("click", function() {
+            fieldContainer.querySelector(".edit-button").addEventListener("click", function(e) {
                 fieldContainer.currentField.beginEditing();
+                e.stopPropagation();
+                e.preventDefault();
             });
-            fieldContainer.querySelector(".delete-button").addEventListener("click", function() {
+            fieldContainer.querySelector(".delete-button").addEventListener("click", function(e) {
                 fieldContainer.currentField.delete();
+                e.stopPropagation();
+                e.preventDefault();
             });
 
             if (!this.allowFieldRendering()) {
