@@ -714,17 +714,42 @@ JsDbg.OnLoad(function() {
         .then(function (length) {
             if (length === undefined) {
                 // Using a null-terminated string.
-                var getRestOfString = function(character, prefix) {
-                    return character.val()
-                    .then(function(v) {
-                        if (v == 0) {
-                            return prefix;
+                var getRestOfString = function(character, prefix, suggestedChunkSize) {
+                    var chunkSize = suggestedChunkSize;
+                    var PAGE_SIZE = 4096;
+                    // Ensure the chunk size doesn't cross a page boundary to reduce the risk of overfetching.
+                    while (PAGE_SIZE - character.pointerValue().mod(PAGE_SIZE) < chunkSize && chunkSize > 1) {
+                        chunkSize = chunkSize / 2;
+                    }
+                    return character.vals(chunkSize)
+                    .then(null, function (err) {
+                        if (chunkSize > 1) {
+                            // Assume overfetching is the culprit, so refetch with a chunk size of 1.
+                            suggestedChunkSize = 1;
+                            chunkSize = 1;
+                            return character.vals(chunkSize);
                         } else {
-                            return getRestOfString(character.idx(1), prefix + String.fromCharCode(v));
+                            // Propagate the error.
+                            throw err;
                         }
                     })
+                    .then(function(vals) {
+                        var characters = [];
+                        for (var i = 0; i < vals.length; ++i) {
+                            if (vals[i] == 0) {
+                                return prefix + characters.join("");
+                            } else {
+                                characters.push(String.fromCharCode(vals[i]));
+                            }
+                        }
+
+                        return character.idx(chunkSize)
+                        .then(function (nextCharacterStart) {
+                            return getRestOfString(nextCharacterStart, prefix + characters.join(""), suggestedChunkSize);
+                        });
+                    })
                 };
-                return getRestOfString(that, "");
+                return getRestOfString(that, "", /*suggestedChunkSize*/64);
             } else {
                 return that.vals(length)
                 .then(function (chars) {
