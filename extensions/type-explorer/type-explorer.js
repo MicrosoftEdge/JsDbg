@@ -949,12 +949,9 @@ JsDbg.OnLoad(function() {
 
         var renderingPromise = Promise.as(null);
         if (this.allowFieldRendering()) {
-            renderingPromise = field.getNestedField(this.dbgObject, rendering)
-            .then(function (fieldValue) {
-                rendering.innerHTML = "";
-                DbgObject.render(fieldValue, rendering, function (dbgObject) {
-                    return dbgObject.desc();
-                });
+            rendering.innerHTML = "";
+            renderingPromise = DbgObject.render(field.getNestedField(this.dbgObject, rendering), rendering, function (dbgObject) {
+                return dbgObject.desc();
             })
         }
 

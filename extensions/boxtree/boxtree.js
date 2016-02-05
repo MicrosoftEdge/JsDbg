@@ -216,19 +216,19 @@ JsDbg.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "FancyFormat", "CFancyFormat", UserEditableFunctions.Create(function (containerBox) {
-        return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode").f("_pts._pFancyFormatCache"), containerBox.f("sourceStyle").f("iFF", "_iFF").val());
+        return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode").F("Threadstate").f("_pFancyFormatCache"), containerBox.f("sourceStyle").f("iFF", "_iFF").val());
     }));
 
     DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "CharFormat", "CCharFormat", UserEditableFunctions.Create(function (containerBox) {
-        return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode").f("_pts._pCharFormatCache"), containerBox.f("sourceStyle").f("iCF", "_iCF").val());
+        return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode").F("Threadstate").f("_pCharFormatCache"), containerBox.f("sourceStyle").f("iCF", "_iCF").val());
     }));
 
     DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "ParaFormat", "CParaFormat", UserEditableFunctions.Create(function (containerBox) {
-        return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode").f("_pts._pParaFormatCache"), containerBox.f("sourceStyle").f("iPF", "_iPF").val());
+        return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode").F("Threadstate").f("_pParaFormatCache"), containerBox.f("sourceStyle").f("iPF", "_iPF").val());
     }));
 
     DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "SvgFormat", "CSvgFormat", UserEditableFunctions.Create(function (containerBox) {
-        return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode").f("_pts._pSvgFormatCache"), containerBox.f("sourceStyle").f("iSF", "_iSF").val());
+        return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode").F("Threadstate").f("_pSvgFormatCache"), containerBox.f("sourceStyle").f("iSF", "_iSF").val());
     }));
 
     DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "DisplayNode", "CDispNode", UserEditableFunctions.Create(function (containerBox) {

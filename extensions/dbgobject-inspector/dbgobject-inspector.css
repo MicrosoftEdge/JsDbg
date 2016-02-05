@@ -16,6 +16,7 @@
 
 .dbgobject-inspector > .drop-down > .title {
     margin-top:0.1em;
+    margin-bottom:-0.1em;
     margin-left:0.3em;
     cursor:text;
     height:0px;
@@ -29,7 +30,7 @@
     background:white;
     padding:1em 1em 1em 0;
     width:400px;
-    height:500px;
+    height:300px;
     overflow:auto;
 }
 .dbgobject-inspector > .drop-down > .close {

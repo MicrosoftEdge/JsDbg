@@ -184,6 +184,8 @@ JsDbg.OnLoad(function() {
         typeExplorer.render(container).then(function () {
             activateInspector(inspector);
             typeExplorer.focus();
+        }, function (err) {
+            console.log(err);
         })
     }
 
