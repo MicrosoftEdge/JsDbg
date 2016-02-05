@@ -904,6 +904,23 @@ JsDbg.OnLoad(function() {
         var that = this;
         return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, that.typename)
         .then(function (baseTypes) {
+            // Put base types with greater offsets earlier so that the order proxies the order of fields.
+            // So,
+            //     Foo : Bar, Baz
+            //     Bar : Base
+            // will produce:
+            //     [Baz, Bar, Base]
+            // JsDbg ensures that base types will be listed after any derived types, so if the offsets are
+            // equal, use the original sort order.
+            var originalSortOrder = baseTypes.slice();
+            baseTypes.sort(function (a, b) {
+                var offsetDifference = b.offset - a.offset;
+                if (offsetDifference != 0) {
+                    return offsetDifference;
+                } else {
+                    return originalSortOrder.indexOf(a) - originalSortOrder.indexOf(b);
+                }
+            })
             return baseTypes.map(function (typeAndOffset) {
                 return new DbgObject(that.module, typeAndOffset.type, that._pointer.add(typeAndOffset.offset));
             });
