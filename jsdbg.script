@@ -1,6 +1,6 @@
-.block { as ${/v:JsDbgVersion} 2016-01-11-01}
-.block { as ${/v:JsDbgPath} \\iefs\users\psalas\jsdbg\${JsDbgVersion}\jsdbg.exe}
-.block { as ${/v:JsDbgStrPath} "\\\\iefs\\users\\psalas\\jsdbg\\${JsDbgVersion}\\jsdbg.exe"}
+.block { as ${/v:JsDbgVersion} 2016-02-06-01.zip}
+.block { as ${/v:JsDbgPath} \\iefs\users\psalas\jsdbg\jsdbg.exe}
+.block { as ${/v:JsDbgStrPath} "\\\\iefs\\users\\psalas\\jsdbg\\jsdbg.exe ${JsDbgVersion}"}
 
 r $t0 = 0; $$ found remote
 r $t1 = 0; $$ connect to next remote
@@ -13,7 +13,7 @@ r $t2 = 1; $$ should create a remote
         .if (@$t0 & @$t1)
         {
             .catch {
-                .block {.shell -x ${JsDbgPath} ${server}};
+                .block {.shell -x ${JsDbgPath} ${JsDbgVersion} ${server}};
                 .printf "Connecting JsDbg to ${server}\r\n";
                 .break;
             };
