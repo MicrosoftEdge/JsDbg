@@ -99,5 +99,6 @@ namespace JsDbg
         Task<uint> LookupTypeSize(string module, string typename);
         Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct;
         Task<T> ReadMemory<T>(ulong pointer) where T : struct;
+        Task WriteMemory<T>(ulong pointer, T value) where T : struct;
     }
 }

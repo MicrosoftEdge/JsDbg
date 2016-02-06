@@ -120,6 +120,10 @@ namespace Sushraja.Jump {
             return result;
         }
 
+        public Task WriteValue<T>(ulong pointer, T value) where T : struct {
+            throw new DebuggerException("Memory writes are not yet supported in Visual Studio.");
+        }
+
         public async Task<IEnumerable<Core.SStackFrameWithContext>> GetCurrentCallStack() {
             await this.runner.WaitForBreakIn();
 

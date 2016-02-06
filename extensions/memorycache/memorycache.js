@@ -236,6 +236,7 @@ var MemoryCache = (function() {
 
     // Any change in the state of the debugger will wipe the cache.
     JsDbg.RegisterOnBreakListener(clearCache);
+    JsDbg.RegisterOnMemoryWriteListener(clearCache);
 
     return {
         ReadNumber: readNumber,

@@ -28,6 +28,7 @@ namespace Core {
         Task<SModule> GetModuleForName(string module);
 
         Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct;
+        Task WriteValue<T>(ulong pointer, T value) where T : struct;
 
         Task<IEnumerable<SStackFrameWithContext>> GetCurrentCallStack();
 

@@ -512,6 +512,21 @@ JsDbg.OnLoad(function() {
     DbgObject.prototype.ubigvals = function(count) { return this._val(true, true, true, count); }
     DbgObject.prototype.sbigvals = function(count) { return this._val(false, true, true, count); }
 
+    DbgObject.prototype._help_setval = {
+        description: "Writes to a scalar value held by a DbgObject.",
+        returns: "A promise to undefined.",
+        notes: "This method has several variants with respect to signedness: \
+        <table>\
+            <tr><th>name</th><th>sign</th></tr>\
+            <tr><td><code>setval</code></td><td>auto</td></tr>\
+            <tr><td><code>setsval</code></td><td>signed</td></tr>\
+            <tr><td><code>setuval</code></td><td>unsigned</td></tr>\
+        </table>"
+    }
+    DbgObject.prototype.setval = function(value) { return this._setval(this._isUnsigned || this._isPointer(), value); }
+    DbgObject.prototype.setuval = function(value) { return this._setval(true, value); }
+    DbgObject.prototype.setsval = function(value) { return this._setval(false, value); }
+
     DbgObject.prototype._val = function(unsigned, useBigInt, isCountSpecified, count) {
         if (this.isNull()) {
             return Promise.as(null);
@@ -579,6 +594,48 @@ JsDbg.OnLoad(function() {
                 return array[0];
             }
         })
+    }
+
+    DbgObject.prototype._setval = function(unsigned, value) {
+        if (!this._isFloat()) {
+            value = bigInt(value);
+        }
+
+        if (this.isNull()) {
+            return Promise.as(null);
+        }
+
+        if (this.typename == "void") {
+            throw new Error("You may not write to a void object.");
+        }
+
+        var that = this;
+        return this._getStructSize()
+        .then(function (structSize) {
+            var valueToWritePromise = Promise.as(value);
+            // If we're a bit field, we need to do a read and then a write.
+            if (that.bitcount && that.bitoffset !== undefined && !that._isFloat()) {
+                unsigned = true;
+                valueToWritePromise = jsDbgPromise(MemoryCache.ReadNumber, that._pointer.value(), structSize, unsigned, /*isFloat*/false)
+                .then(function (currentValue) {
+                    return currentValue.value
+                    .and(bigInt.one.shiftLeft(that.bitcount).minus(1).shiftLeft(that.bitoffset).not())
+                    .or(
+                        value
+                        .and(bigInt.one.shiftLeft(that.bitcount).minus(1))
+                        .shiftLeft(that.bitoffset)
+                    );
+                });
+            }
+
+            return valueToWritePromise
+            .then(function (valueToWrite) {
+                return jsDbgPromise(JsDbg.WriteNumber, that._pointer.value(), structSize, unsigned, that._isFloat(), valueToWrite);
+            })
+            .then(function () {
+                return undefined;
+            })
+        });
     }
 
     var scalarTypes = [

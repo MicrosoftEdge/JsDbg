@@ -322,6 +322,9 @@ namespace JsDbg {
                 case "memory":
                     this.ServeMemory(query, respond, fail);
                     break;
+                case "writememory":
+                    this.WriteMemory(query, respond, fail);
+                    break;
                 case "array":
                     this.ServeArray(query, respond, fail);
                     break;
@@ -489,6 +492,14 @@ namespace JsDbg {
             return integerString != null && int.TryParse(integerString, numberStyle, null, out result);
         }
 
+        private static T CatchParserError<T>(Func<T> operation) {
+            try {
+                return operation();
+            } catch {
+                throw new DebuggerException("Invalid value format.");
+            }
+        }
+
         private async void ServeMemory(NameValueCollection query, Action<string> respond, Action fail) {
             string type = query["type"];
             string pointerString = query["pointer"];
@@ -539,6 +550,64 @@ namespace JsDbg {
                 }
 
                 responseString = String.Format("{{ \"value\": {0} }}", value);
+            } catch (JsDbg.DebuggerException ex) {
+                responseString = ex.JSONError;
+            }
+
+            respond(responseString);
+        }
+
+        private async void WriteMemory(NameValueCollection query, Action<string> respond, Action fail) {
+            string type = query["type"];
+            string pointerString = query["pointer"];
+            string value = query["value"];
+
+            ulong pointer;
+
+            if (type == null || !WebServer.ParseInteger(pointerString, out pointer) || value == null) {
+                fail();
+                return;
+            }
+
+            string responseString;
+            try {
+                switch (type) {
+                    case "sbyte":
+                        await this.debugger.WriteMemory(pointer, CatchParserError(() => sbyte.Parse(value)));
+                        break;
+                    case "byte":
+                        await this.debugger.WriteMemory(pointer, CatchParserError(() => byte.Parse(value)));
+                        break;
+                    case "short":
+                        await this.debugger.WriteMemory(pointer, CatchParserError(() => short.Parse(value)));
+                        break;
+                    case "int":
+                        await this.debugger.WriteMemory(pointer, CatchParserError(() => int.Parse(value)));
+                        break;
+                    case "long":
+                        await this.debugger.WriteMemory(pointer, CatchParserError(() => long.Parse(value)));
+                        break;
+                    case "ushort":
+                        await this.debugger.WriteMemory(pointer, CatchParserError(() => ushort.Parse(value)));
+                        break;
+                    case "uint":
+                        await this.debugger.WriteMemory(pointer, CatchParserError(() => uint.Parse(value)));
+                        break;
+                    case "ulong":
+                        await this.debugger.WriteMemory(pointer, CatchParserError(() => ulong.Parse(value)));
+                        break;
+                    case "float":
+                        await this.debugger.WriteMemory(pointer, CatchParserError(() => float.Parse(value)));
+                        break;
+                    case "double":
+                        await this.debugger.WriteMemory(pointer, CatchParserError(() => double.Parse(value)));
+                        break;
+                    default:
+                        fail();
+                        return;
+                }
+
+                responseString = "{ \"success\": true }";
             } catch (JsDbg.DebuggerException ex) {
                 responseString = ex.JSONError;
             }

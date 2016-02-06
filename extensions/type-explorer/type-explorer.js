@@ -953,8 +953,8 @@ JsDbg.OnLoad(function() {
 
         var renderingPromise = Promise.as(null);
         if (this.allowFieldRendering()) {
-            rendering.innerHTML = "";
-            renderingPromise = DbgObject.render(field.getNestedField(this.dbgObject, rendering), rendering, function (dbgObject) {
+            rendering.innerHTML = "<span></span>";
+            renderingPromise = DbgObject.render(field.getNestedField(this.dbgObject, rendering.firstChild), rendering.firstChild, function (dbgObject) {
                 return dbgObject.desc();
             })
         }

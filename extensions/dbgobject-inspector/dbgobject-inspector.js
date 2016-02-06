@@ -11,6 +11,9 @@ JsDbg.OnLoad(function() {
         deactivateCurrentInspector();
         inspector.classList.add("active");
         activeInspector = inspector;
+        if (activeInspector != null) {
+            activeInspector.typeExplorer.requestRerender();
+        }
     }
 
     function deactivateCurrentInspector() {
@@ -60,6 +63,7 @@ JsDbg.OnLoad(function() {
 
     function initializeInspector(dbgObject, inspector, objectPtr) {
         var typeExplorer = TypeExplorer.Create(dbgObject, { includeBaseTypesByDefault: true });
+        inspector.typeExplorer = typeExplorer;
 
         var dropDown = document.createElement("div");
         inspector.insertBefore(dropDown, objectPtr);
@@ -181,8 +185,8 @@ JsDbg.OnLoad(function() {
         })
         
         typeExplorer.toggleExpansion();
+        activateInspector(inspector);
         typeExplorer.render(container).then(function () {
-            activateInspector(inspector);
             typeExplorer.focus();
         }, function (err) {
             console.log(err);

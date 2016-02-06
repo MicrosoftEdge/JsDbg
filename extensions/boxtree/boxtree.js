@@ -201,12 +201,15 @@ JsDbg.OnLoad(function() {
             if (invalidBits[0]) {
                 // Layout is invalid.
                 e.style.backgroundColor = "#fbc";
+                return "Layout Invalid";
             } else if (invalidBits[1]) {
                 // Display is invalid.
                 e.style.backgroundColor = "#ffc";
+                return "Display Invalid";
             } else {
                 // Box is valid.
                 e.style.backgroundColor = "#bfc";
+                return "Valid";
             }
         });
     }))

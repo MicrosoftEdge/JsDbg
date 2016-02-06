@@ -90,6 +90,17 @@ namespace JsDbg {
             }, String.Format("Invalid memory address: 0x{0:x8}", pointer));
         }
 
+        public Task WriteValue<T>(ulong pointer, T value) where T : struct {
+            return this.AttemptOperation<bool>(() => {
+                T[] data = { value };
+                uint bytesWritten = this.dataSpaces.WriteVirtual<T>(pointer, data);
+                if (bytesWritten < System.Runtime.InteropServices.Marshal.SizeOf(typeof(T))) {
+                    throw new DebuggerException("Unable to write the entire value.");
+                }
+                return true;
+            }, String.Format("Unable to write to memory address: 0x{0:x8}", pointer));
+        }
+
         public Task<IEnumerable<Core.SStackFrameWithContext>> GetCurrentCallStack() {
             return this.AttemptOperation<IEnumerable<Core.SStackFrameWithContext>>(() => {
                 List<Core.SStackFrameWithContext> stackFrames = new List<Core.SStackFrameWithContext>();

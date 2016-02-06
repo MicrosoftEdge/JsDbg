@@ -358,7 +358,7 @@ namespace Core {
                         symbol = symbol.lexicalParent;
                     }
                     ulong displacement = (ulong)(rva - symbol.relativeVirtualAddress);
-                    
+
                     string name;
                     symbol.get_undecoratedNameEx(0x1000, out name);
 
@@ -378,6 +378,10 @@ namespace Core {
         public async Task<T> ReadMemory<T>(ulong pointer) where T : struct {
             T[] result = await this.debuggerEngine.ReadArray<T>(pointer, 1);
             return result[0];
+        }
+
+        public Task WriteMemory<T>(ulong pointer, T value) where T : struct {
+            return this.debuggerEngine.WriteValue<T>(pointer, value);
         }
 
         #endregion

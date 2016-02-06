@@ -14,11 +14,13 @@ var JsDbg = (function() {
     var remainingAllowableWebSocketRequests = 30; // Throttle the WebSocket requests to avoid overwhelming the connection.
     var pendingWebSocketMessages = []; // WebSocket requests that have not yet been sent due to throttling.
     var debuggerBrokeListeners = [];
+    var memoryWriteListeners = [];
 
     var CacheType = {
         Uncached:         0, // The resource is not cached.
         Cached:           1, // The resource is cached until the page is refreshed.
-        TransientCache:   2  // The resource is cached until the debugger breaks in again.
+        TransientCache:   2, // The resource is cached until the debugger breaks in again.
+        InvalidatesCache: 3  // The resource invalidates the cache
     };
 
     // Certain types of requests are cacheable -- this maintains that cache.
@@ -193,7 +195,7 @@ var JsDbg = (function() {
             var transientCacheResult = transientCache[url];
             callback(transientCacheResult);
             return;
-        } else if (cacheType != CacheType.Uncached) {
+        } else if (cacheType != CacheType.Uncached && cacheType != CacheType.InvalidatesCache) {
             if (url in pendingCachedRequests) {
                 pendingCachedRequests[url].push(callback);
                 return;
@@ -215,7 +217,12 @@ var JsDbg = (function() {
                 };
             }
             var otherCallbacks = [];
-            if (cacheType != CacheType.Uncached) {
+            if (cacheType == CacheType.InvalidatesCache) {
+                if (transientCache != null) {
+                    transientCache = {};
+                }
+                memoryWriteListeners.forEach(function(f) { f(); });
+            } else if (cacheType != CacheType.Uncached) {
                 otherCallbacks = pendingCachedRequests[url];
                 delete pendingCachedRequests[url];
 
@@ -745,6 +752,30 @@ var JsDbg = (function() {
             jsonRequest("/jsdbg/memory?type=" + esc(sizeName) + "&pointer=" + esc(pointer), callback, CacheType.TransientCache);
         },
 
+        _help_WriteNumber: {
+            description: "Writes a number value in memory.",
+            arguments: [
+                {name:"pointer", type:"integer", description:"The pointer to the number."},
+                {name:"size", type:"integer", description:"The size of the number."},
+                {name:"isUnsigned", type:"bool", description:"A value that indicates if the number is unsigned."},
+                {name:"isFloat", type:"bool", description:"A value that indicates if the number is a floating point number."},
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        WriteNumber: function(pointer, size, isUnsigned, isFloat, value, callback) {
+            var sizeName = getSizeName(size, isUnsigned, isFloat);
+            if (sizeName == null) {
+                callback({ "error": "Invalid number size." });
+                return;
+            }
+
+            if (!isFloat) {
+                value = bigInt(value);
+            }
+
+            jsonRequest("/jsdbg/writememory?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&value=" + esc(value), callback, CacheType.InvalidatesCache);
+        },
+
         _help_ReadArray: {
             description: "Reads an array of number values from memory.",
             arguments: [
@@ -925,6 +956,16 @@ var JsDbg = (function() {
             } else {
                 return false;
             }
+        },
+
+        _help_RegisterOnMemoryWriteListener: {
+            description: "Registers a callback to be fired whenever JsDbg writes to memory.",
+            arguments: [
+                {name: "callback", type:"function()", description:"A callback that is called when JsDbg writes to memory."}
+            ]
+        },
+        RegisterOnMemoryWriteListener: function (callback) {
+            memoryWriteListeners.push(callback);
         }
     }
 
