@@ -54,7 +54,6 @@ namespace JsDbg {
             PersistentStore persistentStore = new PersistentStore(configuration.PersistentStoreDirectory);
             UserFeedback userFeedback = new UserFeedback(Path.Combine(configuration.PersistentStoreDirectory, "feedback"));
 
-            Console.Out.WriteLine("Serving from {0}", Path.GetFullPath(webRoot));
             using (WebServer webServer = new WebServer(runner.Debugger, persistentStore, userFeedback, webRoot, extensionRoot)) {
                 webServer.LoadExtension("default");
 

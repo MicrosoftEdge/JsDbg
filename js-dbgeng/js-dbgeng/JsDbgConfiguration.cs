@@ -32,12 +32,12 @@ namespace JsDbg {
 
         public string SharedSupportDirectory {
             get {
-                return this.support_directory;
+                return Path.GetFullPath(this.support_directory);
             }
         }
         public string PersistentStoreDirectory {
             get {
-                return this.persistent_store_directory;
+                return Path.GetFullPath(this.persistent_store_directory);
             }
         }
 
