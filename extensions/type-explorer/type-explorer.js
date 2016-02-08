@@ -321,8 +321,15 @@ JsDbg.OnLoad(function() {
 
     TypeExplorerSingleType.prototype._prepareForRendering = function() {
         var that = this;
-        return new DbgObject(this.module, this.typename, 0)
-        .fields(/*includeBaseTypes*/false)
+        var dbgObject = new DbgObject(this.module, this.typename, 0);
+        var fieldsPromise;
+        if (dbgObject.isPointer()) {
+            fieldsPromise = Promise.as([]);
+        } else {
+            fieldsPromise = dbgObject.fields(/*includeBaseTypes*/false);
+        }
+
+        return fieldsPromise
         .then(function (fields) {
             fields.forEach(function (field) {
                 var dereferencedType = field.value.typeDescription().replace(/\**$/, "");
