@@ -409,6 +409,12 @@ JsDbg.OnLoad(function() {
         this.parentType = parentType;
         this.getter = getter;
         var that = this;
+        if (parentType.aggregateType.controller.allowFieldRendering()) {
+            UserEditableFunctions.AddListener(this.getter, function () {
+                parentType.aggregateType.controller.requestRerender(/*changeFocus*/false);
+            });
+        }
+
         this.nestedFieldGetter = function (dbgObject, element) {
             return that.getNestedField(dbgObject)
             .then(function (result) {

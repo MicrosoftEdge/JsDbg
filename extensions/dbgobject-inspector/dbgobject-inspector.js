@@ -191,6 +191,14 @@ JsDbg.OnLoad(function() {
         })
     }
 
+    function rerenderActiveInspector() {
+        if (activeInspector != null) {
+            activeInspector.typeExplorer.requestRerender(/*changeFocus*/false);
+        }
+    }
+
+    JsDbg.RegisterOnMemoryWriteListener(rerenderActiveInspector);
+
     DbgObjectInspector = {
         Inspect: inspect
     }
