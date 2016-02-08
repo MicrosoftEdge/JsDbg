@@ -612,25 +612,46 @@ JsDbg.OnLoad(function() {
         var that = this;
         return this._getStructSize()
         .then(function (structSize) {
-            var valueToWritePromise = Promise.as(value);
-            // If we're a bit field, we need to do a read and then a write.
             if (that.bitcount && that.bitoffset !== undefined && !that._isFloat()) {
                 unsigned = true;
-                valueToWritePromise = jsDbgPromise(MemoryCache.ReadNumber, that._pointer.value(), structSize, unsigned, /*isFloat*/false)
-                .then(function (currentValue) {
-                    return currentValue.value
+            }
+
+            // Read the current value first.  If it's not different, don't go through with the write.
+            return jsDbgPromise(MemoryCache.ReadNumber, that._pointer.value(), structSize, unsigned, that._isFloat())
+            .then(function (currentValue) {
+                // If we're a bit field, compute the full value to write.
+                if (that.bitcount && that.bitoffset !== undefined && !that._isFloat()) {
+                    var maskedBits = currentValue.value
                     .and(bigInt.one.shiftLeft(that.bitcount).minus(1).shiftLeft(that.bitoffset).not())
                     .or(
                         value
                         .and(bigInt.one.shiftLeft(that.bitcount).minus(1))
                         .shiftLeft(that.bitoffset)
                     );
-                });
-            }
 
-            return valueToWritePromise
+                    if (maskedBits.equals(currentValue.value)) {
+                        return null;
+                    } else {
+                        return maskedBits;
+                    }
+                } else if (that._isFloat()) {
+                    if (currentValue.value == value) {
+                        return null;
+                    } else {
+                        return value;
+                    }
+                } else {
+                    if (currentValue.value.equals(value)) {
+                        return null;
+                    } else {
+                        return value;
+                    }
+                }
+            })
             .then(function (valueToWrite) {
-                return jsDbgPromise(JsDbg.WriteNumber, that._pointer.value(), structSize, unsigned, that._isFloat(), valueToWrite);
+                if (valueToWrite != null) {
+                    return jsDbgPromise(JsDbg.WriteNumber, that._pointer.value(), structSize, unsigned, that._isFloat(), valueToWrite);
+                }
             })
             .then(function () {
                 return undefined;
