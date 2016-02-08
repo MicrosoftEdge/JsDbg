@@ -35,11 +35,11 @@
 
 .type-explorer .field-type {
     min-width:0px;
-    flex-shrink:100000;
+    flex-shrink:1000000;
 }
 
 .type-explorer .field-name {
-    flex-shrink:0.001;
+    flex-shrink:1;
 }
 
 .type-explorer .rendering {
