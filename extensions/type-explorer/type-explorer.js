@@ -308,7 +308,7 @@ JsDbg.OnLoad(function() {
                 });
             }
 
-            that.aggregateType.controller.requestRerender();
+            that.aggregateType.controller.requestRerender(/*changeFocus*/false);
         });
     }
 
@@ -573,7 +573,7 @@ JsDbg.OnLoad(function() {
         return UserDbgObjectExtensions.EnsureLoaded()
         .then(function () {
             that.container.classList.add("collapsed");
-            return that._renderType(that.rootType, that.container);
+            return that._renderType(that.rootType, that.container, /*changeFocus*/true);
         });
     }
 
@@ -581,7 +581,7 @@ JsDbg.OnLoad(function() {
         this.container.querySelector("input").focus();
     }
 
-    TypeExplorerController.prototype.requestRerender = function() {
+    TypeExplorerController.prototype.requestRerender = function(changeFocus) {
         if (this.hasRequestedRerender) {
             return;
         }
@@ -591,7 +591,31 @@ JsDbg.OnLoad(function() {
         window.requestAnimationFrame(function () {
             if (that.hasRequestedRerender) {
                 that.hasRequestedRerender = false;
-                that._renderType(that.rootType, that.container);
+
+                if (that.container != null) {
+                    var scrollTops = [];
+                    var currentElement = that.container;
+
+                    if (!changeFocus) {
+                        // Capture the current scroll positions of all the ancestors.
+                        while (currentElement != null) {
+                            scrollTops.push(currentElement.scrollTop);
+                            currentElement = currentElement.parentNode;
+                        }
+                    }
+                    
+                    that._renderType(that.rootType, that.container, changeFocus)
+                    .then(function () {
+                        if (!changeFocus) {
+                            // Restore the scroll positions of the all the ancestors.
+                            currentElement = that.container;
+                            while (currentElement != null) {
+                                currentElement.scrollTop = scrollTops.shift();
+                                currentElement = currentElement.parentNode;
+                            }
+                        }
+                    })
+                }
             }
         });
     }
@@ -606,7 +630,7 @@ JsDbg.OnLoad(function() {
 
     TypeExplorerController.prototype.toggleExpansion = function() {
         this.rootType.toggleExpansion();
-        this.requestRerender();
+        this.requestRerender(/*changeFocus*/true);
     }
 
     TypeExplorerController.prototype._computePath = function(field) {
@@ -706,7 +730,7 @@ JsDbg.OnLoad(function() {
         return result;
     }
 
-    TypeExplorerController.prototype._renderType = function(type, typeContainer) {
+    TypeExplorerController.prototype._renderType = function(type, typeContainer, changeFocus) {
         if (typeContainer == null) {
             return Promise.as(null);
         }
@@ -766,7 +790,7 @@ JsDbg.OnLoad(function() {
         })
         .then(function() {
             typeContainer.style.display = "";
-            if (type.isExpanded()) {
+            if (type.isExpanded() && changeFocus) {
                 filterTextBox.focus();
             }
         })
@@ -884,7 +908,7 @@ JsDbg.OnLoad(function() {
                     e.preventDefault();
                     field.childType.toggleExpansion();
                     subFieldsContainer.classList.toggle("collapsed");
-                    field.parentType.aggregateType.controller._renderType(field.childType, subFieldsContainer);
+                    field.parentType.aggregateType.controller._renderType(field.childType, subFieldsContainer, /*changeFocus*/true);
                 }
             })
             fieldContainer.querySelector(".edit-button").addEventListener("click", function(e) {
@@ -966,7 +990,7 @@ JsDbg.OnLoad(function() {
 
         var that = this;
         return renderingPromise.then(function() {
-            return that._renderType(field.childType, subFieldsContainer);
+            return that._renderType(field.childType, subFieldsContainer, /*changeFocus*/false);
         })
     }
 

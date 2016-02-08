@@ -12,7 +12,7 @@ JsDbg.OnLoad(function() {
         inspector.classList.add("active");
         activeInspector = inspector;
         if (activeInspector != null) {
-            activeInspector.typeExplorer.requestRerender();
+            activeInspector.typeExplorer.requestRerender(/*changeFocus*/true);
         }
     }
 
@@ -186,9 +186,7 @@ JsDbg.OnLoad(function() {
         
         typeExplorer.toggleExpansion();
         activateInspector(inspector);
-        typeExplorer.render(container).then(function () {
-            typeExplorer.focus();
-        }, function (err) {
+        typeExplorer.render(container).then(null, function (err) {
             console.log(err);
         })
     }
