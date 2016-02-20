@@ -3,7 +3,7 @@
 // dbgobject-type-extension.js
 // Utility class for registering/unregistering objects that extend DbgObjects based on their internal type.
 
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
     function typeKey(module, type) {
         return module + "!" + type;
     }

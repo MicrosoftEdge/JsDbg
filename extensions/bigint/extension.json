@@ -1,0 +1,7 @@
+{
+	"name": "bigint",
+	"headless": true,
+	"author": "https://github.com/peterolson/BigInteger.js",
+	"description": "A bigint implementation.",
+	"includes": ["biginteger.js"]
+}

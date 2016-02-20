@@ -2,7 +2,7 @@
 
 // dbgobject-arrays.js
 // Functionality for retrieiving arrays of DbgObjects.
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
     var registeredArrayTypes = new DbgObject.TypeExtension();
     DbgObject.ArrayFields = registeredArrayTypes;
 

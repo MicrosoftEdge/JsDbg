@@ -1,6 +1,6 @@
 "use strict";
 
-JsDbg.OnLoad(function () {
+Loader.OnLoad(function () {
     var registeredFields = new DbgObject.TypeExtension();
     DbgObject.ExtendedFields = registeredFields;
 

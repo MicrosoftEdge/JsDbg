@@ -3,7 +3,7 @@
 // user-editable-functions.js
 // Logic for creating functions that can be edited by the end user in the browser.
 var UserEditableFunctions = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
     var testSuite = undefined;
     if (typeof Tests !== "undefined") {
         testSuite = Tests.CreateTestSuite("UserEditableFunctions", "Tests for the user-editable-functions extension.");

@@ -1,7 +1,7 @@
 "use strict";
 
 var StyleSheets = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
 
     function getAtomFromAtomTable(atomTable, atom) {
         return atomTable.f("_phat")
@@ -148,7 +148,7 @@ JsDbg.OnLoad(function() {
         return "<a href=\"/stylesheets/#" + stylesheet.ptr() + "\">" + stylesheet.ptr() + "</a>";
     });
 
-    if (JsDbg.GetCurrentExtension() == "stylesheets") {
+    if (Loader.GetCurrentExtension == "stylesheets") {
         DbgObjectTree.AddRoot("StyleSheet", function() { 
             return Promise.sort(MSHTML.GetCDocs().f("_pWindowPrimary._pCWindow._pMarkup"), function(markup) {
                 return markup.f("_pStyleSheetArray._aStyleSheets").array("Items")

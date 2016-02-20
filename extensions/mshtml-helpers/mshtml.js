@@ -10,7 +10,7 @@ var MSHTML = undefined;
     // Figure out which module to use.
     var moduleName = null;
 
-    JsDbg.OnLoadAsync(function(onComplete) {
+    Loader.OnLoadAsync(function(onComplete) {
         DbgObject.global("edgehtml", "g_pts")
         .then(
             function() {
@@ -35,7 +35,7 @@ var MSHTML = undefined;
         .then(onComplete);
     });
 
-    JsDbg.OnLoad(function() {
+    Loader.OnLoad(function() {
         function GetDocsAndThreadstates(){
             return DbgObject.global(moduleName, "g_pts").deref()
             .list("ptsNext").as("THREADSTATEUI")

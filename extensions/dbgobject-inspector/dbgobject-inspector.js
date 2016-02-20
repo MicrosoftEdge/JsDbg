@@ -3,7 +3,7 @@
 // dbgobject-inspector.js
 // Provides UI for inspecting a single DbgObject.
 var DbgObjectInspector = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
 
     var activeInspector = null;
 

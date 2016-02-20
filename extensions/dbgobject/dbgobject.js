@@ -4,7 +4,7 @@
 // This only contains the minimal functionality that depends on all of the DbgObject components,
 // most of the DbgObject implementation is in dbgobject-core.js.
 var PromisedDbgObject = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
     PromisedDbgObject = Promise.CreatePromisedType(DbgObject);
     PromisedDbgObject.IncludePromisedMethod("f", PromisedDbgObject);
     PromisedDbgObject.IncludePromisedMethod("F", PromisedDbgObject);

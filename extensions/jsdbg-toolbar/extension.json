@@ -1,0 +1,8 @@
+{
+    "name": "jsdbg-toolbar",
+    "headless": true,
+    "author": "Peter Salas",
+    "description": "Implements the toolbar at the top of every page.",
+    "includes": ["jsdbg-toolbar.js", "toolbar.css"],
+    "dependencies": ["jsdbg-core"]
+}

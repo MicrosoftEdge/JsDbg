@@ -4,6 +4,7 @@
     "description": "Default extensions for IE devs.",
     "headless": true,
     "dependencies": [
+        "wwwroot",
         "extensions",
         "boxtree",
         "markuptree",

@@ -1,7 +1,7 @@
 "use strict";
 
 var PointerMath = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
 
     function Pointer(value, optionalBase) {
         if (typeof(value) == typeof("")) {

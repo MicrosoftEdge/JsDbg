@@ -3,7 +3,7 @@
 // Peter Salas
 //
 
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
     
     //
     // Catalog schema:
@@ -153,7 +153,7 @@ return Promise.join(fieldNames.map(function(side) { return object.f(side).desc()
         container.appendChild(outerDiv);
     }
 
-    JsDbg.OnPageReady(init);
+    Loader.OnPageReady(init);
 
 
     DbgObject.AddTypeDescription(MSHTML.Module, "CRect", "Rect", true, function (value) {

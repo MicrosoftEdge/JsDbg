@@ -101,13 +101,12 @@ namespace JsDbg {
         private const int StartPortNumber = 50000;
         private const int EndPortNumber = 50099;
 
-        public WebServer(IDebugger debugger, PersistentStore persistentStore, UserFeedback userFeedback, string path, string defaultExtensionPath) {
+        public WebServer(IDebugger debugger, PersistentStore persistentStore, UserFeedback userFeedback, string extensionRoot) {
             this.debugger = debugger;
             this.debugger.DebuggerChange += (sender, e) => { this.NotifyClientsOfDebuggerChange(e.Status); };
             this.persistentStore = persistentStore;
             this.userFeedback = userFeedback;
-            this.path = path;
-            this.defaultExtensionPath = defaultExtensionPath;
+            this.extensionRoot = extensionRoot;
             this.port = StartPortNumber;
             this.loadedExtensions = new List<JsDbgExtension>();
             this.cancellationSource = new CancellationTokenSource();
@@ -202,7 +201,7 @@ namespace JsDbg {
                             for (int i = 1; i < segments.Length; ++i) {
                                 path = System.IO.Path.Combine(path, segments[i]);
                             }
-                            this.ServeStaticFile(this.path, path, context.Response);
+                            this.ServeStaticFile(path, context.Response);
                             continue;
                         }
                     } catch (HttpListenerException listenerException) {
@@ -249,7 +248,7 @@ namespace JsDbg {
 
         private string GetFilePath(string serviceDirectory, string extensionName, string filename) {
             string fullPath;
-            if (extensionName != null) {
+            if (extensionName != null && extensionName != "wwwroot") {
                 string[] components = filename.Split(new char[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar }, 2);
                 if (components.Length > 0 && components[0].ToLowerInvariant() == extensionName.ToLowerInvariant()) {
                     fullPath = System.IO.Path.Combine(serviceDirectory, components.Length > 1 ? components[1] : "");
@@ -271,16 +270,14 @@ namespace JsDbg {
             }
         }
 
-        private void ServeStaticFile(string serviceDirectory, string filename, HttpListenerResponse response) {
-            string filePath = this.GetFilePath(serviceDirectory, null, filename);
+        private void ServeStaticFile(string filename, HttpListenerResponse response) {
+            string filePath = null;
 
-            if (filePath == null) {
-                // Try the extensions.
-                foreach (JsDbgExtension extension in this.loadedExtensions) {
-                    filePath = this.GetFilePath(extension.path, extension.name, filename);
-                    if (filePath != null) {
-                        break;
-                    }
+            // Try each of the extensions.
+            foreach (JsDbgExtension extension in this.loadedExtensions) {
+                filePath = this.GetFilePath(extension.path, extension.name, filename);
+                if (filePath != null) {
+                    break;
                 }
             }
 
@@ -960,7 +957,7 @@ namespace JsDbg {
 
             string originalExtensionPath = extensionPath;
             if (!Path.IsPathRooted(extensionPath)) {
-                extensionPath = Path.Combine(this.defaultExtensionPath, extensionPath);
+                extensionPath = Path.Combine(this.extensionRoot, extensionPath);
                 isRelativePath = true;
             }
 
@@ -1156,7 +1153,7 @@ namespace JsDbg {
             if (context.Request.HttpMethod == "GET") {
                 DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(string));
                 using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
-                    serializer.WriteObject(memoryStream, this.defaultExtensionPath);
+                    serializer.WriteObject(memoryStream, this.extensionRoot);
                     string result = Encoding.Default.GetString(memoryStream.ToArray());
                     this.ServeUncachedString(String.Format("{{ \"path\": {0} }}", result), context);
                 }
@@ -1169,11 +1166,11 @@ namespace JsDbg {
                 if (!Directory.Exists(data)) {
                     this.ServeUncachedString("{ \"error\": \"The directory is inaccessible or does not exist.\" }", context);
                 } else {
-                    if (data != this.defaultExtensionPath) {
+                    if (data != this.extensionRoot) {
                         // Unload every extension that was loaded relative to the extension root.
                         this.UnloadRelativeExtensions();
 
-                        this.defaultExtensionPath = data;
+                        this.extensionRoot = data;
 
                         // Reload the default extension if there is one at the new default path.
                         this.LoadExtension("default");
@@ -1182,7 +1179,7 @@ namespace JsDbg {
                     // Serve the new extension path.
                     DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(string));
                     using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
-                        serializer.WriteObject(memoryStream, this.defaultExtensionPath);
+                        serializer.WriteObject(memoryStream, this.extensionRoot);
                         string result = Encoding.Default.GetString(memoryStream.ToArray());
                         this.ServeUncachedString(String.Format("{{ \"path\": {0} }}", result), context);
                     }
@@ -1325,8 +1322,7 @@ namespace JsDbg {
         private FileCache fileCache;
         private HashSet<WebSocket> openSockets;
         private List<JsDbgExtension> loadedExtensions;
-        private string path;
-        private string defaultExtensionPath;
+        private string extensionRoot;
         private int port;
         private ulong requestCounter;
     }

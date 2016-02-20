@@ -5,7 +5,7 @@
     <title></title>
     <script src="/jsdbg.js" type="text/javascript" data-include-dependencies></script>
     <script type="text/javascript">
-        JsDbg.OnPageReady(function() {
+        Loader.OnPageReady(function() {
             // Send a message to the opener to say we're ready to receive the content.
             if (window.opener) {
                 window.opener.postMessage("READYFORHELP", window.location.protocol + "//" + window.location.host);

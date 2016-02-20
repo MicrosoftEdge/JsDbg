@@ -1,6 +1,6 @@
 "use strict";
 
-JsDbg.OnLoad(function () {
+Loader.OnLoad(function () {
     var registeredDescriptions = new DbgObject.TypeExtension();
     DbgObject.TypeDescriptions = registeredDescriptions;
 

@@ -4,7 +4,7 @@
 // UI for interactive exploration of a type and its fields or extensions.
 
 var TypeExplorer = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
     function TypeExplorerAggregateType(module, typename, parentField, controller, rerender) {
         this.parentField = parentField;
         this.controller = controller;
@@ -209,7 +209,7 @@ JsDbg.OnLoad(function() {
         return fuzzyMatch(prefix + body.substr(firstCharacterIndex + 1), term.substr(1), context);
     }
 
-    JsDbg.OnLoad(function() {
+    Loader.OnLoad(function() {
         if (typeof Tests !== "undefined") {
             var suite = Tests.CreateTestSuite("TypeExplorer.FuzzyMatch", "Tests for the fuzzy matcher in TypeExplorer.");
             Tests.AddTest(suite, "Basic Matching", function (assert) {

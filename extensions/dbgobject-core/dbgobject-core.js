@@ -6,7 +6,7 @@
 // A convenience library, written on top of JsDbg, to allow convenient navigation of objects.
 // Documentation is provided via _help_ properties and can be viewed with the Documentation extension.
 var DbgObject = undefined
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
     function cleanupTypeName(type) {
         return type
             .replace(/\s+$/g, '')

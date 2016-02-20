@@ -1,8 +1,8 @@
 "use strict";
 
 var CounterManager = null;
-JsDbg.OnLoad(function() {
-    if (JsDbg.GetCurrentExtension() == "counter-manager") {
+Loader.OnLoad(function() {
+    if (Loader.GetCurrentExtension == "counter-manager") {
         DbgObjectTree.AddRoot("Counter Manager", function() {
             return MSHTML.GetCDocs().f("_pWindowPrimary._pCWindow._pMarkup._pCounterManager")
                 .filter(function (counterManager) { return !counterManager.isNull(); })

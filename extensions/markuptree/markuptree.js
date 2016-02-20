@@ -1,7 +1,7 @@
 "use strict";
 
 var MarkupTree = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
 
     // Add a type description for CTreeNode to link to the BoxTree.
     DbgObject.AddTypeDescription(MSHTML.Module, "CTreeNode", "MarkupTree", true, function(treeNode) {
@@ -109,7 +109,7 @@ JsDbg.OnLoad(function() {
         .map(promoteANode)
     }
 
-    if (JsDbg.GetCurrentExtension() == "markuptree") {
+    if (Loader.GetCurrentExtension == "markuptree") {
         DbgObjectTree.AddRoot("Markup Tree", function() {
             // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
             return Promise.sort(

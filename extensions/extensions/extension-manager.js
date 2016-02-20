@@ -338,4 +338,4 @@ function createExtensionDescription(extension) {
     return extensionDiv;
 }
 
-JsDbg.OnPageReady(init);
+Loader.OnPageReady(init);

@@ -1,13 +1,13 @@
 "use strict";
 
 var TextBlock = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
 
     DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextBlock", "TextBlock", true, function(textBlock) {
         return "<a href=\"/textblock/#" + textBlock.ptr() + "\">" + textBlock.ptr() + "</a>";
     });
 
-    if (JsDbg.GetCurrentExtension() == "textblock") {
+    if (Loader.GetCurrentExtension == "textblock") {
         DbgObjectTree.AddRoot("TextBlock", function() { 
             return [];
         });

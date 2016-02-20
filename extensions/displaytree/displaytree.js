@@ -1,7 +1,7 @@
 "use strict";
 
 var DisplayTree = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
     // Add a type description for CDispNode to link to the DisplayTree.
     DbgObject.AddTypeDescription(MSHTML.Module, "CDispNode", "DisplayTree", true, function(dispNode) {
         if (dispNode.isNull()) {
@@ -11,7 +11,7 @@ JsDbg.OnLoad(function() {
         }
     });
 
-    if (JsDbg.GetCurrentExtension() == "displaytree") {
+    if (Loader.GetCurrentExtension == "displaytree") {
         DbgObjectTree.AddRoot("Display Tree", function() {
             return MSHTML.GetCDocs()
             .then(function(docs) {

@@ -1,7 +1,7 @@
 "use strict";
 
 var BoxTree = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
     function collectChildrenInFlow(flow) {
         return flow
         .latestPatch()
@@ -37,7 +37,7 @@ JsDbg.OnLoad(function() {
         }
     });
 
-    if (JsDbg.GetCurrentExtension() == "boxtree") {
+    if (Loader.GetCurrentExtension == "boxtree") {
         DbgObjectTree.AddRoot("Box Tree", function() {
             return Promise.map(MSHTML.GetRootCTreeNodes(), function(treeNode) {
                 return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode).as("Layout::ContainerBox").list(["nextLayoutBox", "associatedBoxLink"]).vcast();

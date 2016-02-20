@@ -1,7 +1,7 @@
 "use strict";
 
 var LayoutBuilder = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
     // Add a type description for LayoutBoxBuilder to link to the LayoutBuilder stack.
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBoxBuilder", "LayoutBuilders", true, function(boxBuilder) {
         if (boxBuilder.isNull()) {
@@ -18,7 +18,7 @@ JsDbg.OnLoad(function() {
         }
     });
 
-    if (JsDbg.GetCurrentExtension() == "layoutbuilder") {
+    if (Loader.GetCurrentExtension == "layoutbuilder") {
         DbgObjectTree.AddRoot("LayoutBuilder Stack", function() {
             return DbgObject.locals(MSHTML.Module, "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder").f("sp.m_pT")
             .then(undefined, function (err) {

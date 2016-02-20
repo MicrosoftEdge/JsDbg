@@ -1,7 +1,7 @@
 "use strict";
 
 var Tests = undefined;
-JsDbg.OnLoad(function() {
+Loader.OnLoad(function() {
     var registeredSuites = [];
 
     function renderSuite(suite) {
@@ -153,8 +153,8 @@ JsDbg.OnLoad(function() {
         }
     }
 
-    JsDbg.OnPageReady(function () {
-        if (JsDbg.GetCurrentExtension() == "tests") {
+    Loader.OnPageReady(function () {
+        if (Loader.GetCurrentExtension == "tests") {
             var container = document.body;
             container.innerHTML = "";
             registeredSuites.map(renderSuite).forEach(function (e) { container.appendChild(e); })

@@ -1,8 +1,8 @@
 "use strict";
 
 var TableBlock = undefined;
-JsDbg.OnLoad(function() {
-    if (JsDbg.GetCurrentExtension() == "table-block") {
+Loader.OnLoad(function() {
+    if (Loader.GetCurrentExtension == "table-block") {
         DbgObjectTree.AddAddressInterpreter(function(address) {
             return new DbgObject(MSHTML.Module, "Tree::ComputedBlock", address).vcast();
         })

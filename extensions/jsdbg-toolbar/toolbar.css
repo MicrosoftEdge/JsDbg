@@ -1,0 +1,103 @@
+html {
+    padding-top:30px;
+    height:-webkit-calc(100% - 30px);
+    height:-moz-calc(100% - 30px);
+    height:calc(100% - 30px);
+}
+
+.jsdbg-toolbar {
+    font-size:12pt;
+    padding:3px 5px;
+    margin-top:-30px;
+    box-sizing:border-box;
+    height:30px;
+    white-space: nowrap;
+}
+
+.jsdbg-toolbar > * {
+    display:inline-block;
+    color:white;
+    margin:0 20px 0 10px;
+}
+
+.jsdbg-extensions-list:not(:hover) .jsdbg-extensions-pane {
+    /* When not being hovered, this will override the inline style rule that script will set to the animated height. */
+    height:0px !important;
+
+    /* When we move the mouse off, we want to delay the transition slightly. */
+    transition-delay: 0.2s;
+}
+
+.jsdbg-extensions-list {
+    cursor:default;
+}
+
+.jsdbg-extensions-pane {
+    position:absolute;
+    transition: height 0.1s ease-in-out 0s;
+    overflow:hidden;
+}
+
+.jsdbg-toolbar, .jsdbg-extensions-pane, .jsdbg-feedback-pane {
+    background:#333338;
+}
+
+.jsdbg-extensions-pane-content {
+    padding:5px;
+    font-size:10pt;
+    max-width:400px;
+}
+
+.jsdbg-extensions-pane-content a {
+    display:block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.jsdbg-toolbar a {
+    color:white;
+    text-decoration:none;
+}
+
+.jsdbg-extensions-pane-content a:hover .jsdbg-extension-name {
+    text-decoration: underline;
+}
+
+.jsdbg-extension-description::before {
+    content:" - ";
+}
+
+.jsdbg-extension-description {
+    font-style:italic;
+    color:#ccc;
+}
+
+.jsdbg-feedback-pane {
+    display:none;
+}
+
+.showing-pane > .jsdbg-feedback-pane {
+    display:block;
+}
+
+.jsdbg-feedback-container a:hover, .jsdbg-feedback-container.showing-pane a {
+    text-decoration: underline;
+}
+
+.jsdbg-feedback-pane {
+    position:absolute;
+    padding:10px;
+    text-align: right;
+}
+
+.jsdbg-feedback-pane textarea {
+    font-family: Calibri;
+    font-size:11pt;
+    width:300px;
+    height:150px;
+}
+
+/* Z-ordering */
+.jsdbg-feedback-pane { z-index:99; }
+.jsdbg-extensions-pane { z-index:100; }
