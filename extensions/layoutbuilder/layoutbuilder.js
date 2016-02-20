@@ -18,7 +18,7 @@ Loader.OnLoad(function() {
         }
     });
 
-    if (Loader.GetCurrentExtension == "layoutbuilder") {
+    if (Loader.GetCurrentExtension()== "layoutbuilder") {
         DbgObjectTree.AddRoot("LayoutBuilder Stack", function() {
             return DbgObject.locals(MSHTML.Module, "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder").f("sp.m_pT")
             .then(undefined, function (err) {

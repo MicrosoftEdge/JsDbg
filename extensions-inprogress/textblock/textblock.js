@@ -7,7 +7,7 @@ Loader.OnLoad(function() {
         return "<a href=\"/textblock/#" + textBlock.ptr() + "\">" + textBlock.ptr() + "</a>";
     });
 
-    if (Loader.GetCurrentExtension == "textblock") {
+    if (Loader.GetCurrentExtension()== "textblock") {
         DbgObjectTree.AddRoot("TextBlock", function() { 
             return [];
         });

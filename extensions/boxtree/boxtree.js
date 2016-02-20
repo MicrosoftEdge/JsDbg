@@ -37,7 +37,7 @@ Loader.OnLoad(function() {
         }
     });
 
-    if (Loader.GetCurrentExtension == "boxtree") {
+    if (Loader.GetCurrentExtension()== "boxtree") {
         DbgObjectTree.AddRoot("Box Tree", function() {
             return Promise.map(MSHTML.GetRootCTreeNodes(), function(treeNode) {
                 return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode).as("Layout::ContainerBox").list(["nextLayoutBox", "associatedBoxLink"]).vcast();

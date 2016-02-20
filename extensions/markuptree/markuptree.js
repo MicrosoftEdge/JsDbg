@@ -109,7 +109,7 @@ Loader.OnLoad(function() {
         .map(promoteANode)
     }
 
-    if (Loader.GetCurrentExtension == "markuptree") {
+    if (Loader.GetCurrentExtension()== "markuptree") {
         DbgObjectTree.AddRoot("Markup Tree", function() {
             // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
             return Promise.sort(

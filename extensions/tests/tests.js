@@ -154,7 +154,7 @@ Loader.OnLoad(function() {
     }
 
     Loader.OnPageReady(function () {
-        if (Loader.GetCurrentExtension == "tests") {
+        if (Loader.GetCurrentExtension()== "tests") {
             var container = document.body;
             container.innerHTML = "";
             registeredSuites.map(renderSuite).forEach(function (e) { container.appendChild(e); })

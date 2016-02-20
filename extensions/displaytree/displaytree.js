@@ -11,7 +11,7 @@ Loader.OnLoad(function() {
         }
     });
 
-    if (Loader.GetCurrentExtension == "displaytree") {
+    if (Loader.GetCurrentExtension()== "displaytree") {
         DbgObjectTree.AddRoot("Display Tree", function() {
             return MSHTML.GetCDocs()
             .then(function(docs) {

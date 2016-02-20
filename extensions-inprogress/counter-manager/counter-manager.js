@@ -2,7 +2,7 @@
 
 var CounterManager = null;
 Loader.OnLoad(function() {
-    if (Loader.GetCurrentExtension == "counter-manager") {
+    if (Loader.GetCurrentExtension()== "counter-manager") {
         DbgObjectTree.AddRoot("Counter Manager", function() {
             return MSHTML.GetCDocs().f("_pWindowPrimary._pCWindow._pMarkup._pCounterManager")
                 .filter(function (counterManager) { return !counterManager.isNull(); })

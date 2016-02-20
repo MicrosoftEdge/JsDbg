@@ -2,7 +2,7 @@
 
 var TableBlock = undefined;
 Loader.OnLoad(function() {
-    if (Loader.GetCurrentExtension == "table-block") {
+    if (Loader.GetCurrentExtension()== "table-block") {
         DbgObjectTree.AddAddressInterpreter(function(address) {
             return new DbgObject(MSHTML.Module, "Tree::ComputedBlock", address).vcast();
         })
