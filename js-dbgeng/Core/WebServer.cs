@@ -109,6 +109,7 @@ namespace JsDbg {
             this.extensionRoot = extensionRoot;
             this.port = StartPortNumber;
             this.loadedExtensions = new List<JsDbgExtension>();
+            this.extensionsByName = new Dictionary<string, JsDbgExtension>();
             this.cancellationSource = new CancellationTokenSource();
             this.openSockets = new HashSet<WebSocket>();
             this.fileCache = new FileCache();
@@ -246,38 +247,28 @@ namespace JsDbg {
 #endif
         }
 
-        private string GetFilePath(string serviceDirectory, string extensionName, string filename) {
-            string fullPath;
-            if (extensionName != null && extensionName != "wwwroot") {
-                string[] components = filename.Split(new char[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar }, 2);
-                if (components.Length > 0 && components[0].ToLowerInvariant() == extensionName.ToLowerInvariant()) {
-                    fullPath = System.IO.Path.Combine(serviceDirectory, components.Length > 1 ? components[1] : "");
-                } else {
-                    return null;
-                }
-            } else {
-                fullPath = System.IO.Path.Combine(serviceDirectory, filename);
-            }
-
-            if (System.IO.Directory.Exists(fullPath)) {
-                fullPath = System.IO.Path.Combine(fullPath, "index.html");
-            }
-
-            if (System.IO.File.Exists(fullPath)) {
-                return fullPath;
-            } else {
-                return null;
-            }
-        }
-
         private void ServeStaticFile(string filename, HttpListenerResponse response) {
-            string filePath = null;
+            // Identify the extension to pull from.
+            string extensionName = null;
+            string[] components = filename.Split(new char[] { System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar }, 2);
+            if (components.Length > 1) {
+                extensionName = components[0];
+                filename = components[1];
+            } else {
+                extensionName = "wwwroot";
+                filename = components[0];
+            }
 
-            // Try each of the extensions.
-            foreach (JsDbgExtension extension in this.loadedExtensions) {
-                filePath = this.GetFilePath(extension.path, extension.name, filename);
-                if (filePath != null) {
-                    break;
+            string filePath = null;
+            JsDbgExtension extension;
+            if (this.extensionsByName.TryGetValue(extensionName.ToLowerInvariant(), out extension)) {
+                filePath = Path.Combine(extension.path, filename);
+                if (Directory.Exists(filePath)) {
+                    filePath = Path.Combine(filePath, "index.html");
+                }
+                
+                if (!File.Exists(filePath)) {
+                    filePath = null;
                 }
             }
 
@@ -909,6 +900,7 @@ namespace JsDbg {
                         extensionToLoad.Watcher.EnableRaisingEvents = true;
                     }
                     this.loadedExtensions.Add(extensionToLoad);
+                    this.extensionsByName.Add(extensionToLoad.name.ToLowerInvariant(), extensionToLoad);
                 }
                 return true;
             }
@@ -1062,6 +1054,7 @@ namespace JsDbg {
                         this.loadedExtensions[i].Watcher.EnableRaisingEvents = false;
                         this.loadedExtensions[i].Watcher.Dispose();
                     }
+                    this.extensionsByName.Remove(this.loadedExtensions[i].name.ToLowerInvariant());
                     this.loadedExtensions.RemoveAt(i);
                     return true;
                 }
@@ -1076,6 +1069,7 @@ namespace JsDbg {
                         this.loadedExtensions[i].Watcher.EnableRaisingEvents = false;
                         this.loadedExtensions[i].Watcher.Dispose();
                     }
+                    this.extensionsByName.Remove(this.loadedExtensions[i].name.ToLowerInvariant());
                     this.loadedExtensions.RemoveAt(i);
                 }
             }
@@ -1322,6 +1316,7 @@ namespace JsDbg {
         private FileCache fileCache;
         private HashSet<WebSocket> openSockets;
         private List<JsDbgExtension> loadedExtensions;
+        private Dictionary<string, JsDbgExtension> extensionsByName;
         private string extensionRoot;
         private int port;
         private ulong requestCounter;
