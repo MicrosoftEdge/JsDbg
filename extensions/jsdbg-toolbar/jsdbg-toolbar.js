@@ -17,7 +17,9 @@ Loader.OnLoad(function () {
             var currentExtension = Loader.GetCurrentExtension();
             extensions = extensions.extensions.filter(function (e) { 
                 if (e.name.toLowerCase() == currentExtension) {
-                    document.querySelector(".jsdbg-title").textContent = e.name;
+                    if (currentExtension != "wwwroot") {
+                        document.querySelector(".jsdbg-title").textContent = e.name;
+                    }
                     return false;
                 } else {
                     return !e.headless;

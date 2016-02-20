@@ -110,7 +110,7 @@ var Loader = undefined;
             if (components.length > 1 && components[1].length > 0) {
                 return components[1].toLowerCase();
             } else {
-                return "default";
+                return "wwwroot";
             }
         },
 
