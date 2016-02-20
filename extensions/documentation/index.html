@@ -3,10 +3,11 @@
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <title>Documentation</title>
-    <script src="/jsdbg.js" data-include-dependencies></script>
+    <script src="/loader.js"></script>
     <script type="text/javascript">
         function init() {
             // Build up the help documentation.
+            document.body.innerHTML = "<div id=\"available\"></div><div id=\"current\"></div>"
             var objects = Help.List();
             var available = document.getElementById("available");
             objects.forEach(function(obj) {
@@ -33,18 +34,15 @@
 
         #available {
             box-sizing:border-box;
-            padding:1em;
-            overflow:auto;
-        }
-
-        body.displaying #available {
             height:calc(100vh-30px);
-            position:fixed;
-            z-index:1;
             left:0px;
-            top:30px;
-            max-width:30%;
             margin:8px;
+            max-width:30%;
+            overflow:auto;
+            padding:1em;
+            position:fixed;
+            top:30px;
+            z-index:1;
         }
 
         #available > * {
@@ -56,9 +54,13 @@
             display:none;
             position:absolute;
             right:0px;
-            width:70%;
+            width:calc(100% - 30%);
             box-sizing:border-box;
             padding-left:3em;
+        }
+
+        body {
+            overflow-y:scroll;
         }
 
         body.displaying #current {
@@ -67,7 +69,5 @@
     </style>
 </head>
 <body>
-    <div id="available"></div>
-    <div id="current"></div>
 </body>
 </html>

@@ -255,8 +255,13 @@ namespace JsDbg {
                 extensionName = components[0];
                 filename = components[1];
             } else {
-                extensionName = "wwwroot";
-                filename = components[0];
+                if (this.extensionsByName.ContainsKey(components[0].ToLowerInvariant())) {
+                    extensionName = components[0];
+                    filename = "";
+                } else {
+                    extensionName = "wwwroot";
+                    filename = components[0];
+                }
             }
 
             string filePath = null;

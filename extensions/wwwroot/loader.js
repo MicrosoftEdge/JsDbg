@@ -102,6 +102,11 @@ var Loader = undefined;
     }
 
     Loader = {
+        _help: {
+            name:"Loader",
+            description: "Client-side extension loading."
+        },
+
         _help_GetCurrentExtension: {
             description: "Returns the name of the current extension."
         },
@@ -202,4 +207,10 @@ var Loader = undefined;
 
         pendingResourceFinished();
     });
+
+    Loader.OnPageReady(function () {
+        if (typeof(Help) !== typeof(undefined)) {
+            Help.Register(Loader);
+        }
+    })
 })();

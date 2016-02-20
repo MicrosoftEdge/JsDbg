@@ -269,4 +269,3 @@ var Help = (function() {
 })();
 
 Help.Register(Help);
-Help.Register(JsDbg);

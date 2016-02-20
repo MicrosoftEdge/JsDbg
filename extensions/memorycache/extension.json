@@ -3,6 +3,6 @@
     "author": "Peter Salas",
     "description": "Caches memory accesses for fast lookups.",
     "headless": true,
-    "dependencies": ["pointermath"],
+    "dependencies": ["jsdbg-core", "pointermath"],
     "includes": ["memorycache.js"]
 }

@@ -4,5 +4,6 @@
     "author": "Peter Salas",
     "description": "Provides operations for pointer arithmetic that is 64-bit safe.",
     "includes": ["pointermath.js"],
+    "dependencies": ["bigint"],
     "augments": ["tests"]
 }

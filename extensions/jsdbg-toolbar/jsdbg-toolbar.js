@@ -29,7 +29,7 @@ Loader.OnLoad(function () {
 
             extensions.forEach(function (e) {
                 var link = document.createElement("a");
-                link.setAttribute("href", "/" + e.name.toLowerCase());
+                link.setAttribute("href", "/" + e.name.toLowerCase() + "/");
 
                 var name = document.createElement("span");
                 name.classList.add("jsdbg-extension-name");

@@ -438,4 +438,6 @@ Loader.OnLoad(function () {
             memoryWriteListeners.push(callback);
         }
     }
+
+    Help.Register(JsDbg);
 })
