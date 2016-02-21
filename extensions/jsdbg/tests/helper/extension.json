@@ -1,0 +1,5 @@
+{
+    "name": "jsdbg-tests-helper",
+    "headless": true,
+    "includes": ["helper.js"]
+}

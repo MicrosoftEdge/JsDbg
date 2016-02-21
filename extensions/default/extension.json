@@ -4,6 +4,8 @@
     "description": "Default extensions for IE devs.",
     "headless": true,
     "dependencies": [
+        "jsdbg",
+        "jsdbg/tests",
         "wwwroot",
         "extensions",
         "boxtree",
@@ -12,7 +14,6 @@
         "layoutbuilder",
         "struct-diff",
         "documentation",
-        "tests",
-        "loader-tests"
+        "tests"
     ]
 }

@@ -1,5 +1,0 @@
-{
-    "name": "loader-tests-helper",
-    "headless": true,
-    "includes": ["loader-tests-helper.js"]
-}
