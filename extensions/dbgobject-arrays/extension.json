@@ -1,6 +1,0 @@
-{
-    "name": "dbgobject-arrays",
-    "headless": true,
-    "dependencies": ["dbgobject-core", "dbgobject-type-extension"],
-    "includes": ["dbgobject-arrays.js"]
-}

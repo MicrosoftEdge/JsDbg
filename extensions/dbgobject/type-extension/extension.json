@@ -1,0 +1,6 @@
+{
+    "name": "dbgobject-type-extension",
+    "headless": true,
+    "dependencies": ["dbgobject/core"],
+    "includes": ["type-extension.js"]
+}
