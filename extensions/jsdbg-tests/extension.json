@@ -1,7 +1,0 @@
-{
-    "name": "jsdbg-tests",
-    "includes": ["jsdbg-tests.js"],
-    "dependencies": ["tests", "jsdbg-tests-helpers"],
-    "augments": ["tests"],
-    "headless": true
-}

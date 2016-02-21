@@ -184,7 +184,7 @@ namespace JsDbg {
 
                     string[] segments = context.Request.Url.Segments;
                     try {
-                        if (segments.Length > 2 && segments[1].TrimEnd('/') == "jsdbg") {
+                        if (segments.Length > 2 && segments[1].TrimEnd('/') == "jsdbg-server") {
                             // jsdbg request
                             this.ServeJsDbgRequest(
                                 context.Request.Url, 
@@ -299,7 +299,7 @@ namespace JsDbg {
 
         private void ServeJsDbgRequest(Uri url, NameValueCollection query, HttpListenerContext context, Action<string> respond, Action fail) {
             string[] segments = url.Segments;
-            if (segments.Length <= 2 || segments[1].TrimEnd('/') != "jsdbg") {
+            if (segments.Length <= 2 || segments[1].TrimEnd('/') != "jsdbg-server") {
                 // This request is not a proper JsDbg request.
                 fail();
                 return;

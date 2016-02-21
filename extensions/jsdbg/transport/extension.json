@@ -3,6 +3,6 @@
     "headless": true,
     "author": "Peter Salas",
     "description": "JsDbg transport layer.",
-    "dependencies": ["jsdbg-loading-indicator"],
-    "includes": ["jsdbg-transport.js"]
+    "dependencies": ["jsdbg/loading-indicator"],
+    "includes": ["transport.js"]
 }

@@ -137,5 +137,5 @@ Loader.OnLoad(function () {
         UpdateExtensionList: queueExtensionListUpdate
     };
 
-    Loader.OnPageReady(buildToolbar);
+    buildToolbar();
 })

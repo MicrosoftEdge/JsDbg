@@ -1,13 +1,13 @@
 
-window.jsdbgTestsHelpersRan = true;
+window.loaderTestsHelpersRan = true;
 
 Loader.OnLoad(function () {
-    window.jsdbgTestsHelpersLoaded = true;
+    window.loaderTestsHelpersLoaded = true;
 });
 
 Loader.OnLoadAsync(function (completed) {
     window.setTimeout(function () {
-        window.jsdbgTestsHelpersLoadedAsync = true;
+        window.loaderTestsHelpersLoadedAsync = true;
         completed();
     }, 50);
 })

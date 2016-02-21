@@ -1,9 +1,0 @@
-{
-    "name": "jsdbg-core",
-    "headless": true,
-    "author": "Peter Salas",
-    "description": "Core JsDbg interfaces.",
-    "dependencies": ["bigint", "jsdbg-transport", "jsdbg-toolbar", "help"],
-    "augments": ["documentation"],
-    "includes": ["jsdbg.js", "common.css"]
-}

@@ -74,7 +74,7 @@ Loader.OnLoad(function () {
             ]
         },
         LoadExtension: function(path, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/loadextension?path=" + esc(path), function (result) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/loadextension?path=" + esc(path), function (result) {
                 JsDbgToolbar.UpdateExtensionList();
                 callback(result);
             }, JsDbgTransport.CacheType.Uncached);
@@ -88,7 +88,7 @@ Loader.OnLoad(function () {
             ]
         },
         UnloadExtension: function(name, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/unloadextension?name=" + esc(name), function (result) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/unloadextension?name=" + esc(name), function (result) {
                 JsDbgToolbar.UpdateExtensionList();
                 callback(result);
             }, JsDbgTransport.CacheType.Uncached);
@@ -101,7 +101,7 @@ Loader.OnLoad(function () {
             ]
         },
         GetExtensions: function(callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/extensions", callback, JsDbgTransport.CacheType.Uncached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/extensions", callback, JsDbgTransport.CacheType.Uncached);
         },
 
         _help_GetExtensionPath: {
@@ -111,7 +111,7 @@ Loader.OnLoad(function () {
             ]
         },
         GetExtensionPath: function(callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/extensionpath", callback, JsDbgTransport.CacheType.Uncached, "GET");
+            JsDbgTransport.JsonRequest("/jsdbg-server/extensionpath", callback, JsDbgTransport.CacheType.Uncached, "GET");
         },
 
         _help_SetExtensionPath: {
@@ -122,7 +122,7 @@ Loader.OnLoad(function () {
             ]
         },
         SetExtensionPath: function(path, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/extensionpath", callback, JsDbgTransport.CacheType.Uncached, "PUT", path);
+            JsDbgTransport.JsonRequest("/jsdbg-server/extensionpath", callback, JsDbgTransport.CacheType.Uncached, "PUT", path);
         },
 
         _help_LookupTypeSize: {
@@ -134,7 +134,7 @@ Loader.OnLoad(function () {
             ]
         },
         LookupTypeSize: function(module, type, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/typesize?module=" + esc(module) + "&type=" + esc(type), callback, JsDbgTransport.CacheType.Cached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/typesize?module=" + esc(module) + "&type=" + esc(type), callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_LookupFieldOffset: {
@@ -147,7 +147,7 @@ Loader.OnLoad(function () {
             ]
         },
         LookupFieldOffset: function(module, type, field, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&field=" + esc(field), callback, JsDbgTransport.CacheType.Cached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/fieldoffset?module=" + esc(module) + "&type=" + esc(type) + "&field=" + esc(field), callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_LookupFields: {
@@ -159,7 +159,7 @@ Loader.OnLoad(function () {
             ]
         },
         LookupFields: function(module, type, includeBaseTypes, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/typefields?module=" + esc(module) + "&type=" + esc(type) + "&includeBaseTypes=" + esc(includeBaseTypes), callback, JsDbgTransport.CacheType.Cached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/typefields?module=" + esc(module) + "&type=" + esc(type) + "&includeBaseTypes=" + esc(includeBaseTypes), callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_LookupBaseTypes: {
@@ -171,7 +171,7 @@ Loader.OnLoad(function () {
             ]
         },
         LookupBaseTypes: function(module, type, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/basetypes?module=" + esc(module) + "&type=" + esc(type), callback, JsDbgTransport.CacheType.Cached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/basetypes?module=" + esc(module) + "&type=" + esc(type), callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_ReadNumber: {
@@ -210,7 +210,7 @@ Loader.OnLoad(function () {
                 };
             }
 
-            JsDbgTransport.JsonRequest("/jsdbg/memory?type=" + esc(sizeName) + "&pointer=" + esc(pointer), callback, JsDbgTransport.CacheType.TransientCache);
+            JsDbgTransport.JsonRequest("/jsdbg-server/memory?type=" + esc(sizeName) + "&pointer=" + esc(pointer), callback, JsDbgTransport.CacheType.TransientCache);
         },
 
         _help_WriteNumber: {
@@ -249,7 +249,7 @@ Loader.OnLoad(function () {
                 originalCallback(result);
             }
 
-            JsDbgTransport.JsonRequest("/jsdbg/writememory?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&value=" + esc(value), callback, JsDbgTransport.CacheType.Uncached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/writememory?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&value=" + esc(value), callback, JsDbgTransport.CacheType.Uncached);
         },
 
         _help_ReadArray: {
@@ -289,7 +289,7 @@ Loader.OnLoad(function () {
                 };
             }
 
-            JsDbgTransport.JsonRequest("/jsdbg/array?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&length=" + count, callback, JsDbgTransport.CacheType.TransientCache);
+            JsDbgTransport.JsonRequest("/jsdbg-server/array?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&length=" + count, callback, JsDbgTransport.CacheType.TransientCache);
         },
 
         _help_LookupSymbolName: {
@@ -300,7 +300,7 @@ Loader.OnLoad(function () {
             ]
         },
         LookupSymbolName: function(pointer, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/symbolname?pointer=" + esc(pointer), callback, JsDbgTransport.CacheType.TransientCache);
+            JsDbgTransport.JsonRequest("/jsdbg-server/symbolname?pointer=" + esc(pointer), callback, JsDbgTransport.CacheType.TransientCache);
         },
 
         _help_IsTypeEnum: {
@@ -312,7 +312,7 @@ Loader.OnLoad(function () {
             ]
         },
         IsTypeEnum: function(module, type, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/isenum?module=" + esc(module) + "&type=" + esc(type), callback, JsDbgTransport.CacheType.Cached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/isenum?module=" + esc(module) + "&type=" + esc(type), callback, JsDbgTransport.CacheType.Cached);
         },
 
         
@@ -326,7 +326,7 @@ Loader.OnLoad(function () {
             ]
         },
         LookupConstantName: function(module, type, constant, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/constantname?module=" + esc(module) + "&type=" + esc(type) + "&constant=" + esc(constant), callback, JsDbgTransport.CacheType.Cached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/constantname?module=" + esc(module) + "&type=" + esc(type) + "&constant=" + esc(constant), callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_LookupConstantValue: {
@@ -339,7 +339,7 @@ Loader.OnLoad(function () {
             ]
         },
         LookupConstantValue: function(module, type, constantName, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/constantvalue?module=" + esc(module) + "&type=" + esc(type) + "&name=" + esc(constantName), callback, JsDbgTransport.CacheType.Cached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/constantvalue?module=" + esc(module) + "&type=" + esc(type) + "&name=" + esc(constantName), callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_LookupGlobalSymbol: {
@@ -351,7 +351,7 @@ Loader.OnLoad(function () {
             ]
         },
         LookupGlobalSymbol: function(module, symbol, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/global?module=" + esc(module) + "&symbol=" + esc(symbol), callback, JsDbgTransport.CacheType.Cached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol), callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_LookupLocalSymbols: {
@@ -365,7 +365,7 @@ Loader.OnLoad(function () {
             ]
         },
         LookupLocalSymbols: function(module, method, symbol, maxCount, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/localsymbols?module=" + esc(module) + "&method=" + esc(method) + "&symbol=" + esc(symbol) + "&maxCount=" + esc(maxCount), callback, JsDbgTransport.CacheType.TransientCache);
+            JsDbgTransport.JsonRequest("/jsdbg-server/localsymbols?module=" + esc(module) + "&method=" + esc(method) + "&symbol=" + esc(symbol) + "&maxCount=" + esc(maxCount), callback, JsDbgTransport.CacheType.TransientCache);
         },
 
         _help_GetPersistentData: {
@@ -376,7 +376,7 @@ Loader.OnLoad(function () {
             ]
         },
         GetPersistentData: function(user, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/persistentstorage" + (user ? "?user=" + esc(user) : ""), callback, JsDbgTransport.CacheType.Uncached, "GET");
+            JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorage" + (user ? "?user=" + esc(user) : ""), callback, JsDbgTransport.CacheType.Uncached, "GET");
         },
 
         _help_SetPersistentData: {
@@ -388,7 +388,7 @@ Loader.OnLoad(function () {
         },
         SetPersistentData: function(data, callback) {
             var value = JSON.stringify(data);
-            JsDbgTransport.JsonRequest("/jsdbg/persistentstorage", callback, JsDbgTransport.CacheType.Uncached, "PUT", value);
+            JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorage", callback, JsDbgTransport.CacheType.Uncached, "PUT", value);
         },
 
         _help_GetPersistentDataUsers: {
@@ -398,7 +398,7 @@ Loader.OnLoad(function () {
             ]
         },
         GetPersistentDataUsers: function(callback) {
-            JsDbgTransport.JsonRequest("/jsdbg/persistentstorageusers", callback, JsDbgTransport.CacheType.Uncached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorageusers", callback, JsDbgTransport.CacheType.Uncached);
         },
 
         _help_SendFeedback: {
@@ -415,7 +415,7 @@ Loader.OnLoad(function () {
                 message: message
             };
 
-            JsDbgTransport.JsonRequest("/jsdbg/feedback", callback, JsDbgTransport.CacheType.Uncached, "PUT", JSON.stringify(feedbackObject, null, '  '));
+            JsDbgTransport.JsonRequest("/jsdbg-server/feedback", callback, JsDbgTransport.CacheType.Uncached, "PUT", JSON.stringify(feedbackObject, null, '  '));
         },
 
         _help_RegisterOnBreakListener: {

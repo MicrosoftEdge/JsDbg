@@ -32,7 +32,7 @@ var Loader = undefined;
 
     function getExtensions(callback) {
         var xhr = new XMLHttpRequest();
-        xhr.open("GET", "/jsdbg/extensions", true);
+        xhr.open("GET", "/jsdbg-server/extensions", true);
         xhr.onreadystatechange = function() {
             if (xhr.readyState == 4 && xhr.status == 200) {
                 callback(JSON.parse(xhr.responseText));

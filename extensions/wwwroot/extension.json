@@ -2,5 +2,5 @@
     "name": "wwwroot",
     "headless": true,
     "description": "The JsDbg landing page and extension loader.",
-    "dependencies": ["jsdbg-core"]
+    "dependencies": ["jsdbg"]
 }

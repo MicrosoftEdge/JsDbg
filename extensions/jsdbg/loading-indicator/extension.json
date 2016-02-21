@@ -2,5 +2,5 @@
     "name": "jsdbg-loading-indicator",
     "headless": true,
     "description": "Renders the loading indicator for jsdbg-transport.",
-    "includes": ["jsdbg-loading-indicator.js", "jsdbg-loading-indicator.css"]
+    "includes": ["loading-indicator.js", "loading-indicator.css"]
 }

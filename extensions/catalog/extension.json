@@ -3,7 +3,7 @@
     "author": "Peter Salas",
     "description": "Provides a convenient model for persistent data storage.",
     "headless": true,
-    "dependencies": ["jsdbg-core", "help"],
+    "dependencies": ["jsdbg", "help"],
     "includes": ["catalog.js"],
     "augments": ["documentation"]
 }

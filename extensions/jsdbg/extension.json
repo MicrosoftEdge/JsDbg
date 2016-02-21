@@ -1,0 +1,8 @@
+{
+    "name": "jsdbg",
+    "author": "Peter Salas",
+    "headless": true,
+    "description": "Core JsDbg functionality used by all extensions.",
+    "dependencies": ["jsdbg/core", "jsdbg/toolbar"],
+    "includes": ["common.css"]
+}

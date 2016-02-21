@@ -13,6 +13,6 @@
         "struct-diff",
         "documentation",
         "tests",
-        "jsdbg-tests"
+        "loader-tests"
     ]
 }

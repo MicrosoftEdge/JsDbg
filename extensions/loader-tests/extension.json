@@ -1,0 +1,7 @@
+{
+    "name": "loader-tests",
+    "includes": ["loader-tests.js"],
+    "dependencies": ["tests", "loader-tests/helper"],
+    "augments": ["tests"],
+    "headless": true
+}
