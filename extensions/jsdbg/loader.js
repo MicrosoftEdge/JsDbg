@@ -86,7 +86,7 @@ var Loader = undefined;
     function insertScript(filename) {
         var script = document.createElement("script");
         script.async = false;
-        script.src = filename;
+        script.src = "/" + filename;
         script.type = "text/javascript";
         addPendingResource();
         script.addEventListener("load", pendingResourceFinished);
@@ -97,7 +97,7 @@ var Loader = undefined;
         var link = document.createElement("link");
         link.rel = "stylesheet";
         link.type = "text/css";
-        link.href = filename;
+        link.href = "/" + filename;
         document.querySelector("head").appendChild(link);
     }
 
@@ -194,15 +194,11 @@ var Loader = undefined;
             var collectedExtensions = {};
             collectIncludes(currentExtension, includes, collectedExtensions, nameMap, augmentsMap);
 
-            includes.forEach(function(file) {
-                if (file.match(/\.js$/)) {
-                    insertScript("/" + file);
-                } else if (file.match(/\.css$/)) {
-                    insertCSS("/" + file);
-                } else {
-                    console.error("Unknown dependency type: " + file);
-                }
-            });
+            // Insert the CSS files first to avoid the flash of unstyled content as much as possible.
+            var cssFiles = includes.filter(function (file) { return file.match(/\.css$/); });
+            var jsFiles = includes.filter(function (file) { return file.match(/\.js$/); });
+            cssFiles.forEach(insertCSS);
+            jsFiles.forEach(insertScript);
         }
 
         pendingResourceFinished();
