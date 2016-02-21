@@ -1,5 +1,6 @@
 js-dbgeng/*/obj/*
 js-dbgeng/*/bin/*
+persistent/
 *.user
 *.suo
 *.sublime-workspace

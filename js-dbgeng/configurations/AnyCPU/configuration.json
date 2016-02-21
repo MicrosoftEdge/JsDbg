@@ -1,4 +1,4 @@
 {
     "support_directory": "..\\..\\..\\..",
-    "persistent_store_directory": "\\\\iefs\\users\\psalas\\jsdbg\\support\\persistent"
+    "persistent_store_directory": "..\\..\\..\\..\\..\\persistent"
 }
