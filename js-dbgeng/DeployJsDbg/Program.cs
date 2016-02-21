@@ -36,10 +36,7 @@ namespace DeployJsDbg {
             Directory.CreateDirectory(temporaryPath);
 
             // Copy the extensions directory.
-            CopyDirectory(Path.Combine(repositoryRoot, "extensions"), Path.Combine(temporaryPath, "support", "extensions"));
-
-            // Copy wwwroot.
-            CopyDirectory(Path.Combine(repositoryRoot, "wwwroot"), Path.Combine(temporaryPath, "support", "wwwroot"));
+            CopyDirectory(Path.Combine(repositoryRoot, "extensions"), Path.Combine(temporaryPath, "extensions"));
 
             // Copy the deployment configuration.json.
             File.Copy(Path.Combine(repositoryRoot, "js-dbgeng", "configurations", "deployment.json"), Path.Combine(temporaryPath, "configuration.json"));
@@ -52,7 +49,7 @@ namespace DeployJsDbg {
             }
 
             // Copy the DIA DLL.
-            File.Copy(Path.Combine(repositoryRoot, "js-dbgeng", "references", "msdia110.dll"), Path.Combine(temporaryPath, "support", "msdia110.dll"));
+            File.Copy(Path.Combine(repositoryRoot, "js-dbgeng", "references", "msdia110.dll"), Path.Combine(temporaryPath, "msdia110.dll"));
 
             // Zip it up.
             var temporaryZipPath = Path.Combine(Path.GetDirectoryName(temporaryPath), version);

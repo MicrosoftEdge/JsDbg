@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Core {
     public interface IConfiguration {
-        string SharedSupportDirectory { get; }
+        string ExtensionRoot { get; }
         string PersistentStoreDirectory { get; }
         string LocalSupportDirectory { get; }
     }

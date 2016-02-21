@@ -77,14 +77,13 @@ namespace Core {
 
             // Copy it down to the support directory if needed.
             string localSupportDirectory = configuration.LocalSupportDirectory;
-            string sharedSupportDirectory = configuration.SharedSupportDirectory;
-
             string dllPath = Path.Combine(localSupportDirectory, dllName);
+
             if (!File.Exists(dllPath)) {
                 if (!Directory.Exists(localSupportDirectory)) {
                     Directory.CreateDirectory(localSupportDirectory);
                 }
-                string remotePath = Path.Combine(sharedSupportDirectory, dllName);
+                string remotePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), dllName);
                 File.Copy(remotePath, dllPath);
             }
 

@@ -49,11 +49,10 @@ namespace JsDbg {
                 return -1;
             }
 
-            string extensionRoot = System.IO.Path.Combine(configuration.SharedSupportDirectory, "extensions");
             PersistentStore persistentStore = new PersistentStore(configuration.PersistentStoreDirectory);
             UserFeedback userFeedback = new UserFeedback(Path.Combine(configuration.PersistentStoreDirectory, "feedback"));
 
-            using (WebServer webServer = new WebServer(runner.Debugger, persistentStore, userFeedback, extensionRoot)) {
+            using (WebServer webServer = new WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot)) {
                 webServer.LoadExtension("default");
 
                 SynchronizationContext previousContext = SynchronizationContext.Current;

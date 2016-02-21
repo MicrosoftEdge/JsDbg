@@ -11,9 +11,9 @@ namespace JsDbg {
     [DataContract]
     class JsDbgConfiguration : Core.IConfiguration {
         [DataMember(IsRequired=true)]
-        public string support_directory {
-            get { return this._support_directory; }
-            set { this._support_directory = value; }
+        public string extension_root {
+            get { return this._extension_root; }
+            set { this._extension_root = value; }
         }
 
         [DataMember(IsRequired = true)]
@@ -30,9 +30,9 @@ namespace JsDbg {
             }
         }
 
-        public string SharedSupportDirectory {
+        public string ExtensionRoot {
             get {
-                return Path.GetFullPath(this.support_directory);
+                return Path.GetFullPath(this.extension_root);
             }
         }
         public string PersistentStoreDirectory {
@@ -50,7 +50,7 @@ namespace JsDbg {
         public static string Schema {
             get {
                 return @"{
-    ""support_directory"": ""\path\to\support"",
+    ""extension_root"": ""\path\to\extensions"",
     ""persistent_store_directory"": ""\path\to\persistent\store""
 }";
             }
@@ -58,7 +58,7 @@ namespace JsDbg {
 
         private static DataContractJsonSerializer ConfigurationSerializer = new DataContractJsonSerializer(typeof(JsDbgConfiguration));
 
-        private string _support_directory;
+        private string _extension_root;
         private string _persistent_store_directory;
     }
 }

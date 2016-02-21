@@ -11,7 +11,7 @@ namespace Sushraja.Jump {
             return new JumpConfiguration();
         }
 
-        public string SharedSupportDirectory {
+        public string ExtensionRoot {
             get {
                 // TODO: Figure out configuration story for Jump.
                 return @"C:\My\Dev";

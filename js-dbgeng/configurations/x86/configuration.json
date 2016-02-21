@@ -1,4 +1,4 @@
 {
-    "support_directory": "..\\..\\..\\..\\..",
+    "extension_root": "..\\..\\..\\..\\..\\extensions",
     "persistent_store_directory": "..\\..\\..\\..\\..\\persistent"
 }
