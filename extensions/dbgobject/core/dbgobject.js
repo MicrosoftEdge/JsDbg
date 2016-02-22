@@ -831,7 +831,7 @@ Loader.OnLoad(function() {
             } else {
                 return that.vals(length)
                 .then(function (chars) {
-                    return chars.map(String.fromCharCode).join("");
+                    return chars.map(function (c) { return String.fromCharCode(c); }).join("");
                 });
             }
         });

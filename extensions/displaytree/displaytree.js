@@ -67,9 +67,9 @@ Loader.OnLoad(function() {
             // And get the disp client.
             .then(function(hasAdvanced) {
                 if (hasAdvanced) {
-                    return latestPatch.f("_pAdvancedDisplay._pDispClient");
+                    return latestPatch.f("_pAdvancedDisplay._pDispClient").vcast();
                 } else {
-                    return latestPatch.f("_pDispClient");
+                    return latestPatch.f("_pDispClient").vcast();
                 }
             });
         });
