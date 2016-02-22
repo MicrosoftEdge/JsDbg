@@ -28,7 +28,7 @@ var Timer = (function() {
     }
     Timer.prototype.Mark = function(msg) {
         var elapsed = this.Elapsed();
-        console.log(this.Elapsed() + ": " + msg + " (" + JsDbg.GetNumberOfRequests() + " reqs)");
+        console.log(this.Elapsed() + ": " + msg + " (" + JsDbgTransport.GetNumberOfRequests() + " reqs)");
         return elapsed;
     }
 
