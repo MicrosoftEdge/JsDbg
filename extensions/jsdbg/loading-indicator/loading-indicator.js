@@ -36,7 +36,5 @@ Loader.OnLoad(function () {
     }
 
     initializeProgressIndicator();
-    Loader.OnPageReady(function() {
-        document.documentElement.appendChild(loadingIndicator);
-    });
+    document.documentElement.appendChild(loadingIndicator);
 })
