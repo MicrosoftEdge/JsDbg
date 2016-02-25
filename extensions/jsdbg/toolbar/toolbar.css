@@ -93,6 +93,7 @@ html {
 
 .jsdbg-feedback-pane textarea {
     font-family: Calibri;
+    white-space:pre-wrap; /*Edge/IE11 workaround for VSTS 6673230 */
     font-size:11pt;
     width:300px;
     height:150px;
