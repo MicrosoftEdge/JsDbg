@@ -190,7 +190,7 @@ Loader.OnLoad(function() {
 
             var lookasidePromise = elementPromise
             .then(function (element) {
-                return element.f("_fHasLookasidePtr").val();
+                return element.f("elementNodeHasLookasidePointer", "_fHasLookasidePtr").val();
             });
 
             // During the CTreeNode/CElement merger the LOOKASIDE_SUBORDINATE enum value moved around.  Currently, it's on the CTreeNode type.
