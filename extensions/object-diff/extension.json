@@ -1,0 +1,7 @@
+{
+    "name": "ObjectDiff",
+    "author": "Peter Salas",
+    "description": "Diff two objects.",
+    "dependencies": ["dbgobject", "pointermath"],
+    "includes": ["object-diff.js"]
+}

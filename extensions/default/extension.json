@@ -12,7 +12,7 @@
         "markuptree",
         "displaytree",
         "layoutbuilder",
-        "struct-diff",
+        "object-diff",
         "documentation",
         "tests"
     ]

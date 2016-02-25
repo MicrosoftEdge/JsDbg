@@ -205,4 +205,11 @@ Loader.OnLoad(function () {
             })
         }
     }
+
+    DbgObject.prototype.hasDefaultDescription = function() {
+        return getTypeDescriptionFunctionIncludingBaseTypes(this.module, this.typename)
+        .then(function (defaultDescription) {
+            return defaultDescription != null;
+        })
+    }
 });

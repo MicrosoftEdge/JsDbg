@@ -32,6 +32,7 @@ Loader.OnLoad(function () {
         if (size in sizeIndex) {
             return sizeIndex[size];
         } else {
+            console.error("Invalid number size:" + size + " unsigned:" + isUnsigned + " float:" + isFloat);
             return null;
         }
     }

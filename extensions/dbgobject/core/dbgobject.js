@@ -529,7 +529,11 @@ Loader.OnLoad(function() {
 
     DbgObject.prototype._val = function(unsigned, useBigInt, isCountSpecified, count) {
         if (this.isNull()) {
-            return Promise.as(null);
+            if (isCountSpecified) {
+                return Promise.as([]);
+            } else {
+                return Promise.as(null);
+            }
         }
 
         if (this.typename == "void") {
