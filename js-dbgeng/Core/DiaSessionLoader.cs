@@ -89,7 +89,7 @@ namespace Core {
 
             System.Threading.Thread.Sleep(1000);
 
-            ProcessStartInfo regsvr = new ProcessStartInfo("regsvr32", dllPath);
+            ProcessStartInfo regsvr = new ProcessStartInfo("regsvr32", "/s " + dllPath);
             regsvr.Verb = "runas";
 
             Process.Start(regsvr).WaitForExit();
