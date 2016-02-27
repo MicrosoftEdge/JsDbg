@@ -280,7 +280,7 @@ var TreeInspector = (function() {
             }));
 
             var notifyOnBreak = true;
-            var didRegisterBreakListener = JsDbg.RegisterOnBreakListener(function() {
+            JsDbg.RegisterOnBreakListener(function() {
                 debuggerHasRunSinceLastRefresh = true;
                 if (document.getElementById(id("RefreshOnBreak")).checked) {
                     refresh();
@@ -290,58 +290,57 @@ var TreeInspector = (function() {
                     }
                 }
             });
-            if (didRegisterBreakListener) {
-                topPane.appendChild(ws());
-                var updateCheckboxControl = createElement("nobr");
-                topPane.appendChild(updateCheckboxControl);
+            
+            topPane.appendChild(ws());
+            var updateCheckboxControl = createElement("nobr");
+            topPane.appendChild(updateCheckboxControl);
 
-                var messageContainer = createElement("div", null, {
-                    id: id("RefreshOnBreakMessage"),
-                    class: "popup-message-container"
-                });
-                messageContainer.appendChild(document.createElement("br"));
-                var message = createElement("div", "The debugged process has run since the tree was last updated.", {
-                    class: "popup-message"
-                });
-                var buttons = createElement("div", null, { class: "buttons" });
-                buttons.appendChild(createElement("button", "Update Tree", {
-                    class: "small-button light"
-                }, { 
-                    click: function () {
-                        messageContainer.classList.remove("show");
+            var messageContainer = createElement("div", null, {
+                id: id("RefreshOnBreakMessage"),
+                class: "popup-message-container"
+            });
+            messageContainer.appendChild(document.createElement("br"));
+            var message = createElement("div", "The debugged process has run since the tree was last updated.", {
+                class: "popup-message"
+            });
+            var buttons = createElement("div", null, { class: "buttons" });
+            buttons.appendChild(createElement("button", "Update Tree", {
+                class: "small-button light"
+            }, { 
+                click: function () {
+                    messageContainer.classList.remove("show");
+                    refresh();
+                }
+            }));
+            buttons.appendChild(createElement("button", "Not Now", {
+                class: "small-button light"
+            }, {
+                click: function () {
+                    messageContainer.classList.remove("show");
+                    notifyOnBreak = false;
+                }
+            }));
+            message.appendChild(buttons);
+            messageContainer.appendChild(message);
+
+            updateCheckboxControl.appendChild(messageContainer);
+            updateCheckboxControl.appendChild(createElement("input", null, {
+                name: "refreshOnBreak",
+                id: id("RefreshOnBreak"),
+                type: "checkbox",
+                checked: window.sessionStorage.getItem(id("RefreshOnBreak")) === "true" ? "checked" : undefined
+            }, {
+                "change": function () {
+                    createCheckboxChangeHandler(id("RefreshOnBreak"))();
+                    messageContainer.classList.remove("show");
+                    if (debuggerHasRunSinceLastRefresh) {
                         refresh();
                     }
-                }));
-                buttons.appendChild(createElement("button", "Not Now", {
-                    class: "small-button light"
-                }, {
-                    click: function () {
-                        messageContainer.classList.remove("show");
-                        notifyOnBreak = false;
-                    }
-                }));
-                message.appendChild(buttons);
-                messageContainer.appendChild(message);
-
-                updateCheckboxControl.appendChild(messageContainer);
-                updateCheckboxControl.appendChild(createElement("input", null, {
-                    name: "refreshOnBreak",
-                    id: id("RefreshOnBreak"),
-                    type: "checkbox",
-                    checked: window.sessionStorage.getItem(id("RefreshOnBreak")) === "true" ? "checked" : undefined
-                }, {
-                    "change": function () {
-                        createCheckboxChangeHandler(id("RefreshOnBreak"))();
-                        messageContainer.classList.remove("show");
-                        if (debuggerHasRunSinceLastRefresh) {
-                            refresh();
-                        }
-                    }
-                }));
-                updateCheckboxControl.appendChild(createElement("label", "Update When Debugger Breaks", {
-                    "for": id("RefreshOnBreak")
-                }));
-            }
+                }
+            }));
+            updateCheckboxControl.appendChild(createElement("label", "Update When Debugger Breaks", {
+                "for": id("RefreshOnBreak")
+            }));
 
             topPane.appendChild(createElement("div", "Click a node to show its children.  Ctrl-Click to expand or collapse a subtree."));
 

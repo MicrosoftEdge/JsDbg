@@ -9,6 +9,15 @@ Loader.OnLoad(function () {
     var memoryWriteListeners = [];
 
     function esc(s) { return encodeURIComponent(s); }
+    function fireListeners(listeners) {
+        listeners.forEach(function (f) {
+            try {
+                f();
+            } finally {
+
+            }
+        })
+    }
 
     var sizeNames = {
         1 : "sbyte",
@@ -53,6 +62,8 @@ Loader.OnLoad(function () {
         if (message == "break") {
             JsDbgLoadingIndicator.SetIsWaitingForDebugger(false);
             JsDbgTransport.InvalidateCache();
+            fireListeners(debuggerBrokeListeners);
+            fireListeners(memoryWriteListeners);
         } else if (message == "waiting") {
             JsDbgLoadingIndicator.SetIsWaitingForDebugger(true);
         } else {
@@ -239,13 +250,7 @@ Loader.OnLoad(function () {
             callback = function(result) {
                 if (!result.error) {
                     JsDbgTransport.InvalidateCache();
-                    memoryWriteListeners.forEach(function (f) {
-                        try {
-                            f();
-                        } catch (ex) {
-
-                        }
-                    });
+                    fireListeners(memoryWriteListeners);
                 }
                 originalCallback(result);
             }
