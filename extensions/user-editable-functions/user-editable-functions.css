@@ -22,6 +22,7 @@
     white-space:pre-wrap;
     position:relative;
     font-weight:bold;
+    line-height:13px;
 }
 
 .function-editor-code-region textarea {
@@ -30,7 +31,7 @@
     display:block;
     font-family:inherit;
     font-size:inherit;
-    height:calc(100% - 26px);
+    height:calc(100% - 26px); /* 26px = 2 * line-height of the parent for the prologue/epilogue. */
     line-height:normal;
     overflow:hidden;
     position:absolute;
@@ -47,4 +48,5 @@
 
 .function-editor-code-region .filler {
     visibility: hidden;
+    line-height:normal;
 }
