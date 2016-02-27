@@ -11,15 +11,13 @@ If you notice something wrong with JsDbg or have an idea for how JsDbg can be be
 
 ## Contributing Code
 
-Contributions to JsDbg are welcome!  JsDbg has three main components:
+Contributions to JsDbg are welcome!  JsDbg has two main components:
 
 1. A web server and debugger client built in C#, located in the `js-dbgeng` directory.
-2. A JavaScript interface to the server, located in the `wwwroot` directory.
-3. A set of JavaScript extensions.  Extensions included with JsDbg are located in the `extensions` directory.
+2. A set of JavaScript extensions.  Extensions included with JsDbg are located in the `extensions` directory.
 
-The first two components (`jsdbg.exe` and `jsdbg.js`) are designed to provide a minimal interface between extensions and the debugger;
-all user-facing functionality is provided by extensions.  The core JsDbg APIs relate to type information, reading from memory, loading extensions,
-and persistent storage.  For example:
+The core JsDbg APIs in the `jsdbg` extension relate to type information, reading from memory, loading extensions,
+and persistent storage.  Some of the APIs:
 
 ```
 JsDbg.LookupTypeSize(module, type, callback);
@@ -42,19 +40,19 @@ An extension in JsDbg is a directory containing an `extension.json` file and som
     "author": "Peter Salas",
     "description": "Convenience library for navigating objects in memory.",
     "headless": true,
-    "includes": ["dbgobject.js"],
-    "dependencies": ["promise", "pointermath", "memorycache", "help"],
-    "augments": ["documentation"]
+    "dependencies": ["dbgobject/core", "dbgobject/descriptions", "dbgobject/extended-fields", "dbgobject/arrays"],
+    "includes": ["promised-dbgobject.js"],
+    "augments": ["documentation", "tests"]
 }
 ```
 
-The `name` field is the only required field.  When an extension is loaded into JsDbg, the `name` specifies where the content in the directory will be served; assuming JsDbg is serving on port 50000, `dbgobject.js` will be available at `http://localhost:50000/dbgobject/dbgobject.js`.
+The `name` field is the only required field.  When an extension is loaded into JsDbg, the `name` specifies where the content in the directory will be served; assuming JsDbg is serving on port 50000, `promised-dbgobject.js` will be available at `http://localhost:50000/dbgobject/promised-dbgobject.js`.
 
 The last two fields are interesting as well.
 
-Specifying an extension in `dependencies` has two effects.  First, when this extension is first loaded by JsDbg, the extensions listed will be loaded first if they are not already loaded.  Second, whenever this extension is used in the browser, the JS and CSS files of the dependencies will be loaded in the page first.  For DbgObject, this ensures that whenever we're using dbgobject.js, the script files associated with the `promise`, `pointermath`, `memorycache`, and `help` extensions will be loaded as well.
+Specifying an extension in `dependencies` has two effects.  First, when this extension is first loaded by JsDbg, the extensions listed will be loaded first if they are not already loaded.  Second, whenever this extension is used in the browser, the JS and CSS files of the dependencies will be loaded in the page first.  For DbgObject, this ensures that the script files associated with the `dbgobject/core`, `dbgobject/descriptions`, `dbgobject/extended-fields`, and `dbgobject/arrays` extensions will be loaded as well.
 
-The last field, `augments`, allows extensions to extend or augment another extension in the browser.  For DbgObject, whenever the `documentation` extension is used in the browser, `dbgobject.js` will also be injected into the page.  Specifically, this allows DbgObject's documentation to be listed along with the other extensions, without the `documentation` extension needing to know which extensions are loaded.
+The last field, `augments`, allows extensions to augment or extend another extension in the browser.  For DbgObject, whenever the `documentation` extension is used in the browser, the DbgObject extension and its dependencies will also be injected into the page.  Specifically, this allows DbgObject's documentation to be listed along with the other extensions, without the `documentation` extension needing to know which extensions are loaded.
 
 Going through each of the fields in detail:
 
@@ -65,8 +63,8 @@ Name | Type | Description
 `description` | string | A description of the extension.
 `headless` | bool | Indicates if the extension should not be listed on the launch page when loaded.  Used for extensions do not present UI of their own but are consumed by other extensions.
 `includes` | array of strings | An array of JS or CSS filenames in this extension's directory that should be included whenever this extension is used.  If other extensions take a dependency on this extension, these files will be included in the page automatically.
-`dependencies` | array of strings | An array of paths to other extensions that this extension depends on.  Paths are relative to the default extension directory, so built-in extensions can typically be referred to by name (e.g. `promise`).  These extensions will be automatically loaded when the extension is loaded.
-`augments` | array of strings | An array extension names that this extension augments.  Specifying an extension name here means that whenever that extension is used, this extension will be loaded as well.
+`dependencies` | array of strings | An array of paths to other extensions that this extension depends on.  Paths are relative to the default extension directory.  These extensions will be automatically loaded when the extension is loaded.
+`augments` | array of strings | An array extension names that this extension augments.  Specifying an extension name here means that whenever that extension is loaded by the browser, this extension will be loaded as well.
 
 ### DbgObject
 
