@@ -175,6 +175,10 @@ Loader.OnLoad(function() {
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheet", null, function(stylesheet) {
+            return stylesheet.f("_pImportedStyleSheets._aStyleSheets").array("Items");
+        })        
+
+        DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheet", null, function(stylesheet) {
             return stylesheet.f("_pSSSheet._apFontBlocks").array("Items");
         })
 
