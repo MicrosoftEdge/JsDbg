@@ -1,0 +1,6 @@
+{
+    "name": "jsdbg-styles",
+    "author": "Peter Salas",
+    "headless": true,
+    "includes": ["common.css"]
+}

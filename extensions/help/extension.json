@@ -3,5 +3,6 @@
     "author": "Peter Salas",
     "description": "An extension that allows extensions to provide documentation on themselves.",
     "headless": true,
-    "includes": ["help.js", "help.css"]
+    "includes": ["help.js", "help.css"],
+    "dependencies": ["jsdbg/styles"]
 }

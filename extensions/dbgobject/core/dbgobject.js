@@ -875,7 +875,10 @@ Loader.OnLoad(function() {
 
     DbgObject.prototype._help_equals = {
         description: "Indicates if two DbgObjects represent the same address in memory.",
-        returns: "A bool."
+        returns: "A bool.",
+        arguments: [
+            {name: "other", type: "DbgObject", description: "The other DbgObject to compare."}
+        ]
     }
     DbgObject.prototype.equals = function(other) {
         if (this._pointer === undefined || other._pointer === undefined) {
