@@ -521,7 +521,8 @@ Loader.OnLoad(function() {
             <tr><td><code>setval</code></td><td>auto</td></tr>\
             <tr><td><code>setsval</code></td><td>signed</td></tr>\
             <tr><td><code>setuval</code></td><td>unsigned</td></tr>\
-        </table>"
+        </table>",
+        arguments: [{name: "value", type:"number", description: "The value to set."}],
     }
     DbgObject.prototype.setval = function(value) { return this._setval(this._isUnsigned || this._isPointer(), value); }
     DbgObject.prototype.setuval = function(value) { return this._setval(true, value); }
