@@ -150,6 +150,21 @@ var MSHTML = undefined;
             return MSHTML.GetObjectFromDataCache(treeNode.F("Threadstate").f("_pSvgFormatCache"), treeNode.f("_iSF").val());
         });
 
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "SubordinateMarkup", "CMarkup", function (treeNode) {
+            return MSHTML.GetElementLookasidePointer(treeNode, "LOOKASIDE_SUBORDINATE")
+            .then(function (result) {
+                if (!result.isNull()) {
+                    return MSHTML.GetMarkupFromElement(result.as("CElement"))
+                } else {
+                    return DbgObject.NULL;
+                }
+            })
+        })
+
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "AccessibleObject", "Aria::AccessibleObject", function (treeNode) {
+            return MSHTML.GetElementLookasidePointer(treeNode, "LOOKASIDE_ARIAOBJECT").as("Aria::AccessibleObject").vcast();
+        })
+
         function GetLayoutAssociationFromCTreeNode(treeNode, flag) {
             var conversion = ({
                 0x1: function(pointer) {
@@ -263,6 +278,75 @@ var MSHTML = undefined;
                 return searchForHtPvPvMatch(firstEntry, entryCount, probe, stride, key);
             });
             return new PromisedDbgObject(promise);
+        }
+
+        function GetElementLookasidePointer(treeNode, name)
+        {
+            // Get the subordinate markup.
+            var elementPromise = treeNode.f("_pElement")
+            .then(null, function () {
+                // The _pElement pointer was removed in RS1.  The object can now be directly cast as an element.
+                return treeNode.as("CElement");
+            });
+
+            var hasLookasidePtrPromise = elementPromise
+            .then(function (element) {
+                return element.f("elementNodeHasLookasidePointer", "_fHasLookasidePtr").val();
+            });
+
+            // During the CTreeNode/CElement merger some lookaside enum values moved around.  Currently, they're on the CTreeNode type.
+            var lookasideNumberPromise = DbgObject.constantValue(MSHTML.Module, "CTreeNode", name)
+            .then(function (index) {
+                return {
+                    offset:0,
+                    index:index
+                };
+            }, function() {
+                // The index is not on the CTreeNode, so it must be on the CElement.
+                return DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE", name)
+                .then(function (lookasideSubordinate) {
+                    // Two additional cases to try: first (in reverse chronological order), when the CElement lookasides were offset by CTreeNode::LOOKASIDE_NODE_NUMBER.
+                    // We identify this case by the presence of the _dwNodeFlags1 field which was added in inetcore 1563867.
+                    return (new DbgObject("edgehtml", "CTreeNode", 0)).f("_dwNodeFlags1")
+                    .then(
+                        function () {
+                            return DbgObject.constantValue(MSHTML.Module, "CTreeNode", "LOOKASIDE_NODE_NUMBER")
+                            .then(function(lookasideNodeNumber) {
+                                return {
+                                    offset: lookasideNodeNumber,
+                                    index: lookasideSubordinate
+                                };
+                            });
+                        }, function () {
+                            return {
+                                offset:0,
+                                index: lookasideSubordinate
+                            }
+                        }
+                    )
+                })
+            });
+
+            var result = Promise.join([
+                elementPromise,
+                hasLookasidePtrPromise,
+                lookasideNumberPromise
+            ])
+            .then(function (results) {
+                var element = results[0];
+                var lookasides = results[1];
+                var lookasideOffset = results[2].offset;
+                var lookasideIndex = results[2].index;
+
+                if (lookasides & (1 << lookasideIndex)) {
+                    var hashtable = MSHTML.GetDocFromMarkup(MSHTML.GetMarkupFromElement(element)).f("_HtPvPv");
+                    return MSHTML.GetObjectLookasidePointer(element, lookasideOffset + lookasideIndex, hashtable);
+                } else {
+                    return DbgObject.NULL;
+                }
+            })
+
+            return new PromisedDbgObject(result);
         }
 
         function GetObjectLookasidePointer(lookasideObject, lookasideNumber, hashtable) {
@@ -405,7 +489,7 @@ var MSHTML = undefined;
         DbgObject.AddTypeOverride(moduleName, "CTreeNode", "_etag", "ELEMENT_TAG");
         DbgObject.AddTypeOverride(moduleName, "CBorderDefinition", "_bBorderStyles", "Tree::CssBorderStyleEnum[4]");
         DbgObject.AddTypeOverride(moduleName, "CBorderInfo", "abStyles", "Tree::CssBorderStyleEnum[4]");
-
+        DbgObject.AddTypeOverride(moduleName, "CInput", "_type", "htmlInput");
 
         // Provide some type descriptions.
         DbgObject.AddTypeDescription(moduleName, "ELEMENT_TAG", "Tag", true, function(tagObj) {
@@ -770,7 +854,9 @@ var MSHTML = undefined;
                 ],
                 returns: "A promised DbgObject representing the stored object or null if it is not present."
             },
-            GetObjectLookasidePointer: GetObjectLookasidePointer
+            GetObjectLookasidePointer: GetObjectLookasidePointer,
+
+            GetElementLookasidePointer: GetElementLookasidePointer,
         };
 
         Help.Register(MSHTML);
