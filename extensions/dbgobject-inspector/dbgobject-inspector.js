@@ -102,7 +102,7 @@ Loader.OnLoad(function() {
                 currentWindowAdjustment = {x: 0, y:0};
                 activateInspector(inspector);
                 typeExplorer.focus();
-            } else if (e.target == objectPtr) {
+            } else if (objectPtr.contains(e.target)) {
                 // Close it out.
                 deactivateCurrentInspector();
             }
