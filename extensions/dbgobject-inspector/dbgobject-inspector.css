@@ -15,12 +15,15 @@
 }
 
 .dbgobject-inspector > .drop-down > .title {
-    margin-top:0.1em;
-    margin-bottom:-0.1em;
-    margin-left:0.3em;
-    cursor:text;
-    height:0px;
     color:white;
+    cursor:text;
+    height:1.5em;
+    margin-bottom:-1.6em;
+    margin-left:0.3em;
+    margin-top:0.1em;
+    max-width:70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .dbgobject-inspector > .drop-down > .window {

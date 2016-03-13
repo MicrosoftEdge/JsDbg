@@ -71,7 +71,7 @@ Loader.OnLoad(function() {
 
         var title = document.createElement("div");
         title.classList.add("title");
-        title.textContent = dbgObject.typeDescription() + " " + dbgObject.ptr();
+        title.textContent = dbgObject.ptr() + " " + dbgObject.typeDescription();
         dropDown.appendChild(title);
 
         var container = document.createElement("div");
