@@ -53,9 +53,11 @@ Loader.OnLoad(function() {
         objectPtr.innerHTML = html;
         inspector.appendChild(objectPtr);
 
-        function initialize() {
+        function initialize(e) {
             inspector.removeEventListener("click", initialize);
             initializeInspector(dbgObject, inspector, objectPtr);
+            e.stopPropagation();
+            e.preventDefault();
         }
         inspector.addEventListener("click", initialize);
         return inspector;
@@ -87,6 +89,7 @@ Loader.OnLoad(function() {
         close.addEventListener("click", function (e) {
             deactivateCurrentInspector();
             e.stopPropagation();
+            e.preventDefault();
         });
 
         inspector.addEventListener("click", function (e) {
@@ -103,6 +106,9 @@ Loader.OnLoad(function() {
                 // Close it out.
                 deactivateCurrentInspector();
             }
+
+            e.stopPropagation();
+            e.preventDefault();
         });
 
         var currentWindowAdjustment = { x: 0, y: 0 };
