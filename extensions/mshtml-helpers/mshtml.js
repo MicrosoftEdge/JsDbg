@@ -339,7 +339,7 @@ var MSHTML = undefined;
                 var lookasideIndex = results[2].index;
 
                 if (lookasides & (1 << lookasideIndex)) {
-                    var hashtable = MSHTML.GetDocFromMarkup(MSHTML.GetMarkupFromElement(element)).f("_HtPvPv");
+                    var hashtable = element.F("Markup.Doc").f("_HtPvPv");
                     return MSHTML.GetObjectLookasidePointer(element, lookasideOffset + lookasideIndex, hashtable);
                 } else {
                     return DbgObject.NULL;
@@ -856,6 +856,14 @@ var MSHTML = undefined;
             },
             GetObjectLookasidePointer: GetObjectLookasidePointer,
 
+            _help_GetElementLookasidePointer: {
+                description: "Gets a lookaside pointer from a CTreeNode.",
+                arguments: [
+                    {name:"lookasideObject", type:"(Promise to a) DbgObject.", description: "The object whose lookaside pointer will be retrieved."},
+                    {name:"lookasideName", type:"string", description:"The lookaside to get (e.g. \"LOOKASIDE_SUBORDINATE\")."},
+                ],
+                returns: "A promised DbgObject representing the lookaside object or null if it is not present."
+            },
             GetElementLookasidePointer: GetElementLookasidePointer,
         };
 
