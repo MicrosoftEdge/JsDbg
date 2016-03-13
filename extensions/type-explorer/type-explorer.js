@@ -490,7 +490,12 @@ Loader.OnLoad(function() {
 
         function getFromParentResult(parentResult) {
             if (Array.isArray(parentResult)) {
-                return Promise.map(parentResult, getFromParentResult);
+                // Use a direct map, rather than Promise.map, to keep errors separate.
+                return parentResult.map(getFromParentResult);
+            } else if (Promise.isPromise(parentResult)) {
+                // Because of the direct map above, parentResult could either be a promise or a DbgObject.
+                // If it's a failed promise though, just let it fail.
+                return parentResult.then(getFromParentResult);
             } else {
                 return getFromParentDbgObject(parentResult);
             }

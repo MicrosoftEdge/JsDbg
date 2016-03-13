@@ -204,7 +204,8 @@ Loader.OnLoad(function() {
             {name:"object", type:"any", description:"The object or array of objects to render."},
             {name:"element", type:"HTML element", description:"The element to render into." },
             {name:"dbgObjectMapping", type:"function(DbgObject) -> any", description:"A function to transform DbgObjects into something renderable."}
-        ]
+        ],
+        returns: "A bool indicating if anything other than a null DbgObject was rendered."
     }
     DbgObject.render = function(object, element, dbgObjectMapping) {
         return Promise.as(object)
@@ -222,15 +223,23 @@ Loader.OnLoad(function() {
                 })
                 .then(function() {
                     element.appendChild(document.createTextNode("]"));
+                    return true;
                 })
             } else if (object instanceof DbgObject) {
-                return DbgObject.render(dbgObjectMapping(object), element, dbgObjectMapping);
+                return DbgObject.render(dbgObjectMapping(object), element, dbgObjectMapping)
+                .then(function (result) {
+                    return !object.isNull();
+                });
             } else if (object instanceof Function) {
                 return DbgObject.render(object(element), element, dbgObjectMapping);
             } else if (object instanceof Node) {
                 element.appendChild(object);
+                return true;
             } else if (object !== undefined) {
                 element.innerHTML = object;
+                return true;
+            } else {
+                return false;
             }
         })
         .then(null, function (error) {
@@ -238,6 +247,7 @@ Loader.OnLoad(function() {
             errorSpan.style.color = "red";
             errorSpan.textContent = "(" + (error instanceof Error ? error.toString() : JSON.stringify(error)) + ")";
             element.appendChild(errorSpan);
+            return true;
         })
     }
 

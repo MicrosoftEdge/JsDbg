@@ -244,21 +244,10 @@ var FieldSupport = (function() {
 
         return function (dbgObject, element) {
             return Promise.as(null)
-            .then(function () {
-                return field.getter(dbgObject)
-            })
-            .then(function(result) {
-                if (result === undefined || (result instanceof DbgObject && result.isNull())) {
-                    return;
-                }
-
-                var fieldAndValue = document.createElement("span");
-                element.appendChild(fieldAndValue);
-                insertFieldList(field.names, fieldAndValue);
+            .then(function() {
                 var valueContainer = document.createElement("span");
-                fieldAndValue.appendChild(valueContainer);
                 return DbgObject.render(
-                    result, 
+                    field.getter(dbgObject), 
                     valueContainer, 
                     function (dbgObject) {
                         if (dbgObject.isArray()) {
@@ -269,7 +258,15 @@ var FieldSupport = (function() {
                             })
                         }
                     }
-                );
+                )
+                .then(function (didRenderSomething) {
+                    if (didRenderSomething) {
+                        var fieldAndValue = document.createElement("span");
+                        insertFieldList(field.names, fieldAndValue);
+                        fieldAndValue.appendChild(valueContainer);
+                        element.appendChild(fieldAndValue);
+                    }
+                })
             });
         }
     }
