@@ -422,16 +422,6 @@ Loader.OnLoad(function() {
             });
         }
 
-        this.nestedFieldGetter = function (dbgObject, element) {
-            return that.getNestedField(dbgObject)
-            .then(function (result) {
-                if (that.childType == null) {
-                    return result(element);
-                } else {
-                    return result;
-                }
-            });
-        };
         this.sourceInParentType = sourceInParentType;
         this.isEnabled = false;
         this.clientContext = {};
@@ -724,7 +714,7 @@ Loader.OnLoad(function() {
     TypeExplorerController.prototype._getFieldForNotification = function(field) {
         var result = {
             context: field.clientContext,
-            getter: field.nestedFieldGetter,
+            getter: field.getNestedField.bind(field),
             allGetters: [],
             isEnabled: field.isEnabled,
             names: [],
@@ -991,7 +981,7 @@ Loader.OnLoad(function() {
         var renderingPromise = Promise.as(null);
         if (this.allowFieldRendering()) {
             rendering.innerHTML = "<span></span>";
-            renderingPromise = DbgObject.render(field.getNestedField(this.dbgObject, rendering.firstChild), rendering.firstChild, function (dbgObject) {
+            renderingPromise = DbgObject.render(field.getNestedField(this.dbgObject), rendering.firstChild, function (dbgObject) {
                 return dbgObject.desc();
             })
         }

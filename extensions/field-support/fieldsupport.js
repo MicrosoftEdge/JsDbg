@@ -245,7 +245,7 @@ var FieldSupport = (function() {
         return function (dbgObject, element) {
             return Promise.as(null)
             .then(function () {
-                return field.getter(dbgObject, element)
+                return field.getter(dbgObject)
             })
             .then(function(result) {
                 if (result === undefined || (result instanceof DbgObject && result.isNull())) {
