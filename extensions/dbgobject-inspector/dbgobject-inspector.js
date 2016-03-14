@@ -102,13 +102,14 @@ Loader.OnLoad(function() {
                 currentWindowAdjustment = {x: 0, y:0};
                 activateInspector(inspector);
                 typeExplorer.focus();
+                e.stopPropagation();
+                e.preventDefault();
             } else if (objectPtr.contains(e.target)) {
                 // Close it out.
                 deactivateCurrentInspector();
+                e.stopPropagation();
+                e.preventDefault();
             }
-
-            e.stopPropagation();
-            e.preventDefault();
         });
 
         var currentWindowAdjustment = { x: 0, y: 0 };
