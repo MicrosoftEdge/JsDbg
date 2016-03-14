@@ -17,38 +17,37 @@ var TreeInspector = (function() {
                 if (lastRenderedPointer != pointerField.value) {
                     // Don't re-render if we've already rendered.
                     pointerField.value = pointerField.value.trim();
-                    var objectPointer = new PointerMath.Pointer(pointerField.value, 16);
-                    Promise.as(DbgObjectTree.InterpretAddress(objectPointer))
-                    .then(function(createdRoot) {
-                        lastRenderedPointer = pointerField.value;
-                        treeRoot = createdRoot;
-                        return render();
-                    })
-                    .then(function() {}, function(error) {
-                        // Some JS error occurred.
-                        window.location.hash = "";
-                        lastRenderedPointer = null;
-                        treeRoot = null;
-                        treeContainer.className = "invalid-tree";
-                        var errorMessage = "<h3>An error occurred loading the tree.</h3>";
-                        var suggestions = [
-                            "Make sure the " + namespace.RootType + " address (" + objectPointer.toFormattedString() + ") is correct.",
-                            "If you're using an iDNA trace, try indexing the trace first.",
-                            "Try refreshing the page.",
-                            "You can also try to debug the exception using the F12 tools.",
-                            "<a href=\"mailto:psalas&subject=JsDbg%20Help\">Need help?</a>"
-                        ]
-                        var errorSuggestions = "<ul>" + suggestions.map(function(x) { return "<li>" + x + "</li>"; }).join("") + "</ul>";
-                        var errorObject = "<code>" + JSON.stringify(error, undefined, 4).replace(/\\n/g, "\n").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</code>";
-                        treeContainer.innerHTML = [errorMessage, errorSuggestions, errorObject].join("\n");
-                    });
+                    Promise.as(DbgObjectTree.InterpretAddress(new PointerMath.Pointer(pointerField.value, 16)))
+                    .then(render, showError);
                 }
             }
 
-            function render() {
+            function render(rootObject) {
+                treeRoot = rootObject;
+                lastRenderedPointer = pointerField.value;
                 var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
-                renderTreeRootPromise = DbgObjectTree.RenderTreeNode(treeContainer, treeRoot, fullyExpand, treeAlgorithm);
+                renderTreeRootPromise = DbgObjectTree.RenderTreeNode(treeContainer, treeRoot, fullyExpand, treeAlgorithm)
+                .then(null, showError);
                 return renderTreeRootPromise;
+            }
+
+            function showError(error) {
+                // Some JS error occurred.
+                lastRenderedPointer = null;
+                treeRoot = null;
+                treeContainer.className = "invalid-tree";
+                var errorMessage = "<h3>An error occurred loading the tree.</h3>";
+                var suggestions = [
+                    "Make sure the " + namespace.RootType + " address (" + new PointerMath.Pointer(pointerField.value, 16).toFormattedString() + ") is correct.",
+                    "If you're using an iDNA trace, try indexing the trace first.",
+                    "Try refreshing the page.",
+                    "You can also try to debug the exception using the F12 tools.",
+                    "<a href=\"mailto:psalas&subject=JsDbg%20Help\">Need help?</a>"
+                ]
+                var errorSuggestions = "<ul>" + suggestions.map(function(x) { return "<li>" + x + "</li>"; }).join("") + "</ul>";
+                var errorString = error instanceof Error ? error.toString() : JSON.stringify(error, undefined, 4);
+                var errorObject = "<code>" + errorString.replace(/\\n/g, "\n").replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</code>";
+                treeContainer.innerHTML = [errorMessage, errorSuggestions, errorObject].join("\n");
             }
 
             var enqueueWork = (function() {
@@ -110,8 +109,7 @@ var TreeInspector = (function() {
                     rootIndex = Math.min(rootIndex, currentRoots.length - 1);
                     if (rootIndex >= 0 && rootIndex < currentRoots.length) {
                         pointerField.value = currentRoots[rootIndex].dbgObject.ptr();
-                        treeRoot = currentRoots[rootIndex];
-                        render();
+                        render(currentRoots[rootIndex]);
                     } else {
                         window.location.hash = "";
                     }
@@ -134,7 +132,7 @@ var TreeInspector = (function() {
                     window.sessionStorage.setItem(id("TreeAlgorithm"), e.target.id);
 
                     if (treeRoot != null && treeAlgorithm != oldTreeAlgorithm) {
-                        render();
+                        render(treeRoot);
                     }
                 }
             }
