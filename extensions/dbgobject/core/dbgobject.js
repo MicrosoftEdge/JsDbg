@@ -199,13 +199,12 @@ Loader.OnLoad(function() {
 
     DbgObject._help_render = {
         description: "Renders an object or an array of objects, some of which may be DbgObjects.",
-        returns: "A promise.",
         arguments: [
             {name:"object", type:"any", description:"The object or array of objects to render."},
             {name:"element", type:"HTML element", description:"The element to render into." },
             {name:"dbgObjectMapping", type:"function(DbgObject) -> any", description:"A function to transform DbgObjects into something renderable."}
         ],
-        returns: "A bool indicating if anything other than a null DbgObject was rendered."
+        returns: "A promise to a bool indicating if anything other than a null DbgObject was rendered."
     }
     DbgObject.render = function(object, element, dbgObjectMapping) {
         return Promise.as(object)

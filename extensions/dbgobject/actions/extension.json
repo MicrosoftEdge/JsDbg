@@ -1,0 +1,6 @@
+{
+    "name": "dbgobject-actions",
+    "headless": true,
+    "dependencies": ["dbgobject/core", "dbgobject/type-extension"],
+    "includes": ["actions.js"]
+}

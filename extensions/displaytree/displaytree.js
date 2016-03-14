@@ -3,28 +3,36 @@
 var DisplayTree = undefined;
 Loader.OnLoad(function() {
     // Add a type description for CDispNode to link to the DisplayTree.
-    DbgObject.AddTypeDescription(MSHTML.Module, "CDispNode", "DisplayTree", true, function(dispNode) {
-        if (dispNode.isNull()) {
-            return "null";
-        } else {
-            return "<a href=\"/displaytree/#" + dispNode.ptr() + "\">" + dispNode.ptr() + "</a>";
-        }
+    DbgObject.AddAction(MSHTML.Module, "CDispNode", "DisplayTree", function (dispNode) {
+        return {
+            description: "Display Tree",
+            action: "/displaytree/#" + dispNode.ptr()
+        };
+    });
+    DbgObject.AddAction(MSHTML.Module, "CDoc", "DisplayTree", function (doc) {
+        return {
+            description: "Display Tree",
+            action: "/displaytree/#" + doc.ptr()
+        };
+    })
+    DbgObject.AddAction(MSHTML.Module, "CView", "DisplayTree", function (view) {
+        return view.unembed("CDoc", "_view").actions("DisplayTree");
     });
 
-    if (Loader.GetCurrentExtension()== "displaytree") {
+    if (Loader.GetCurrentExtension() == "displaytree") {
         DbgObjectTree.AddRoot("Display Tree", function() {
             return MSHTML.GetCDocs()
-            .then(function(docs) {
-                return Promise.map(docs, function(doc) { return doc.f("_view._pDispRoot"); });
+            .filter(function (doc) {
+                return doc.f("_view._pDispRoot").isNull()
+                .then(function (isNull) {
+                    return !isNull;
+                })
             })
-            .then(function(dispRoots) {
-                return Promise.filter(Promise.join(dispRoots), function(dispRoot) { return !dispRoot.isNull(); })
-            })
-            .then(function(nonNullDispRoots) {
-                if (nonNullDispRoots.length == 0) {
+            .then(function(docsWithDispRoots) {
+                if (docsWithDispRoots.length == 0) {
                     return Promise.fail();
                 }
-                return nonNullDispRoots;
+                return docsWithDispRoots;
             })
             .then(null, function(error) {
                 var errorMessage =
@@ -46,7 +54,18 @@ Loader.OnLoad(function() {
         });
 
         DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "CDispNode", address).vcast();
+            return new DbgObject(MSHTML.Module, "CDispNode", address).vcast()
+            .then(null, function (err) {
+                return new DbgObject(MSHTML.Module, "CDoc", address).vcast();
+            })
+        });
+
+        DbgObjectTree.AddType(null, MSHTML.Module, "CDoc", null, function (object) {
+            return object.f("_view");
+        });
+
+        DbgObjectTree.AddType(null, MSHTML.Module, "CView", null, function (object) {
+            return object.f("_pDispRoot");
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CDispParentNode", null, function (object) {

@@ -749,6 +749,7 @@ Loader.OnLoad(function() {
                 "<input class=\"small-input\" placeholder=\"Search...\" type=\"search\">",
                 "<button class=\"small-button base-types\"></button>",
                 "<button class=\"small-button extend\">Extend</button>",
+                "<div></div>",
                 "<div></div>"
             ].join("");
             typeContainer.querySelector("input").addEventListener("input", function () {
@@ -770,7 +771,8 @@ Loader.OnLoad(function() {
         var filterTextBox = typeContainer.firstChild;
         var showBaseTypesControl = filterTextBox.nextSibling;
         var newExtensionButton = showBaseTypesControl.nextSibling;
-        var fieldListContainer = newExtensionButton.nextSibling;
+        var actionContainer = newExtensionButton.nextSibling;
+        var fieldListContainer = actionContainer.nextSibling;
 
         if (!type.requiresRendering()) {
             typeContainer.style.display = "none";
@@ -794,13 +796,52 @@ Loader.OnLoad(function() {
                 }
             }
 
-            return that._renderFieldList(type, fieldListContainer);
+            var actionPromise = null;
+            if (that.allowFieldRendering()) {
+                actionPromise = that._renderActions(type, actionContainer);
+            }
+
+            return Promise.join([actionPromise, that._renderFieldList(type, fieldListContainer)]);
         })
         .then(function() {
             typeContainer.style.display = "";
             if (type.isExpanded() && changeFocus) {
                 filterTextBox.focus();
             }
+        })
+    }
+
+    TypeExplorerController.prototype._renderActions = function(type, actionsContainer) {
+        actionsContainer.innerHTML = "";
+        var objectToRender = null;
+        if (type.parentField != null) {
+            objectToRender = type.parentField.getNestedField(this.dbgObject);
+        } else {
+            objectToRender = this.dbgObject;
+        }
+        return DbgObject.render(objectToRender, actionsContainer, function (dbgObject) {
+            return dbgObject.actions()
+            .then(function (actions) {
+                var result = document.createElement("span");
+
+                actions.forEach(function (action) { 
+                    if (typeof action.action == "function") {
+                        var button = document.createElement("button");
+                        button.className = "action-button";
+                        button.textContent = action.description;
+                        button.addEventListener("click", action.action);
+                        result.appendChild(button);
+                    } else if (typeof action.action == "string") {
+                        var link = document.createElement("a");
+                        link.className = "action-button";
+                        link.href = action.action;
+                        link.textContent = action.description;
+                        result.appendChild(link);
+                    }
+                })
+
+                return result;
+            })
         })
     }
 

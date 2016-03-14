@@ -4,26 +4,17 @@ var MarkupTree = undefined;
 Loader.OnLoad(function() {
 
     // Add a type description for CTreeNode to link to the BoxTree.
-    DbgObject.AddTypeDescription(MSHTML.Module, "CTreeNode", "MarkupTree", true, function(treeNode) {
-        if (treeNode.isNull()) {
-            return "null";
-        } else {
-            return "<a href=\"/markuptree/#" + treeNode.ptr() + "\">" + treeNode.ptr() + "</a>";
+    function getMarkupTreeActions(dbgObject) {
+        return {
+            description: "Markup Tree",
+            action: "/markuptree/#" + dbgObject.ptr()
         }
-    });
-    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::ElementNode", "MarkupTree", true, function(elementNode) {
-        return MSHTML.GetCTreeNodeFromTreeElement(elementNode)
-        .then(function (treeNode) {
-            if (treeNode.isNull()) {
-                return "null";
-            } else {
-                return "<a href=\"/markuptree/#" + treeNode.ptr() + "\">" + elementNode.ptr() + "</a>";
-            }
-        });
-    });
-    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextNode", "MarkupTree", true, function (textNode) {
-        return "<a href=\"/markuptree/#" + textNode.ptr() + "\">" + textNode.ptr() + "</a>";
-    });
+    }
+    DbgObject.AddAction(MSHTML.Module, "CTreeNode", "MarkupTree", getMarkupTreeActions);
+    DbgObject.AddAction(MSHTML.Module, "CMarkup", "MarkupTree", getMarkupTreeActions);
+    DbgObject.AddAction(MSHTML.Module, "CElement", "MarkupTree", getMarkupTreeActions);
+    DbgObject.AddAction(MSHTML.Module, "Tree::ANode", "MarkupTree", getMarkupTreeActions);
+    DbgObject.AddAction(MSHTML.Module, "CDoc", "MarkupTree", getMarkupTreeActions);
 
     // Old Tree Connection, convert a CTreePos into a CTreeNode/CTreeDataPos
     function promoteTreePos(treePos) {
@@ -135,49 +126,7 @@ Loader.OnLoad(function() {
                 return children.filter(function(child) { return child != null; });
             })
         }, function (treeNode) {
-            // Get the tag representation.
-            return treeNode.f("_etag").constant()
-            .then(function (etagValue) {
-                if (etagValue == "ETAG_GENERIC") {
-                    // For generic elements, get the tag name/namespace.
-                    return treeNode.f("_pElement").vcast()
-                    .then(null, function () {
-                        // The _pElement pointer was removed in RS1.  The treeNode can now be directly cast as an element.
-                        return treeNode.vcast();
-                    })
-                    .then(function (element) {
-                        return Promise.join([element.f("_cstrTagName._pch").string(), element.f("_cstrNamespace._pch").string(), element.f("_cstrNamespace._pch").isNull()])
-                    })
-                    .then(function (tagAndNamespace) {
-                        var tag = tagAndNamespace[0];
-                        var namespace = tagAndNamespace[1];
-                        var namespaceIsNull = tagAndNamespace[2];
-
-                        if (namespaceIsNull) {
-                            return tag;
-                        } else {
-                            return namespace + ":" + tag;
-                        }
-                    })
-                } else if (etagValue == "ETAG_ROOT") {
-                    return "$root";
-                } else if (etagValue == "ETAG_GENERATED") {
-                    return treeNode.as("Tree::GeneratedElementNode").f("_generatedContentType", "_gctype").constant()
-                    .then(null, function() {
-                        // Tree::GeneratedElementNode replaced CGeneratedTreeNode in the RS1 milestone.
-                        return treeNode.as("CGeneratedTreeNode").f("_gctype").constant();
-                    })
-                    .then(function (gcType) {
-                        return "::" + gcType.replace(/GC_/, "").toLowerCase();
-                    });
-                } else {
-                    // Non-generic elements: just strip the tag identifier.
-                    return etagValue.substr("ETAG_".length).toLowerCase();
-                }
-            })
-            .then(function (tag) {
-                return "&lt;" + tag + "&gt;";
-            })
+            return treeNode.desc("Tag");
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {

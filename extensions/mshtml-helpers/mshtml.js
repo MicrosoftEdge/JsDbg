@@ -492,9 +492,58 @@ var MSHTML = undefined;
         DbgObject.AddTypeOverride(moduleName, "CInput", "_type", "htmlInput");
 
         // Provide some type descriptions.
-        DbgObject.AddTypeDescription(moduleName, "ELEMENT_TAG", "Tag", true, function(tagObj) {
-            return Promise.as(tagObj.constant()).then(function(k) { return k.substr("ETAG_".length); });
-        });
+        DbgObject.AddTypeDescription(moduleName, "CTreeNode", "Tag", false, function (treeNode) {
+            // Get the tag representation.
+            return treeNode.f("_etag").constant()
+            .then(function (etagValue) {
+                if (etagValue == "ETAG_GENERIC") {
+                    // For generic elements, get the tag name/namespace.
+                    return treeNode.f("_pElement").vcast()
+                    .then(null, function () {
+                        // The _pElement pointer was removed in RS1.  The treeNode can now be directly cast as an element.
+                        return treeNode.vcast();
+                    })
+                    .then(function (element) {
+                        return Promise.join([element.f("_cstrTagName._pch").string(), element.f("_cstrNamespace._pch").string(), element.f("_cstrNamespace._pch").isNull()])
+                    })
+                    .then(function (tagAndNamespace) {
+                        var tag = tagAndNamespace[0];
+                        var namespace = tagAndNamespace[1];
+                        var namespaceIsNull = tagAndNamespace[2];
+
+                        if (namespaceIsNull) {
+                            return tag;
+                        } else {
+                            return namespace + ":" + tag;
+                        }
+                    })
+                } else if (etagValue == "ETAG_ROOT") {
+                    return "$root";
+                } else if (etagValue == "ETAG_GENERATED") {
+                    return treeNode.as("Tree::GeneratedElementNode").f("_generatedContentType", "_gctype").constant()
+                    .then(null, function() {
+                        // Tree::GeneratedElementNode replaced CGeneratedTreeNode in the RS1 milestone.
+                        return treeNode.as("CGeneratedTreeNode").f("_gctype").constant();
+                    })
+                    .then(function (gcType) {
+                        return "::" + gcType.replace(/GC_/, "").toLowerCase();
+                    });
+                } else {
+                    // Non-generic elements: just strip the tag identifier.
+                    return etagValue.substr("ETAG_".length).toLowerCase();
+                }
+            })
+            .then(function (tag) {
+                return "&lt;" + tag + "&gt;";
+            })
+        })
+
+        DbgObject.AddTypeDescription(moduleName, "CTreeNode", "Default", true, function (treeNode) {
+            return treeNode.desc("Tag")
+            .then(function (tag) {
+                return treeNode.ptr() + " (" + tag + ")";
+            })
+        })
 
         DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^_?(style[A-z0-9]+)$/); }, "CSS Value", true, function(enumObj) {
             var enumString = enumObj.typeDescription().replace(/^_?(style[A-z0-9]+)$/, "$1");

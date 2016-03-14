@@ -1,7 +1,7 @@
 "use strict";
 
 // dbgobject-arrays.js
-// Functionality for retrieiving arrays of DbgObjects.
+// Functionality for retrieving arrays of DbgObjects.
 Loader.OnLoad(function() {
     var registeredArrayTypes = new DbgObject.TypeExtension();
     DbgObject.ArrayFields = registeredArrayTypes;

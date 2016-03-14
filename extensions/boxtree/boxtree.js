@@ -28,14 +28,19 @@ Loader.OnLoad(function() {
         });
     }
 
-    // Add a type description for LayoutBox to link to the BoxTree.
-    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBox", "BoxTree", true, function(box) {
+    // Add actions to link LayoutBoxes, CMarkups, and CDocs to the box tree.
+    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBox", "BoxTree", function getBoxAction(box) {
         if (box.isNull()) {
-            return "null";
+            return null;
         } else {
-            return "<a href=\"/boxtree/#" + box.ptr() + "\">" + box.ptr() + "</a>";
+            return {
+                description: "Box Tree",
+                action: "/boxtree/#" + box.ptr()
+            };
         }
     });
+    DbgObject.AddAction(MSHTML.Module, "CMarkup", "BoxTree", function(markup) { return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(markup.f("root").as("CTreeNode")).actions("BoxTree"); })
+    DbgObject.AddAction(MSHTML.Module, "CDoc", "BoxTree", function(doc) { return doc.F("PrimaryMarkup").actions("BoxTree"); })
 
     if (Loader.GetCurrentExtension()== "boxtree") {
         DbgObjectTree.AddRoot("Box Tree", function() {
