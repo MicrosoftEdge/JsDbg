@@ -67,7 +67,7 @@
             JsDbg.GetPersistentData(null, function(data) {
                 if (typeof(data) == typeof({}) && "_CATALOG-extension-manager" in data) {
                     var extensions = data["_CATALOG-extension-manager"];
-                    if (extensions.startup && Array.isArray(extensions.startup)) {
+                    if (extensions.startup && Array.isArray(extensions.startup) && extensions.startup.length > 0) {
                         var remainingLoads = extensions.startup.length;
                         extensions.startup.forEach(function (path) {
                             JsDbg.LoadExtension(path, function() {
@@ -76,6 +76,8 @@
                                 }
                             });
                         });
+                    } else {
+                        reloadExtensions();
                     }
                 } else {
                     reloadExtensions();
