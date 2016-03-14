@@ -22,7 +22,23 @@ Loader.OnLoad(function() {
     }
 
     function getDocFromStylesheet(stylesheet) {
-        return stylesheet.f("_pManager._pDoc");
+        return new PromisedDbgObject(
+            stylesheet.f("_pManager._pDoc")
+            .then(function (doc) {
+                if (doc.isNull()) {
+                    return stylesheet.f("_apSheetsList").array("Items")
+                    .then(function (stylesheets) {
+                        if (stylesheets.length == 0) {
+                            return doc;
+                        } else {
+                            return stylesheets[0].f("_pParentElement").F("Markup.Doc");
+                        }
+                    })
+                } else {
+                    return doc;
+                }
+            })
+        );
     }
 
     function getAtom(stylesheet, atom) {
@@ -63,12 +79,13 @@ Loader.OnLoad(function() {
                 getSelectorDescription(selector.f("_pNextSelector"), stylesheet),
                 selector.f("_pClassSelector"), 
                 selector.f("_lIDAtom").val(), 
-                selector.f("_eElementType").as("ELEMENT_TAG").desc(),
+                selector.f("_eElementType").as("ELEMENT_TAG").constant(),
                 getSelectorDescription(selector.f("_pParent"), stylesheet),
                 selector.f("_ePseudoElement").as("EPseudoElement").constant(),
                 selector.f("_eNavigate").as("CStyleSelector::ENavigate").constant(),
                 selector.f("_pSelectorPart").vcast(),
-                selector.f("_fHover").val()
+                selector.f("_fHover").val(),
+                selector.f("_fUniversalExplicit").val()
             ])
             .then(function (props) {
                 var suffix = props[0];
@@ -115,8 +132,10 @@ Loader.OnLoad(function() {
                     .then(function (idName) {
                         return prefix + "#" + idName + suffix;
                     })
-                } else if (props[3] != "UNKNOWN") {
-                    return prefix + props[3].toLowerCase() + suffix;
+                } else if (props[3] != "ETAG_UNKNOWN") {
+                    return prefix + props[3].toLowerCase().substr("ETAG_".length) + suffix;
+                } else if (props[9]) {
+                    return prefix + "*" + suffix;
                 } else if (prefix == "" && suffix == "") {
                     return "???";
                 } else {
