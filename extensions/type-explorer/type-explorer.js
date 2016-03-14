@@ -796,12 +796,10 @@ Loader.OnLoad(function() {
                 }
             }
 
-            var actionPromise = null;
-            if (that.allowFieldRendering()) {
-                actionPromise = that._renderActions(type, actionContainer);
-            }
-
-            return Promise.join([actionPromise, that._renderFieldList(type, fieldListContainer)]);
+            return that._renderActions(type, actionContainer);
+        })
+        .then(function () {
+            return that._renderFieldList(type, fieldListContainer);
         })
         .then(function() {
             typeContainer.style.display = "";
@@ -812,6 +810,10 @@ Loader.OnLoad(function() {
     }
 
     TypeExplorerController.prototype._renderActions = function(type, actionsContainer) {
+        if (!this.allowFieldRendering()) {
+            return;
+        }
+
         actionsContainer.innerHTML = "";
         var objectToRender = null;
         if (type.parentField != null) {
@@ -831,12 +833,14 @@ Loader.OnLoad(function() {
                         button.textContent = action.description;
                         button.addEventListener("click", action.action);
                         result.appendChild(button);
+                        result.appendChild(document.createTextNode(" "));
                     } else if (typeof action.action == "string") {
                         var link = document.createElement("a");
                         link.className = "action-button";
                         link.href = action.action;
                         link.textContent = action.description;
                         result.appendChild(link);
+                        result.appendChild(document.createTextNode(" "));
                     }
                 })
 
