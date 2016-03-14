@@ -641,6 +641,20 @@ var MSHTML = undefined;
             });
         });
 
+        DbgObject.AddTypeDescription(moduleName, "CAttrValue", "Name", false, UserEditableFunctions.Create(function (attrVal) {
+            return attrVal.f("_wFlags.fAA_Extra_HasDispId").val()
+            .then(function (hasDispId) {
+                if (hasDispId) {
+                    return attrVal.f("_dispid").uval()
+                    .then(function (dispid) {
+                        return "DISPID(0x" + dispid.toString(16) + ")";
+                    })
+                } else {
+                    return attrVal.f("_pPropertyDesc.pstrName").string();
+                }
+            })
+        }));
+
         DbgObject.AddTypeDescription(moduleName, "CUnitValue", "UnitValue", true, function(unitval) {
             var SCALEMULT_NULLVALUE        = 0;
             var SCALEMULT_POINT            = 1000;
