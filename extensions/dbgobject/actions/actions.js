@@ -61,8 +61,6 @@ Loader.OnLoad(function() {
                     return a.name.localeCompare(b.name);
                 })
 
-                console.log(result);
-
                 return result
                 .map(function (x) { return x.actions; })
                 .reduce(function (previous, current) { return previous.concat(current); }, []);
