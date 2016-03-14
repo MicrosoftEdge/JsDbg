@@ -12,6 +12,7 @@
         "markuptree",
         "displaytree",
         "layoutbuilder",
+        "stylesheets",
         "object-diff",
         "documentation",
         "tests"

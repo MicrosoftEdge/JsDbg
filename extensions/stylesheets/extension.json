@@ -1,0 +1,16 @@
+{
+    "name": "StyleSheets",
+    "description": "StyleSheets viewer.",
+    "author": "Peter Salas",
+    "dependencies": [
+        "dbgobject",
+        "mshtml-helpers",
+        "tree-inspector"
+    ],
+    "includes": [
+        "stylesheets.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ]
+}
