@@ -811,6 +811,45 @@ var MSHTML = undefined;
             }
         );
 
+        function separateTemplateArguments(templateArguments) {
+            var result = [];
+            // Find the commas that are not contained within other template arguments.
+            var stackDepth = 0;
+            var characterAfterLastComma = 0;
+            for (var i = 0; i < templateArguments.length; ++i) {
+                var c = templateArguments[i];
+                if (c == "," && stackDepth == 0) {
+                    result.push(templateArguments.substr(characterAfterLastComma, i - characterAfterLastComma));
+                    characterAfterLastComma = i + 1;
+                } else if (c == "<") {
+                    ++stackDepth;
+                } else if (c == ">") {
+                    --stackDepth;
+                }
+            }
+            return result;
+        }
+
+        DbgObject.AddArrayField(
+            moduleName, 
+            function(type) { return type.match(/^(CModernArray)<.*>$/) != null; },
+            "Items",
+            function(type) {
+                var matches = type.match(/^(CModernArray)<(.*)>$/);
+                var innerType = separateTemplateArguments(matches[2])[0];
+                if (innerType.match(/\*$/) != null) {
+                    return innerType.substr(0, innerType.length - 1).trim();
+                } else {
+                    return innerType;
+                }
+            },
+            function (array) {
+                var innerType = separateTemplateArguments(array.typeDescription().match(/^(CModernArray)<(.*)>$/)[2])[0];
+                var result = array.f("_aT").as(innerType).array(array.f("_nSize"));
+                return result;
+            }
+        )
+
         MSHTML = {
             _help : {
                 name: "MSHTML",
