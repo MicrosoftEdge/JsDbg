@@ -206,7 +206,7 @@ Loader.OnLoad(function() {
         ],
         returns: "A promise to a bool indicating if anything other than a null DbgObject was rendered."
     }
-    DbgObject.render = function(object, element, dbgObjectMapping) {
+    DbgObject.render = function(object, element, dbgObjectMapping, topLevelElement) {
         return Promise.as(object)
         .then(function (object) {
             if (Array.isArray(object)) {
@@ -230,7 +230,10 @@ Loader.OnLoad(function() {
                     return !object.isNull();
                 });
             } else if (object instanceof Function) {
-                return DbgObject.render(object(element), element, dbgObjectMapping);
+                if (topLevelElement == undefined || topLevelElement == null) {
+                    topLevelElement = element;
+                }
+                return DbgObject.render(object(topLevelElement), element, dbgObjectMapping);
             } else if (object instanceof Node) {
                 element.appendChild(object);
                 return true;

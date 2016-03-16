@@ -257,7 +257,8 @@ var FieldSupport = (function() {
                                 return DbgObjectInspector.Inspect(dbgObject, desc);
                             })
                         }
-                    }
+                    },
+                    element
                 )
                 .then(function (didRenderSomething) {
                     if (didRenderSomething) {
