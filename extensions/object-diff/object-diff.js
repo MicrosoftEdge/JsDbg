@@ -2,6 +2,48 @@
 
 var ObjectDiff = undefined;
 Loader.OnLoad(function () {
+    var currentObjectToDiff = null;
+    DbgObject.AddAction("edgehtml", function() { return true; }, "ObjectDiff", function (dbgObject) {
+        if (currentObjectToDiff == null) {
+            return {
+                description: "Diff...",
+                action: function () {
+                    currentObjectToDiff = dbgObject;
+                }
+            }
+        } else {
+            return Promise.join([currentObjectToDiff.baseTypes(), dbgObject.baseTypes()])
+            .then(function (bothBaseTypes) {
+                bothBaseTypes[0].unshift(currentObjectToDiff);
+                bothBaseTypes[1].unshift(dbgObject);
+
+                var results = [];
+
+                // Find a common type.
+                for (var i = 0; i < bothBaseTypes[0].length && results.length == 0; ++i) {
+                    for (var j = 0; j < bothBaseTypes[1].length; ++j) {
+                        if (bothBaseTypes[0][i].typeDescription() == bothBaseTypes[1][j].typeDescription() && bothBaseTypes[0][i].equals(currentObjectToDiff) && bothBaseTypes[1][j].equals(dbgObject)) {
+                            results.push({
+                                description: "Diff with " + bothBaseTypes[0][i].htmlTypeDescription() + " " + currentObjectToDiff.ptr(),
+                                action: "/objectdiff/?type=" + bothBaseTypes[0][i].module + "!" + bothBaseTypes[0][i].typeDescription() + "&address1=" + bothBaseTypes[0][i].ptr() + "&address2=" + bothBaseTypes[1][j].ptr()
+                            });
+                            break;
+                        }
+                    }
+                }
+
+                results.push({
+                    description: "Diff...",
+                    action: function() {
+                        currentObjectToDiff = dbgObject;
+                    }
+                });
+
+                return results;
+            })
+        }
+    })
+
     function getDifferentFields(object1, object2, expansion) {
         if (object1.typeDescription() != object2.typeDescription()) {
             throw new Error("Objects passed to GetDifferentFields must be the same type.");

@@ -821,6 +821,7 @@ Loader.OnLoad(function() {
         } else {
             objectToRender = this.dbgObject;
         }
+        var that = this;
         return DbgObject.render(objectToRender, actionsContainer, function (dbgObject) {
             return dbgObject.actions()
             .then(function (actions) {
@@ -831,7 +832,14 @@ Loader.OnLoad(function() {
                         var button = document.createElement("button");
                         button.className = "action-button";
                         button.textContent = action.description;
-                        button.addEventListener("click", action.action);
+                        button.addEventListener("click", function () {
+                            Promise.as(null)
+                            .then(action.action)
+                            .then(null, function () { })
+                            .then(function () {
+                                that.requestRerender(/*changeFocus*/false);
+                            })
+                        });
                         result.appendChild(button);
                         result.appendChild(document.createTextNode(" "));
                     } else if (typeof action.action == "string") {

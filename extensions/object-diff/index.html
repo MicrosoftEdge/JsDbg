@@ -6,9 +6,38 @@
     <script type="text/javascript" src="/jsdbg/loader.js"></script>
     <script type="text/javascript">
         function init() {
-            document.querySelector(".type").value = window.localStorage.getItem("struct-diff.type");
-            document.querySelectorAll(".pointer")[0].value = window.sessionStorage.getItem("struct-diff.pointer0");
-            document.querySelectorAll(".pointer")[1].value = window.sessionStorage.getItem("struct-diff.pointer1");
+            var defaultType = null;
+            var address1 = null;
+            var address2 = null;
+            var diffAutomatically = false;
+            if (window.location.href.indexOf("?") != -1) {
+                // Parse the query string.
+                var parts = window.location.href.split("?", 2)[1].split("&");
+                var query = {};
+                parts.forEach(function (part) {
+                    var keyValue = part.split("=", 2);
+                    if (keyValue.length == 2) {
+                        query[keyValue[0]] = keyValue[1];
+                    }
+                });
+
+                if ("type" in query && "address1" in query && "address2" in query) {
+                    defaultType = query["type"];
+                    address1 = query["address1"];
+                    address2 = query["address2"];
+                    diffAutomatically = true;
+                }
+            }
+
+            if (!diffAutomatically) {
+                defaultType = window.localStorage.getItem("struct-diff.type");
+                address1 = window.sessionStorage.getItem("struct-diff.pointer0");
+                address2 = window.sessionStorage.getItem("struct-diff.pointer1");
+            }
+
+            document.querySelector(".type").value = defaultType;
+            document.querySelectorAll(".pointer")[0].value = address1;
+            document.querySelectorAll(".pointer")[1].value = address2;
             document.getElementById("recurse").checked = window.sessionStorage.getItem("struct-diff.recurse") === "true" ? true : false;
 
             if (document.querySelector(".type").value.length > 0) {
@@ -17,59 +46,65 @@
                 document.querySelector(".type").focus();
             }
 
-            document.getElementById("diffButton").addEventListener("click", function() {
-                var type = document.querySelector(".type").value;
-                var pointer1 = document.querySelectorAll(".pointer")[0].value.trim();
-                var pointer2 = document.querySelectorAll(".pointer")[1].value.trim();
+            document.getElementById("diffButton").addEventListener("click", diffObjects);
 
-                window.localStorage.setItem("struct-diff.type", type);
-                window.sessionStorage.setItem("struct-diff.pointer0", pointer1);
-                window.sessionStorage.setItem("struct-diff.pointer1", pointer2);
-                window.sessionStorage.setItem("struct-diff.recurse", document.getElementById("recurse").checked);
+            if (diffAutomatically) {
+                diffObjects();
+            }
+        }
 
-                if (type.indexOf("!") < 0) {
-                    alert("Please enter a type, prefixed by the module.");
-                    return;
-                }
+        function diffObjects() {
+            var type = document.querySelector(".type").value;
+            var pointer1 = document.querySelectorAll(".pointer")[0].value.trim();
+            var pointer2 = document.querySelectorAll(".pointer")[1].value.trim();
 
-                try {
-                    pointer1 = new PointerMath.Pointer(pointer1);
-                    pointer2 = new PointerMath.Pointer(pointer2);
-                } catch (ex) {
-                    alert("Please enter valid pointer values.");
-                    return;
-                }
+            window.localStorage.setItem("struct-diff.type", type);
+            window.sessionStorage.setItem("struct-diff.pointer0", pointer1);
+            window.sessionStorage.setItem("struct-diff.pointer1", pointer2);
+            window.sessionStorage.setItem("struct-diff.recurse", document.getElementById("recurse").checked);
 
-                var module = type.substr(0, type.indexOf("!"));
-                var typename = type.substr(type.indexOf("!") + 1);
+            if (type.indexOf("!") < 0) {
+                alert("Please enter a type, prefixed by the module.");
+                return;
+            }
 
-                var object1 = new DbgObject(module, typename, pointer1);
-                var object2 = new DbgObject(module, typename, pointer2);
+            try {
+                pointer1 = new PointerMath.Pointer(pointer1);
+                pointer2 = new PointerMath.Pointer(pointer2);
+            } catch (ex) {
+                alert("Please enter valid pointer values.");
+                return;
+            }
 
-                ObjectDiff.GetDifferentFields(object1, object2, fieldExpander)
-                .then(function (results) {
-                    return Promise.map(results, function (fieldName) {
-                        var field1 = object1.f(fieldName);
-                        return Promise.join([field1.htmlTypeDescription(), fieldName, field1.desc(), object2.f(fieldName).desc()]);
-                    })
-                    .then(function (differentObjects) {
-                        var table = document.createElement("table");
-                        var htmlEntries = differentObjects.map(function(entry) {
-                            return "<tr><td>" + entry.join("</td><td>") + "</td></tr>";
-                        }).join("");
-                        table.innerHTML = "<tr><th>Type</th><th>Field</th><th>" + object1.ptr() + "</th><th>" + object2.ptr() + "</th></tr>" + htmlEntries;
-                        document.getElementById("results").innerHTML = "";
-                        document.getElementById("results").appendChild(table);
-                    })
+            var module = type.substr(0, type.indexOf("!"));
+            var typename = type.substr(type.indexOf("!") + 1);
+
+            var object1 = new DbgObject(module, typename, pointer1);
+            var object2 = new DbgObject(module, typename, pointer2);
+
+            ObjectDiff.GetDifferentFields(object1, object2, fieldExpander)
+            .then(function (results) {
+                return Promise.map(results, function (fieldName) {
+                    var field1 = object1.f(fieldName);
+                    return Promise.join([field1.htmlTypeDescription(), fieldName, field1.desc(), object2.f(fieldName).desc()]);
                 })
-                .then(null, function (err) {
-                    var errorSpan = document.createElement("span");
-                    errorSpan.classList.add("error");
-                    errorSpan.textContent = err;
+                .then(function (differentObjects) {
+                    var table = document.createElement("table");
+                    var htmlEntries = differentObjects.map(function(entry) {
+                        return "<tr><td>" + entry.join("</td><td>") + "</td></tr>";
+                    }).join("");
+                    table.innerHTML = "<tr><th>Type</th><th>Field</th><th>" + object1.ptr() + "</th><th>" + object2.ptr() + "</th></tr>" + htmlEntries;
                     document.getElementById("results").innerHTML = "";
-                    document.getElementById("results").appendChild(errorSpan);
+                    document.getElementById("results").appendChild(table);
                 })
-            });
+            })
+            .then(null, function (err) {
+                var errorSpan = document.createElement("span");
+                errorSpan.classList.add("error");
+                errorSpan.textContent = err;
+                document.getElementById("results").innerHTML = "";
+                document.getElementById("results").appendChild(errorSpan);
+            })
         }
 
         function fieldExpander(field, object1, object2) {
