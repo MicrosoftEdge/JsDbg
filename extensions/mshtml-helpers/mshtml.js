@@ -64,7 +64,7 @@ var MSHTML = undefined;
             );
         }
 
-        DbgObject.AddExtendedField(moduleName, "CMarkup", "Root", "CTreeNode", function (markup) {
+        DbgObject.AddExtendedField(moduleName, "CMarkup", "Root", "CTreeNode", UserEditableFunctions.Create(function (markup) {
             return markup.f("root")
             .then(function (root) {
                 // !TEXTNODEMERGE && NEWTREECONNECTION
@@ -77,9 +77,9 @@ var MSHTML = undefined;
                 // !TEXTNODEMERGE && !NEWTREECONNECTION
                 return markup.f("_ptpFirst").unembed("CTreeNode", "_tpBegin");
             })
-        })
+        }));
 
-        DbgObject.AddTypeDescription(moduleName, "CMarkup", "URL", false, function (markup) {
+        DbgObject.AddTypeDescription(moduleName, "CMarkup", "URL", false, UserEditableFunctions.Create(function (markup) {
             return markup.f("_pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
             .then(function (str) {
                  if (!str.isNull()) {
@@ -88,11 +88,11 @@ var MSHTML = undefined;
                     return null;
                  }
             })
-        })
+        }));
 
-        DbgObject.AddExtendedField(moduleName, "CDoc", "PrimaryMarkup", "CMarkup", function (doc) {
+        DbgObject.AddExtendedField(moduleName, "CDoc", "PrimaryMarkup", "CMarkup", UserEditableFunctions.Create(function (doc) {
             return doc.f("_pWindowPrimary._pCWindow._pMarkup");
-        })
+        }));
 
         function GetRootCTreeNodes() {
             return GetCDocs().F("PrimaryMarkup.Root")
@@ -130,40 +130,40 @@ var MSHTML = undefined;
             );
         }
 
-        DbgObject.AddExtendedField(moduleName, "CTreeNode", "Threadstate", "THREADSTATEUI", function (treeNode) {
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "Threadstate", "THREADSTATEUI", UserEditableFunctions.Create(function (treeNode) {
             return treeNode.F("Markup.Doc.Threadstate");
-        })
+        }));
 
-        DbgObject.AddExtendedField(moduleName, "CTreeNode", "FancyFormat", "CFancyFormat", function (treeNode) {
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "FancyFormat", "CFancyFormat", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetObjectFromDataCache(treeNode.F("Threadstate").f("_pFancyFormatCache"), treeNode.f("_iFF").val());
-        });
+        }));
 
-        DbgObject.AddExtendedField(moduleName, "CTreeNode", "CharFormat", "CCharFormat", function (treeNode) {
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "CharFormat", "CCharFormat", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetObjectFromDataCache(treeNode.F("Threadstate").f("_pCharFormatCache"), treeNode.f("_iCF").val());
-        });
+        }));
 
-        DbgObject.AddExtendedField(moduleName, "CTreeNode", "ParaFormat", "CParaFormat", function (treeNode) {
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "ParaFormat", "CParaFormat", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetObjectFromDataCache(treeNode.F("Threadstate").f("_pParaFormatCache"), treeNode.f("_iPF").val());
-        });
+        }));
 
-        DbgObject.AddExtendedField(moduleName, "CTreeNode", "SvgFormat", "CSvgFormat", function (treeNode) {
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "SvgFormat", "CSvgFormat", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetObjectFromDataCache(treeNode.F("Threadstate").f("_pSvgFormatCache"), treeNode.f("_iSF").val());
-        });
+        }));
 
-        DbgObject.AddExtendedField(moduleName, "CTreeNode", "SubordinateMarkup", "CMarkup", function (treeNode) {
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "SubordinateMarkup", "CMarkup", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetElementLookasidePointer(treeNode, "LOOKASIDE_SUBORDINATE")
             .then(function (result) {
                 if (!result.isNull()) {
-                    return MSHTML.GetMarkupFromElement(result.as("CElement"))
+                    return result.as("CElement").F("Markup");
                 } else {
                     return DbgObject.NULL;
                 }
             })
-        })
+        }));
 
-        DbgObject.AddExtendedField(moduleName, "CTreeNode", "AccessibleObject", "Aria::AccessibleObject", function (treeNode) {
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "AccessibleObject", "Aria::AccessibleObject", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetElementLookasidePointer(treeNode, "LOOKASIDE_ARIAOBJECT").as("Aria::AccessibleObject").vcast();
-        })
+        }));
 
         function GetLayoutAssociationFromCTreeNode(treeNode, flag) {
             var conversion = ({
@@ -212,11 +212,11 @@ var MSHTML = undefined;
             return element.F("Markup");
         }
 
-        DbgObject.AddExtendedField(moduleName, "CTreeNode", "Markup", "CMarkup", function (element) {
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "Markup", "CMarkup", UserEditableFunctions.Create(function (element) {
             return element.f("_pElement", "").as("CElement").F("Markup");
-        });
+        }));
 
-        DbgObject.AddExtendedField(moduleName, "CElement", "Markup", "CMarkup", function (element) {
+        DbgObject.AddExtendedField(moduleName, "CElement", "Markup", "CMarkup", UserEditableFunctions.Create(function (element) {
             var promise = Promise.join([element.f("_fHasLayoutPtr").val(), element.f("_fHasLayoutAry", "_fHasLayoutPtr").val(), element.f("_fHasMarkupPtr").val()])
             .then(function(bits) {
                 if (bits[0] || bits[1]) {
@@ -234,15 +234,15 @@ var MSHTML = undefined;
                 }
             });
             return promise;
-        });
+        }));
 
         function GetDocFromMarkup(markup) {
             return markup.F("Doc");
         }
 
-        DbgObject.AddExtendedField(moduleName, "CMarkup", "Doc", "CDoc", function (markup) {
+        DbgObject.AddExtendedField(moduleName, "CMarkup", "Doc", "CDoc", UserEditableFunctions.Create(function (markup) {
             return markup.f("_pSecCtx", "_spSecCtx.m_pT").f("_pDoc");
-        });
+        }));
 
         function searchForHtPvPvMatch(firstEntry, entryCount, index, stride, key) {
             if (index > entryCount) {
@@ -398,7 +398,7 @@ var MSHTML = undefined;
             return new PromisedDbgObject(promise);
         }
 
-        DbgObject.AddExtendedField(moduleName, "CDoc", "Threadstate", "THREADSTATEUI", function (doc) {
+        DbgObject.AddExtendedField(moduleName, "CDoc", "Threadstate", "THREADSTATEUI", UserEditableFunctions.Create(function (doc) {
             return Promise.as(GetDocsAndThreadstates())
             .then(function(docsAndThreadstates) {
                 for (var i = 0; i < docsAndThreadstates.length; ++i) {
@@ -408,7 +408,7 @@ var MSHTML = undefined;
                 }
                 return new DbgObject(moduleName, "THREADSTATEUI", 0);
             });
-        });
+        }));
 
         function GetObjectFromDataCache(cache, index) {
             var promise = Promise.join([cache, index])
@@ -492,7 +492,7 @@ var MSHTML = undefined;
         DbgObject.AddTypeOverride(moduleName, "CInput", "_type", "htmlInput");
 
         // Provide some type descriptions.
-        DbgObject.AddTypeDescription(moduleName, "CTreeNode", "Tag", false, function (treeNode) {
+        DbgObject.AddTypeDescription(moduleName, "CTreeNode", "Tag", false, UserEditableFunctions.Create(function (treeNode) {
             // Get the tag representation.
             return treeNode.f("_etag").constant()
             .then(function (etagValue) {
@@ -536,7 +536,7 @@ var MSHTML = undefined;
             .then(function (tag) {
                 return "&lt;" + tag + "&gt;";
             })
-        })
+        }));
 
         DbgObject.AddTypeDescription(moduleName, "CTreeNode", "Default", true, function (treeNode) {
             return treeNode.desc("Tag")
