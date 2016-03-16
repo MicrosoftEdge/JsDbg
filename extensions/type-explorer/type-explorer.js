@@ -332,7 +332,7 @@ Loader.OnLoad(function() {
         return fieldsPromise
         .then(function (fields) {
             fields.forEach(function (field) {
-                var dereferencedType = field.value.typeDescription().replace(/\**$/, "");
+                var dereferencedType = field.value.typeDescription().replace(/\*$/, "");
                 var getter = field.value.isArray() ? function (dbgObject) { return dbgObject.f(field.name).array(); } : function(dbgObject) { return dbgObject.f(field.name); };
                 that.fields.push(new TypeExplorerField(field.name, dereferencedType, getter, that, "fields"));
             })
