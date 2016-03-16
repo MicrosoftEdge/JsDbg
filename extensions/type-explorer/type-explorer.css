@@ -45,6 +45,12 @@
     padding:0;
 }
 
+.type-explorer .invalid-type div:nth-of-type(1)::before {
+    content:"Unknown type.";
+    color:red;
+    font-style:italic;
+}
+
 .type-explorer .field-type {
     min-width:0px;
     flex-shrink:1000000;

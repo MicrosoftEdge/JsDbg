@@ -10,8 +10,9 @@ Loader.OnLoad(function() {
         this.controller = controller;
         this.searchQuery = "";
         this.backingTypes = [new TypeExplorerSingleType(module, typename, this)];
-        this.includeBaseTypes = false;;
+        this.includeBaseTypes = false;
         this.preparedForRenderingPromise = null;
+        this.isTypeInvalid = false;
     }
 
     TypeExplorerAggregateType.prototype.module = function() {
@@ -64,7 +65,11 @@ Loader.OnLoad(function() {
             baseTypes.forEach(function (baseType) {
                 that.backingTypes.push(new TypeExplorerSingleType(baseType.module, baseType.typeDescription(), that));
             })
-
+        }, function (err) {
+            // Invalid type.
+            that.isTypeInvalid = true;
+        })
+        .then(function () {
             return Promise.map(that.backingTypes, function (bt) { return bt.prepareForRendering(); });
         })
         .then(function () {
@@ -340,6 +345,8 @@ Loader.OnLoad(function() {
             that.monitorTypeExtensions(DbgObject.ExtendedFields, "extendedFields");
             that.monitorTypeExtensions(DbgObject.TypeDescriptions, "descriptions");
             that.monitorTypeExtensions(DbgObject.ArrayFields, "arrayFields");
+        }, function () {
+            // The type doesn't exist.
         });
     }
 
@@ -782,6 +789,12 @@ Loader.OnLoad(function() {
         var that = this;
         return type.prepareForRendering()
         .then(function () {
+            if (type.isTypeInvalid) {
+                typeContainer.classList.add("invalid-type");
+            } else {
+                typeContainer.classList.remove("invalid-type");
+            }
+
             if (!type.isExpanded()) {
                 typeContainer.classList.add("collapsed");
             } else {
