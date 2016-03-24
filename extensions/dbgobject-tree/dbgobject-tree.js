@@ -56,15 +56,27 @@ var DbgObjectTree = (function() {
         this.parent = (parent === undefined ? null : parent);
 
         this.existingObjects = existingObjects;
-        this.isDuplicate = (dbgObject.ptr() in existingObjects);
-        if (!this.isDuplicate) {
-            existingObjects[dbgObject.ptr()] = true;
-        }
+        
+        if (!(dbgObject instanceof DbgObject)) {
+            // Handle custom objects only used for rendering a row in the tree.
+            this.isDuplicate = false;
+        } else {
+            // Handle DbgObjects
+            this.isDuplicate = (dbgObject.ptr() in existingObjects);
+            if (!this.isDuplicate) {
+                existingObjects[dbgObject.ptr()] = true;
+            }
 
-        notifyOfNewType(dbgObject, /*checkBaseTypes*/true);
+            notifyOfNewType(dbgObject, /*checkBaseTypes*/true);            
+        }
     }
 
     TreeNode.prototype.getMatchingRegistrations = function() {
+        if (!(this.dbgObject instanceof DbgObject)) {
+            // Handle custom objects only used for rendering a row in the tree.
+            return Promise.as([this.dbgObject]);
+        }
+
         if (this.matchingRegistrationsPromise == null) {
             var that = this;
             this.matchingRegistrationsPromise = this.dbgObject
@@ -126,7 +138,7 @@ var DbgObjectTree = (function() {
             .then(flatten)
             .then(function (children) {
                 return children
-                .filter(function (child) { return child !== undefined && child !== null && !child.isNull(); })
+                .filter(function (child) { return child !== undefined && child !== null && (!child.isNull || !child.isNull()); })
                 .map(function (child) { return new TreeNode(child, that.existingObjects, that); });
             })
             .then(null, function (error) {
@@ -139,6 +151,12 @@ var DbgObjectTree = (function() {
 
     TreeNode.prototype.getBasicDescription = function() {
         var that = this;
+
+        if (!(this.dbgObject instanceof DbgObject)) {
+            // If we aren't a DbgObject, just ask for the description and return immediately.
+            return Promise.as(this.dbgObject.getBasicDescription());
+        }
+
         if (this.basicDescriptionPromise == null) {
             this.basicDescriptionPromise = this.getMatchingRegistrations()
             .then(function (registrations) {
@@ -189,6 +207,12 @@ var DbgObjectTree = (function() {
             var description = document.createElement("div");
             description.innerHTML = basicDescription;
             result.appendChild(description);
+
+            if (!(that.dbgObject instanceof DbgObject)) {
+                // For non-DbgObjects, return a representation which is just the basic description.
+                return result;
+            }
+
             result.appendChild(document.createTextNode(" "));
 
             var pointer = DbgObjectInspector.Inspect(that.dbgObject, that.dbgObject.ptr());

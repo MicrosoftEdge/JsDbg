@@ -1,0 +1,16 @@
+{
+    "name": "UndoManager",
+    "author": "Bo Cupp",
+    "description": "Inspect UndoManager state.",
+    "dependencies": [
+        "dbgobject",
+        "mshtml-helpers",
+        "tree-inspector"
+    ],
+    "includes": [
+        "undomanager.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ]
+}

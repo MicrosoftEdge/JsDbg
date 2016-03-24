@@ -811,6 +811,47 @@ var MSHTML = undefined;
             }
         );
 
+        DbgObject.AddArrayField(
+            moduleName,
+            function (type) { return type.match(/^Collections::SCircularBuffer<.*>$/) != null; },
+            "Items",
+            function (type) { return type.match(/^Collections::SCircularBuffer<(.*)>$/)[1]; },
+            function (buffer) {
+                var arrayStart = buffer.f("items._array");
+                var arrayLength = arrayStart.as("SArrayHeader").idx(-1).f("Length").val();
+                var count = buffer.f("count").val();
+                var offset = buffer.f("offset").val();
+
+                return Promise.join([arrayStart, arrayLength, count, offset])
+                .then(function(result) {
+                    var arrayStart = result[0];
+                    var arrayLength = result[1];
+                    var count = result[2];
+                    var offset = result[3];
+
+                    var upperItemCount = Math.min(arrayLength - offset, count);
+                    var lowerItemCount = Math.max(offset + count - arrayLength, 0);
+                    return Promise.join([
+                        arrayStart.idx(offset).array(upperItemCount),
+                        arrayStart.idx(0).array(lowerItemCount)
+                    ])
+                }).then(function(result) {
+                    // Return the circular buffer as a single array in the correct order
+                    return result[0].concat(result[1]);
+                });
+            }
+        );
+
+        DbgObject.AddArrayField(
+            moduleName,
+            function (type) { return type.match(/^Collections::SGrowingArray<.*>$/) != null; },
+            "Items",
+            function (type) { return type.match(/^Collections::SGrowingArray<(.*)>$/)[1]; },
+            function (growingArray) {
+                return growingArray.f("items._array").array(growingArray.f("count"));
+            }
+        );
+
         function separateTemplateArguments(templateArguments) {
             var result = [];
             // Find the commas that are not contained within other template arguments.
