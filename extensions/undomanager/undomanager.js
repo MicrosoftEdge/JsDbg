@@ -17,6 +17,12 @@ Loader.OnLoad(function() {
         return object.f("edgeUndoManager.m_pT").vcast();
     });
 
+    function getChildrenForUndoManager(undoManager, memberName) {
+        return undoManager.f(memberName).array("Items").map(function (item) {
+            return item.f("m_pT").vcast();
+        });
+    }
+
     DbgObjectTree.AddType(null, MSHTML.Module, "Undo::UndoManager", null, function (object) {
         // Group user, scripted and pending children of the open parent unit with these render-only children of the UndoManager object
         return Promise.join([
@@ -25,9 +31,7 @@ Loader.OnLoad(function() {
                     return "User Undo Units"
                 },
                 getChildren : function() {
-                    return this.undoManager.f("userUndoUnits").array("Items").map(function (item) {
-                        return item.f("m_pT").vcast();
-                    });
+                    return getChildrenForUndoManager(this.undoManager, "userUndoUnits");
                 },
                 undoManager: object
             },
@@ -36,9 +40,7 @@ Loader.OnLoad(function() {
                     return "Scripted Operations"
                 },
                 getChildren : function() {
-                    return this.undoManager.f("scriptedOperations").array(this.undoManager.f("scriptedOperationCount")).map(function (item) {
-                        return item.f("m_pT").vcast();
-                    });
+                    return getChildrenForUndoManager(this.undoManager, "scriptedOperations");
                 },
                 undoManager: object
             },
@@ -47,9 +49,7 @@ Loader.OnLoad(function() {
                     return "Children of Open Parent Unit"
                 },
                 getChildren : function() {
-                    return this.undoManager.f("childrenForOpenParentUnit").array("Items").map(function (item) {
-                        return item.f("m_pT").vcast();
-                    });
+                    return getChildrenForUndoManager(this.undoManager, "childrenForOpenParentUnit");
                 },
                 undoManager: object
             }
