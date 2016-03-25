@@ -184,6 +184,8 @@ var DbgObjectTree = (function() {
             var result = document.createElement("div");
             if (that.isDuplicate) {
                 result.style.color = "#aaa";
+            } else {
+                result.id = "object-" + that.dbgObject.ptr().replace("`", "");
             }
 
             var description = document.createElement("div");

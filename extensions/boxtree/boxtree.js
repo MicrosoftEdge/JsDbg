@@ -35,7 +35,7 @@ Loader.OnLoad(function() {
         } else {
             return {
                 description: "Box Tree",
-                action: "/boxtree/#" + box.ptr()
+                action: "/boxtree/#r=" + box.ptr()
             };
         }
     });

@@ -3,16 +3,28 @@
 var MarkupTree = undefined;
 Loader.OnLoad(function() {
 
-    // Add a type description for CTreeNode to link to the BoxTree.
+    // Create an action that will highlight the dbgObject within its markup (dbgObject must support .F('Markup'))
+    function getMarkupTreeNodeActions(dbgObject) {
+        return dbgObject.F("Markup")
+        .then(function(markup) {
+            return {
+                description: "Markup Tree",
+                action: "/markuptree/#r=" + markup.ptr() + ";n=" + dbgObject.ptr()
+            }            
+        });
+    }
+
+    // Create an action that will render the dbgObject as the root of the markup tree
     function getMarkupTreeActions(dbgObject) {
         return {
             description: "Markup Tree",
-            action: "/markuptree/#" + dbgObject.ptr()
+            action: "/markuptree/#r=" + dbgObject.ptr()
         }
     }
-    DbgObject.AddAction(MSHTML.Module, "CTreeNode", "MarkupTree", getMarkupTreeActions);
+
+    DbgObject.AddAction(MSHTML.Module, "CTreeNode", "MarkupTree", getMarkupTreeNodeActions);
     DbgObject.AddAction(MSHTML.Module, "CMarkup", "MarkupTree", getMarkupTreeActions);
-    DbgObject.AddAction(MSHTML.Module, "CElement", "MarkupTree", getMarkupTreeActions);
+    DbgObject.AddAction(MSHTML.Module, "CElement", "MarkupTree", getMarkupTreeNodeActions);
     DbgObject.AddAction(MSHTML.Module, "Tree::ANode", "MarkupTree", getMarkupTreeActions);
     DbgObject.AddAction(MSHTML.Module, "CDoc", "MarkupTree", getMarkupTreeActions);
 
