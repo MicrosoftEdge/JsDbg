@@ -15,6 +15,7 @@
         "stylesheets",
         "object-diff",
         "documentation",
-        "tests"
+        "tests",
+        "undomanager"
     ]
 }
