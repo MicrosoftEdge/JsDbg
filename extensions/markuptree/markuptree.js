@@ -11,14 +11,17 @@ Loader.OnLoad(function() {
         var primaryMarkupPromise = docPromise.F("PrimaryMarkup");
         var topmostMarkupPromise = markupPromise.F("TopmostMarkup");
 
-        return Promise.join([topmostMarkupPromise, docPromise, primaryMarkupPromise])
+        return Promise.join([markupPromise, topmostMarkupPromise, docPromise, primaryMarkupPromise])
         .then(function (result) {
-            var topmostMarkup = result[0];
-            var doc = result[1];
-            var primaryMarkup = result[2];
+            var markup = result[0];
+            var topmostMarkup = result[1];
+            var doc = result[2];
+            var primaryMarkup = result[3];
 
             var rootPtr;
-            if (topmostMarkup.equals(primaryMarkup)) {
+            if (markup.isNull()) {
+                return []; // Nodes that aren't in a markup don't need a markup tree action as there is no tree to show
+            } else if (topmostMarkup.equals(primaryMarkup)) {
                 rootPtr = doc.ptr(); 
             } else {
                 rootPtr = topmostMarkup.ptr();
