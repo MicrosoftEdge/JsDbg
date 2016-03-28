@@ -151,6 +151,11 @@ Loader.OnLoad(function() {
         return fields;
     }
 
+    TypeExplorerAggregateType.prototype.getAutoCastFieldsToRender = function() {
+        console.assert(this.isPreparedForRendering);
+        return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getAutoCastFieldsToRender(); }));
+    }
+
     TypeExplorerAggregateType.prototype.getFieldsToRender = function() {
         console.assert(this.isPreparedForRendering);
         return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getFieldsToRender(); }));
@@ -256,11 +261,12 @@ Loader.OnLoad(function() {
         this.isExpanded = false;
         this.module = module;
         this.typename = typename;
+        this.autoCastFields = [];
         this.fields = [];
         this.extendedFields = [];
         this.descriptions = [];
         this.arrayFields = [];
-        this.allFieldArrays = [this.fields, this.extendedFields, this.arrayFields, this.descriptions];
+        this.allFieldArrays = [this.autoCastFields, this.fields, this.extendedFields, this.arrayFields, this.descriptions];
         this.preparedForRenderingPromise = null;
     }
 
@@ -345,9 +351,52 @@ Loader.OnLoad(function() {
             that.monitorTypeExtensions(DbgObject.ExtendedFields, "extendedFields");
             that.monitorTypeExtensions(DbgObject.TypeDescriptions, "descriptions");
             that.monitorTypeExtensions(DbgObject.ArrayFields, "arrayFields");
+
+            // Check for autocast fields?
+            return that.prepareAutoCastFields();
         }, function () {
             // The type doesn't exist.
         });
+    }
+
+    TypeExplorerSingleType.prototype.prepareAutoCastFields = function() {
+        if (this.aggregateType.backingTypes[0] != this) {
+            // Only the primary type has autocast fields.
+            return;
+        }
+
+        var controllerDbgObject = this.aggregateType.controller.dbgObject;
+        if (controllerDbgObject.isNull()) {
+            return;
+        }
+
+        var dbgObjectPromise = null;
+        var parentField = this.aggregateType.parentField;
+        if (parentField != null) {
+            dbgObjectPromise = parentField.getNestedField(controllerDbgObject);
+        } else {
+            dbgObjectPromise = Promise.as(controllerDbgObject);
+        }
+
+        var that = this;
+        return dbgObjectPromise
+        .then(function (result) {
+            // We only support auto-casting on DbgObjects (not arrays of DbgObjects).
+            if (result instanceof DbgObject) {
+                return result.vcast()
+                .then(
+                    function (castedDbgObject) {
+                        if (castedDbgObject.typename != that.typename) {
+                            var castedTypeName = castedDbgObject.typeDescription();
+                            var newField = new TypeExplorerField("[vtable cast]", castedTypeName, function() { return castedDbgObject; }, that, "autoCastFields");
+                            that.autoCastFields.push(newField);
+                        }
+                    },
+                    // The vcast might fail, in which case we simply don't add an autocast field.
+                    function (err) { }
+                )
+            }
+        })
     }
 
     TypeExplorerSingleType.prototype.forEachField = function (f) {
@@ -390,6 +439,10 @@ Loader.OnLoad(function() {
             });
             return shownFields;
         }
+    }
+
+    TypeExplorerSingleType.prototype.getAutoCastFieldsToRender = function () {
+        return this.selectFieldsToRender(this.autoCastFields);
     }
 
     TypeExplorerSingleType.prototype.getFieldsToRender = function () {
@@ -895,11 +948,12 @@ Loader.OnLoad(function() {
     TypeExplorerController.prototype._renderFieldList = function(type, fieldsContainer) {
         var that = this;
 
+        var autoCastFields = type.getAutoCastFieldsToRender();
         var fields = type.getFieldsToRender();
         var extendedFields = type.getExtendedFieldsToRender();
         var arrayFields = type.getArrayFieldsToRender();
         var descriptions = type.getDescriptionsToRender()
-        extendedFields = extendedFields.concat(arrayFields).concat(descriptions);
+        extendedFields = autoCastFields.concat(extendedFields).concat(arrayFields).concat(descriptions);
 
         // Find any collisions in the fields.
         var fieldCollisions = findFieldNameCollisions(fields, type);
