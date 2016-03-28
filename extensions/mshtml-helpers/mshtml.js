@@ -90,6 +90,31 @@ var MSHTML = undefined;
             })
         }));
 
+        DbgObject.AddExtendedField(moduleName, "CMarkup", "MasterElement", "CElement", UserEditableFunctions.Create(function (markup) {
+            return markup.F("Root").then(function(root) {
+                return GetElementLookasidePointer2(root, "LOOKASIDE2_MASTER").as("CElement");
+            });
+        }));
+
+        DbgObject.AddExtendedField(moduleName, "CMarkup", "TopmostMarkup", "CMarkup", UserEditableFunctions.Create(function (markup) {
+            var currentMarkup = markup;
+            return markup.F("MasterElement").then(getMasterMarkupRecursive);
+            function getMasterMarkupRecursive(masterElement) {
+                if (masterElement.isNull()) {
+                    return currentMarkup;
+                } else {
+                    return masterElement.F("Markup").then(function(masterMarkup) {
+                        if (masterMarkup.isNull()) {
+                            return currentMarkup;
+                        } else {
+                            currentMarkup = masterMarkup;
+                            return masterMarkup.F("MasterElement").then(getMasterMarkupRecursive);
+                        }
+                    });
+                }
+            }
+        }));
+
         DbgObject.AddExtendedField(moduleName, "CDoc", "PrimaryMarkup", "CMarkup", UserEditableFunctions.Create(function (doc) {
             return doc.f("_pWindowPrimary._pCWindow._pMarkup");
         }));
@@ -236,6 +261,11 @@ var MSHTML = undefined;
             return promise;
         }));
 
+        DbgObject.AddExtendedField(moduleName, "CDOMTextNode", "Markup", "CMarkup", UserEditableFunctions.Create(function (domTextNode) {
+            // TODO: older versions of the tree will require fetching the markup from the CDOMTextNode's CMarkupPointer
+            return domTextNode.f("markup");
+        }));
+
         function GetDocFromMarkup(markup) {
             return markup.F("Doc");
         }
@@ -280,9 +310,46 @@ var MSHTML = undefined;
             return new PromisedDbgObject(promise);
         }
 
+        function GetElementLookasidePointer2(treeNode, name)
+        {
+            // Get the element from the treenode for older versions of the tree.
+            var elementPromise = treeNode.f("_pElement")
+            .then(null, function () {
+                // The _pElement pointer was removed in RS1.  The object can now be directly cast as an element.
+                return treeNode.as("CElement");
+            });
+
+            var hasLookasidePtrPromise = elementPromise
+            .then(function (element) {
+                return element.f("_fHasLookasidePtr2").val();
+            });
+
+            var lookasideNumberPromise = DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE2", name);
+
+            var result = Promise.join([
+                elementPromise,
+                hasLookasidePtrPromise,
+                lookasideNumberPromise
+            ])
+            .then(function (results) {
+                var element = results[0];
+                var lookasides = results[1];
+                var lookasideIndex = results[2];
+
+                if (lookasides & (1 << lookasideIndex)) {
+                    var hashtable = element.F("Markup.Doc").f("_HtPvPv2");
+                    return MSHTML.GetObjectLookasidePointer(element, lookasideIndex, hashtable);
+                } else {
+                    return DbgObject.NULL;
+                }
+            })
+
+            return new PromisedDbgObject(result);
+        }
+
         function GetElementLookasidePointer(treeNode, name)
         {
-            // Get the subordinate markup.
+            // Get the element from the treenode for older versions of the tree.
             var elementPromise = treeNode.f("_pElement")
             .then(null, function () {
                 // The _pElement pointer was removed in RS1.  The object can now be directly cast as an element.
@@ -321,7 +388,7 @@ var MSHTML = undefined;
                             return {
                                 offset:0,
                                 index: lookasideSubordinate
-                            }
+                            };
                         }
                     )
                 })

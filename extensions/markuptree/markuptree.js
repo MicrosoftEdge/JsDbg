@@ -5,12 +5,36 @@ Loader.OnLoad(function() {
 
     // Create an action that will highlight the dbgObject within its markup (dbgObject must support .F('Markup'))
     function getMarkupTreeNodeActions(dbgObject) {
-        return dbgObject.F("Markup")
-        .then(function(markup) {
-            return {
-                description: "Markup Tree",
-                action: "/markuptree/#r=" + markup.ptr() + ";n=" + dbgObject.ptr()
-            }            
+        // TODO: older versions of the tree will require CTreeDataPos and CTreeNode addresses for highlighting.
+        var markupPromise = dbgObject.vcast().F("Markup");
+        var docPromise = markupPromise.F("Doc");
+        var primaryMarkupPromise = docPromise.F("PrimaryMarkup");
+        var topmostMarkupPromise = markupPromise.F("TopmostMarkup");
+
+        return Promise.join([topmostMarkupPromise, docPromise, primaryMarkupPromise])
+        .then(function (result) {
+            var topmostMarkup = result[0];
+            var doc = result[1];
+            var primaryMarkup = result[2];
+
+            var rootPtr;
+            if (topmostMarkup.equals(primaryMarkup)) {
+                rootPtr = doc.ptr(); 
+            } else {
+                rootPtr = topmostMarkup.ptr();
+            }
+
+            return [
+                {
+                    description: "Markup Tree",
+                    action: "/markuptree/#r=" + rootPtr + ";n=" + dbgObject.ptr(),
+                },
+                {
+                    description: "Markup Tree (window-" + rootPtr + ")",
+                    action: "/markuptree/#r=" + rootPtr + ";n=" + dbgObject.ptr(),
+                    target: "window-" + rootPtr
+                }
+            ];            
         });
     }
 
@@ -23,9 +47,9 @@ Loader.OnLoad(function() {
     }
 
     DbgObject.AddAction(MSHTML.Module, "CTreeNode", "MarkupTree", getMarkupTreeNodeActions);
-    DbgObject.AddAction(MSHTML.Module, "CMarkup", "MarkupTree", getMarkupTreeActions);
     DbgObject.AddAction(MSHTML.Module, "CElement", "MarkupTree", getMarkupTreeNodeActions);
-    DbgObject.AddAction(MSHTML.Module, "Tree::ANode", "MarkupTree", getMarkupTreeActions);
+    DbgObject.AddAction(MSHTML.Module, "Tree::ANode", "MarkupTree", getMarkupTreeNodeActions);
+    DbgObject.AddAction(MSHTML.Module, "CMarkup", "MarkupTree", getMarkupTreeActions);
     DbgObject.AddAction(MSHTML.Module, "CDoc", "MarkupTree", getMarkupTreeActions);
 
     // Old Tree Connection, convert a CTreePos into a CTreeNode/CTreeDataPos
