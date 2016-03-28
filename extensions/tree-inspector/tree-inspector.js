@@ -115,7 +115,7 @@ var TreeInspector = (function() {
                     roots.forEach(function (root, index) {
                         var link = document.createElement("a");
                         var rootPtr = root.dbgObject.ptr();
-                        link.setAttribute("href", "#r=" + rootPtr);
+                        link.setAttribute("href", "#r=root" + index);
                         link.innerText = rootPtr;
                         rootsElement.appendChild(link);
                         rootsElement.appendChild(document.createTextNode(" "));
@@ -152,8 +152,15 @@ var TreeInspector = (function() {
                     }
                 }
 
-                if (rootPtr === null && currentRoots.length > 0) {
-                    rootPtr = currentRoots[0].dbgObject.ptr();
+                if (currentRoots.length > 0) {
+                    if (rootPtr == null) {
+                        rootPtr = currentRoots[0].dbgObject.ptr();
+                    } else if (rootPtr.indexOf("root") == 0) {
+                        // support for r=rootN syntax where N is the Nth root in currentRoots
+                        var rootIndex = rootPtr.substr("root".length);
+                        rootIndex = Math.min(rootIndex, currentRoots.length - 1);
+                        rootPtr = currentRoots[rootIndex].dbgObject.ptr();
+                    }
                 }
 
                 pointerField.value = rootPtr;
