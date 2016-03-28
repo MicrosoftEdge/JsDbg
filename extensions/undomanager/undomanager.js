@@ -63,6 +63,10 @@ Loader.OnLoad(function() {
         });
     });
 
+    DbgObjectTree.AddAddressInterpreter(function (address) {
+        return new DbgObject(MSHTML.Module, "CDoc", address);
+    });
+
     UndoManager = {
         Name: "UndoManager",
         RootType: "CDoc"

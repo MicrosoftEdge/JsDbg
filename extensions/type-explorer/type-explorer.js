@@ -859,6 +859,9 @@ Loader.OnLoad(function() {
                         var link = document.createElement("a");
                         link.className = "action-button";
                         link.href = action.action;
+                        if (typeof action.target == "string") {
+                            link.target = action.target;
+                        }
                         link.textContent = action.description;
                         result.appendChild(link);
                         result.appendChild(document.createTextNode(" "));

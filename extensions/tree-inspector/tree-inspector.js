@@ -43,7 +43,7 @@ var TreeInspector = (function() {
 
                 var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
                 renderTreeRootPromise = DbgObjectTree.RenderTreeNode(treeContainer, treeRoot, fullyExpand, treeAlgorithm)
-                .then(function() {
+                .then(function(renderTreeNodeResult) {
                     if (emphasisNodePtr) {
                         lastEmphasizedNode = treeContainer.querySelector("#object-" + emphasisNodePtr.replace("`", ""));
                         if (lastEmphasizedNode) {
@@ -51,6 +51,7 @@ var TreeInspector = (function() {
                             lastEmphasizedNode.style.backgroundColor = "yellow";
                         }
                     }
+                    return renderTreeNodeResult;
                 }, showError);
                 return renderTreeRootPromise;
             }
