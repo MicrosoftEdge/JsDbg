@@ -7,7 +7,7 @@ var TreeInspector = (function() {
     var treeRoot = null;
     var renderTreeRootPromise = null;
     var lastRenderedPointer = null;
-    var lastEmphasizedNode = null;
+    var lastEmphasisNodePtr = null;
     var currentRoots = [];
     var treeAlgorithm = null;
     var treeAlgorithms = { };
@@ -22,18 +22,8 @@ var TreeInspector = (function() {
                     .then(function(rootObject) { 
                         render(rootObject, emphasisNodePtr); 
                     }, showError);
-                } else if (emphasisNodePtr) {
-                    var emphasisNode = treeContainer.querySelector("#object-" + emphasisNodePtr.replace("`", ""));
-                    if (emphasisNode != lastEmphasizedNode) {
-                        emphasisNode.scrollIntoView();
-                        emphasisNode.style.backgroundColor = "yellow";
-
-                        if (lastEmphasizedNode) {
-                            lastEmphasizedNode.style.backgroundColor = "";
-                        }
-                        
-                        lastEmphasizedNode = emphasisNode;
-                    }
+                } else {
+                    emphasizeNode(emphasisNodePtr);
                 }
             }
 
@@ -44,16 +34,29 @@ var TreeInspector = (function() {
                 var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
                 renderTreeRootPromise = DbgObjectTree.RenderTreeNode(treeContainer, treeRoot, fullyExpand, treeAlgorithm)
                 .then(function(renderTreeNodeResult) {
-                    if (emphasisNodePtr) {
-                        lastEmphasizedNode = treeContainer.querySelector("#object-" + emphasisNodePtr.replace("`", ""));
-                        if (lastEmphasizedNode) {
-                            lastEmphasizedNode.scrollIntoView();
-                            lastEmphasizedNode.style.backgroundColor = "yellow";
-                        }
-                    }
+                    emphasizeNode(emphasisNodePtr);
                     return renderTreeNodeResult;
                 }, showError);
                 return renderTreeRootPromise;
+            }
+
+            function emphasizeNode(emphasisNodePtr) {
+                if (lastEmphasisNodePtr != null) {
+                    var lastEmphasisNode = treeContainer.querySelector("#object-" + lastEmphasisNodePtr.replace("`", ""));
+                    if (lastEmphasisNode != null) {
+                        lastEmphasisNode.style.backgroundColor = "";
+                    }
+                    lastEmphasisNodePtr = null;
+                }
+
+                if (emphasisNodePtr != null) {
+                    var emphasisNode = treeContainer.querySelector("#object-" + emphasisNodePtr.replace("`", ""));
+                    if (emphasisNode != null) {
+                        emphasisNode.scrollIntoView();
+                        emphasisNode.style.backgroundColor = "yellow";
+                    }
+                    lastEmphasisNodePtr = emphasisNodePtr;
+                }
             }
 
             function showError(error) {
@@ -400,7 +403,11 @@ var TreeInspector = (function() {
                         if (renderTreeRootPromise != null) {
                             return renderTreeRootPromise
                             .then(function updateRenderTree(renderTreeRoot) {
-                                return renderTreeRoot.updateRepresentation();
+                                return renderTreeRoot.updateRepresentation()
+                                .then(function(updateRepresentationResult) {
+                                    emphasizeNode(lastEmphasisNodePtr);
+                                    return updateRepresentationResult;
+                                });
                             });
                         }
                     })
