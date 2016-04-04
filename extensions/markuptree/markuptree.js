@@ -5,18 +5,23 @@ Loader.OnLoad(function() {
 
     // Create an action that will highlight the dbgObject within its markup (dbgObject must support .F('Markup'))
     function getMarkupTreeNodeActions(dbgObject) {
-        // TODO: older versions of the tree will require CTreeDataPos and CTreeNode addresses for highlighting.
-        var markupPromise = dbgObject.vcast().F("Markup");
+        var anodePromise = new PromisedDbgObject(dbgObject);
+        if (dbgObject.typename == "Tree::ANode") {
+            anodePromise = promoteANode(dbgObject);
+        }
+
+        var markupPromise = anodePromise.F("Markup");
         var docPromise = markupPromise.F("Doc");
         var primaryMarkupPromise = docPromise.F("PrimaryMarkup");
         var topmostMarkupPromise = markupPromise.F("TopmostMarkup");
 
-        return Promise.join([markupPromise, topmostMarkupPromise, docPromise, primaryMarkupPromise])
+        return Promise.join([anodePromise, markupPromise, topmostMarkupPromise, docPromise, primaryMarkupPromise])
         .then(function (result) {
-            var markup = result[0];
-            var topmostMarkup = result[1];
-            var doc = result[2];
-            var primaryMarkup = result[3];
+            var anode = result[0];
+            var markup = result[1];
+            var topmostMarkup = result[2];
+            var doc = result[3];
+            var primaryMarkup = result[4];
 
             var rootPtr;
             if (markup.isNull()) {
@@ -30,11 +35,11 @@ Loader.OnLoad(function() {
             return [
                 {
                     description: "Markup Tree",
-                    action: "/markuptree/#r=" + rootPtr + ";n=" + dbgObject.ptr(),
+                    action: "/markuptree/#r=" + rootPtr + ";n=" + anode.ptr(),
                 },
                 {
                     description: "Markup Tree (window-" + rootPtr + ")",
-                    action: "/markuptree/#r=" + rootPtr + ";n=" + dbgObject.ptr(),
+                    action: "/markuptree/#r=" + rootPtr + ";n=" + anode.ptr(),
                     target: "window-" + rootPtr
                 }
             ];            

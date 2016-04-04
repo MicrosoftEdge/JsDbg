@@ -7,7 +7,6 @@ var TreeInspector = (function() {
     var treeRoot = null;
     var renderTreeRootPromise = null;
     var lastRenderedPointer = null;
-    var lastEmphasisNodePtr = null;
     var currentRoots = [];
     var treeAlgorithm = null;
     var treeAlgorithms = { };
@@ -41,21 +40,19 @@ var TreeInspector = (function() {
             }
 
             function emphasizeNode(emphasisNodePtr) {
-                if (lastEmphasisNodePtr != null) {
-                    var lastEmphasisNode = treeContainer.querySelector("#object-" + lastEmphasisNodePtr.replace("`", ""));
-                    if (lastEmphasisNode != null) {
-                        lastEmphasisNode.style.backgroundColor = "";
-                    }
-                    lastEmphasisNodePtr = null;
-                }
+                // Deemphasize old node.
+                var oldEmphasizedNode = treeContainer.querySelector(".emphasize.node");
+                if (oldEmphasizedNode != null) {
+                    oldEmphasizedNode.classList.remove("emphasize"); 
+                };
 
+                // Emphasize new node.
                 if (emphasisNodePtr != null) {
                     var emphasisNode = treeContainer.querySelector("#object-" + emphasisNodePtr.replace("`", ""));
                     if (emphasisNode != null) {
                         emphasisNode.scrollIntoView();
-                        emphasisNode.style.backgroundColor = "yellow";
+                        emphasisNode.classList.add("emphasize");
                     }
-                    lastEmphasisNodePtr = emphasisNodePtr;
                 }
             }
 
@@ -412,7 +409,6 @@ var TreeInspector = (function() {
                             .then(function updateRenderTree(renderTreeRoot) {
                                 return renderTreeRoot.updateRepresentation()
                                 .then(function(updateRepresentationResult) {
-                                    emphasizeNode(lastEmphasisNodePtr);
                                     return updateRepresentationResult;
                                 });
                             });

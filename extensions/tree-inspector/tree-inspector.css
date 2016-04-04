@@ -55,6 +55,10 @@
     white-space: pre;
 }
 
+.tree-inspector-top-pane .emphasize.node {
+    background: yellow;
+}
+
 .popup-message-container {
     display:none;
     position:absolute;
