@@ -98,8 +98,8 @@ var MSHTML = undefined;
 
         DbgObject.AddExtendedField(moduleName, "CMarkup", "TopmostMarkup", "CMarkup", UserEditableFunctions.Create(function (markup) {
             var currentMarkup = markup;
-            return markup.F("MasterElement").then(getMasterMarkupRecursive);
-            function getMasterMarkupRecursive(masterElement) {
+            return markup.F("MasterElement")
+            .then(function(masterElement) {
                 if (masterElement.isNull()) {
                     return currentMarkup;
                 } else {
@@ -108,11 +108,11 @@ var MSHTML = undefined;
                             return currentMarkup;
                         } else {
                             currentMarkup = masterMarkup;
-                            return masterMarkup.F("MasterElement").then(getMasterMarkupRecursive);
+                            return masterMarkup.F("TopmostMarkup");
                         }
                     });
                 }
-            }
+            });
         }));
 
         DbgObject.AddExtendedField(moduleName, "CDoc", "PrimaryMarkup", "CMarkup", UserEditableFunctions.Create(function (doc) {

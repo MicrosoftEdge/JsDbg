@@ -407,10 +407,7 @@ var TreeInspector = (function() {
                         if (renderTreeRootPromise != null) {
                             return renderTreeRootPromise
                             .then(function updateRenderTree(renderTreeRoot) {
-                                return renderTreeRoot.updateRepresentation()
-                                .then(function(updateRepresentationResult) {
-                                    return updateRepresentationResult;
-                                });
+                                return renderTreeRoot.updateRepresentation();
                             });
                         }
                     })
