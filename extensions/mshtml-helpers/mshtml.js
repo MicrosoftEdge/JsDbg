@@ -64,6 +64,44 @@ var MSHTML = undefined;
             );
         }
 
+        DbgObject.AddTypeDescription(moduleName, "CBase", "RefsAndVar", false, UserEditableFunctions.Create(function(base) {
+            return Promise
+            .join([
+                base.f("_ulRefs").val(), 
+                base.f("_ulInternalRefs").val(), 
+                base.f("_ulAllRefsAndFlags").val(), 
+                base.f("_JSBind_Var._ptr")
+            ])
+            .then(function (refsAndVar) {
+                var varFields = "";
+                var jsBindVar = refsAndVar[3];
+                var jsBindVarPtr = new PointerMath.Pointer(refsAndVar[3].pointerValue().and(bigInt(1).not())).toFormattedString();
+                var isVarRooted = !refsAndVar[3].pointerValue().and(1).isZero();
+
+                if (!jsBindVar.isNull()) {
+                    if (isVarRooted) {
+                        varFields = " (var:" + jsBindVarPtr + " <span style='color:rgb(240,120,0)'>rooted</span>)";
+                    } else {
+                        varFields = " var:" + jsBindVarPtr;
+                    }
+                }
+
+                var flags = "";
+                var isPassivating = refsAndVar[2] & 1;
+                var isPassivated = refsAndVar[2] & 2;
+                var isDestructing = refsAndVar[2] & 1;
+                if (isPassivating || isPassivated || isDestructing) {
+                    flags = " <span style='color:red'>" + 
+                        (isPassivating ? " passivating " : "") + 
+                        (isPassivated ? " passivated " : "") + 
+                        (isDestructing ? " desctructing " : "") + 
+                    "</span>";
+                }
+
+                return "strong:" + refsAndVar[0] + " weak:" + (refsAndVar[2] >> 3) + " gc:" + refsAndVar[1] + varFields + flags;
+            });
+        }));
+
         DbgObject.AddExtendedField(moduleName, "CMarkup", "Root", "CTreeNode", UserEditableFunctions.Create(function (markup) {
             return markup.f("root")
             .then(function (root) {
