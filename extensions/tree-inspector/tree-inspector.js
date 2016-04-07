@@ -50,10 +50,20 @@ var TreeInspector = (function() {
                 if (emphasisNodePtr != null) {
                     var emphasisNode = treeContainer.querySelector("#object-" + emphasisNodePtr.replace("`", ""));
                     if (emphasisNode != null) {
-                        emphasisNode.scrollIntoView();
+                        if (!isVisible(emphasisNode)) {
+                            emphasisNode.scrollIntoView();
+                        }
                         emphasisNode.classList.add("emphasize");
                     }
                 }
+            }
+
+            function isVisible(node) {
+                var rect = node.getBoundingClientRect();
+                var x = rect.left + 3;
+                var y = rect.top + 3;
+                var hit = document.elementFromPoint(x, y);
+                return (node == hit || node.contains(hit));
             }
 
             function showError(error) {
