@@ -23,35 +23,22 @@ Loader.OnLoad(function() {
             var doc = result[3];
             var primaryMarkup = result[4];
 
-            var rootPtr;
+            var rootObject;
             if (markup.isNull()) {
                 return []; // Nodes that aren't in a markup don't need a markup tree action as there is no tree to show
             } else if (topmostMarkup.equals(primaryMarkup)) {
-                rootPtr = doc.ptr(); 
+                rootObject = doc;
             } else {
-                rootPtr = topmostMarkup.ptr();
+                rootObject = topmostMarkup;
             }
 
-            return [
-                {
-                    description: "Markup Tree",
-                    action: "/markuptree/#r=" + rootPtr + ";n=" + anode.ptr(),
-                },
-                {
-                    description: "Markup Tree (window-" + rootPtr + ")",
-                    action: "/markuptree/#r=" + rootPtr + ";n=" + anode.ptr(),
-                    target: "window-" + rootPtr
-                }
-            ];            
+            return TreeInspector.GetActions("markuptree", "Markup Tree", rootObject, anode);
         });
     }
 
     // Create an action that will render the dbgObject as the root of the markup tree
     function getMarkupTreeActions(dbgObject) {
-        return {
-            description: "Markup Tree",
-            action: "/markuptree/#r=" + dbgObject.ptr()
-        }
+        return TreeInspector.GetActions("markuptree", "Markup Tree", dbgObject);
     }
 
     DbgObject.AddAction(MSHTML.Module, "CTreeNode", "MarkupTree", getMarkupTreeNodeActions);

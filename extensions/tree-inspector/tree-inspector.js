@@ -12,6 +12,33 @@ var TreeInspector = (function() {
     var treeAlgorithms = { };
 
     return {
+        GetActions: function (extension, description, rootObjectPromise, emphasisObjectPromise) {
+            return Promise.join([rootObjectPromise, emphasisObjectPromise])
+            .then(function (results) {
+                var rootObject = results[0];
+                var emphasisObject = results[1];
+
+                if (!(rootObject instanceof DbgObject) || rootObject.isNull()) {
+                    return [];
+                }
+
+                var hash;
+                if (emphasisObject instanceof DbgObject) {
+                    hash = "#r=" + rootObject.ptr() + ";n=" + emphasisObject.ptr();
+                } else {
+                    hash = "#r=" + rootObject.ptr();
+                }
+
+                extension = extension.toLowerCase();
+
+                return [{
+                    description: description,
+                    action: "/" + extension + "/" + hash,
+                    target: extension + "-" + rootObject.ptr()
+                }];
+            })
+        },
+
         Initialize: function(namespace, container) {
             function createAndRender(emphasisNodePtr) {
                 if (lastRenderedPointer != pointerField.value) {
@@ -31,6 +58,8 @@ var TreeInspector = (function() {
                 lastRenderedPointer = pointerField.value;
 
                 var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
+                window.name = Loader.GetCurrentExtension().toLowerCase() + "-" + rootObject.dbgObject.ptr();
+
                 renderTreeRootPromise = DbgObjectTree.RenderTreeNode(treeContainer, treeRoot, fullyExpand, treeAlgorithm)
                 .then(function(renderTreeNodeResult) {
                     emphasizeNode(emphasisNodePtr);
@@ -54,6 +83,11 @@ var TreeInspector = (function() {
                             emphasisNode.scrollIntoView();
                         }
                         emphasisNode.classList.add("emphasize");
+                    } else {
+                        if (confirm("The object you selected was not found in the tree.  Use it as the root instead?")) {
+                            pointerField.value = emphasisNodePtr;
+                            saveHashAndQueueCreateAndRender();
+                        }
                     }
                 }
             }
