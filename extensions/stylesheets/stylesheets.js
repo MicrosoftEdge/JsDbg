@@ -146,17 +146,11 @@ Loader.OnLoad(function() {
     }
 
     DbgObject.AddAction(MSHTML.Module, "CStyleSheet", "StyleSheetViewer", function(stylesheet) {
-        return {
-            description: "Stylesheets",
-            action: "/stylesheets/#r=" + stylesheet.ptr()
-        };
+        return TreeInspector.GetActions("stylesheets", "Stylesheets", stylesheet);
     });
 
     DbgObject.AddAction(MSHTML.Module, "CMarkup", "StyleSheetViewer", function(markup) {
-        return {
-            description: "Stylesheets",
-            action: "/stylesheets/#r=" + markup.ptr()
-        };
+        return TreeInspector.GetActions("stylesheets", "Stylesheets", markup);
     });
 
     if (Loader.GetCurrentExtension()== "stylesheets") {

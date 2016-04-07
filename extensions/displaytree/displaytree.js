@@ -4,19 +4,41 @@ var DisplayTree = undefined;
 Loader.OnLoad(function() {
     // Add a type description for CDispNode to link to the DisplayTree.
     DbgObject.AddAction(MSHTML.Module, "CDispNode", "DisplayTree", function (dispNode) {
-        return {
-            description: "Display Tree",
-            action: "/displaytree/#r=" + dispNode.ptr()
-        };
+        function getTopMostDispNode(node) {
+            return node.f("_pParent")
+            .then(function (parentNode) {
+                if (parentNode.isNull()) {
+                    return node;
+                } else {
+                    return getTopMostDispNode(parentNode);
+                }
+            })
+        }
+
+        return getTopMostDispNode(dispNode)
+        .then(function (topMostDispNode) {
+            // Check if there's a CDoc that owns it.
+            return MSHTML.GetCDocs()
+            .filter(function (doc) {
+                return doc.f("_view._pDispRoot").equals(topMostDispNode)
+            })
+            .then(function (docs) {
+                if (docs.length > 0) {
+                    return docs[0];
+                } else {
+                    return topMostDispNode;
+                }
+            })
+        })
+        .then(function (rootNode) {
+            return TreeInspector.GetActions("displaytree", "Display Tree", rootNode, dispNode);
+        })
     });
     DbgObject.AddAction(MSHTML.Module, "CDoc", "DisplayTree", function (doc) {
-        return {
-            description: "Display Tree",
-            action: "/displaytree/#r=" + doc.ptr()
-        };
+        return TreeInspector.GetActions("displaytree", "Display Tree", doc);
     })
     DbgObject.AddAction(MSHTML.Module, "CView", "DisplayTree", function (view) {
-        return view.unembed("CDoc", "_view").actions("DisplayTree");
+        return TreeInspector.GetActions("displaytree", "Display Tree", view.unembed("CDoc", "_view"), view);
     });
 
     if (Loader.GetCurrentExtension() == "displaytree") {

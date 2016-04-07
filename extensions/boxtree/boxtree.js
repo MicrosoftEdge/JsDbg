@@ -29,15 +29,23 @@ Loader.OnLoad(function() {
     }
 
     // Add actions to link LayoutBoxes, CMarkups, and CDocs to the box tree.
-    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBox", "BoxTree", function getBoxAction(box) {
-        if (box.isNull()) {
-            return null;
-        } else {
-            return {
-                description: "Box Tree",
-                action: "/boxtree/#r=" + box.ptr()
-            };
-        }
+    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBox", "BoxTree", function(box) {
+        return box.vcast().F("TreeNode.Markup.Doc.PrimaryMarkup.Root")
+        .then(function (rootNode) {
+            return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(rootNode)
+            .then(function (layoutBox) {
+                if (layoutBox.isNull()) {
+                    return box;
+                } else {
+                    return layoutBox;
+                }
+            })
+        }, function (err) {
+            return box;
+        })
+        .then(function (rootBox) {
+            return TreeInspector.GetActions("boxtree", "Box Tree", rootBox, box);
+        })
     });
     DbgObject.AddAction(MSHTML.Module, "CMarkup", "BoxTree", function(markup) { return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(markup.f("root").as("CTreeNode")).actions("BoxTree"); })
     DbgObject.AddAction(MSHTML.Module, "CDoc", "BoxTree", function(doc) { return doc.F("PrimaryMarkup").actions("BoxTree"); })
@@ -220,6 +228,10 @@ Loader.OnLoad(function() {
     }))
 
     DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "TreeNode", "CTreeNode", UserEditableFunctions.Create(function (containerBox) {
+        return containerBox.f("elementInternal", "element.m_pT").F("TreeNode");
+    }));
+
+    DbgObject.AddExtendedField(MSHTML.Module, "Layout::SvgBox", "TreeNode", "CTreeNode", UserEditableFunctions.Create(function (containerBox) {
         return containerBox.f("elementInternal", "element.m_pT").F("TreeNode");
     }));
 
