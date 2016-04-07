@@ -148,14 +148,14 @@ Loader.OnLoad(function() {
     DbgObject.AddAction(MSHTML.Module, "CStyleSheet", "StyleSheetViewer", function(stylesheet) {
         return {
             description: "Stylesheets",
-            action: "/stylesheets/#" + stylesheet.ptr()
+            action: "/stylesheets/#r=" + stylesheet.ptr()
         };
     });
 
     DbgObject.AddAction(MSHTML.Module, "CMarkup", "StyleSheetViewer", function(markup) {
         return {
             description: "Stylesheets",
-            action: "/stylesheets/#" + markup.ptr()
+            action: "/stylesheets/#r=" + markup.ptr()
         };
     });
 

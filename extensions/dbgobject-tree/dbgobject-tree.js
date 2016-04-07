@@ -202,6 +202,9 @@ var DbgObjectTree = (function() {
             var result = document.createElement("div");
             if (that.isDuplicate) {
                 result.style.color = "#aaa";
+            } else if (that.dbgObject instanceof DbgObject) {
+                // Ensure we have an Id to use for navigation to real DbgObjects
+                result.id = "object-" + that.dbgObject.ptr().replace("`", "");
             }
 
             var description = document.createElement("div");

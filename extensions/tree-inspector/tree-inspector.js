@@ -13,22 +13,47 @@ var TreeInspector = (function() {
 
     return {
         Initialize: function(namespace, container) {
-            function createAndRender() {
+            function createAndRender(emphasisNodePtr) {
                 if (lastRenderedPointer != pointerField.value) {
                     // Don't re-render if we've already rendered.
                     pointerField.value = pointerField.value.trim();
                     Promise.as(DbgObjectTree.InterpretAddress(new PointerMath.Pointer(pointerField.value, 16)))
-                    .then(render, showError);
+                    .then(function(rootObject) { 
+                        render(rootObject, emphasisNodePtr); 
+                    }, showError);
+                } else {
+                    emphasizeNode(emphasisNodePtr);
                 }
             }
 
-            function render(rootObject) {
+            function render(rootObject, emphasisNodePtr) {
                 treeRoot = rootObject;
                 lastRenderedPointer = pointerField.value;
+
                 var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
                 renderTreeRootPromise = DbgObjectTree.RenderTreeNode(treeContainer, treeRoot, fullyExpand, treeAlgorithm)
-                .then(null, showError);
+                .then(function(renderTreeNodeResult) {
+                    emphasizeNode(emphasisNodePtr);
+                    return renderTreeNodeResult;
+                }, showError);
                 return renderTreeRootPromise;
+            }
+
+            function emphasizeNode(emphasisNodePtr) {
+                // Deemphasize old node.
+                var oldEmphasizedNode = treeContainer.querySelector(".emphasize.node");
+                if (oldEmphasizedNode != null) {
+                    oldEmphasizedNode.classList.remove("emphasize"); 
+                };
+
+                // Emphasize new node.
+                if (emphasisNodePtr != null) {
+                    var emphasisNode = treeContainer.querySelector("#object-" + emphasisNodePtr.replace("`", ""));
+                    if (emphasisNode != null) {
+                        emphasisNode.scrollIntoView();
+                        emphasisNode.classList.add("emphasize");
+                    }
+                }
             }
 
             function showError(error) {
@@ -86,8 +111,9 @@ var TreeInspector = (function() {
 
                     roots.forEach(function (root, index) {
                         var link = document.createElement("a");
-                        link.setAttribute("href", "#root" + index);
-                        link.innerText = root.dbgObject.ptr();
+                        var rootPtr = root.dbgObject.ptr();
+                        link.setAttribute("href", "#r=root" + index);
+                        link.innerText = rootPtr;
                         rootsElement.appendChild(link);
                         rootsElement.appendChild(document.createTextNode(" "));
                     });
@@ -100,28 +126,46 @@ var TreeInspector = (function() {
 
             function unpackHash() {
                 var hash = window.location.hash;
-                if (!hash || hash.length <= 1) {
-                    hash = "#root0";
+                var hashParts = [];
+                var rootPtr = null; // address for root of tree
+                var nodePtr = null; // address within tree to emphasize
+
+                // Parse semi-colon delimited, name-value pairs from the hash of the URL
+                if (hash && hash.length > 1) {
+                    hashParts = hash.substr(1).split(";");
                 }
 
-                if (hash.indexOf("#root") == 0) {
-                    var rootIndex = parseInt(hash.substr("#root".length));
-                    rootIndex = Math.min(rootIndex, currentRoots.length - 1);
-                    if (rootIndex >= 0 && rootIndex < currentRoots.length) {
-                        pointerField.value = currentRoots[rootIndex].dbgObject.ptr();
-                        render(currentRoots[rootIndex]);
-                    } else {
-                        window.location.hash = "";
+                for (var i = 0; i < hashParts.length; i++) {
+                    var nameValue = hashParts[i].split("=");
+                    if (nameValue.length > 1) {
+                        var name = nameValue[0].toLowerCase();
+                        var value = nameValue[1].toLowerCase();
+
+                        if (name === "r") {
+                            rootPtr = value;
+                        } else if (name === "n") {
+                            nodePtr = value;
+                        }
                     }
-                } else {
-                    var value = hash.substr(1);
-                    pointerField.value = value;
-                    createAndRender();
                 }
+
+                if (currentRoots.length > 0) {
+                    if (rootPtr == null) {
+                        rootPtr = currentRoots[0].dbgObject.ptr();
+                    } else if (rootPtr.indexOf("root") == 0) {
+                        // support for r=rootN syntax where N is the Nth root in currentRoots
+                        var rootIndex = rootPtr.substr("root".length);
+                        rootIndex = Math.min(rootIndex, currentRoots.length - 1);
+                        rootPtr = currentRoots[rootIndex].dbgObject.ptr();
+                    }
+                }
+
+                pointerField.value = rootPtr;
+                createAndRender(nodePtr);
             }
 
             function saveHashAndQueueCreateAndRender() {
-                window.location.hash = pointerField.value;
+                window.location.hash = "r=" + pointerField.value;
                 // Changing the hash will trigger a create and render on the hash change.
             }
 

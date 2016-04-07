@@ -6,13 +6,13 @@ Loader.OnLoad(function() {
     DbgObject.AddAction(MSHTML.Module, "CDispNode", "DisplayTree", function (dispNode) {
         return {
             description: "Display Tree",
-            action: "/displaytree/#" + dispNode.ptr()
+            action: "/displaytree/#r=" + dispNode.ptr()
         };
     });
     DbgObject.AddAction(MSHTML.Module, "CDoc", "DisplayTree", function (doc) {
         return {
             description: "Display Tree",
-            action: "/displaytree/#" + doc.ptr()
+            action: "/displaytree/#r=" + doc.ptr()
         };
     })
     DbgObject.AddAction(MSHTML.Module, "CView", "DisplayTree", function (view) {

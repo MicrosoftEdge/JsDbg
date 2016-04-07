@@ -3,17 +3,61 @@
 var MarkupTree = undefined;
 Loader.OnLoad(function() {
 
-    // Add a type description for CTreeNode to link to the BoxTree.
+    // Create an action that will highlight the dbgObject within its markup (dbgObject must support .F('Markup'))
+    function getMarkupTreeNodeActions(dbgObject) {
+        var anodePromise = new PromisedDbgObject(dbgObject);
+        if (dbgObject.typename == "Tree::ANode") {
+            anodePromise = promoteANode(dbgObject);
+        }
+
+        var markupPromise = anodePromise.F("Markup");
+        var docPromise = markupPromise.F("Doc");
+        var primaryMarkupPromise = docPromise.F("PrimaryMarkup");
+        var topmostMarkupPromise = markupPromise.F("TopmostMarkup");
+
+        return Promise.join([anodePromise, markupPromise, topmostMarkupPromise, docPromise, primaryMarkupPromise])
+        .then(function (result) {
+            var anode = result[0];
+            var markup = result[1];
+            var topmostMarkup = result[2];
+            var doc = result[3];
+            var primaryMarkup = result[4];
+
+            var rootPtr;
+            if (markup.isNull()) {
+                return []; // Nodes that aren't in a markup don't need a markup tree action as there is no tree to show
+            } else if (topmostMarkup.equals(primaryMarkup)) {
+                rootPtr = doc.ptr(); 
+            } else {
+                rootPtr = topmostMarkup.ptr();
+            }
+
+            return [
+                {
+                    description: "Markup Tree",
+                    action: "/markuptree/#r=" + rootPtr + ";n=" + anode.ptr(),
+                },
+                {
+                    description: "Markup Tree (window-" + rootPtr + ")",
+                    action: "/markuptree/#r=" + rootPtr + ";n=" + anode.ptr(),
+                    target: "window-" + rootPtr
+                }
+            ];            
+        });
+    }
+
+    // Create an action that will render the dbgObject as the root of the markup tree
     function getMarkupTreeActions(dbgObject) {
         return {
             description: "Markup Tree",
-            action: "/markuptree/#" + dbgObject.ptr()
+            action: "/markuptree/#r=" + dbgObject.ptr()
         }
     }
-    DbgObject.AddAction(MSHTML.Module, "CTreeNode", "MarkupTree", getMarkupTreeActions);
+
+    DbgObject.AddAction(MSHTML.Module, "CTreeNode", "MarkupTree", getMarkupTreeNodeActions);
+    DbgObject.AddAction(MSHTML.Module, "CElement", "MarkupTree", getMarkupTreeNodeActions);
+    DbgObject.AddAction(MSHTML.Module, "Tree::ANode", "MarkupTree", getMarkupTreeNodeActions);
     DbgObject.AddAction(MSHTML.Module, "CMarkup", "MarkupTree", getMarkupTreeActions);
-    DbgObject.AddAction(MSHTML.Module, "CElement", "MarkupTree", getMarkupTreeActions);
-    DbgObject.AddAction(MSHTML.Module, "Tree::ANode", "MarkupTree", getMarkupTreeActions);
     DbgObject.AddAction(MSHTML.Module, "CDoc", "MarkupTree", getMarkupTreeActions);
 
     // Old Tree Connection, convert a CTreePos into a CTreeNode/CTreeDataPos
