@@ -84,13 +84,18 @@ Loader.OnLoad(function() {
             return latestPatch.f("_flags._fAdvanced").val()
 
             // And get the disp client.
-            .then(function(hasAdvanced) {
-                if (hasAdvanced) {
-                    return latestPatch.f("_pAdvancedDisplay._pDispClient").vcast();
-                } else {
+            .then(
+                function(hasAdvanced) {
+                    if (hasAdvanced) {
+                        return latestPatch.f("_pAdvancedDisplay._pDispClient").vcast();
+                    } else {
+                        return latestPatch.f("_pDispClient").vcast();
+                    }
+                },
+                function() {
                     return latestPatch.f("_pDispClient").vcast();
                 }
-            });
+            );
         });
     }));
 
