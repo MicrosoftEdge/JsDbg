@@ -22,7 +22,8 @@
 }
 
 .field-selection .instructions {
-    width:200px;
+    max-width:200px;
+    box-sizing:border-box;
     font-size:0.8em;
     margin:4pt 20pt 0 4pt;
 }
