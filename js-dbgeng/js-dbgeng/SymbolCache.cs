@@ -78,6 +78,10 @@ namespace JsDbg {
 
             return symbolFile;
         }
+
+        internal string GetSymbolSearchPath() {
+            return this.symbols.GetSymbolPath();
+        }
         
         internal string GetModuleSymbolPath(string module)
         {            

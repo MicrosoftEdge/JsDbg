@@ -56,7 +56,7 @@ namespace JsDbg {
             get {
                 string[] caches = { "", @"C:\symbols", @"C:\debuggers\wow64\sym", @"C:\debuggers\sym" };
                 string[] servers = { "", "http://symweb/" };
-                return String.Format("CACHE*{0};SRV*{1}", string.Join(";CACHE*", caches), string.Join(";SRV*", servers));
+                return String.Format("CACHE*{0};{2};SRV*{1}", string.Join(";CACHE*", caches), string.Join(";SRV*", servers), this.symbolCache.GetSymbolSearchPath());
             }
         }
 
