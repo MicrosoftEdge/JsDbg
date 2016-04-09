@@ -681,6 +681,8 @@ Loader.OnLoad(function() {
         "char",
         "__int8",
         "short",
+        "wchar_t",
+        "__wchar_t",
         "__int16",
         "int",
         "__int32",

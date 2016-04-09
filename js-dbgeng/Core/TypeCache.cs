@@ -265,6 +265,8 @@ namespace JsDbg
                 {"bool", 1},
                 {"char", 1},
                 {"__int8", 1},
+                {"wchar_t", 2},
+                {"__wchar_t", 2},
                 {"short", 2},
                 {"__int16", 2},
                 {"int", 4},

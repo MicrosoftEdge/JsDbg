@@ -89,7 +89,7 @@ namespace JsDbg {
             case BasicType.btVoid:
                 return "void";
             case BasicType.btWChar:
-                return "unsigned short";
+                return "wchar_t";
             case BasicType.btChar:
             case BasicType.btLong:
             case BasicType.btInt:
