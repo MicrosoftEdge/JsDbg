@@ -14,12 +14,12 @@ namespace Sushraja.Jump {
         public string ExtensionRoot {
             get {
                 // TODO: Figure out configuration story for Jump.
-                return @"C:\My\Dev";
+                return @"C:\jsdbg\extensions";
             }
         }
         public string PersistentStoreDirectory {
             get {
-                return @"\\iefs\users\psalas\jsdbg\support\persistent";
+                return @"C:\jsdbg\persistent";
             }
         }
 
