@@ -115,6 +115,15 @@ Loader.OnLoad(function () {
                         .then(function (value) {
                             return value == 1 ? "true" : "false";
                         });
+                    } else if (x.typename == "wchar_t") {
+                        if (x.wasDereferenced) {
+                            return x.string()
+                            .then(null, function() {
+                                return x.val().then(String.fromCharCode);
+                            });
+                        } else {
+                            return x.val().then(String.fromCharCode);
+                        }
                     } else if (x.isScalarType()) {
                         return x.bigval().then(function (bigint) { return bigint.toString(); }); 
                     } else if (x.isPointer()) {

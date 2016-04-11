@@ -14,12 +14,13 @@ Loader.OnLoad(function() {
     }
 
     // bitcount and bitoffset are optional.
-    DbgObject = function DbgObject(module, type, pointer, bitcount, bitoffset, structSize) {
+    DbgObject = function DbgObject(module, type, pointer, bitcount, bitoffset, structSize, wasDereferenced) {
         this.module = DbgObject.NormalizeModule(module);
         this._pointer = new PointerMath.Pointer(pointer);
         this.bitcount = bitcount;
         this.bitoffset = bitoffset;
         this.structSize = structSize;
+        this.wasDereferenced = (wasDereferenced ? true : false);
 
         // Cleanup type name:
         //  - remove whitespace from the beginning and end
@@ -314,7 +315,15 @@ Loader.OnLoad(function() {
         var that = this;
         return this.as("void*").ubigval()
         .then(function(result) {
-            return new DbgObject(that.module, that._getDereferencedTypeName(), result);
+            return new DbgObject(
+                that.module,
+                that._getDereferencedTypeName(),
+                result,
+                /*bitcount*/undefined,
+                /*bitoffset*/undefined,
+                /*structSize*/undefined,
+                /*wasDereferenced*/true
+            );
         });
     }
 
