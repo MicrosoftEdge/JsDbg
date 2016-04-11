@@ -266,8 +266,13 @@ Loader.OnLoad(function() {
         this.extendedFields = [];
         this.descriptions = [];
         this.arrayFields = [];
-        this.allFieldArrays = [this.autoCastFields, this.fields, this.extendedFields, this.arrayFields, this.descriptions];
+        this.allFieldArrayNames = ["autoCastFields", "fields", "extendedFields", "arrayFields", "descriptions"];
         this.preparedForRenderingPromise = null;
+    }
+
+    TypeExplorerSingleType.prototype.allFieldArrays = function() {
+        var that = this;
+        return this.allFieldArrayNames.map(function (n) { return that[n]; })
     }
 
     TypeExplorerSingleType.prototype.monitorTypeExtensions = function(typeExtensions, arrayName) {
@@ -400,7 +405,7 @@ Loader.OnLoad(function() {
     }
 
     TypeExplorerSingleType.prototype.forEachField = function (f) {
-        this.allFieldArrays.forEach(function (a) { a.forEach(f); });
+        this.allFieldArrays().forEach(function (a) { a.forEach(f); });
     }
 
     TypeExplorerSingleType.prototype.considerFieldWhenCollapsed = function (field, shownFields) {
@@ -466,7 +471,7 @@ Loader.OnLoad(function() {
         this.forEachField(function (f) {
             f.disableCompletely();
         });
-        this.allFieldArrays.forEach(function (a) {
+        this.allFieldArrays().forEach(function (a) {
             a.length = 0;
         });
     }
