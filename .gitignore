@@ -7,4 +7,5 @@ persistent/
 *.opensdf
 *.sdf
 *.VC.opendb
+*.VC.db
 *.tmp.*
