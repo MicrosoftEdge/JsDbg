@@ -14,6 +14,7 @@ Loader.OnLoad(function() {
         if (activeInspector != null) {
             activeInspector.typeExplorer.requestRerender(/*changeFocus*/true);
         }
+        applyInitialWindowAdjustment(inspector.querySelector(".drop-down"));
     }
 
     function deactivateCurrentInspector() {
@@ -63,13 +64,56 @@ Loader.OnLoad(function() {
         return inspector;
     }
 
+    function applyInitialWindowAdjustment(node) {
+        node.adjustment = {x:0, y:0};
+        var changedAdjustment = true;
+        var currentNode = node.parentNode;
+        var EDGEBUFFER = 5;
+        var dropDownRect = null;
+
+        while (currentNode != null && currentNode.nodeType == Node.ELEMENT_NODE) {
+            if (changedAdjustment) {
+                applyWindowAdjustment(node);
+                dropDownRect = node.getBoundingClientRect()
+                changedAdjustment = false;
+            }
+
+            if (getComputedStyle(currentNode).overflowX != "visible") {
+                var scrollerRect = currentNode.getBoundingClientRect();
+                var leftEdgeAdjustment = (scrollerRect.left + EDGEBUFFER) - dropDownRect.left;
+                var rightEdgeAdjustment = (scrollerRect.right - EDGEBUFFER) - dropDownRect.right - (currentNode.offsetWidth - currentNode.clientWidth);
+                if (rightEdgeAdjustment < 0) {
+                    node.adjustment.x += Math.round(Math.max(rightEdgeAdjustment, leftEdgeAdjustment));
+                    changedAdjustment = true;
+                }
+            }
+
+            if (getComputedStyle(currentNode).overflowY != "visible") {
+                var scrollerRect = currentNode.getBoundingClientRect();
+                var topEdgeAdjustment = (scrollerRect.top + EDGEBUFFER) - dropDownRect.top;
+                var bottomEdgeAdjustment = (scrollerRect.bottom - EDGEBUFFER) - dropDownRect.bottom - (currentNode.offsetHeight - currentNode.clientHeight);
+                if (bottomEdgeAdjustment < 0) {
+                    node.adjustment.y += Math.round(Math.max(bottomEdgeAdjustment, topEdgeAdjustment));
+                    changedAdjustment = true;
+                }
+            }
+
+            currentNode = currentNode.parentNode;
+        }
+    }
+
+    function applyWindowAdjustment(node) {
+        node.style.transform = "translate(" + node.adjustment.x + "px, " + node.adjustment.y + "px)";
+    }
+
     function initializeInspector(dbgObject, inspector, objectPtr) {
         var typeExplorer = TypeExplorer.Create(dbgObject, { includeBaseTypesByDefault: true });
         inspector.typeExplorer = typeExplorer;
 
         var dropDown = document.createElement("div");
-        inspector.insertBefore(dropDown, objectPtr);
+        inspector.insertBefore(dropDown, objectPtr.nextSibling);
         dropDown.classList.add("drop-down");
+        dropDown.adjustment = {x:0, y:0};
 
         var title = document.createElement("div");
         title.classList.add("title");
@@ -98,8 +142,6 @@ Loader.OnLoad(function() {
             }
 
             if (activeInspector != inspector) {
-                dropDown.style.transform = "";
-                currentWindowAdjustment = {x: 0, y:0};
                 activateInspector(inspector);
                 typeExplorer.focus();
                 e.stopPropagation();
@@ -112,16 +154,14 @@ Loader.OnLoad(function() {
             }
         });
 
-        var currentWindowAdjustment = { x: 0, y: 0 };
         function beginWindowMove(mouseDownEvent) {
             trackMouseDrag(
                 mouseDownEvent, 
-                currentWindowAdjustment, 
+                dropDown.adjustment, 
                 function onWindowMove(newX, newY) {
-                    currentWindowAdjustment.x = newX;
-                    currentWindowAdjustment.y = newY;
-                    var transform = "translate(" + currentWindowAdjustment.x + "px, " + currentWindowAdjustment.y + "px)";
-                    dropDown.style.transform = transform;
+                    dropDown.adjustment.x = newX;
+                    dropDown.adjustment.y = newY;
+                    applyWindowAdjustment(dropDown);
                 },
                 function onWindowMoveFinish() {
                     blocker.parentNode.removeChild(blocker);
