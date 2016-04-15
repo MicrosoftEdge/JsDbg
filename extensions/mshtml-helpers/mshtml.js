@@ -312,6 +312,17 @@ var MSHTML = undefined;
             return markup.f("_pSecCtx", "_spSecCtx.m_pT").f("_pDoc");
         }));
 
+        DbgObject.AddExtendedField(moduleName, "CStyleSheet", "Markup", "CMarkup", UserEditableFunctions.Create(function (stylesheet) {
+            return stylesheet.f("_pParentElement")
+            .then(function (parentElement) {
+                if (parentElement.isNull()) {
+                    return stylesheet.f("_pMarkup");
+                } else {
+                    return parentElement.F("Markup");
+                }
+            })
+        }))
+
         function searchForHtPvPvMatch(firstEntry, entryCount, index, stride, key) {
             if (index > entryCount) {
                 index = index % entryCount;

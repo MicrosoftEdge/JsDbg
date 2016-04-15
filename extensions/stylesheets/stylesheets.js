@@ -31,7 +31,7 @@ Loader.OnLoad(function() {
                         if (stylesheets.length == 0) {
                             return doc;
                         } else {
-                            return stylesheets[0].f("_pParentElement").F("Markup.Doc");
+                            return stylesheets[0].F("Markup.Doc");
                         }
                     })
                 } else {
@@ -173,10 +173,20 @@ Loader.OnLoad(function() {
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function(markup) {
             return markup.f("_pStyleSheetArray");
+        }, function (markup) {
+            return markup.desc("URL")
+            .then(function (url) {
+                return "CMarkup (" + url + ")";
+            })
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheet", null, function(stylesheet) {
             return stylesheet.f("_pSSSheet");
+        }, function (stylesheet) {
+            return stylesheet.f("_pSSSheet._achAbsoluteHref").string()
+            .then(function (href) {
+                return "CStyleSheet (" + href + ")";
+            })
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CSharedStyleSheet", null, function(stylesheet) {
@@ -221,8 +231,18 @@ Loader.OnLoad(function() {
             return getSelectorDescription(rule.f("_pFirstSelector"), stylesheet);
         })
 
+        DbgObjectTree.AddType(null, MSHTML.Module, "CAttrValue", null, null, function(value) {
+            return value.desc("Name")
+            .then(function (name) {
+                return "CAttrValue (" + name + ")"
+            })
+        })
+
         DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "CBase", address).vcast();
+            return new DbgObject(MSHTML.Module, "CBase", address).vcast()
+            .then(null, function (err) {
+                return new DbgObject(MSHTML.Module, "CSharedStyleSheet", address);
+            })
         });
     }
 
