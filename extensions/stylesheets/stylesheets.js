@@ -156,7 +156,7 @@ Loader.OnLoad(function() {
     if (Loader.GetCurrentExtension()== "stylesheets") {
         DbgObjectTree.AddRoot("StyleSheet", function() { 
             return Promise.sort(Promise.filter(MSHTML.GetCDocs().F("PrimaryMarkup"), function (m) { return !m.isNull(); }), function(markup) {
-                return markup.f("_pStyleSheetArray").f("_aStyleSheets", "_pageStyleSheets").array("Items")
+                return markup.f("_pStyleSheetArray").f("_pageStyleSheets", "_aStyleSheets").array("Items")
                 .then(function (stylesheetArray) {
                     return 0 - stylesheetArray.length;
                 });
@@ -164,7 +164,11 @@ Loader.OnLoad(function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheetArray", null, function(array) {
-            return array.f("_aStyleSheets", "_pageStyleSheets").array("Items");
+            return array.f("_pageStyleSheets", "_aStyleSheets").array("Items");
+        })
+
+        DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheetArray", null, function(array) {
+            return array.f("_extensionStyleSheets").array("Items");
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function(markup) {
