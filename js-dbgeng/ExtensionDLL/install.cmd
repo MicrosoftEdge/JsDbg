@@ -42,4 +42,6 @@ echo You may now launch JsDbg by running "!jsdbg.launch" in WinDbg.
 echo.
 
 :Done
-set /p=Press any key to exit...
+REM Leave the window open if it was double clicked
+for %%x in (%cmdcmdline%) do if /i "%%~x"=="/c" set DOUBLECLICKED=1
+if defined DOUBLECLICKED set /p=Press any key to exit...
