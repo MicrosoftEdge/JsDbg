@@ -78,7 +78,7 @@ Loader.OnLoad(function() {
     // New Tree Connection, convert a ANode into a CTreeNode/CDOMTextNode/CTreeDataPos
     function promoteANode(aNode) {
         // TEXTNODEMERGE -- ANode is part of the CTreeNode/CDOMTextNode virtual inheritance hierarchy
-        return aNode.vcast()
+        return new PromisedDbgObject(aNode.vcast()
         .then(null, function () {
             // !TEXTNODEMERGE -- Check _fIsElementNode to see what kind of node we are
             return aNode.as("CTreeDataPos").f("t._fIsElementNode").val()
@@ -89,7 +89,7 @@ Loader.OnLoad(function() {
                     return aNode.as("CTreeDataPos");
                 }
             })
-        });
+        }));
     }
 
     // Old Tree Connection - Get all direct children of CTreeNode
