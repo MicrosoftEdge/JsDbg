@@ -144,14 +144,13 @@ Loader.OnLoad(function() {
             if (activeInspector != inspector) {
                 activateInspector(inspector);
                 typeExplorer.focus();
-                e.stopPropagation();
-                e.preventDefault();
             } else if (objectPtr.contains(e.target)) {
                 // Close it out.
                 deactivateCurrentInspector();
-                e.stopPropagation();
-                e.preventDefault();
             }
+
+            // The popup eats all clicks.
+            e.stopPropagation();
         });
 
         function beginWindowMove(mouseDownEvent) {
