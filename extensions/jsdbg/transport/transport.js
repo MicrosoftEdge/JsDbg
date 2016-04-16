@@ -12,7 +12,8 @@ Loader.OnLoad(function() {
 
     var currentWebSocket = null;
     var currentWebSocketCallbacks = {};
-    var remainingAllowableWebSocketRequests = 30; // Throttle the WebSocket requests to avoid overwhelming the connection.
+    var MAX_ALLOWABLE_WEBSOCKET_REQUESTS = 30;
+    var remainingAllowableWebSocketRequests = MAX_ALLOWABLE_WEBSOCKET_REQUESTS; // Throttle the WebSocket requests to avoid overwhelming the connection.
     var pendingWebSocketMessages = []; // WebSocket requests that have not yet been sent due to throttling.
 
     // Certain types of requests are cacheable -- this maintains that cache.
@@ -82,22 +83,23 @@ Loader.OnLoad(function() {
         }
     }
 
-    function sendWebSocketMessage(requestId, messageToSend, callback) {
-        var retryWebSocketRequest = function retryWebSocketRequest() { sendWebSocketMessage(requestId, messageToSend, callback); }
+    function makeWebSocketRequest(requestId, url, callback) {
+        var retryWebSocketRequest = function retryWebSocketRequest() { makeWebSocketRequest(requestId, url, callback); }
         if (currentWebSocket == null || (currentWebSocket.readyState > WebSocket.OPEN)) {
             currentWebSocket = new WebSocket("ws://" + window.location.host);
             currentWebSocket.addEventListener("message", handleWebSocketReply);
 
             currentWebSocket.addEventListener("close", function jsdbgWebSocketCloseHandler() {
                 currentWebSocket = null;
-                console.log("JsDbg web socket was closed...retrying in-flight requests.");
+                console.log("JsDbg web socket was closed...retrying in-flight requests using XHR.");
 
-                // Retry the in-flight messages.
+                // Retry the in-flight messages using XHR since one of them might overload the web socket.
                 var oldCallbacks = currentWebSocketCallbacks;
+                remainingAllowableWebSocketRequests = MAX_ALLOWABLE_WEBSOCKET_REQUESTS;
                 currentWebSocketCallbacks = {};
                 for (var key in oldCallbacks) {
                     var value = oldCallbacks[key];
-                    sendWebSocketMessage(key, value.messageToSend, value.callback);
+                    makeXhrRequest("GET", value.url, value.callback, undefined);
                 }
             })
         }
@@ -109,13 +111,28 @@ Loader.OnLoad(function() {
                 --remainingAllowableWebSocketRequests;
                 currentWebSocketCallbacks[requestId.toString()] = {
                     callback: callback,
-                    messageToSend: messageToSend
+                    url: url
                 };
-                currentWebSocket.send(requestId + ";" + messageToSend);
+                currentWebSocket.send(requestId + ";" + url);
             } else {
                 pendingWebSocketMessages.push(retryWebSocketRequest);
             }
         }
+    }
+
+    function makeXhrRequest(method, url, callback, data) {
+        var xhr = new XMLHttpRequest();
+        xhr.open(method, url, true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4) {
+                if (xhr.status == 200) {
+                    callback(xhr.responseText);
+                } else {
+                    callback(JSON.stringify({ error: "The request for \"" + url + "\" failed with error " + xhr.status + "."}))
+                }
+            }
+        };
+        xhr.send(data);
     }
 
     function jsonRequest(url, originalCallback, cacheType, method, data) {
@@ -168,23 +185,11 @@ Loader.OnLoad(function() {
             requestEnded();
         }
 
+        // Use WebSockets if the method is unspecified and there's no data payload.
         if (!method && !data) {
-            // Use WebSockets if the request is async, the method is unspecified, and there's no data payload.
-            sendWebSocketMessage(requestCounter, url, handleJsonResponse);
+            makeWebSocketRequest(requestCounter, url, handleJsonResponse);
         } else {
-            // Use XHR.
-            if (!method) {
-                method = "GET";
-            }
-
-            var xhr = new XMLHttpRequest();
-            xhr.open(method, url, true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState == 4 && xhr.status == 200) {
-                    handleJsonResponse(xhr.responseText);
-                }
-            };
-            xhr.send(data);
+            makeXhrRequest(method || "GET", url, handleJsonResponse, data);
         }
     }
 
