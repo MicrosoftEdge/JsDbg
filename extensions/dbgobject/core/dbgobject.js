@@ -1000,7 +1000,9 @@ Loader.OnLoad(function() {
                             return new DbgObject(that.module, vtableType, that._pointer.add(originalBaseTypes[i].offset));
                         }
                     }
-                    throw new Error("The DbgObject's type " + that.typename + " is not related to the vtable's type, " + vtableType);
+
+                    // Couldn't find a proper offset, so just cast.
+                    return new DbgObject(that.module, vtableType, that._pointer);
                 });
             });
         });
