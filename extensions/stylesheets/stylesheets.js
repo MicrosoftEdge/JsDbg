@@ -118,7 +118,7 @@ Loader.OnLoad(function() {
                     suffix = ":hover" + suffix;
                 }
 
-                if (!props[7].isNull()) {
+                if (!props[7].isNull() && !(props[3] == "ETAG_GENERIC" && props[7].typeDescription() == "CNamespaceSelectorPart")) {
                     suffix = "[" + props[7].htmlTypeDescription() + "]" + suffix;
                 }
 
@@ -133,7 +133,15 @@ Loader.OnLoad(function() {
                         return prefix + "#" + idName + suffix;
                     })
                 } else if (props[3] != "ETAG_UNKNOWN") {
-                    return prefix + props[3].toLowerCase().substr("ETAG_".length) + suffix;
+                    var tagNamePromise = Promise.as(props[3].toLowerCase().substr("ETAG_".length));
+                    if (props[3] == "ETAG_GENERIC" && props[7].typeDescription() == "CNamespaceSelectorPart") {
+                        tagNamePromise = props[7].f("_cstrLocalName._pch").string()
+                    }
+
+                    return tagNamePromise
+                    .then(function (tagName) {
+                        return prefix + tagName + suffix;  
+                    })
                 } else if (props[9]) {
                     return prefix + "*" + suffix;
                 } else if (prefix == "" && suffix == "") {
@@ -231,10 +239,18 @@ Loader.OnLoad(function() {
             return getSelectorDescription(rule.f("_pFirstSelector"), stylesheet);
         })
 
-        DbgObjectTree.AddType(null, MSHTML.Module, "CAttrValue", null, null, function(value) {
-            return value.desc("Name")
-            .then(function (name) {
-                return "CAttrValue (" + name + ")"
+        DbgObjectTree.AddType(null, MSHTML.Module, "CAttrValue", null, null, function(attrValue) {
+            return Promise.join([attrValue.desc("Name"), attrValue.desc("Value")])
+            .then(function (nameAndValue) {
+                var name = nameAndValue[0];
+                var value = nameAndValue[1];
+                if (value instanceof DbgObject) {
+                    value = value.desc();
+                }
+                return Promise.as(value)
+                .then(function (value) {
+                    return name.toLowerCase() + ":" + value;
+                })
             })
         })
 
