@@ -31,7 +31,7 @@ Loader.OnLoad(function() {
                         if (stylesheets.length == 0) {
                             return doc;
                         } else {
-                            return stylesheets[0].f("_pParentElement").F("Markup.Doc");
+                            return stylesheets[0].F("Markup.Doc");
                         }
                     })
                 } else {
@@ -118,7 +118,7 @@ Loader.OnLoad(function() {
                     suffix = ":hover" + suffix;
                 }
 
-                if (!props[7].isNull()) {
+                if (!props[7].isNull() && !(props[3] == "ETAG_GENERIC" && props[7].typeDescription() == "CNamespaceSelectorPart")) {
                     suffix = "[" + props[7].htmlTypeDescription() + "]" + suffix;
                 }
 
@@ -133,7 +133,15 @@ Loader.OnLoad(function() {
                         return prefix + "#" + idName + suffix;
                     })
                 } else if (props[3] != "ETAG_UNKNOWN") {
-                    return prefix + props[3].toLowerCase().substr("ETAG_".length) + suffix;
+                    var tagNamePromise = Promise.as(props[3].toLowerCase().substr("ETAG_".length));
+                    if (props[3] == "ETAG_GENERIC" && props[7].typeDescription() == "CNamespaceSelectorPart") {
+                        tagNamePromise = props[7].f("_cstrLocalName._pch").string()
+                    }
+
+                    return tagNamePromise
+                    .then(function (tagName) {
+                        return prefix + tagName + suffix;  
+                    })
                 } else if (props[9]) {
                     return prefix + "*" + suffix;
                 } else if (prefix == "" && suffix == "") {
@@ -156,7 +164,7 @@ Loader.OnLoad(function() {
     if (Loader.GetCurrentExtension()== "stylesheets") {
         DbgObjectTree.AddRoot("StyleSheet", function() { 
             return Promise.sort(Promise.filter(MSHTML.GetCDocs().F("PrimaryMarkup"), function (m) { return !m.isNull(); }), function(markup) {
-                return markup.f("_pStyleSheetArray").f("_aStyleSheets", "_pageStyleSheets").array("Items")
+                return markup.f("_pStyleSheetArray").f("_pageStyleSheets", "_aStyleSheets").array("Items")
                 .then(function (stylesheetArray) {
                     return 0 - stylesheetArray.length;
                 });
@@ -164,15 +172,29 @@ Loader.OnLoad(function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheetArray", null, function(array) {
-            return array.f("_aStyleSheets", "_pageStyleSheets").array("Items");
+            return array.f("_pageStyleSheets", "_aStyleSheets").array("Items");
+        })
+
+        DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheetArray", null, function(array) {
+            return array.f("_extensionStyleSheets").array("Items");
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function(markup) {
             return markup.f("_pStyleSheetArray");
+        }, function (markup) {
+            return markup.desc("URL")
+            .then(function (url) {
+                return "CMarkup (" + url + ")";
+            })
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheet", null, function(stylesheet) {
             return stylesheet.f("_pSSSheet");
+        }, function (stylesheet) {
+            return stylesheet.f("_pSSSheet._achAbsoluteHref").string()
+            .then(function (href) {
+                return "CStyleSheet (" + href + ")";
+            })
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CSharedStyleSheet", null, function(stylesheet) {
@@ -217,8 +239,26 @@ Loader.OnLoad(function() {
             return getSelectorDescription(rule.f("_pFirstSelector"), stylesheet);
         })
 
+        DbgObjectTree.AddType(null, MSHTML.Module, "CAttrValue", null, null, function(attrValue) {
+            return Promise.join([attrValue.desc("Name"), attrValue.desc("Value")])
+            .then(function (nameAndValue) {
+                var name = nameAndValue[0];
+                var value = nameAndValue[1];
+                if (value instanceof DbgObject) {
+                    value = value.desc();
+                }
+                return Promise.as(value)
+                .then(function (value) {
+                    return name.toLowerCase() + ":" + value;
+                })
+            })
+        })
+
         DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "CBase", address).vcast();
+            return new DbgObject(MSHTML.Module, "CBase", address).vcast()
+            .then(null, function (err) {
+                return new DbgObject(MSHTML.Module, "CSharedStyleSheet", address);
+            })
         });
     }
 

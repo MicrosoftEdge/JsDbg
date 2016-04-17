@@ -182,6 +182,20 @@ Loader.OnLoad(function() {
         );
     }
 
+    DbgObject._help_symbol = {
+        description: "Looks up the symbolic name of an address (e.g. vtable pointer, function pointer).",
+        returns: "The name of the symbol.",
+        arguments: [
+            {name:"address", type:"number", description:"The address to resolve."}
+        ]
+    }
+    DbgObject.symbol = function(address) {
+        return jsDbgPromise(JsDbg.LookupSymbolName, address)
+        .then(function (result) {
+            return result.name;
+        })
+    }
+
     DbgObject._help_constantValue = {
         description: "Evaluates a constant's name to its underlying value.",
         returns: "A promise to an integer.",
@@ -756,12 +770,27 @@ Loader.OnLoad(function() {
         }
 
         var that = this;
-        return this.bigval()
+        return this.ubigval()
         // Lookup the constant name...
-        .then(function(value) { return jsDbgPromise(JsDbg.LookupConstantName, that.module, that.typename, value); })
+        .then(function(value) { 
+            return jsDbgPromise(JsDbg.LookupConstantName, that.module, that.typename, value); })
 
         // And return it.
         .then(function(result) { return result.name; })
+    }
+
+    DbgObject.prototype._help_hasConstantFlag = {
+        description: "Indicates if the enum has the given flag.",
+        returns: "A promise to a bool.",
+        arguments: [
+            {name: "flag", type: "string", description: "The enum value name to test."}
+        ]
+    }
+    DbgObject.prototype.hasConstantFlag = function(flag) {
+        return Promise.join([this.bigval(), DbgObject.constantValue(this.module, this.typename, flag)])
+        .then(function (valueAndFlag) {
+            return valueAndFlag[0].and(valueAndFlag[1]).equals(valueAndFlag[1]);
+        })
     }
 
     DbgObject.prototype._help_list = {
@@ -925,12 +954,12 @@ Loader.OnLoad(function() {
 
         // Lookup the symbol at that value...
         .then(function(result) { 
-            return jsDbgPromise(JsDbg.LookupSymbolName, result);
+            return DbgObject.symbol(result);
         })
 
         // And strip away the vftable suffix..
         .then(function(result) {
-            return result.name.substring(0, result.name.indexOf("::`vftable'"));
+            return result.substring(0, result.indexOf("::`vftable'"));
         });
     }
 
@@ -971,7 +1000,9 @@ Loader.OnLoad(function() {
                             return new DbgObject(that.module, vtableType, that._pointer.add(originalBaseTypes[i].offset));
                         }
                     }
-                    throw new Error("The DbgObject's type " + that.typename + " is not related to the vtable's type, " + vtableType);
+
+                    // Couldn't find a proper offset, so just cast.
+                    return new DbgObject(that.module, vtableType, that._pointer);
                 });
             });
         });

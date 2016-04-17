@@ -280,9 +280,9 @@ Loader.OnLoad(function() {
         return Promise
         .join([
             lineBox.f("textBlockRunIndexAtStartOfLine").val(), 
-            lineBox.f("characterIndexInTextBlockRunAtStartOfLine").val(),
+            lineBox.f("charOffsetInTextBlockRunAtStartOfLine", "characterIndexInTextBlockRunAtStartOfLine").val(),
             lineBox.f("textBlockRunIndexAfterLine").val(),
-            lineBox.f("characterIndexInTextBlockRunAfterLine").val(),
+            lineBox.f("charOffsetInTextBlockRunAfterLine", "characterIndexInTextBlockRunAfterLine").val(),
             lineBox.f("textBlockOrNode", "textBlock.m_pT")
         ])
         .then(function(fields) {

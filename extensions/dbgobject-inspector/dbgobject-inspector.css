@@ -3,8 +3,8 @@
     font-family:Segoe UI;
     position:absolute;
     z-index:20;
-    margin-top:20px;
-    margin-left:20px;
+    margin-top:15px;
+    margin-left:5px;
     /* Kind of a hack, but the right/bottom borders are actually the padding in drop-down so that they act as drag handles. */
     padding:0 2px 2px 0px;
     background:#333338;

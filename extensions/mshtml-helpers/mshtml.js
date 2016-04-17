@@ -312,6 +312,17 @@ var MSHTML = undefined;
             return markup.f("_pSecCtx", "_spSecCtx.m_pT").f("_pDoc");
         }));
 
+        DbgObject.AddExtendedField(moduleName, "CStyleSheet", "Markup", "CMarkup", UserEditableFunctions.Create(function (stylesheet) {
+            return stylesheet.f("_pParentElement")
+            .then(function (parentElement) {
+                if (parentElement.isNull()) {
+                    return stylesheet.f("_pMarkup");
+                } else {
+                    return parentElement.F("Markup");
+                }
+            })
+        }))
+
         function searchForHtPvPvMatch(firstEntry, entryCount, index, stride, key) {
             if (index > entryCount) {
                 index = index % entryCount;
@@ -758,6 +769,106 @@ var MSHTML = undefined;
                     return attrVal.f("_pPropertyDesc.pstrName").string();
                 }
             })
+        }));
+
+        DbgObject.AddTypeOverride(moduleName, "CAttrValue::AttrFlags", "_aaType", "CAttrValue::AATYPE");
+        DbgObject.AddTypeOverride(moduleName, "CAttrValue::AttrFlags", "_aaVTType", "VARENUM");
+
+        DbgObject.AddTypeDescription(moduleName, "CAttrValue", "Value", false, UserEditableFunctions.Create(function (attrVal) {
+            return attrVal.f("_wFlags.fAA_Extra_HasDispId").val()
+            .then(function (hasDispId) {
+                if (hasDispId) {
+                    return undefined;
+                } else {
+                    return attrVal.f("_pPropertyDesc.pfnHandleProperty").pointerValue()
+                    .then(DbgObject.symbol)
+                    .then(function (handleProperty) {
+                        if (handleProperty == "PROPERTYDESC::HandleColorProperty") {
+                            return attrVal.f("uVal._llVal").as("CColorValue");
+                        } else if (handleProperty == "PROPERTYDESC::HandleEnumProperty") {
+                            return attrVal.f("uVal._lVal").val()
+                            .then(function (enumValue) {
+                                return attrVal.f("_pPropertyDesc").F("EnumDesc").array("Values")
+                                .filter(function (enumPair) {
+                                    return enumPair.f("iVal").val().then(function (constantValue) {
+                                        return constantValue == enumValue;
+                                    })
+                                })
+                                .f("pszName").string()
+                                .then(function (results) {
+                                    return results.length == 0 ? enumValue : results[0];
+                                })
+                            })
+                        } else if (handleProperty == "PROPERTYDESC::HandleTypedValueProperty") {
+                            return attrVal.f("uVal._llVal").as("CUnitValue");
+                        }
+                    })
+                }
+            })
+            .then(function (result) {
+                if (result == undefined) {
+                    return attrVal.f("_wFlags._aaVTType").constant()
+                    .then(null, function (err) {
+                        // If it's not a valid VARENUM, it could be one of the extended ones defined on CAttrValue.
+                        return attrVal.f("_wFlags._aaVTType").as("CAttrValue").constant();
+                    })
+                    .then(null, function (err) {
+                        return "";
+                    })
+                    .then(function (dataType) {
+                        var dataValue = attrVal.f("uVal");
+                        var cases = {
+                            "VT_BSTR": function () { return dataValue.f("_bstrVal") },
+                            "VT_LPWSTR": function () { return dataValue.f("_lpstrVal") },
+                            "VT_I4": function () { return dataValue.f("_intVal") },
+                            "VT_I8": function () { return dataValue.f("_llVal") },
+                            "VT_R4": function () { return dataValue.f("_fltVal") },
+                            "VT_R8": function () { return dataValue.f("_dblVal") },
+                            "VT_UNKNOWN": function() { return dataValue.f("_pUnk").vcast() },
+                            "VT_ATTRARRAY": function() { return dataValue.f("_pAA") },
+                            "VT_AAHEADER": function() { return dataValue.f("_pAAHeader") },
+                            "VT_NSATTR": function() { return dataValue.f("_pNSAttr") },
+                            "VT_PTR": function () { return dataValue.f("_pvVal") },
+                        };
+
+                        if (dataType in cases) {
+                            return cases[dataType]();
+                        } else {
+                            return attrVal.f("uVal._llVal").ubigval()
+                            .then(function (val) {
+                                return dataType + " 0x" + val.toString(16);
+                            })
+                        }
+                    })
+                } else {
+                    return result;
+                }
+            })
+        }));
+
+        DbgObject.AddExtendedField(moduleName, "PROPERTYDESC", "EnumDesc", "ENUMDESC", UserEditableFunctions.Create(function (propDesc) {
+            return propDesc.as("PROPERTYDESC_BASIC").f("b.dwPPFlags").as("PROPPARAM_FLAGS")
+            .then(function (flags) {
+                return flags.hasConstantFlag("PROPPARAM_ENUM")
+                .then(function (hasEnum) {
+                    if (!hasEnum) {
+                        return DbgObject.NULL;
+                    } else {
+                        return flags.hasConstantFlag("PROPPARAM_ANUMBER")
+                        .then(function (hasNumber) {
+                            if (hasNumber) {
+                                return propDesc.as("PROPERTYDESC_NUMPROP_ENUMREF").f("pE").as("ENUMDESC");
+                            } else {
+                                return propDesc.as("PROPERTYDESC_NUMPROP").f("b.lMax").as("ENUMDESC*").deref();
+                            }
+                        });
+                    }
+                })
+            });
+        }));
+
+        DbgObject.AddArrayField(moduleName, "ENUMDESC", "Values", "ENUMDESC::ENUMPAIR", UserEditableFunctions.Create(function (enumDesc) {
+            return enumDesc.f("aenumpairs").array(enumDesc.f("cEnums").val());
         }));
 
         DbgObject.AddTypeDescription(moduleName, "CUnitValue", "UnitValue", true, function(unitval) {
