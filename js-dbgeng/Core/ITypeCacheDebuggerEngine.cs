@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using JsDbg.Dia;
 
-namespace Core {
+namespace JsDbg.Core {
     public struct SStackFrameWithContext {
-        public JsDbg.SStackFrame StackFrame;
+        public SStackFrame StackFrame;
         public object Context;
     }
 
@@ -32,19 +33,19 @@ namespace Core {
 
         Task<IEnumerable<SStackFrameWithContext>> GetCurrentCallStack();
 
-        event JsDbg.DebuggerChangeEventHandler DebuggerChange;
+        event DebuggerChangeEventHandler DebuggerChange;
         event EventHandler BitnessChanged;
         #endregion
 
         #region Optional Fallback Implementations
 
-        Task<JsDbg.Type> GetTypeFromDebugger(string module, string typename);
+        Task<Type> GetTypeFromDebugger(string module, string typename);
 
-        Task<JsDbg.SSymbolResult> LookupGlobalSymbol(string module, string symbol);
+        Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol);
 
-        Task<IEnumerable<JsDbg.SSymbolResult>> LookupLocalsInStackFrame(SStackFrameWithContext stackFrameWithContext, string symbolName);
+        Task<IEnumerable<SSymbolResult>> LookupLocalsInStackFrame(SStackFrameWithContext stackFrameWithContext, string symbolName);
 
-        Task<JsDbg.SSymbolNameResultAndDisplacement> LookupSymbolName(ulong pointer);
+        Task<SSymbolNameResultAndDisplacement> LookupSymbolName(ulong pointer);
 
         #endregion
     }

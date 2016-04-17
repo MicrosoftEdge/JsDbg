@@ -1,21 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using JsDbg;
 using Dia2Lib;
+using JsDbg.Dia;
 
-namespace Core {
-    public class TypeCacheDebugger : JsDbg.IDebugger {
+namespace JsDbg.Core {
+    public class TypeCacheDebugger : IDebugger {
         public TypeCacheDebugger(ITypeCacheDebuggerEngine debuggerEngine) {
             this.debuggerEngine = debuggerEngine;
             this.debuggerEngine.DebuggerChange += debuggerEngine_DebuggerChange;
-            this.typeCache = new JsDbg.TypeCache(this.debuggerEngine.IsPointer64Bit);
+            this.typeCache = new TypeCache(this.debuggerEngine.IsPointer64Bit);
             this.debuggerEngine.BitnessChanged += debuggerEngine_BitnessChanged;
         }
 
-        void debuggerEngine_DebuggerChange(object sender, JsDbg.DebuggerChangeEventArgs e) {
+        void debuggerEngine_DebuggerChange(object sender, DebuggerChangeEventArgs e) {
             if (this.DebuggerChange != null) {
                 this.DebuggerChange(sender, e);
             }
@@ -23,15 +21,15 @@ namespace Core {
 
         void debuggerEngine_BitnessChanged(object sender, EventArgs e) {
             Console.Out.WriteLine("Effective processor changed, so invalidating the type cache.  You may need to refresh the browser window.");
-            this.typeCache = new JsDbg.TypeCache(debuggerEngine.IsPointer64Bit);
+            this.typeCache = new TypeCache(debuggerEngine.IsPointer64Bit);
         }
 
-        private async Task<JsDbg.Type> LoadType(string module, string typename) {
+        private async Task<Type> LoadType(string module, string typename) {
             // Try to load the type from DIA.
             IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(module);
 
             bool foundType;
-            JsDbg.Type type = this.typeCache.GetCachedType(session, module, typename, out foundType);
+            Type type = this.typeCache.GetCachedType(session, module, typename, out foundType);
             if (foundType) {
                 if (type != null) {
                     return type;
@@ -71,7 +69,7 @@ namespace Core {
             }
         }
 
-        private async Task<JsDbg.Type> LoadTypeFromDiaSession(IDiaSession diaSession, string module, string typename, DiaHelpers.NameSearchOptions options) {
+        private async Task<Type> LoadTypeFromDiaSession(IDiaSession diaSession, string module, string typename, DiaHelpers.NameSearchOptions options) {
             IDiaEnumSymbols symbols;
             diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagNull, typename, (uint)options, out symbols);
             foreach (IDiaSymbol iterationSymbol in symbols) {
@@ -132,7 +130,7 @@ namespace Core {
                     symbol.findChildren(SymTagEnum.SymTagBaseClass, null, 0, out baseClassSymbols);
                     foreach (IDiaSymbol baseClassSymbol in baseClassSymbols) {
                         string baseTypename = DiaHelpers.GetTypeName(baseClassSymbol.type);
-                        JsDbg.Type baseType = await this.LoadType(module, baseTypename);
+                        Type baseType = await this.LoadType(module, baseTypename);
                         if (baseType != null) {
                             baseTypes.Add(new SBaseType(baseType, baseClassSymbol.offset));
                         } else {
@@ -141,7 +139,7 @@ namespace Core {
                     }
 
                     // Construct the type.
-                    JsDbg.Type type = new JsDbg.Type(module, typename, typeSize, symTag == SymTagEnum.SymTagEnum, fields, constants, baseTypes);
+                    Type type = new Type(module, typename, typeSize, symTag == SymTagEnum.SymTagEnum, fields, constants, baseTypes);
                     return type;
                 }
             }
@@ -151,15 +149,15 @@ namespace Core {
 
         #region IDebugger Members
 
-        public event JsDbg.DebuggerChangeEventHandler DebuggerChange;
+        public event DebuggerChangeEventHandler DebuggerChange;
 
         public void Dispose() { }
 
-        public async Task<IEnumerable<JsDbg.SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
+        public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
             return (await this.LoadType(module, typename)).Fields(includeBaseTypes);
         }
 
-        public async Task<IEnumerable<JsDbg.SBaseTypeResult>> GetBaseTypes(string module, string typename) {
+        public async Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typename) {
             return (await this.LoadType(module, typename)).BaseTypes;
         }
 
@@ -172,7 +170,7 @@ namespace Core {
             return type.IsEnum;
         }
 
-        public async Task<JsDbg.SConstantResult> LookupConstant(string module, string typename, ulong constantValue) {
+        public async Task<SConstantResult> LookupConstant(string module, string typename, ulong constantValue) {
             var type = await this.LoadType(module, typename);
             foreach (SConstantResult constantResult in type.Constants) {
                 if (constantResult.Value == constantValue) {
@@ -183,7 +181,7 @@ namespace Core {
             throw new DebuggerException(String.Format("Unknown constant value: {0} in type: {1}", constantValue, typename));
         }
 
-        public async Task<JsDbg.SConstantResult> LookupConstant(string module, string typename, string constantName) {
+        public async Task<SConstantResult> LookupConstant(string module, string typename, string constantName) {
             var type = await this.LoadType(module, typename);
             ulong constantValue;
             if (type.GetConstantValue(constantName, out constantValue)) {
@@ -193,7 +191,7 @@ namespace Core {
             }
         }
 
-        public async Task<JsDbg.SFieldResult> LookupField(string module, string typename, string fieldName) {
+        public async Task<SFieldResult> LookupField(string module, string typename, string fieldName) {
             SFieldResult result = new SFieldResult();
 
             var type = await this.LoadType(module, typename);
@@ -215,7 +213,7 @@ namespace Core {
             return (await this.LoadType(module, typename)).Size;
         }
 
-        public async Task<JsDbg.SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName) {
+        public async Task<SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName) {
             SSymbolResult result = new SSymbolResult();
 
             Dia2Lib.IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(moduleName);
@@ -237,11 +235,11 @@ namespace Core {
             }
         }
 
-        public async Task<IEnumerable<JsDbg.SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbolName, int maxCount) {
+        public async Task<IEnumerable<SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbolName, int maxCount) {
             ulong requestedModuleBase = (await this.debuggerEngine.GetModuleForName(module)).BaseAddress;
 
             bool foundStackFrame = false;
-            List<JsDbg.SSymbolResult> results = new List<SSymbolResult>();
+            List<SSymbolResult> results = new List<SSymbolResult>();
 
             IEnumerable<SStackFrameWithContext> stackFrames = await this.debuggerEngine.GetCurrentCallStack();
             foreach (SStackFrameWithContext stackFrameWithContext in stackFrames) {
@@ -278,7 +276,7 @@ namespace Core {
                         }
                     } else {
                         // Unable to get any locals from DIA.  Try the debugger engine.
-                        IEnumerable<JsDbg.SSymbolResult> localsFromDebugger = await this.debuggerEngine.LookupLocalsInStackFrame(stackFrameWithContext, symbolName);
+                        IEnumerable<SSymbolResult> localsFromDebugger = await this.debuggerEngine.LookupLocalsInStackFrame(stackFrameWithContext, symbolName);
                         if (localsFromDebugger != null) {
                             results.AddRange(localsFromDebugger);
                         }
@@ -334,7 +332,7 @@ namespace Core {
             }
         }
 
-        public async Task<JsDbg.SSymbolNameResult> LookupSymbolName(ulong pointer) {
+        public async Task<SSymbolNameResult> LookupSymbolName(ulong pointer) {
             SSymbolNameResultAndDisplacement result = await this.LookupSymbolNameWithDisplacement(pointer);
             if (result.Displacement != 0) {
                 throw new DebuggerException(String.Format("Invalid symbol address: 0x{0:x8}", pointer));
@@ -342,7 +340,7 @@ namespace Core {
             return result.Symbol;
         }
 
-        private async Task<JsDbg.SSymbolNameResultAndDisplacement> LookupSymbolNameWithDisplacement(ulong pointer) {
+        private async Task<SSymbolNameResultAndDisplacement> LookupSymbolNameWithDisplacement(ulong pointer) {
             try {
                 SModule module = await this.debuggerEngine.GetModuleForAddress(pointer);
                 Dia2Lib.IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(module.Name);
@@ -387,6 +385,6 @@ namespace Core {
         #endregion
 
         private ITypeCacheDebuggerEngine debuggerEngine;
-        private JsDbg.TypeCache typeCache;
+        private TypeCache typeCache;
     }
 }

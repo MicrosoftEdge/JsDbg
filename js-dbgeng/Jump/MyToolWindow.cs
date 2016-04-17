@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Shell;
 
-namespace Sushraja.Jump
+namespace JsDbg.VisualStudio
 {
     /// <summary>
     /// This class implements the tool window exposed by this package and hosts a user control.
@@ -45,7 +45,7 @@ namespace Sushraja.Jump
             base.Content = control;
         }
 
-        public JsDbg.WebServer Webserver
+        public Core.WebServer Webserver
         {
             set { this.control.Webserver = value; }
         }

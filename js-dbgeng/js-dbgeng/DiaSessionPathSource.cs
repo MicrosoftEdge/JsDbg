@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Dia2Lib;
+using JsDbg.WinDbg;
 
-namespace JsDbg {
-    internal class DiaSessionPathSource : Core.IDiaSessionSource {
-        internal DiaSessionPathSource(WinDbgDebuggerRunner runner, SymbolCache symbolCache) {
+namespace JsDbg.Dia.WinDbg {
+    internal class DiaSessionPathSource : IDiaSessionSource {
+        internal DiaSessionPathSource(JsDbg.WinDbg.WinDbgDebuggerRunner runner, JsDbg.WinDbg.SymbolCache symbolCache) {
             this.runner = runner;
             this.symbolCache = symbolCache;
         }
@@ -25,7 +23,7 @@ namespace JsDbg {
             try {
                 symbolPath = this.symbolCache.GetModuleSymbolPath(moduleName);
             } catch (InvalidOperationException) {
-                throw new Core.DiaSourceNotReadyException();
+                throw new DiaSourceNotReadyException();
             }
             source.loadDataFromPdb(symbolPath);
             IDiaSession session;

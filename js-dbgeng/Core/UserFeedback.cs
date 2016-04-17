@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace JsDbg {
+namespace JsDbg.Core {
     public class UserFeedback {
         public UserFeedback(string location) {
             this.location = location;

@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace Sushraja.Jump {
+namespace JsDbg.VisualStudio {
     using System;
     
     
@@ -39,7 +39,7 @@ namespace Sushraja.Jump {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Sushraja.Jump.Resources", typeof(Resources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("JsDbg.VisualStudio.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -70,7 +70,7 @@ namespace Sushraja.Jump {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Jump.
+        ///   Looks up a localized string similar to JsDbg.
         /// </summary>
         internal static string ToolWindowTitle {
             get {

@@ -11,9 +11,8 @@ using System.Net.WebSockets;
 using System.Collections.Specialized;
 using System.Threading;
 using System.IO;
-using Core;
 
-namespace JsDbg {
+namespace JsDbg.Core {
     
     [DataContract]
     public class JsDbgExtension {
@@ -398,7 +397,7 @@ namespace JsDbg {
             try {
                 uint typeSize = await this.debugger.LookupTypeSize(module, type);
                 responseString = String.Format("{{ \"size\": {0} }}", typeSize);
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = String.Format("{{ \"error\": \"{0}\" }}", ex.Message);
             }
 
@@ -425,7 +424,7 @@ namespace JsDbg {
                 } else {
                     responseString = String.Format("{{ \"type\": \"{0}\", \"offset\": {1}, \"size\": {2} }}", result.TypeName, result.Offset, result.Size);
                 }
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -451,7 +450,7 @@ namespace JsDbg {
                     jsonFragments.Add(String.Format("{{ \"type\": \"{0}\", \"offset\": {1} }}", baseType.TypeName, baseType.Offset));
                 }
                 responseString = "[" + String.Join(",", jsonFragments) + "]";
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -543,7 +542,7 @@ namespace JsDbg {
                 }
 
                 responseString = String.Format("{{ \"value\": {0} }}", value);
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -601,7 +600,7 @@ namespace JsDbg {
                 }
 
                 responseString = "{ \"success\": true }";
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -660,7 +659,7 @@ namespace JsDbg {
                 }
 
                 responseString = String.Format("{{ \"array\": {0} }}", arrayString);
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -720,7 +719,7 @@ namespace JsDbg {
             try {
                 SSymbolNameResult symbolName = await this.debugger.LookupSymbolName(pointer);
                 responseString = String.Format("{{ \"module\": \"{0}\", \"name\": \"{1}\" }}", symbolName.Module, symbolName.Name);
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -739,7 +738,7 @@ namespace JsDbg {
             try {
                 SSymbolResult result = await this.debugger.LookupGlobalSymbol(module, symbol);
                 responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -769,7 +768,7 @@ namespace JsDbg {
                     jsonFragments.Add(String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type));
                 }
                 responseString = "[" + String.Join(",", jsonFragments) + "]";
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -788,7 +787,7 @@ namespace JsDbg {
             try {
                 bool isEnum = await this.debugger.IsTypeEnum(module, type);
                 responseString = String.Format("{{ \"isEnum\": {0} }}", isEnum ? "true" : "false");
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -817,7 +816,7 @@ namespace JsDbg {
             try {
                 SConstantResult constantResult = await this.debugger.LookupConstant(module, type, constant);
                 responseString = String.Format("{{ \"name\": \"{0}\" }}", constantResult.ConstantName);
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -837,7 +836,7 @@ namespace JsDbg {
             try {
                 SConstantResult constantResult = await this.debugger.LookupConstant(module, type, constantName);
                 responseString = String.Format("{{ \"value\": {0} }}", constantResult.Value); // TODO: requires 64-bit serialization
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -878,7 +877,7 @@ namespace JsDbg {
                 }
                 builder.Append("\n] }");
                 responseString = builder.ToString();
-            } catch (JsDbg.DebuggerException ex) {
+            } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
 
@@ -1277,7 +1276,7 @@ namespace JsDbg {
             }
         }
 
-        public void NotifyClientsOfDebuggerChange(JsDbg.DebuggerChangeEventArgs.DebuggerStatus status) {
+        public void NotifyClientsOfDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus status) {
             string message;
             if (status == DebuggerChangeEventArgs.DebuggerStatus.Break) {
                 message = "break";

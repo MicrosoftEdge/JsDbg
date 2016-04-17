@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace JsDbg {
+namespace JsDbg.WinDbg {
     class SymbolCache : IDisposable {
         internal struct SFieldTypeAndOffset {
             internal uint FieldTypeId;

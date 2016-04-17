@@ -3,7 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 
-namespace DeployJsDbg {
+namespace JsDbg.Deployment {
     class Program {
         static void Main(string[] args) {
             if (args.Length < 2) {

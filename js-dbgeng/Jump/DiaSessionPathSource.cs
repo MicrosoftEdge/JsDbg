@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Dia2Lib;
+using JsDbg.VisualStudio;
 
-namespace Sushraja.Jump {
-    class DiaSessionPathSource : Core.IDiaSessionSource {
+namespace JsDbg.Dia.VisualStudio {
+    class DiaSessionPathSource : IDiaSessionSource {
         internal DiaSessionPathSource(VsDebuggerRunner runner) {
             this.runner = runner;
         }
@@ -23,7 +24,7 @@ namespace Sushraja.Jump {
             try {
                 symbolPath = this.runner.GetModuleSymbolPath(moduleName);
             } catch {
-                throw new Core.DiaSourceNotReadyException();
+                throw new DiaSourceNotReadyException();
             }
             source.loadDataFromPdb(symbolPath);
             IDiaSession session;

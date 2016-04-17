@@ -1,15 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 
-namespace JsDbg {
+namespace JsDbg.WinDbg {
     [DataContract]
-    class JsDbgConfiguration : Core.IConfiguration {
+    class Configuration : Core.IConfiguration {
         [DataMember(IsRequired=true)]
         public string extension_root {
             get { return this._extension_root; }
@@ -22,11 +18,11 @@ namespace JsDbg {
             set { this._persistent_store_directory = value; }
         }
 
-        internal static JsDbgConfiguration Load() {
+        internal static Configuration Load() {
             string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
             string configurationPath = Path.Combine(Path.GetDirectoryName(assemblyPath), "configuration.json");
             using (FileStream file = new FileStream(configurationPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
-                return (JsDbgConfiguration)ConfigurationSerializer.ReadObject(file);
+                return (Configuration)ConfigurationSerializer.ReadObject(file);
             }
         }
 
@@ -56,7 +52,7 @@ namespace JsDbg {
             }
         }
 
-        private static DataContractJsonSerializer ConfigurationSerializer = new DataContractJsonSerializer(typeof(JsDbgConfiguration));
+        private static DataContractJsonSerializer ConfigurationSerializer = new DataContractJsonSerializer(typeof(Configuration));
 
         private string _extension_root;
         private string _persistent_store_directory;

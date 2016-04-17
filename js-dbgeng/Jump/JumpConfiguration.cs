@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 
-namespace Sushraja.Jump {
+namespace JsDbg.VisualStudio {
     class JumpConfiguration : Core.IConfiguration {
         internal static JumpConfiguration Load() {
             return new JumpConfiguration();

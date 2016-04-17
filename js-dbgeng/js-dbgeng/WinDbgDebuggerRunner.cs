@@ -4,17 +4,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Debuggers.DbgEng;
+using JsDbg.Dia.WinDbg;
+using JsDbg.Core;
 
-namespace JsDbg {
+namespace JsDbg.WinDbg {
     class WinDbgDebuggerRunner : IDisposable {
         public WinDbgDebuggerRunner(string connectionString, Core.IConfiguration configuration) {
             this.client = new DebugClient(connectionString);
             this.control = new DebugControl(this.client);
             this.symbolCache = new SymbolCache(this.client);
             this.dataSpaces = new DebugDataSpaces(this.client);
-            this.diaLoader = new Core.DiaSessionLoader(
+            this.diaLoader = new Dia.DiaSessionLoader(
                 configuration,
-                new Core.IDiaSessionSource[] { new DiaSessionPathSource(this, this.symbolCache), new DiaSessionModuleSource(this, this.symbolCache, this.dataSpaces) }
+                new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this, this.symbolCache), new DiaSessionModuleSource(this, this.symbolCache, this.dataSpaces) }
             );
             this.isShuttingDown = false;
             this.didShutdown = true;
@@ -108,9 +110,9 @@ namespace JsDbg {
         private Microsoft.Debuggers.DbgEng.DebugControl control;
         private Microsoft.Debuggers.DbgEng.DebugDataSpaces dataSpaces;
         private WinDbgDebuggerEngine engine;
-        private Core.TypeCacheDebugger debugger;
+        private TypeCacheDebugger debugger;
         private SymbolCache symbolCache;
-        private Core.DiaSessionLoader diaLoader;
+        private Dia.DiaSessionLoader diaLoader;
         private bool isShuttingDown;
         private bool didShutdown;
     }

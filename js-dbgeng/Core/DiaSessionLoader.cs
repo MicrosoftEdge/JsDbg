@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Dia2Lib;
 using System.IO;
 using System.Diagnostics;
+using JsDbg.Core;
 
-namespace Core {
+namespace JsDbg.Dia {
     public class DiaSessionLoader {
         public DiaSessionLoader(IConfiguration configuration, IEnumerable<IDiaSessionSource> sources) {
             this.configuration = configuration;
@@ -39,7 +38,7 @@ namespace Core {
                             return session;
                         }
                         break;
-                    } catch (JsDbg.DebuggerException) {
+                    } catch (DebuggerException) {
                         throw;
                     } catch (DiaSourceNotReadyException) {
                         // Try again.

@@ -1,20 +1,20 @@
 ﻿using System;
-
-using Microsoft.Debuggers.DbgEng;
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
+using JsDbg.Core;
+using JsDbg.Utilities;
 
-namespace JsDbg {
+namespace JsDbg.WinDbg {
     public class Program {      
 
         [STAThread]
         static int Main(string[] args) {
-            JsDbgConfiguration configuration = null;
+            Configuration configuration = null;
             try {
-                configuration = JsDbgConfiguration.Load();
+                configuration = Configuration.Load();
             } catch {
-                Console.WriteLine("The configuration.json file could not be read.  Please ensure that it is present in\n\n    {1}\n\nand has the following schema:\n\n{0}\n", JsDbgConfiguration.Schema, Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location));
+                Console.WriteLine("The configuration.json file could not be read.  Please ensure that it is present in\n\n    {1}\n\nand has the following schema:\n\n{0}\n", Configuration.Schema, Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location));
                 Console.Write("Press any key to exit...");
                 Console.ReadKey();
                 return -1;
@@ -72,7 +72,7 @@ namespace JsDbg {
                         syncContext.Complete();
                     });
 
-                    Core.BrowserLauncher.Launch(webServer.Url);
+                    BrowserLauncher.Launch(webServer.Url);
 
                     // Pressing ctrl-c kills the web server.
                     Task.Run(() => ReadKeysUntilAbort(webServer.Url)).ContinueWith((Task result) => {
@@ -96,7 +96,7 @@ namespace JsDbg {
             do {
                 ConsoleKeyInfo key = Console.ReadKey(/*intercept*/true);
                 if (key.Key == ConsoleKey.Enter) {
-                    Core.BrowserLauncher.Launch(url);
+                    BrowserLauncher.Launch(url);
                 } else if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control && key.Key == ConsoleKey.C) {
                     return;
                 }

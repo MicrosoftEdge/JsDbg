@@ -6,12 +6,13 @@ using System.Threading.Tasks;
 using JsDbg;
 using Microsoft.VisualStudio.Debugger.Interop;
 using Microsoft.VisualStudio.Shell.Interop;
+using JsDbg.Core;
 
-namespace Sushraja.Jump {
-    class VsDebuggerEngine : Core.ITypeCacheDebuggerEngine {
+namespace JsDbg.VisualStudio {
+    class VsDebuggerEngine : ITypeCacheDebuggerEngine {
         private const int S_OK = 0;
 
-        internal VsDebuggerEngine(VsDebuggerRunner runner, Core.DiaSessionLoader diaLoader) {
+        internal VsDebuggerEngine(VsDebuggerRunner runner, Dia.DiaSessionLoader diaLoader) {
             this.runner = runner;
             this.diaLoader = diaLoader;
         }
@@ -30,7 +31,7 @@ namespace Sushraja.Jump {
 
         #region ITypeCacheDebuggerEngine Members
 
-        public Core.DiaSessionLoader DiaLoader {
+        public Dia.DiaSessionLoader DiaLoader {
             get { return this.diaLoader; }
         }
 
@@ -159,29 +160,29 @@ namespace Sushraja.Jump {
             return results;
         }
 
-        public event JsDbg.DebuggerChangeEventHandler DebuggerChange;
+        public event DebuggerChangeEventHandler DebuggerChange;
 
         public event EventHandler BitnessChanged;
 
-        public Task<JsDbg.Type> GetTypeFromDebugger(string module, string typename) {
-            throw new JsDbg.DebuggerException("Cannot load types from the Visual Studio debugger directly.");
+        public Task<Core.Type> GetTypeFromDebugger(string module, string typename) {
+            throw new DebuggerException("Cannot load types from the Visual Studio debugger directly.");
         }
 
-        public Task<JsDbg.SSymbolResult> LookupGlobalSymbol(string module, string symbol) {
-            throw new JsDbg.DebuggerException("Cannot load symbols from the Visual Studio debugger directly.");
+        public Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol) {
+            throw new DebuggerException("Cannot load symbols from the Visual Studio debugger directly.");
         }
 
-        public Task<IEnumerable<JsDbg.SSymbolResult>> LookupLocalsInStackFrame(Core.SStackFrameWithContext stackFrameWithContext, string symbolName) {
-            throw new JsDbg.DebuggerException("Cannot load locals from the Visual Studio debugger directly.");
+        public Task<IEnumerable<SSymbolResult>> LookupLocalsInStackFrame(Core.SStackFrameWithContext stackFrameWithContext, string symbolName) {
+            throw new DebuggerException("Cannot load locals from the Visual Studio debugger directly.");
         }
 
-        public Task<JsDbg.SSymbolNameResultAndDisplacement> LookupSymbolName(ulong pointer) {
-            throw new JsDbg.DebuggerException("Cannot load symbols from the Visual Studio debugger directly.");
+        public Task<SSymbolNameResultAndDisplacement> LookupSymbolName(ulong pointer) {
+            throw new DebuggerException("Cannot load symbols from the Visual Studio debugger directly.");
         }
 
         #endregion
 
         private VsDebuggerRunner runner;
-        private Core.DiaSessionLoader diaLoader;
+        private Dia.DiaSessionLoader diaLoader;
     }
 }

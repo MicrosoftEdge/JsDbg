@@ -12,58 +12,43 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace Sushraja.Jump
-{
+namespace JsDbg.VisualStudio {
     /// <summary>
     /// Interaction logic for MyControl.xaml
     /// </summary>
-    public partial class MyControl : UserControl
-    {
-        public MyControl()
-        {
-            InitializeComponent(); 
+    public partial class MyControl : UserControl {
+        public MyControl() {
+            InitializeComponent();
         }
 
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Globalization", "CA1300:SpecifyMessageBoxOptions")]
-        private void serverControlButtonClick(object sender, RoutedEventArgs e)
-        {
-            if (webServer != null)
-            {
-                if (webServer.IsListening)
-                {
+        private void serverControlButtonClick(object sender, RoutedEventArgs e) {
+            if (webServer != null) {
+                if (webServer.IsListening) {
                     webServer.Abort();
-                }
-                else
-                {
+                } else {
                     var webServerTask = webServer.Listen();
                 }
                 this.UpdateUI();
             }
         }
 
-        private void MyToolWindow_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-        {
+        private void MyToolWindow_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e) {
             this.UpdateUI();
         }
-        
-        private void ServerURL_Click(object sender, RoutedEventArgs e)
-        {
+
+        private void ServerURL_Click(object sender, RoutedEventArgs e) {
             // Launch the browser.
             Core.BrowserLauncher.Launch(webServer.Url);
         }
 
-        private void UpdateUI()
-        {
-            if (webServer != null)
-            {
-                if (webServer.IsListening)
-                {
+        private void UpdateUI() {
+            if (webServer != null) {
+                if (webServer.IsListening) {
                     serverControlButton.Content = "Stop Server";
                     ServerStatus.Text = "Server is running";
                     ServerURL.Text = webServer.Url;
-                }
-                else
-                {
+                } else {
                     serverControlButton.Content = "Start Server";
                     ServerStatus.Text = "Server is not running";
                     ServerURL.Text = "";
@@ -72,50 +57,40 @@ namespace Sushraja.Jump
                 Microsoft.Win32.RegistryKey key;
                 key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("JumpVisualStudioExtension");
                 object keyValue = key.GetValue("AutoStartServer");
-                if (keyValue != null && keyValue.ToString() == "true")
-                {
+                if (keyValue != null && keyValue.ToString() == "true") {
                     startServerCheckBox.IsChecked = true;
-                }
-                else
-                {
+                } else {
                     startServerCheckBox.IsChecked = false;
                 }
                 key.Close();
             }
         }
 
-        public JsDbg.WebServer Webserver
-        {
-            set 
-            { 
+        public Core.WebServer Webserver {
+            set {
                 this.webServer = value;
                 Microsoft.Win32.RegistryKey key;
                 key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("JumpVisualStudioExtension");
                 object keyValue = key.GetValue("AutoStartServer");
-                if (keyValue != null && keyValue.ToString() == "true")
-                {
+                if (keyValue != null && keyValue.ToString() == "true") {
                     var webServerTask = webServer.Listen();
                 }
                 key.Close();
-                this.UpdateUI(); 
+                this.UpdateUI();
             }
         }
 
-        private void startServerCheckBox_Checked(object sender, RoutedEventArgs e)
-        {
+        private void startServerCheckBox_Checked(object sender, RoutedEventArgs e) {
             Microsoft.Win32.RegistryKey key;
             key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("JumpVisualStudioExtension");
-            if (startServerCheckBox.IsChecked == true)
-            {
-                key.SetValue("AutoStartServer", "true");                
-            }
-            else
-            {
-                key.SetValue("AutoStartServer", "false");                
+            if (startServerCheckBox.IsChecked == true) {
+                key.SetValue("AutoStartServer", "true");
+            } else {
+                key.SetValue("AutoStartServer", "false");
             }
             key.Close();
         }
 
-        JsDbg.WebServer webServer;
+        private Core.WebServer webServer;
     }
 }

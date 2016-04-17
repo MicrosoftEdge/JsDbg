@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Core {
+namespace JsDbg.Core {
     public interface IConfiguration {
         string ExtensionRoot { get; }
         string PersistentStoreDirectory { get; }

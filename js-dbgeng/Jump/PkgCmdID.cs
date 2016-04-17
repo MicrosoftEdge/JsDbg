@@ -2,7 +2,7 @@
 // MUST match PkgCmdID.h
 using System;
 
-namespace Sushraja.Jump
+namespace JsDbg.VisualStudio
 {
     static class PkgCmdIDList
     {

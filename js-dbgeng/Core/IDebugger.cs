@@ -2,13 +2,10 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace JsDbg
-{
-    public class DebuggerException : Exception
-    {
+namespace JsDbg.Core {
+    public class DebuggerException : Exception {
         public DebuggerException(string message)
-            : base(message)
-        {
+            : base(message) {
 
         }
 
@@ -17,34 +14,29 @@ namespace JsDbg
         }
     }
 
-    public struct SStackFrame
-    {
+    public struct SStackFrame {
         public ulong InstructionAddress;
         public ulong StackAddress;
         public ulong FrameAddress;
     }
 
-    public struct SSymbolNameResult
-    {
+    public struct SSymbolNameResult {
         public string Module;
         public string Name;
     }
 
-    public struct SSymbolNameResultAndDisplacement
-    {
+    public struct SSymbolNameResultAndDisplacement {
         public SSymbolNameResult Symbol;
         public ulong Displacement;
     }
-    
-    public struct SSymbolResult
-    {
+
+    public struct SSymbolResult {
         public ulong Pointer;
         public string Type;
         public string Module;
     }
 
-    public struct SFieldResult
-    {
+    public struct SFieldResult {
         public uint Offset;
         public uint Size;
         public byte BitOffset;
@@ -52,20 +44,17 @@ namespace JsDbg
         public string FieldName;
         public string TypeName;
 
-        public bool IsBitField
-        {
+        public bool IsBitField {
             get { return this.BitCount > 0; }
         }
     }
 
-    public struct SConstantResult
-    {
+    public struct SConstantResult {
         public ulong Value;
         public string ConstantName;
     }
 
-    public struct SBaseTypeResult
-    {
+    public struct SBaseTypeResult {
         public string TypeName;
         public int Offset;
     }
@@ -82,8 +71,7 @@ namespace JsDbg
 
     public delegate void DebuggerChangeEventHandler(object sender, DebuggerChangeEventArgs e);
 
-    public interface IDebugger
-    {
+    public interface IDebugger {
         event DebuggerChangeEventHandler DebuggerChange;
         void Dispose();
         Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes);

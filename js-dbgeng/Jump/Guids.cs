@@ -2,7 +2,7 @@
 // MUST match guids.h
 using System;
 
-namespace Sushraja.Jump
+namespace JsDbg.VisualStudio
 {
     static class GuidList
     {

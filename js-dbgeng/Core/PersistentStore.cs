@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace JsDbg {
+namespace JsDbg.Core {
     public class PersistentStore {
         private static Encoding Encoding {
             get { return Encoding.UTF8; }

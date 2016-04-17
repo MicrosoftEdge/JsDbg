@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Debuggers.DbgEng;
 using Dia2Lib;
+using JsDbg.WinDbg;
 
-namespace JsDbg {
-    class DiaSessionModuleSource : Core.IDiaSessionSource {
+namespace JsDbg.Dia.WinDbg {
+    class DiaSessionModuleSource : IDiaSessionSource {
         private class ModuleReader : IDiaReadExeAtRVACallback, IDiaLoadCallback {
             internal ModuleReader(SymbolCache symbolCache, DebugDataSpaces dataSpaces, string module) {
                 this.dataSpaces = dataSpaces;
@@ -71,7 +69,7 @@ namespace JsDbg {
             try {
                 source.loadDataForExe(moduleName, this.SymPath, new ModuleReader(this.symbolCache, this.dataSpaces, moduleName));
             } catch (InvalidOperationException) {
-                throw new Core.DiaSourceNotReadyException();
+                throw new DiaSourceNotReadyException();
             }
             IDiaSession session;
             source.openSession(out session);

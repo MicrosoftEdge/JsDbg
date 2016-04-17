@@ -2,7 +2,7 @@
 using System.IO;
 using System.IO.Compression;
 
-namespace JsDbgLauncher {
+namespace JsDbg.Launcher {
     class Program {
         static void Main(string[] args) {
             // Arguments: [package.zip] [JsDbg.exe arguments]

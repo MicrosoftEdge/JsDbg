@@ -5,11 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Debugger.Interop;
 using Microsoft.VisualStudio.Shell.Interop;
+using JsDbg.Dia.VisualStudio;
+using JsDbg.Core;
 
-namespace Sushraja.Jump {
+namespace JsDbg.VisualStudio {
     class VsDebuggerRunner : IDebugEventCallback2 {
         internal VsDebuggerRunner(Core.IConfiguration configuration) {
-            Core.DiaSessionLoader diaLoader = new Core.DiaSessionLoader(configuration, new Core.IDiaSessionSource[]{ new DiaSessionPathSource(this) });
+            Dia.DiaSessionLoader diaLoader = new Dia.DiaSessionLoader(configuration, new Dia.IDiaSessionSource[]{ new DiaSessionPathSource(this) });
             this.engine = new VsDebuggerEngine(this, diaLoader);
             this.debugger = new Core.TypeCacheDebugger(this.engine);
 
@@ -25,7 +27,7 @@ namespace Sushraja.Jump {
             if (this.dte == null) {
                 this.dte = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
                 while (this.dte == null) {
-                    this.engine.NotifyDebuggerChange(JsDbg.DebuggerChangeEventArgs.DebuggerStatus.Waiting);
+                    this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Waiting);
                     await Task.Delay(1000);
                     this.dte = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
                 }
@@ -105,7 +107,7 @@ namespace Sushraja.Jump {
                 isPointer64Bit = false;
                 dte = null;
             } else if (riidEvent == breakInEvent) {
-                this.engine.NotifyDebuggerChange(JsDbg.DebuggerChangeEventArgs.DebuggerStatus.Break);
+                this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Break);
             } else if (riidEvent == threadSwitchEvent) {
                 this.currentThread = pThread;
             }
@@ -150,7 +152,7 @@ namespace Sushraja.Jump {
             }
 
             if (moduleSymbolPath == null) {
-                throw new JsDbg.DebuggerException(String.Format("Unable to find symbols for module {0}", moduleName));
+                throw new DebuggerException(String.Format("Unable to find symbols for module {0}", moduleName));
             }
 
             return moduleSymbolPath;
@@ -176,7 +178,7 @@ namespace Sushraja.Jump {
             get { return this.currentThread; }
         }
 
-        internal JsDbg.IDebugger Debugger {
+        internal IDebugger Debugger {
             get { return this.debugger; }
         }
 

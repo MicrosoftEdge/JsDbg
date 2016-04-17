@@ -1,4 +1,4 @@
-﻿namespace Core {
+﻿namespace JsDbg.Core {
     public static class BrowserLauncher {
         public static void Launch(string url) {
             try {

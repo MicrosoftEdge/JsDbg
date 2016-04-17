@@ -1,11 +1,10 @@
 ﻿using System;   
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Debuggers.DbgEng;
+using JsDbg.Core;
 
-namespace JsDbg {
+namespace JsDbg.WinDbg {
     internal class DumpTypeParser {
         internal struct SField {
             internal uint Offset;

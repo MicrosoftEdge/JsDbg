@@ -9,7 +9,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
 
-namespace Sushraja.Jump
+namespace JsDbg.VisualStudio
 {
     /// <summary>
     /// This is the class that implements the package exposed by this assembly.
@@ -95,10 +95,10 @@ namespace Sushraja.Jump
             }
 
             JumpConfiguration configuration = JumpConfiguration.Load();
-            VsDebuggerRunner runner = new Sushraja.Jump.VsDebuggerRunner(configuration);
-            JsDbg.PersistentStore persistentStore = new JsDbg.PersistentStore(configuration.PersistentStoreDirectory);
-            JsDbg.UserFeedback userFeedback = new JsDbg.UserFeedback(System.IO.Path.Combine(configuration.PersistentStoreDirectory, "feedback"));
-            webServer = new JsDbg.WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot);
+            VsDebuggerRunner runner = new VsDebuggerRunner(configuration);
+            Core.PersistentStore persistentStore = new Core.PersistentStore(configuration.PersistentStoreDirectory);
+            Core.UserFeedback userFeedback = new Core.UserFeedback(System.IO.Path.Combine(configuration.PersistentStoreDirectory, "feedback"));
+            webServer = new Core.WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot);
             webServer.LoadExtension("default");
 
             MyToolWindow window = (MyToolWindow)this.FindToolWindow(typeof(MyToolWindow), 0, true);
@@ -119,11 +119,11 @@ namespace Sushraja.Jump
             this.ShowToolWindow(sender, e);
         }
 
-        public JsDbg.WebServer WebServer
+        public Core.WebServer WebServer
         {
             get { return this.webServer; }
         }
 
-        JsDbg.WebServer webServer;
+        private Core.WebServer webServer;
     }
 }

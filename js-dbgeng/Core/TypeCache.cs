@@ -1,15 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Dia2Lib;
-using System.Diagnostics;
-using System.IO;
-using System.Text.RegularExpressions;
 
-namespace JsDbg
-{
+namespace JsDbg.Core {
     #region Helper Structs
     public struct SField {
         public SField(uint offset, uint size, string typename, byte bitOffset, byte bitCount) {
@@ -50,7 +43,7 @@ namespace JsDbg
         public readonly string Name;
         public readonly int Offset;
     }
-   
+
     public class Type {
         public Type(string module, string name, uint size, bool isEnum, Dictionary<string, SField> fields, Dictionary<string, ulong> constants, List<SBaseType> baseTypes) {
             this.module = module;
@@ -154,7 +147,7 @@ namespace JsDbg
                 yield break;
             }
         }
-        
+
         public IEnumerable<SFieldResult> Fields(bool includeBaseTypes) {
             if (includeBaseTypes && this.baseTypes != null) {
                 foreach (SBaseType baseType in this.baseTypes) {
@@ -218,7 +211,7 @@ namespace JsDbg
         public long FrameOffset;
         public string Type;
     }
-#endregion
+    #endregion
 
     public class TypeCache {
         public TypeCache(bool isPointer64Bit) {

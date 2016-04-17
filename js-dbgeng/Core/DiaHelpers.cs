@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Dia2Lib;
 using System.Runtime.InteropServices;
 
-namespace JsDbg {
+namespace JsDbg.Dia {
     [ 
          ComImport, 
          Guid("8E3F80CA-7517-432a-BA07-285134AAEA8E"), 
