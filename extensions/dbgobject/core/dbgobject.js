@@ -770,12 +770,27 @@ Loader.OnLoad(function() {
         }
 
         var that = this;
-        return this.bigval()
+        return this.ubigval()
         // Lookup the constant name...
-        .then(function(value) { return jsDbgPromise(JsDbg.LookupConstantName, that.module, that.typename, value); })
+        .then(function(value) { 
+            return jsDbgPromise(JsDbg.LookupConstantName, that.module, that.typename, value); })
 
         // And return it.
         .then(function(result) { return result.name; })
+    }
+
+    DbgObject.prototype._help_hasConstantFlag = {
+        description: "Indicates if the enum has the given flag.",
+        returns: "A promise to a bool.",
+        arguments: [
+            {name: "flag", type: "string", description: "The enum value name to test."}
+        ]
+    }
+    DbgObject.prototype.hasConstantFlag = function(flag) {
+        return Promise.join([this.bigval(), DbgObject.constantValue(this.module, this.typename, flag)])
+        .then(function (valueAndFlag) {
+            return valueAndFlag[0].and(valueAndFlag[1]).equals(valueAndFlag[1]);
+        })
     }
 
     DbgObject.prototype._help_list = {
