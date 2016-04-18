@@ -151,6 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DiaSessionPathSource.cs" />
+    <Compile Include="DisposableComReference.cs" />
     <Compile Include="JumpConfiguration.cs" />
     <Compile Include="MyControl.xaml.cs">
       <DependentUpon>MyControl.xaml</DependentUpon>

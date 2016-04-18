@@ -8,6 +8,7 @@ using Microsoft.VisualStudio.Debugger.Interop;
 using Microsoft.VisualStudio.Shell.Interop;
 using JsDbg.Dia.VisualStudio;
 using JsDbg.Core;
+using JsDbg.Utilities;
 
 namespace JsDbg.VisualStudio {
     class DebuggerRunner : IDebugEventCallback2 {
@@ -54,150 +55,161 @@ namespace JsDbg.VisualStudio {
 
         private const int S_OK = 0;
 
-        private static void ReleaseIfNotNull<T>(ref T o) where T : class {
-            if (o != null) {
-                Marshal.ReleaseComObject(o);
-                o = null;
-            }
-        }
-
-        public int Event(IDebugEngine2 pEngine, IDebugProcess2 pProcess, IDebugProgram2 pProgram, IDebugThread2 pThread, IDebugEvent2 pEvent, ref Guid riidEvent, uint dwAttrib) {
+        public int Event(IDebugEngine2 engine, IDebugProcess2 process, IDebugProgram2 program, IDebugThread2 thread, IDebugEvent2 debugEvent, ref Guid riidEvent, uint attributes) {
             bool savedProgram = false;
             bool savedThread = false;
 
-            if (this.currentDebugProgram != pProgram && pProgram != null && pThread != null) {
-                // First we need to evaluate an expression to figure bitness and get a memory context.
-                ReleaseIfNotNull(ref this.currentThread);
-                this.currentThread = pThread;
+            if (this.currentDebugProgram != program && program != null && thread != null) {
+                // Evaluate an expression get access to the memory context and the bitness.
+                IDebugProperty2 debugProperty = this.EvaluateExpression(thread, "(void**)0x0 + 1");
+                if (debugProperty != null) {
+                    using (new DisposableComReference(debugProperty)) {
+                        DEBUG_PROPERTY_INFO[] debugPropertyInfo = new DEBUG_PROPERTY_INFO[1];
+                        if (debugProperty.GetPropertyInfo((uint)enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_VALUE, 16, evaluateExpressionTimeout, null, 0, debugPropertyInfo) == S_OK) {
+                            IDebugMemoryContext2 memoryContext = null;
+                            IDebugMemoryBytes2 memoryBytes = null;
+                            if (debugProperty.GetMemoryContext(out memoryContext) == S_OK && debugProperty.GetMemoryBytes(out memoryBytes) == S_OK) {
+                                DisposableComReference.SetReference(ref this.currentDebugProgram, program);
+                                DisposableComReference.SetReference(ref this.currentThread, thread);
+                                DisposableComReference.SetReference(ref this.memoryContext, memoryContext);
+                                DisposableComReference.SetReference(ref this.memoryBytes, memoryBytes);
+                                ulong offset = ulong.Parse(debugPropertyInfo[0].bstrValue.Substring("0x".Length), System.Globalization.NumberStyles.AllowHexSpecifier);
 
-                // Capture a IDebugExpression2 interface inorder to do that.
-                IEnumDebugFrameInfo2 debugFrameEnumerator;
-                if (pThread.EnumFrameInfo((uint)enum_FRAMEINFO_FLAGS.FIF_FRAME, decimalBaseRadix, out debugFrameEnumerator) == S_OK) {
-                    debugFrameEnumerator.Reset();
-                    uint cFrames;
-                    if (debugFrameEnumerator.GetCount(out cFrames) == S_OK) {
-                        FRAMEINFO[] frameInfo = new FRAMEINFO[cFrames];
-                        if (debugFrameEnumerator.Next(cFrames, frameInfo, ref cFrames) == S_OK) {
-                            for (int i = 0; i < frameInfo.Length; i++) {
-                                if (frameInfo[i].m_pFrame != null) {
-                                    IDebugExpressionContext2 debugExpressionContext;
-                                    if (frameInfo[i].m_pFrame.GetExpressionContext(out debugExpressionContext) == S_OK) {
-                                        IDebugExpression2 debugExpression;
-                                        string errorString;
-                                        uint errorIndex;
+                                // Adjust the memory context and calculate the bitness.
+                                this.memoryContext.Subtract(offset, out memoryContext);
+                                DisposableComReference.SetReference(ref this.memoryContext, memoryContext);
+                                this.isPointer64Bit = (offset == 8);
 
-                                        // Evaluate an expression to capture a memory context of 0x0000000 pointer.
-                                        if (debugExpressionContext.ParseText("(int*)0x0", (uint)enum_PARSEFLAGS.PARSE_EXPRESSION, decimalBaseRadix, out debugExpression, out errorString, out errorIndex) == S_OK) {
-                                            IDebugProperty2 debugProperty;
-                                            if (debugExpression.EvaluateSync((uint)enum_EVALFLAGS.EVAL_NOSIDEEFFECTS, evaluateExpressionTimeout, null, out debugProperty) == S_OK) {
-                                                if (debugProperty.GetMemoryContext(out this.memoryContext) == S_OK &&
-                                                    debugProperty.GetMemoryBytes(out this.memoryBytes) == S_OK) {
-                                                    // Evaluate the expression for pointer size.
-                                                    if (debugExpressionContext.ParseText("sizeof(void*)", (uint)enum_PARSEFLAGS.PARSE_EXPRESSION, decimalBaseRadix, out debugExpression, out errorString, out errorIndex) == S_OK) {
-                                                        if (debugExpression.EvaluateSync((uint)enum_EVALFLAGS.EVAL_NOSIDEEFFECTS, evaluateExpressionTimeout, null, out debugProperty) == S_OK) {
-                                                            DEBUG_PROPERTY_INFO[] debugPropertyInfo = new DEBUG_PROPERTY_INFO[1];
-                                                            if (debugProperty.GetPropertyInfo((uint)enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_VALUE, decimalBaseRadix, evaluateExpressionTimeout, null, 0, debugPropertyInfo) == S_OK) {
-                                                                // Initialize program/pointersize/typecache.
-                                                                ReleaseIfNotNull(ref this.currentDebugProgram);
-                                                                this.currentDebugProgram = pProgram;
-                                                                this.engine.DiaLoader = this.CreateDiaLoader();
-                                                                savedProgram = true;
-                                                                if (debugPropertyInfo[0].bstrValue == "4") {
-                                                                    this.isPointer64Bit = false;
-                                                                } else {
-                                                                    this.isPointer64Bit = true;
-                                                                }
-                                                                this.engine.NotifyBitnessChanged();
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-
-                                            ReleaseIfNotNull(ref debugProperty);
-                                        }
-
-                                        ReleaseIfNotNull(ref debugExpression);
-                                        ReleaseIfNotNull(ref debugExpressionContext);
-                                        break;
-                                    }
-                                }
+                                this.engine.NotifyBitnessChanged();
+                                this.engine.DiaLoader = this.CreateDiaLoader();
+                                savedProgram = true;
+                                savedThread = true;
+                            } else {
+                                DisposableComReference.ReleaseIfNotNull(ref memoryContext);
+                                DisposableComReference.ReleaseIfNotNull(ref memoryBytes);
                             }
                         }
                     }
                 }
             } else if (riidEvent == stopDebugEvent) {
-                ReleaseIfNotNull(ref this.currentDebugProgram);
-                ReleaseIfNotNull(ref this.memoryContext);
-                ReleaseIfNotNull(ref this.memoryBytes);
-                ReleaseIfNotNull(ref this.dte);
-                isPointer64Bit = false;
+                // The debugger stopped.  Clear the references.
+                DisposableComReference.ReleaseIfNotNull(ref this.currentDebugProgram);
+                DisposableComReference.ReleaseIfNotNull(ref this.memoryContext);
+                DisposableComReference.ReleaseIfNotNull(ref this.memoryBytes);
+                DisposableComReference.ReleaseIfNotNull(ref this.dte);
                 this.engine.DiaLoader = this.CreateDiaLoader();
             } else if (riidEvent == breakInEvent) {
+                // The debugger broke in, notify the client.
                 this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Break);
             } else if (riidEvent == threadSwitchEvent) {
-                ReleaseIfNotNull(ref this.currentThread);
-                this.currentThread = pThread;
+                // The user switched the current thread.
+                DisposableComReference.SetReference(ref this.currentThread, thread);
                 savedThread = true;
             }
 
             if (!savedProgram) {
-                ReleaseIfNotNull(ref pProgram);
+                DisposableComReference.ReleaseIfNotNull(ref program);
             }
             if (!savedThread) {
-                ReleaseIfNotNull(ref pThread);
+                DisposableComReference.ReleaseIfNotNull(ref thread);
             }
-            ReleaseIfNotNull(ref pEngine);
-            ReleaseIfNotNull(ref pProcess);
-            ReleaseIfNotNull(ref pEvent);
+            DisposableComReference.ReleaseIfNotNull(ref engine);
+            DisposableComReference.ReleaseIfNotNull(ref process);
+            DisposableComReference.ReleaseIfNotNull(ref debugEvent);
 
             return S_OK;
         }
 
+        private IDebugProperty2 EvaluateExpression(IDebugThread2 thread, string expression) {
+            // Capture a IDebugExpression2 interface inorder to do that.
+            IEnumDebugFrameInfo2 debugFrameEnumerator;
+            if (thread.EnumFrameInfo((uint)enum_FRAMEINFO_FLAGS.FIF_FRAME, decimalBaseRadix, out debugFrameEnumerator) != S_OK) {
+                return null;
+            }
+
+            IDebugExpressionContext2 expressionContext = null;
+            using (new DisposableComReference(debugFrameEnumerator)) {
+                debugFrameEnumerator.Reset();
+
+                uint frameCount;
+                if (debugFrameEnumerator.GetCount(out frameCount) != S_OK) {
+                    return null;
+                }
+
+                FRAMEINFO[] frameInfo = new FRAMEINFO[frameCount];
+                if (debugFrameEnumerator.Next(frameCount, frameInfo, ref frameCount) != S_OK) {
+                    return null;
+                }
+
+                for (int i = 0; i < frameInfo.Length; i++) {
+                    if (frameInfo[i].m_pFrame != null && frameInfo[i].m_pFrame.GetExpressionContext(out expressionContext) == S_OK) {
+                        break;
+                    }
+                }
+            }
+
+            using (new DisposableComReference(expressionContext)) {
+                IDebugExpression2 debugExpression;
+                string errorString;
+                uint errorIndex;
+
+                if (expressionContext.ParseText(expression, (uint)enum_PARSEFLAGS.PARSE_EXPRESSION, decimalBaseRadix, out debugExpression, out errorString, out errorIndex) != S_OK) {
+                    return null;
+                }
+
+                using (new DisposableComReference(debugExpression)) {
+                    IDebugProperty2 debugProperty;
+                    if (debugExpression.EvaluateSync((uint)enum_EVALFLAGS.EVAL_NOSIDEEFFECTS, evaluateExpressionTimeout, null, out debugProperty) == S_OK) {
+                        return debugProperty;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         internal string GetModuleSymbolPath(string moduleName) {
-            string moduleSymbolPath = null;
+            string result = this.GetModuleSymbolPathInternal(moduleName);
+            if (result == null) {
+                throw new DebuggerException(String.Format("Unable to find symbols for module {0}", moduleName));
+            }
+            return result;
+        }
+
+        private string GetModuleSymbolPathInternal(string moduleName) {
             IEnumDebugModules2 debugModulesEnumerator;
-            if (currentDebugProgram.EnumModules(out debugModulesEnumerator) == S_OK) {
+            if (currentDebugProgram.EnumModules(out debugModulesEnumerator) != S_OK) {
+                return null;
+            }
+
+            using (new DisposableComReference(debugModulesEnumerator)) {
                 debugModulesEnumerator.Reset();
                 IDebugModule2[] debugModuleArray = new IDebugModule2[1];
-                uint cModules = 0;
-                while (debugModulesEnumerator.Next(1, debugModuleArray, ref cModules) == S_OK && cModules > 0) {
-                    IDebugModule2 debugModule2 = debugModuleArray[0];
-                    MODULE_INFO[] moduleInfo = new MODULE_INFO[1];
-                    if (debugModule2.GetInfo((uint)enum_MODULE_INFO_FIELDS.MIF_NAME, moduleInfo) == S_OK) {
-                        string suffixedModuleName = moduleInfo[0].m_bstrName;
-                        string bareModuleName = suffixedModuleName.Substring(0, suffixedModuleName.LastIndexOf('.'));
-                        if (bareModuleName == moduleName) {
-                            IDebugModule3 debugModule3 = null;
-                            IntPtr debugModule2ComInterface = System.Runtime.InteropServices.Marshal.GetIUnknownForObject(debugModule2);
-                            IntPtr debugModule3ComInterface;
-                            if (Marshal.QueryInterface(debugModule2ComInterface, ref debugModule3Guid, out debugModule3ComInterface) == S_OK) {
-                                debugModule3 = (IDebugModule3)System.Runtime.InteropServices.Marshal.GetObjectForIUnknown(debugModule3ComInterface);
-
+                uint moduleCount = 0;
+                while (debugModulesEnumerator.Next(1, debugModuleArray, ref moduleCount) == S_OK && moduleCount > 0) {
+                    IDebugModule2 debugModule = debugModuleArray[0];
+                    using (new DisposableComReference(debugModule)) {
+                        MODULE_INFO[] moduleInfo = new MODULE_INFO[1];
+                        if (debugModule.GetInfo((uint)enum_MODULE_INFO_FIELDS.MIF_NAME, moduleInfo) == S_OK) {
+                            string suffixedModuleName = moduleInfo[0].m_bstrName;
+                            string bareModuleName = suffixedModuleName.Substring(0, suffixedModuleName.LastIndexOf('.'));
+                            if (bareModuleName == moduleName) {
                                 MODULE_SYMBOL_SEARCH_INFO[] symbolSearchInfo = new MODULE_SYMBOL_SEARCH_INFO[1];
-                                if (debugModule3.GetSymbolInfo((uint)enum_SYMBOL_SEARCH_INFO_FIELDS.SSIF_VERBOSE_SEARCH_INFO, symbolSearchInfo) == S_OK) {
+                                if (((IDebugModule3)debugModule).GetSymbolInfo((uint)enum_SYMBOL_SEARCH_INFO_FIELDS.SSIF_VERBOSE_SEARCH_INFO, symbolSearchInfo) == S_OK) {
                                     string symbolInfo = symbolSearchInfo[0].bstrVerboseSearchInfo;
                                     int indexOfSymbolLoaded = symbolInfo.IndexOf(": Symbols loaded");
                                     if (indexOfSymbolLoaded >= 0 && indexOfSymbolLoaded < symbolInfo.Length) {
-                                        moduleSymbolPath = symbolInfo.Substring(0, indexOfSymbolLoaded);
-                                        moduleSymbolPath = moduleSymbolPath.Substring(moduleSymbolPath.LastIndexOf('\n') + 1);
+                                        string moduleSymbolPath = symbolInfo.Substring(0, indexOfSymbolLoaded);
+                                        return moduleSymbolPath.Substring(moduleSymbolPath.LastIndexOf('\n') + 1);
                                     }
                                 }
                             }
-                            ReleaseIfNotNull(ref debugModule3);
-                            break;
                         }
                     }
                 }
-                ReleaseIfNotNull(ref debugModuleArray[0]);
-            }
-            ReleaseIfNotNull(ref debugModulesEnumerator);
-
-            if (moduleSymbolPath == null) {
-                throw new DebuggerException(String.Format("Unable to find symbols for module {0}", moduleName));
             }
 
-            return moduleSymbolPath;
+            return null;
         }
 
         internal bool IsPointer64Bit {
