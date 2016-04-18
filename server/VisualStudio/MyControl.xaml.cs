@@ -80,7 +80,7 @@ namespace JsDbg.VisualStudio {
             }
         }
 
-        private void startServerCheckBox_Checked(object sender, RoutedEventArgs e) {
+        private void startServerCheckBox_Changed(object sender, RoutedEventArgs e) {
             Microsoft.Win32.RegistryKey key;
             key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("JumpVisualStudioExtension");
             if (startServerCheckBox.IsChecked == true) {

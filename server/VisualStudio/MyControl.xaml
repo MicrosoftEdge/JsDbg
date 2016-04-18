@@ -12,7 +12,7 @@
         <StackPanel Orientation="Vertical">            
             <TextBlock Margin="20"><Run Name="ServerStatus">Server not loaded</Run> <Hyperlink Click="ServerURL_Click"><Run Name="ServerURL"></Run></Hyperlink></TextBlock>
             <WrapPanel HorizontalAlignment="Stretch">
-                <CheckBox Content="Start Server on launch" Margin="20" Name="startServerCheckBox" Checked="startServerCheckBox_Checked"/>
+                <CheckBox Content="Start Server on launch" Margin="20" Name="startServerCheckBox" Checked="startServerCheckBox_Changed" Unchecked="startServerCheckBox_Changed"/>
                 <Grid Width="30"></Grid>
                 <Button Content="Start Server" Click="serverControlButtonClick" Height="37" x:Name="serverControlButton" HorizontalAlignment="Right" Padding="10"/>
             </WrapPanel>
