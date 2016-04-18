@@ -38,7 +38,8 @@ namespace JsDbg.VisualStudio {
         }
 
         public async Task<Core.SModule> GetModuleForAddress(ulong address) {
-            return await this.GetModuleForPredicate(
+            await this.runner.WaitForBreakIn();
+            return this.GetModuleForPredicate(
                 (MODULE_INFO moduleInfo) => {
                     return moduleInfo.m_addrLoadAddress <= address && moduleInfo.m_addrLoadAddress + moduleInfo.m_dwSize > address;
                 },
@@ -47,7 +48,17 @@ namespace JsDbg.VisualStudio {
         }
 
         public async Task<Core.SModule> GetModuleForName(string module) {
-            return await this.GetModuleForPredicate(
+            await this.runner.WaitForBreakIn();
+            return this.GetModuleForPredicate(
+                (MODULE_INFO moduleInfo) => {
+                    return StripModuleSuffix(moduleInfo.m_bstrName) == module;
+                },
+                String.Format("Unknown module: {0}", module)
+            );
+        }
+
+        public Core.SModule GetModuleForNameSync(string module) {
+            return this.GetModuleForPredicate(
                 (MODULE_INFO moduleInfo) => {
                     return StripModuleSuffix(moduleInfo.m_bstrName) == module;
                 },
@@ -59,9 +70,7 @@ namespace JsDbg.VisualStudio {
             return name.Substring(0, name.LastIndexOf('.'));
         }
 
-        private async Task<Core.SModule> GetModuleForPredicate(Func<MODULE_INFO, bool> predicate, string errorMessage) {
-            await this.runner.WaitForBreakIn();
-
+        private Core.SModule GetModuleForPredicate(Func<MODULE_INFO, bool> predicate, string errorMessage) {
             IEnumDebugModules2 debugModulesEnumerator;
             if (this.runner.CurrentDebugProgram.EnumModules(out debugModulesEnumerator) == S_OK) {
                 using (new DisposableComReference(debugModulesEnumerator)) {
@@ -85,9 +94,7 @@ namespace JsDbg.VisualStudio {
             throw new DebuggerException(errorMessage);
         }
 
-        private async Task<byte[]> ReadByteArray(ulong pointer, ulong size) {
-            await this.runner.WaitForBreakIn();
-
+        private byte[] ReadByteArray(ulong pointer, ulong size) {
             IDebugMemoryContext2 memoryContextTarget;
             this.runner.CurrentMemoryContext.Add(pointer, out memoryContextTarget);
 
@@ -104,9 +111,14 @@ namespace JsDbg.VisualStudio {
         }
 
         public async Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct {
+            await this.runner.WaitForBreakIn();
+            return this.ReadArraySync<T>(pointer, size);
+        }
+
+        public T[] ReadArraySync<T>(ulong pointer, ulong size) where T: struct {
             ulong typeSize = (ulong)System.Runtime.InteropServices.Marshal.SizeOf(typeof(T));
             ulong byteSize = size * typeSize;
-            byte[] memory = await this.ReadByteArray(pointer, byteSize);
+            byte[] memory = this.ReadByteArray(pointer, byteSize);
 
             T[] result = new T[size];
             System.Runtime.InteropServices.GCHandle gcHandle = System.Runtime.InteropServices.GCHandle.Alloc(result, System.Runtime.InteropServices.GCHandleType.Pinned);

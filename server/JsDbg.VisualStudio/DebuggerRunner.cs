@@ -27,7 +27,7 @@ namespace JsDbg.VisualStudio {
         }
 
         private Dia.DiaSessionLoader CreateDiaLoader() {
-            return new Dia.DiaSessionLoader(this.configuration, new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this) });
+            return new Dia.DiaSessionLoader(this.configuration, new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this), new DiaSessionModuleSource(this, this.engine) });
         }
 
         public async Task WaitForBreakIn() {

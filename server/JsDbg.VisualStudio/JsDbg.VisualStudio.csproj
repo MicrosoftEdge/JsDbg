@@ -150,6 +150,7 @@
     </COMReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DiaSessionModuleSource.cs" />
     <Compile Include="DiaSessionPathSource.cs" />
     <Compile Include="DisposableComReference.cs" />
     <Compile Include="JumpConfiguration.cs" />
