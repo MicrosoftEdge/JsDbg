@@ -42,7 +42,7 @@ namespace JsDbg.Deployment {
             File.Copy(Path.Combine(repositoryRoot, "server", "configurations", "deployment.json"), Path.Combine(temporaryPath, "configuration.json"));
 
             // Copy the JsDbg binaries.
-            string binaryPath = Path.Combine(repositoryRoot, "server", "WinDbg", "bin", "x86", "Release");
+            string binaryPath = Path.Combine(repositoryRoot, "server", "JsDg.WinDbg", "bin", "x86", "Release");
             var binaryDirectory = new DirectoryInfo(binaryPath);
             foreach (var file in binaryDirectory.GetFiles("*.dll").Concat(binaryDirectory.GetFiles("JsDbg.exe"))) {
                 File.Copy(file.FullName, Path.Combine(temporaryPath, file.Name));
