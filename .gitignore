@@ -1,11 +1,3 @@
-server/*/obj/*
-server/*/bin/*
 persistent/
-*.user
-*.suo
 *.sublime-workspace
-*.opensdf
-*.sdf
-*.VC.opendb
-*.VC.db
 *.tmp.*

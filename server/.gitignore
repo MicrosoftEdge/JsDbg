@@ -1,1 +1,9 @@
 packages/
+*/obj/*
+*/bin/*
+*.user
+*.suo
+*.opensdf
+*.sdf
+*.VC.opendb
+*.VC.db
