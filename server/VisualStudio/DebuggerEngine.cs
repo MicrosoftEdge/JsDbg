@@ -9,10 +9,10 @@ using Microsoft.VisualStudio.Shell.Interop;
 using JsDbg.Core;
 
 namespace JsDbg.VisualStudio {
-    class VsDebuggerEngine : ITypeCacheDebuggerEngine {
+    class DebuggerEngine : ITypeCacheDebuggerEngine {
         private const int S_OK = 0;
 
-        internal VsDebuggerEngine(VsDebuggerRunner runner, Dia.DiaSessionLoader diaLoader) {
+        internal DebuggerEngine(DebuggerRunner runner, Dia.DiaSessionLoader diaLoader) {
             this.runner = runner;
             this.diaLoader = diaLoader;
         }
@@ -182,7 +182,7 @@ namespace JsDbg.VisualStudio {
 
         #endregion
 
-        private VsDebuggerRunner runner;
+        private DebuggerRunner runner;
         private Dia.DiaSessionLoader diaLoader;
     }
 }

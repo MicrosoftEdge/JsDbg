@@ -8,8 +8,8 @@ using JsDbg.Dia.WinDbg;
 using JsDbg.Core;
 
 namespace JsDbg.WinDbg {
-    class WinDbgDebuggerRunner : IDisposable {
-        public WinDbgDebuggerRunner(string connectionString, Core.IConfiguration configuration) {
+    class DebuggerRunner : IDisposable {
+        public DebuggerRunner(string connectionString, Core.IConfiguration configuration) {
             this.client = new DebugClient(connectionString);
             this.control = new DebugControl(this.client);
             this.symbolCache = new SymbolCache(this.client);
@@ -20,7 +20,7 @@ namespace JsDbg.WinDbg {
             );
             this.isShuttingDown = false;
             this.didShutdown = true;
-            this.engine = new WinDbgDebuggerEngine(this, this.client, this.control, this.diaLoader);
+            this.engine = new DebuggerEngine(this, this.client, this.control, this.diaLoader);
             this.debugger = new Core.TypeCacheDebugger(this.engine);
         }
 
@@ -109,7 +109,7 @@ namespace JsDbg.WinDbg {
         private Microsoft.Debuggers.DbgEng.DebugClient client;
         private Microsoft.Debuggers.DbgEng.DebugControl control;
         private Microsoft.Debuggers.DbgEng.DebugDataSpaces dataSpaces;
-        private WinDbgDebuggerEngine engine;
+        private DebuggerEngine engine;
         private TypeCacheDebugger debugger;
         private SymbolCache symbolCache;
         private Dia.DiaSessionLoader diaLoader;

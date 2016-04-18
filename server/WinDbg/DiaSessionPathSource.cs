@@ -5,7 +5,7 @@ using JsDbg.WinDbg;
 
 namespace JsDbg.Dia.WinDbg {
     internal class DiaSessionPathSource : IDiaSessionSource {
-        internal DiaSessionPathSource(JsDbg.WinDbg.WinDbgDebuggerRunner runner, JsDbg.WinDbg.SymbolCache symbolCache) {
+        internal DiaSessionPathSource(JsDbg.WinDbg.DebuggerRunner runner, JsDbg.WinDbg.SymbolCache symbolCache) {
             this.runner = runner;
             this.symbolCache = symbolCache;
         }
@@ -33,7 +33,7 @@ namespace JsDbg.Dia.WinDbg {
 
         #endregion
 
-        private WinDbgDebuggerRunner runner;
+        private DebuggerRunner runner;
         private SymbolCache symbolCache;
     }
 }

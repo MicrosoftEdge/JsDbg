@@ -9,10 +9,10 @@ using JsDbg.Dia.VisualStudio;
 using JsDbg.Core;
 
 namespace JsDbg.VisualStudio {
-    class VsDebuggerRunner : IDebugEventCallback2 {
-        internal VsDebuggerRunner(Core.IConfiguration configuration) {
+    class DebuggerRunner : IDebugEventCallback2 {
+        internal DebuggerRunner(Core.IConfiguration configuration) {
             Dia.DiaSessionLoader diaLoader = new Dia.DiaSessionLoader(configuration, new Dia.IDiaSessionSource[]{ new DiaSessionPathSource(this) });
-            this.engine = new VsDebuggerEngine(this, diaLoader);
+            this.engine = new DebuggerEngine(this, diaLoader);
             this.debugger = new Core.TypeCacheDebugger(this.engine);
 
             IVsDebugger debugService = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsShellDebugger)) as IVsDebugger;
@@ -185,7 +185,7 @@ namespace JsDbg.VisualStudio {
         #endregion
 
         Core.TypeCacheDebugger debugger;
-        VsDebuggerEngine engine;
+        DebuggerEngine engine;
         IDebugProgram2 currentDebugProgram;
         IDebugMemoryContext2 memoryContext;
         IDebugMemoryBytes2 memoryBytes;

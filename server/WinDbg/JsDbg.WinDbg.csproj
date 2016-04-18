@@ -73,13 +73,13 @@
     <Compile Include="DiaSessionModuleSource.cs" />
     <Compile Include="DumpTypeParser.cs" />
     <Compile Include="DiaSessionPathSource.cs" />
-    <Compile Include="JsDbgConfiguration.cs" />
+    <Compile Include="Configuration.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SingleThreadSynchronizationContext.cs" />
     <Compile Include="SymbolCache.cs" />
-    <Compile Include="WinDbgDebuggerEngine.cs" />
-    <Compile Include="WinDbgDebuggerRunner.cs" />
+    <Compile Include="DebuggerEngine.cs" />
+    <Compile Include="DebuggerRunner.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -8,7 +8,7 @@ using JsDbg.VisualStudio;
 
 namespace JsDbg.Dia.VisualStudio {
     class DiaSessionPathSource : IDiaSessionSource {
-        internal DiaSessionPathSource(VsDebuggerRunner runner) {
+        internal DiaSessionPathSource(DebuggerRunner runner) {
             this.runner = runner;
         }
 
@@ -34,6 +34,6 @@ namespace JsDbg.Dia.VisualStudio {
 
         #endregion
 
-        private VsDebuggerRunner runner;
+        private DebuggerRunner runner;
     }
 }

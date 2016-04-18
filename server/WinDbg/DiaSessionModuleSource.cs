@@ -44,7 +44,7 @@ namespace JsDbg.Dia.WinDbg {
             #endregion
         }
 
-        internal DiaSessionModuleSource(WinDbgDebuggerRunner runner, SymbolCache symbolCache, DebugDataSpaces dataSpaces) {
+        internal DiaSessionModuleSource(DebuggerRunner runner, SymbolCache symbolCache, DebugDataSpaces dataSpaces) {
             this.runner = runner;
             this.symbolCache = symbolCache;
             this.dataSpaces = dataSpaces;
@@ -78,7 +78,7 @@ namespace JsDbg.Dia.WinDbg {
 
         #endregion
 
-        private WinDbgDebuggerRunner runner;
+        private DebuggerRunner runner;
         private SymbolCache symbolCache;
         private DebugDataSpaces dataSpaces;
     }

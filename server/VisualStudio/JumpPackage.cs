@@ -95,7 +95,7 @@ namespace JsDbg.VisualStudio
             }
 
             JumpConfiguration configuration = JumpConfiguration.Load();
-            VsDebuggerRunner runner = new VsDebuggerRunner(configuration);
+            DebuggerRunner runner = new DebuggerRunner(configuration);
             Core.PersistentStore persistentStore = new Core.PersistentStore(configuration.PersistentStoreDirectory);
             Core.UserFeedback userFeedback = new Core.UserFeedback(System.IO.Path.Combine(configuration.PersistentStoreDirectory, "feedback"));
             webServer = new Core.WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot);

@@ -7,8 +7,8 @@ using Microsoft.Debuggers.DbgEng;
 using JsDbg.Core;
 
 namespace JsDbg.WinDbg {
-    class WinDbgDebuggerEngine : ITypeCacheDebuggerEngine {
-        public WinDbgDebuggerEngine(WinDbgDebuggerRunner runner, DebugClient client, DebugControl control, Dia.DiaSessionLoader diaLoader) {
+    class DebuggerEngine : ITypeCacheDebuggerEngine {
+        public DebuggerEngine(DebuggerRunner runner, DebugClient client, DebugControl control, Dia.DiaSessionLoader diaLoader) {
             this.runner = runner;
             this.client = client;
             this.client.OutputMask = OutputModes.Normal;
@@ -370,7 +370,7 @@ namespace JsDbg.WinDbg {
 
         #endregion
 
-        private WinDbgDebuggerRunner runner;
+        private DebuggerRunner runner;
         private Microsoft.Debuggers.DbgEng.DebugClient client;
         private Microsoft.Debuggers.DbgEng.DebugControl control;
         private Microsoft.Debuggers.DbgEng.DebugDataSpaces dataSpaces;
