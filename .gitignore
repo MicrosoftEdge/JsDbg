@@ -1,5 +1,5 @@
-js-dbgeng/*/obj/*
-js-dbgeng/*/bin/*
+server/*/obj/*
+server/*/bin/*
 persistent/
 *.user
 *.suo
