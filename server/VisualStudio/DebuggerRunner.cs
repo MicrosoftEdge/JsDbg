@@ -39,6 +39,7 @@ namespace JsDbg.VisualStudio {
                 this.memoryContext == null ||
                 dte.Debugger.CurrentMode != EnvDTE.dbgDebugMode.dbgBreakMode
             ) {
+                this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Waiting);
                 await Task.Delay(1000);
             }
         }
