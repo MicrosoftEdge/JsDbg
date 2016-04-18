@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Debugger.Interop;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -11,8 +12,9 @@ using JsDbg.Core;
 namespace JsDbg.VisualStudio {
     class DebuggerRunner : IDebugEventCallback2 {
         internal DebuggerRunner(Core.IConfiguration configuration) {
-            Dia.DiaSessionLoader diaLoader = new Dia.DiaSessionLoader(configuration, new Dia.IDiaSessionSource[]{ new DiaSessionPathSource(this) });
-            this.engine = new DebuggerEngine(this, diaLoader);
+            this.configuration = configuration;
+            this.engine = new DebuggerEngine(this);
+            this.engine.DiaLoader = this.CreateDiaLoader();
             this.debugger = new Core.TypeCacheDebugger(this.engine);
 
             IVsDebugger debugService = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsShellDebugger)) as IVsDebugger;
@@ -21,6 +23,10 @@ namespace JsDbg.VisualStudio {
                 // Assumes the current class implements IVsDebuggerEvents.
                 debugService.AdviseDebugEventCallback(this);
             }
+        }
+
+        private Dia.DiaSessionLoader CreateDiaLoader() {
+            return new Dia.DiaSessionLoader(this.configuration, new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this) });
         }
 
         public async Task WaitForBreakIn() {
@@ -48,9 +54,20 @@ namespace JsDbg.VisualStudio {
 
         private const int S_OK = 0;
 
+        private static void ReleaseIfNotNull<T>(ref T o) where T : class {
+            if (o != null) {
+                Marshal.ReleaseComObject(o);
+                o = null;
+            }
+        }
+
         public int Event(IDebugEngine2 pEngine, IDebugProcess2 pProcess, IDebugProgram2 pProgram, IDebugThread2 pThread, IDebugEvent2 pEvent, ref Guid riidEvent, uint dwAttrib) {
-            if (currentDebugProgram != pProgram && pProgram != null && pThread != null) {
+            bool savedProgram = false;
+            bool savedThread = false;
+
+            if (this.currentDebugProgram != pProgram && pProgram != null && pThread != null) {
                 // First we need to evaluate an expression to figure bitness and get a memory context.
+                ReleaseIfNotNull(ref this.currentThread);
                 this.currentThread = pThread;
 
                 // Capture a IDebugExpression2 interface inorder to do that.
@@ -73,15 +90,18 @@ namespace JsDbg.VisualStudio {
                                         if (debugExpressionContext.ParseText("(int*)0x0", (uint)enum_PARSEFLAGS.PARSE_EXPRESSION, decimalBaseRadix, out debugExpression, out errorString, out errorIndex) == S_OK) {
                                             IDebugProperty2 debugProperty;
                                             if (debugExpression.EvaluateSync((uint)enum_EVALFLAGS.EVAL_NOSIDEEFFECTS, evaluateExpressionTimeout, null, out debugProperty) == S_OK) {
-                                                if (debugProperty.GetMemoryContext(out memoryContext) == S_OK &&
-                                                    debugProperty.GetMemoryBytes(out memoryBytes) == S_OK) {
+                                                if (debugProperty.GetMemoryContext(out this.memoryContext) == S_OK &&
+                                                    debugProperty.GetMemoryBytes(out this.memoryBytes) == S_OK) {
                                                     // Evaluate the expression for pointer size.
                                                     if (debugExpressionContext.ParseText("sizeof(void*)", (uint)enum_PARSEFLAGS.PARSE_EXPRESSION, decimalBaseRadix, out debugExpression, out errorString, out errorIndex) == S_OK) {
                                                         if (debugExpression.EvaluateSync((uint)enum_EVALFLAGS.EVAL_NOSIDEEFFECTS, evaluateExpressionTimeout, null, out debugProperty) == S_OK) {
                                                             DEBUG_PROPERTY_INFO[] debugPropertyInfo = new DEBUG_PROPERTY_INFO[1];
                                                             if (debugProperty.GetPropertyInfo((uint)enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_VALUE, decimalBaseRadix, evaluateExpressionTimeout, null, 0, debugPropertyInfo) == S_OK) {
                                                                 // Initialize program/pointersize/typecache.
-                                                                currentDebugProgram = pProgram;
+                                                                ReleaseIfNotNull(ref this.currentDebugProgram);
+                                                                this.currentDebugProgram = pProgram;
+                                                                this.engine.DiaLoader = this.CreateDiaLoader();
+                                                                savedProgram = true;
                                                                 if (debugPropertyInfo[0].bstrValue == "4") {
                                                                     this.isPointer64Bit = false;
                                                                 } else {
@@ -93,7 +113,12 @@ namespace JsDbg.VisualStudio {
                                                     }
                                                 }
                                             }
+
+                                            ReleaseIfNotNull(ref debugProperty);
                                         }
+
+                                        ReleaseIfNotNull(ref debugExpression);
+                                        ReleaseIfNotNull(ref debugExpressionContext);
                                         break;
                                     }
                                 }
@@ -102,16 +127,29 @@ namespace JsDbg.VisualStudio {
                     }
                 }
             } else if (riidEvent == stopDebugEvent) {
-                currentDebugProgram = null;
-                memoryContext = null;
-                memoryBytes = null;
+                ReleaseIfNotNull(ref this.currentDebugProgram);
+                ReleaseIfNotNull(ref this.memoryContext);
+                ReleaseIfNotNull(ref this.memoryBytes);
+                ReleaseIfNotNull(ref this.dte);
                 isPointer64Bit = false;
-                dte = null;
+                this.engine.DiaLoader = this.CreateDiaLoader();
             } else if (riidEvent == breakInEvent) {
                 this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Break);
             } else if (riidEvent == threadSwitchEvent) {
+                ReleaseIfNotNull(ref this.currentThread);
                 this.currentThread = pThread;
+                savedThread = true;
             }
+
+            if (!savedProgram) {
+                ReleaseIfNotNull(ref pProgram);
+            }
+            if (!savedThread) {
+                ReleaseIfNotNull(ref pThread);
+            }
+            ReleaseIfNotNull(ref pEngine);
+            ReleaseIfNotNull(ref pProcess);
+            ReleaseIfNotNull(ref pEvent);
 
             return S_OK;
         }
@@ -133,7 +171,7 @@ namespace JsDbg.VisualStudio {
                             IDebugModule3 debugModule3 = null;
                             IntPtr debugModule2ComInterface = System.Runtime.InteropServices.Marshal.GetIUnknownForObject(debugModule2);
                             IntPtr debugModule3ComInterface;
-                            if (System.Runtime.InteropServices.Marshal.QueryInterface(debugModule2ComInterface, ref debugModule3Guid, out debugModule3ComInterface) == S_OK) {
+                            if (Marshal.QueryInterface(debugModule2ComInterface, ref debugModule3Guid, out debugModule3ComInterface) == S_OK) {
                                 debugModule3 = (IDebugModule3)System.Runtime.InteropServices.Marshal.GetObjectForIUnknown(debugModule3ComInterface);
 
                                 MODULE_SYMBOL_SEARCH_INFO[] symbolSearchInfo = new MODULE_SYMBOL_SEARCH_INFO[1];
@@ -146,11 +184,14 @@ namespace JsDbg.VisualStudio {
                                     }
                                 }
                             }
+                            ReleaseIfNotNull(ref debugModule3);
                             break;
                         }
                     }
                 }
+                ReleaseIfNotNull(ref debugModuleArray[0]);
             }
+            ReleaseIfNotNull(ref debugModulesEnumerator);
 
             if (moduleSymbolPath == null) {
                 throw new DebuggerException(String.Format("Unable to find symbols for module {0}", moduleName));
@@ -185,6 +226,7 @@ namespace JsDbg.VisualStudio {
 
         #endregion
 
+        Core.IConfiguration configuration;
         Core.TypeCacheDebugger debugger;
         DebuggerEngine engine;
         IDebugProgram2 currentDebugProgram;

@@ -12,9 +12,9 @@ namespace JsDbg.VisualStudio {
     class DebuggerEngine : ITypeCacheDebuggerEngine {
         private const int S_OK = 0;
 
-        internal DebuggerEngine(DebuggerRunner runner, Dia.DiaSessionLoader diaLoader) {
+        internal DebuggerEngine(DebuggerRunner runner) {
             this.runner = runner;
-            this.diaLoader = diaLoader;
+            this.diaLoader = null;
         }
 
         internal void NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus status) {
@@ -33,6 +33,7 @@ namespace JsDbg.VisualStudio {
 
         public Dia.DiaSessionLoader DiaLoader {
             get { return this.diaLoader; }
+            set { this.diaLoader = value; }
         }
 
         public bool IsPointer64Bit {
