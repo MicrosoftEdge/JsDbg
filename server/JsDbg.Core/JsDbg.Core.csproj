@@ -7,8 +7,8 @@
     <ProjectGuid>{585CEC7E-C788-4E43-BC35-FAB4655C96F2}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Core</RootNamespace>
-    <AssemblyName>Core</AssemblyName>
+    <RootNamespace>JsDbg.Core</RootNamespace>
+    <AssemblyName>JsDbg.Core</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>

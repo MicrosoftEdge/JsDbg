@@ -35,7 +35,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>JsDbg.VisualStudio</RootNamespace>
-    <AssemblyName>JsDbg</AssemblyName>
+    <AssemblyName>JsDbg.VisualStudio</AssemblyName>
     <SignAssembly>false</SignAssembly>
     <AssemblyOriginatorKeyFile>
     </AssemblyOriginatorKeyFile>
