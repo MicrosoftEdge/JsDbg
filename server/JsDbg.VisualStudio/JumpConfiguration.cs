@@ -18,11 +18,5 @@ namespace JsDbg.VisualStudio {
                 return @"C:\jsdbg\persistent";
             }
         }
-
-        public string LocalSupportDirectory {
-            get {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support");
-            }
-        }
     }
 }

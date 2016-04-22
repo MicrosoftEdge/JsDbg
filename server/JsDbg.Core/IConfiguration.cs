@@ -8,6 +8,5 @@ namespace JsDbg.Core {
     public interface IConfiguration {
         string ExtensionRoot { get; }
         string PersistentStoreDirectory { get; }
-        string LocalSupportDirectory { get; }
     }
 }

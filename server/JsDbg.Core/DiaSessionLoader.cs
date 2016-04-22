@@ -74,16 +74,17 @@ namespace JsDbg.Dia {
             string dllName = "msdia110.dll";
             Console.WriteLine("Attempting to register {0}.  This will require elevation...", dllName);
 
-            // Copy it down to the support directory if needed.
-            string localSupportDirectory = configuration.LocalSupportDirectory;
-            string dllPath = Path.Combine(localSupportDirectory, dllName);
+            // Copy it to the local DIA directory.
+            string localDiaDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg");
+            string dllPath = Path.Combine(localDiaDirectory, dllName);
 
             if (!File.Exists(dllPath)) {
-                if (!Directory.Exists(localSupportDirectory)) {
-                    Directory.CreateDirectory(localSupportDirectory);
+                if (!Directory.Exists(localDiaDirectory)) {
+                    Directory.CreateDirectory(localDiaDirectory);
                 }
-                string remotePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), dllName);
-                File.Copy(remotePath, dllPath);
+
+                string sourcePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), dllName);
+                File.Copy(sourcePath, dllPath);
             }
 
             System.Threading.Thread.Sleep(1000);

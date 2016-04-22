@@ -92,7 +92,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(SolutionDir)references\dbgeng\* $(TargetDir);
+    <PostBuildEvent>copy $(SolutionDir)references\msdia110.dll $(TargetDir);
+copy $(SolutionDir)references\dbgeng\* $(TargetDir);
 copy $(SolutionDir)configurations\$(PlatformName)\* $(TargetDir)</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

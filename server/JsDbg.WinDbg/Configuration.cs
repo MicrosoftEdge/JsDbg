@@ -37,12 +37,6 @@ namespace JsDbg.WinDbg {
             }
         }
 
-        public string LocalSupportDirectory {
-            get {
-                return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg", "support");
-            }
-        }
-
         public static string Schema {
             get {
                 return @"{

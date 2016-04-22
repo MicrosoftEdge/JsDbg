@@ -48,9 +48,6 @@ namespace JsDbg.Deployment {
                 File.Copy(file.FullName, Path.Combine(temporaryPath, file.Name));
             }
 
-            // Copy the DIA DLL.
-            File.Copy(Path.Combine(repositoryRoot, "server", "references", "msdia110.dll"), Path.Combine(temporaryPath, "msdia110.dll"));
-
             // Zip it up.
             var temporaryZipPath = Path.Combine(Path.GetDirectoryName(temporaryPath), version);
             if (File.Exists(temporaryZipPath)) {
