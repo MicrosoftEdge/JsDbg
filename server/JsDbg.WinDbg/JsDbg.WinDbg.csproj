@@ -94,7 +94,7 @@
   <PropertyGroup>
     <PostBuildEvent>copy $(SolutionDir)references\msdia110.dll $(TargetDir);
 copy $(SolutionDir)references\dbgeng\* $(TargetDir);
-copy $(SolutionDir)configurations\$(PlatformName)\* $(TargetDir)</PostBuildEvent>
+copy $(SolutionDir)configurations\WinDbg\$(PlatformName)\* $(TargetDir)</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

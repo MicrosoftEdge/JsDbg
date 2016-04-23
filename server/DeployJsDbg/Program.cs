@@ -39,7 +39,7 @@ namespace JsDbg.Deployment {
             CopyDirectory(Path.Combine(repositoryRoot, "extensions"), Path.Combine(temporaryPath, "extensions"));
 
             // Copy the deployment configuration.json.
-            File.Copy(Path.Combine(repositoryRoot, "server", "configurations", "deployment.json"), Path.Combine(temporaryPath, "configuration.json"));
+            File.Copy(Path.Combine(repositoryRoot, "server", "configurations", "WinDbg", "deployment.json"), Path.Combine(temporaryPath, "configuration.json"));
 
             // Copy the JsDbg binaries.
             string binaryPath = Path.Combine(repositoryRoot, "server", "JsDbg.WinDbg", "bin", "x86", "Release");
