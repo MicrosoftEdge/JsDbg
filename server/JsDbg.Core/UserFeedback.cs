@@ -18,7 +18,7 @@ namespace JsDbg.Core {
             return Path.Combine(this.location, body + ".txt");
         }
 
-        internal void RecordUserFeedback(string feedback) {
+        public void RecordUserFeedback(string feedback) {
             string path = this.GetPath();
             File.WriteAllText(path, feedback);
         }

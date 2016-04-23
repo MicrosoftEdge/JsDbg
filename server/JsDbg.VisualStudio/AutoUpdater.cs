@@ -9,27 +9,20 @@ using Microsoft.VisualStudio.ExtensionManager;
 namespace JsDbg.VisualStudio {
     static class AutoUpdater {
         public static RestartReason CheckForUpdates(string identifier, string updateUrl) {
-            RestartReason reason = RestartReason.None;
             IVsExtensionManager extensionManager = Package.GetGlobalService(typeof(SVsExtensionManager)) as IVsExtensionManager;
             IInstalledExtension installedExtension = extensionManager.GetInstalledExtension(identifier);
             if (installedExtension == null) {
-                // TODO: Log this?
-                return reason;
+                throw new Exception(String.Format("Unable to find extension: {0}", identifier));
             }
 
             RepositoryEntry entry = new RepositoryEntry();
             entry.DownloadUrl = updateUrl;
 
             IVsExtensionRepository repository = Package.GetGlobalService(typeof(SVsExtensionRepository)) as IVsExtensionRepository;
-            IInstallableExtension latestExtension = null;
-            try {
-                latestExtension = repository.Download(entry);
-            } catch (Exception ex) {
-                // TODO: Log this?
-                return reason;
-            }
+            IInstallableExtension latestExtension = repository.Download(entry);
 
-            if (true || latestExtension.Header.Version > installedExtension.Header.Version) {
+            if (latestExtension.Header.Version > installedExtension.Header.Version) {
+                RestartReason reason = RestartReason.None;
                 reason |= extensionManager.Disable(installedExtension);
                 extensionManager.Uninstall(installedExtension);
 
@@ -39,16 +32,16 @@ namespace JsDbg.VisualStudio {
                     // Enable the new one.
                     IInstalledExtension latestInstalledExtension = extensionManager.GetInstalledExtension(latestExtension.Header.Identifier);
                     reason |= extensionManager.Enable(latestInstalledExtension);
-                } catch (Exception ex) {
-                    // TODO: log this?
+                    return reason;
+                } catch {
+                    // Revert the uninstallation.
                     extensionManager.RevertUninstall(installedExtension);
-
-                    // Since we've reverted the uninstall, we overwrite any restart reason in the past.
-                    reason = extensionManager.Enable(installedExtension);
+                    extensionManager.Enable(installedExtension);
+                    throw;
                 }
             }
 
-            return reason;
+            return RestartReason.None;
         }
 
         private class RepositoryEntry : IRepositoryEntry {

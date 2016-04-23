@@ -18,5 +18,11 @@ namespace JsDbg.VisualStudio {
                 return @"C:\jsdbg\persistent";
             }
         }
+
+        public string UpdateUrl {
+            get {
+                return @"C:\jsdbg\server\JsDbg.VisualStudio\bin\Debug\JsDbg.VisualStudio.vsix";
+            }
+        }
     }
 }

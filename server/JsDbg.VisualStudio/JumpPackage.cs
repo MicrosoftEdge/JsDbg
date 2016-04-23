@@ -95,9 +95,18 @@ namespace JsDbg.VisualStudio
             }
 
             JumpConfiguration configuration = JumpConfiguration.Load();
-            DebuggerRunner runner = new DebuggerRunner(configuration);
             Core.PersistentStore persistentStore = new Core.PersistentStore(configuration.PersistentStoreDirectory);
             Core.UserFeedback userFeedback = new Core.UserFeedback(System.IO.Path.Combine(configuration.PersistentStoreDirectory, "feedback"));
+
+            try {
+                if (AutoUpdater.CheckForUpdates("5b3af206-b4d4-4d12-9661-5d2d8dd8d194", configuration.UpdateUrl) != Microsoft.VisualStudio.ExtensionManager.RestartReason.None) {
+                    Debug.WriteLine("Update pending.");
+                }
+            } catch (Exception ex) {
+                userFeedback.RecordUserFeedback(String.Format("Error while checking updates: {0}", ex));
+            }
+
+            DebuggerRunner runner = new DebuggerRunner(configuration);
             webServer = new Core.WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot);
             webServer.LoadExtension("default");
 
