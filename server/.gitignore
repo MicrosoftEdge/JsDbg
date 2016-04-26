@@ -7,3 +7,4 @@ packages/
 *.sdf
 *.VC.opendb
 *.VC.db
+.vs/*
