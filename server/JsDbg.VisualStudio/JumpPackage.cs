@@ -32,7 +32,7 @@ namespace JsDbg.VisualStudio
     // This attribute registers a tool window exposed by this package.
     [ProvideToolWindow(typeof(MyToolWindow))]
     [Guid(GuidList.guidJumpPkgString)]
-    public sealed class JumpPackage : Package
+    public sealed class JumpPackage : Package, IDisposable
     {
         /// <summary>
         /// Default constructor of the package.
@@ -126,6 +126,10 @@ namespace JsDbg.VisualStudio
         private void MenuItemCallback(object sender, EventArgs e)
         {            
             this.ShowToolWindow(sender, e);
+        }
+
+        public void Dispose() {
+            this.webServer.Dispose();
         }
 
         public Core.WebServer WebServer

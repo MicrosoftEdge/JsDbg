@@ -104,7 +104,7 @@ namespace JsDbg.VisualStudio {
                 byte[] memory = new byte[size];
                 this.runner.CurrentMemoryBytes.ReadAt(memoryContextTarget, (uint)size, memory, out dwRead, ref dwUnReadable);
                 if (dwRead != size) {
-                    throw new DebuggerException(String.Format("ReadArray: Failed read memory 0x{0:x8} - Size {0}", pointer, size));
+                    throw new DebuggerException(String.Format("ReadArray: Failed read memory 0x{0:x8} - Size {1}", pointer, size));
                 }
                 return memory;
             }

@@ -2,12 +2,12 @@
 using System.Runtime.InteropServices;
 
 namespace JsDbg.Utilities {
-    public class DisposableComReference : IDisposable {
+    public sealed class DisposableComReference : IDisposable {
         public DisposableComReference(object objectToRelease) {
             this.objectToRelease = objectToRelease;
         }
 
-        void IDisposable.Dispose() {
+        public void Dispose() {
             ReleaseIfNotNull(ref this.objectToRelease);
         }
 
