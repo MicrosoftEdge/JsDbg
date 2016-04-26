@@ -5,17 +5,43 @@ using Dia2Lib;
 using System.IO;
 using System.Diagnostics;
 using JsDbg.Core;
+using System.Runtime.InteropServices;
 
 namespace JsDbg.Dia {
     public class DiaSessionLoader {
-        public DiaSessionLoader(IConfiguration configuration, IEnumerable<IDiaSessionSource> sources) {
-            this.configuration = configuration;
+        [DllImport("DiaSource.dll")]
+        private static extern uint LoadDataSource([MarshalAs(UnmanagedType.LPWStr)] string dllName, out IDiaDataSource result);
+
+        public DiaSessionLoader(IEnumerable<IDiaSessionSource> sources) {
             this.sources = sources;
             this.activeSessions = new Dictionary<string, IDiaSession>();
-            this.didAttemptDiaRegistration = false;
+
+            // First try to load directly.
+            try {
+                string dllName = Path.Combine(
+                    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location),
+                    "msdia110.dll"
+                );
+                uint hr = DiaSessionLoader.LoadDataSource(dllName, out this.dataSource);
+            } catch { }
+
+            // If that fails, try to load it from COM.
+            if (this.dataSource == null) {
+                try {
+                    this.dataSource = new DiaSource();
+                } catch { }
+            }
+        }
+
+        public void ClearSymbols() {
+            this.activeSessions = new Dictionary<string, IDiaSession>();
         }
 
         public async Task<IDiaSession> LoadDiaSession(string module) {
+            if (this.dataSource == null) {
+                return null;
+            }
+
             module = module.ToLowerInvariant();
 
             if (this.activeSessions.ContainsKey(module)) {
@@ -32,7 +58,7 @@ namespace JsDbg.Dia {
                     ++attempts;
 
                     try {
-                        IDiaSession session = source.LoadSessionForModule(module);
+                        IDiaSession session = source.LoadSessionForModule(this.dataSource, module);
                         if (session != null) {
                             this.activeSessions[module] = session;
                             return session;
@@ -43,20 +69,6 @@ namespace JsDbg.Dia {
                     } catch (DiaSourceNotReadyException) {
                         // Try again.
                         continue;
-                    } catch (System.Runtime.InteropServices.COMException comException) {
-                        if ((uint)comException.ErrorCode == 0x80040154 && !this.didAttemptDiaRegistration) {
-                            // The DLL isn't registered.
-                            this.didAttemptDiaRegistration = true;
-                            try {
-                                this.AttemptDiaRegistration();
-                                // Try again.
-                                continue;
-                            } catch (Exception ex) {
-                                Console.Out.WriteLine("Unable to register DIA: {0}", ex.Message);
-                                return null;
-                            }
-                        }
-                        break;
                     } catch {
                         // Try the next source.
                         break;
@@ -70,36 +82,8 @@ namespace JsDbg.Dia {
             return null;
         }
 
-        private void AttemptDiaRegistration() {
-            string dllName = "msdia110.dll";
-            Console.WriteLine("Attempting to register {0}.  This will require elevation...", dllName);
-
-            // Copy it to the local DIA directory.
-            string localDiaDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "JsDbg");
-            string dllPath = Path.Combine(localDiaDirectory, dllName);
-
-            if (!File.Exists(dllPath)) {
-                if (!Directory.Exists(localDiaDirectory)) {
-                    Directory.CreateDirectory(localDiaDirectory);
-                }
-
-                string sourcePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), dllName);
-                File.Copy(sourcePath, dllPath);
-            }
-
-            System.Threading.Thread.Sleep(1000);
-
-            ProcessStartInfo regsvr = new ProcessStartInfo("regsvr32", "/s " + dllPath);
-            regsvr.Verb = "runas";
-
-            Process.Start(regsvr).WaitForExit();
-
-            System.Threading.Thread.Sleep(1000);
-        }
-
-        private IConfiguration configuration;
+        private IDiaDataSource dataSource;
         private Dictionary<string, IDiaSession> activeSessions;
         private IEnumerable<IDiaSessionSource> sources;
-        private bool didAttemptDiaRegistration;
     }
 }

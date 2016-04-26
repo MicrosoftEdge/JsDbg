@@ -5,7 +5,7 @@ using System.Runtime.Serialization.Json;
 
 namespace JsDbg.VisualStudio {
     [DataContract]
-    class JumpConfiguration : Core.IConfiguration {
+    class JumpConfiguration {
         internal static JumpConfiguration Load() {
             string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
             string configurationPath = Path.Combine(Path.GetDirectoryName(assemblyPath), "configuration.json");

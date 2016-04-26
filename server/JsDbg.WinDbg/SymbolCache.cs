@@ -67,7 +67,7 @@ namespace JsDbg.WinDbg {
             this.symbols.GetModuleNamesByBaseAddress(moduleBase, out imageName, out moduleName, out loadedImageName);
             symbolFile = this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.SymbolFile, moduleBase);
 
-            if (symbolFile == imageName) {
+            if (symbolFile == System.IO.Path.GetFileName(imageName)) {
                 // We don't have a proper symbol file, try forcing a reload.
                 this.symbols.Reload("/f " + imageName);
                 symbolFile = this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.SymbolFile, moduleBase);

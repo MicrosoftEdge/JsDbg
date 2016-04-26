@@ -12,10 +12,9 @@ using JsDbg.Utilities;
 
 namespace JsDbg.VisualStudio {
     class DebuggerRunner : IDebugEventCallback2 {
-        internal DebuggerRunner(Core.IConfiguration configuration) {
-            this.configuration = configuration;
+        internal DebuggerRunner() {
             this.engine = new DebuggerEngine(this);
-            this.engine.DiaLoader = this.CreateDiaLoader();
+            this.engine.DiaLoader = new Dia.DiaSessionLoader(new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this), new DiaSessionModuleSource(this, this.engine) });
             this.debugger = new Core.TypeCacheDebugger(this.engine);
 
             IVsDebugger debugService = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsShellDebugger)) as IVsDebugger;
@@ -24,10 +23,6 @@ namespace JsDbg.VisualStudio {
                 // Assumes the current class implements IVsDebuggerEvents.
                 debugService.AdviseDebugEventCallback(this);
             }
-        }
-
-        private Dia.DiaSessionLoader CreateDiaLoader() {
-            return new Dia.DiaSessionLoader(this.configuration, new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this), new DiaSessionModuleSource(this, this.engine) });
         }
 
         public async Task WaitForBreakIn() {
@@ -81,7 +76,7 @@ namespace JsDbg.VisualStudio {
                                 this.isPointer64Bit = (offset == 8);
 
                                 this.engine.NotifyBitnessChanged();
-                                this.engine.DiaLoader = this.CreateDiaLoader();
+                                this.engine.DiaLoader.ClearSymbols();
                                 savedProgram = true;
                                 savedThread = true;
                             } else {
@@ -97,7 +92,7 @@ namespace JsDbg.VisualStudio {
                 DisposableComReference.ReleaseIfNotNull(ref this.memoryContext);
                 DisposableComReference.ReleaseIfNotNull(ref this.memoryBytes);
                 DisposableComReference.ReleaseIfNotNull(ref this.dte);
-                this.engine.DiaLoader = this.CreateDiaLoader();
+                this.engine.DiaLoader.ClearSymbols();
             } else if (riidEvent == breakInEvent) {
                 // The debugger broke in, notify the client.
                 this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Break);
@@ -238,7 +233,6 @@ namespace JsDbg.VisualStudio {
 
         #endregion
 
-        Core.IConfiguration configuration;
         Core.TypeCacheDebugger debugger;
         DebuggerEngine engine;
         IDebugProgram2 currentDebugProgram;

@@ -5,7 +5,7 @@ using System.Runtime.Serialization.Json;
 
 namespace JsDbg.WinDbg {
     [DataContract]
-    class Configuration : Core.IConfiguration {
+    class Configuration {
         [DataMember(IsRequired=true)]
         public string extension_root {
             get { return this._extension_root; }

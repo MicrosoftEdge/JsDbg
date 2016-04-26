@@ -18,8 +18,7 @@ namespace JsDbg.Dia.VisualStudio {
             return this.runner.WaitForBreakIn();
         }
 
-        public IDiaSession LoadSessionForModule(string moduleName) {
-            DiaSource source = new DiaSource();
+        public IDiaSession LoadSessionForModule(IDiaDataSource source, string moduleName) {
             string symbolPath;
             try {
                 symbolPath = this.runner.GetModuleSymbolPath(moduleName);

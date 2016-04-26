@@ -40,7 +40,7 @@ namespace JsDbg.WinDbg {
             DebuggerRunner runner;
             try {
                 Console.Write("Connecting to a debug session at {0}...", remoteString);
-                runner = new DebuggerRunner(remoteString, configuration);
+                runner = new DebuggerRunner(remoteString);
                 Console.WriteLine("Connected.");
             } catch (Exception ex) {
                 Console.WriteLine("Failed: {0}", ex.Message);

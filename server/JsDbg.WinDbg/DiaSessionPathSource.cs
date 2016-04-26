@@ -16,9 +16,7 @@ namespace JsDbg.Dia.WinDbg {
             return this.runner.WaitForBreakIn();
         }
 
-        public Dia2Lib.IDiaSession LoadSessionForModule(string moduleName) {
-            DiaSource source = new DiaSource();
-
+        public Dia2Lib.IDiaSession LoadSessionForModule(IDiaDataSource source, string moduleName) {
             string symbolPath;
             try {
                 symbolPath = this.symbolCache.GetModuleSymbolPath(moduleName);

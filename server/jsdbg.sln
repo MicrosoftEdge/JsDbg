@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsDbg.WinDbg", "JsDbg.WinDbg\JsDbg.WinDbg.csproj", "{3E56FB7B-10F0-43F8-8043-EF21206A8E77}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsDbg.Core", "JsDbg.Core\JsDbg.Core.csproj", "{585CEC7E-C788-4E43-BC35-FAB4655C96F2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9} = {AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsDbg.VisualStudio", "JsDbg.VisualStudio\JsDbg.VisualStudio.csproj", "{0A217F33-7F48-4093-985A-E1B316611169}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -19,6 +22,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeployJsDbg", "DeployJsDbg\DeployJsDbg.csproj", "{5403B3BC-0E99-4C0F-8E61-DBB027065CCD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZipFolder", "ZipFolder\ZipFolder.csproj", "{9470150D-CF2F-46ED-8E07-393EDC2134F6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DiaSource", "DiaSource\DiaSource.vcxproj", "{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -36,8 +41,8 @@ Global
 		{3E56FB7B-10F0-43F8-8043-EF21206A8E77}.Debug|x64.Build.0 = Debug|Any CPU
 		{3E56FB7B-10F0-43F8-8043-EF21206A8E77}.Debug|x86.ActiveCfg = Debug|x86
 		{3E56FB7B-10F0-43F8-8043-EF21206A8E77}.Debug|x86.Build.0 = Debug|x86
-		{3E56FB7B-10F0-43F8-8043-EF21206A8E77}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3E56FB7B-10F0-43F8-8043-EF21206A8E77}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E56FB7B-10F0-43F8-8043-EF21206A8E77}.Release|Any CPU.ActiveCfg = Release|x86
+		{3E56FB7B-10F0-43F8-8043-EF21206A8E77}.Release|Any CPU.Build.0 = Release|x86
 		{3E56FB7B-10F0-43F8-8043-EF21206A8E77}.Release|x64.ActiveCfg = Release|Any CPU
 		{3E56FB7B-10F0-43F8-8043-EF21206A8E77}.Release|x64.Build.0 = Release|Any CPU
 		{3E56FB7B-10F0-43F8-8043-EF21206A8E77}.Release|x86.ActiveCfg = Release|x86
@@ -112,6 +117,18 @@ Global
 		{9470150D-CF2F-46ED-8E07-393EDC2134F6}.Release|x64.Build.0 = Release|Any CPU
 		{9470150D-CF2F-46ED-8E07-393EDC2134F6}.Release|x86.ActiveCfg = Release|Any CPU
 		{9470150D-CF2F-46ED-8E07-393EDC2134F6}.Release|x86.Build.0 = Release|Any CPU
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Debug|Any CPU.ActiveCfg = Debug|Win32
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Debug|Any CPU.Build.0 = Debug|Win32
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Debug|x64.ActiveCfg = Debug|x64
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Debug|x64.Build.0 = Debug|x64
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Debug|x86.ActiveCfg = Debug|Win32
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Debug|x86.Build.0 = Debug|Win32
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Release|Any CPU.ActiveCfg = Release|Win32
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Release|Any CPU.Build.0 = Release|Win32
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Release|x64.ActiveCfg = Release|x64
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Release|x64.Build.0 = Release|x64
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Release|x86.ActiveCfg = Release|Win32
+		{AB2B6BF2-F7F4-4B90-BDC2-58CF71159AC9}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

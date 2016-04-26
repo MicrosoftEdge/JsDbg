@@ -106,7 +106,7 @@ namespace JsDbg.VisualStudio
                 userFeedback.RecordUserFeedback(String.Format("Error while checking updates: {0}", ex));
             }
 
-            DebuggerRunner runner = new DebuggerRunner(configuration);
+            DebuggerRunner runner = new DebuggerRunner();
             webServer = new Core.WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot);
             webServer.LoadExtension("default");
 

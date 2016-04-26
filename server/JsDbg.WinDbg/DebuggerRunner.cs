@@ -9,13 +9,12 @@ using JsDbg.Core;
 
 namespace JsDbg.WinDbg {
     class DebuggerRunner : IDisposable {
-        public DebuggerRunner(string connectionString, Core.IConfiguration configuration) {
+        public DebuggerRunner(string connectionString) {
             this.client = new DebugClient(connectionString);
             this.control = new DebugControl(this.client);
             this.symbolCache = new SymbolCache(this.client);
             this.dataSpaces = new DebugDataSpaces(this.client);
             this.diaLoader = new Dia.DiaSessionLoader(
-                configuration,
                 new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this, this.symbolCache), new DiaSessionModuleSource(this, this.symbolCache, this.dataSpaces) }
             );
             this.isShuttingDown = false;

@@ -74,7 +74,6 @@
     <Compile Include="DiaHelpers.cs" />
     <Compile Include="DiaSessionLoader.cs" />
     <Compile Include="FileCache.cs" />
-    <Compile Include="IConfiguration.cs" />
     <Compile Include="IDebugger.cs" />
     <Compile Include="IDiaSessionSource.cs" />
     <Compile Include="ITypeCacheDebuggerEngine.cs" />
@@ -84,6 +83,11 @@
     <Compile Include="TypeCacheDebugger.cs" />
     <Compile Include="UserFeedback.cs" />
     <Compile Include="WebServer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="$(SolutionDir)DiaSource\$(Configuration)\DiaSource.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
