@@ -26,21 +26,21 @@ namespace JsDbg.VisualStudio {
         }
 
         public async Task WaitForBreakIn() {
-            if (this.dte == null) {
-                this.dte = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
-                while (this.dte == null) {
-                    this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Waiting);
-                    await Task.Delay(1000);
+            while (true) {
+                if (this.dte == null) {
                     this.dte = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
                 }
-            }
 
-            while (this.currentDebugProgram == null ||
-                this.currentThread == null ||
-                this.memoryBytes == null ||
-                this.memoryContext == null ||
-                dte.Debugger.CurrentMode != EnvDTE.dbgDebugMode.dbgBreakMode
-            ) {
+                if (this.dte != null &&
+                    this.dte.Debugger.CurrentMode == EnvDTE.dbgDebugMode.dbgBreakMode &&
+                    this.currentDebugProgram != null &&
+                    this.currentThread != null &&
+                    this.memoryBytes != null &&
+                    this.memoryContext != null
+                ) {
+                    return;
+                }
+
                 this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Waiting);
                 await Task.Delay(1000);
             }
