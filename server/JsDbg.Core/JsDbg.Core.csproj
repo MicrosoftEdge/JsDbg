@@ -85,7 +85,7 @@
     <Compile Include="WebServer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(SolutionDir)DiaSource\$(Configuration)\DiaSource.dll">
+    <None Include="$(SolutionDir)DiaSource\bin\$(Configuration)\DiaSource.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
