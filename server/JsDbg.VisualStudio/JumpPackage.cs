@@ -32,6 +32,7 @@ namespace JsDbg.VisualStudio
     // This attribute registers a tool window exposed by this package.
     [ProvideToolWindow(typeof(MyToolWindow))]
     [Guid(GuidList.guidJumpPkgString)]
+    [ProvideAutoLoad(Microsoft.VisualStudio.VSConstants.UICONTEXT.Debugging_string)]
     public sealed class JumpPackage : Package, IDisposable
     {
         /// <summary>
