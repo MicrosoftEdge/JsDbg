@@ -66,7 +66,8 @@ namespace JsDbg.Dia.WinDbg {
 
         public IDiaSession LoadSessionForModule(IDiaDataSource source, string moduleName) {
             try {
-                source.loadDataForExe(moduleName, this.SymPath, new ModuleReader(this.symbolCache, this.dataSpaces, moduleName));
+                string imagePath = this.symbolCache.GetModuleImagePath(this.symbolCache.GetModuleBase(moduleName));
+                source.loadDataForExe(imagePath, this.SymPath, new ModuleReader(this.symbolCache, this.dataSpaces, moduleName));
             } catch (InvalidOperationException) {
                 throw new DiaSourceNotReadyException();
             }

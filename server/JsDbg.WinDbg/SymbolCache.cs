@@ -63,17 +63,20 @@ namespace JsDbg.WinDbg {
         }
 
         internal string GetModuleSymbolPath(ulong moduleBase) {
-            string symbolFile, imageName, moduleName, loadedImageName;
-            this.symbols.GetModuleNamesByBaseAddress(moduleBase, out imageName, out moduleName, out loadedImageName);
-            symbolFile = this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.SymbolFile, moduleBase);
+            string imagePath = this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.Image, moduleBase);
+            string symbolPath = this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.SymbolFile, moduleBase);
 
-            if (symbolFile == System.IO.Path.GetFileName(imageName)) {
+            if (System.IO.Path.GetFileName(symbolPath) == System.IO.Path.GetFileName(imagePath)) {
                 // We don't have a proper symbol file, try forcing a reload.
-                this.symbols.Reload("/f " + imageName);
-                symbolFile = this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.SymbolFile, moduleBase);
+                this.symbols.Reload("/f " + imagePath);
+                symbolPath = this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.SymbolFile, moduleBase);
             }
 
-            return symbolFile;
+            return symbolPath;
+        }
+
+        internal string GetModuleImagePath(ulong moduleBase) {
+            return this.symbols.GetModuleNameStringByBaseAddress(Microsoft.Debuggers.DbgEng.ModuleName.Image, moduleBase);
         }
 
         internal string GetSymbolSearchPath() {
