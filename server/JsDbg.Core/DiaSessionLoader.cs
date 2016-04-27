@@ -15,33 +15,34 @@ namespace JsDbg.Dia {
         public DiaSessionLoader(IEnumerable<IDiaSessionSource> sources) {
             this.sources = sources;
             this.activeSessions = new Dictionary<string, IDiaSession>();
-
-            // First try to load directly.
-            try {
-                string dllName = Path.Combine(
-                    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location),
-                    "msdia110.dll"
-                );
-                uint hr = DiaSessionLoader.LoadDataSource(dllName, out this.dataSource);
-            } catch { }
-
-            // If that fails, try to load it from COM.
-            if (this.dataSource == null) {
-                try {
-                    this.dataSource = new DiaSource();
-                } catch { }
-            }
         }
 
         public void ClearSymbols() {
             this.activeSessions = new Dictionary<string, IDiaSession>();
         }
 
-        public async Task<IDiaSession> LoadDiaSession(string module) {
-            if (this.dataSource == null) {
-                return null;
+        private IDiaDataSource CreateDataSource() {
+            IDiaDataSource result = null;
+            // First try to load directly.
+            try {
+                string dllName = Path.Combine(
+                    Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location),
+                    "msdia110.dll"
+                );
+                uint hr = DiaSessionLoader.LoadDataSource(dllName, out result);
+            } catch { }
+
+            // If that fails, try to load it from COM.
+            if (result == null) {
+                try {
+                    result = new DiaSource();
+                } catch { }
             }
 
+            return result;
+        }
+
+        public async Task<IDiaSession> LoadDiaSession(string module) {
             module = module.ToLowerInvariant();
 
             if (this.activeSessions.ContainsKey(module)) {
@@ -58,7 +59,12 @@ namespace JsDbg.Dia {
                     ++attempts;
 
                     try {
-                        IDiaSession session = source.LoadSessionForModule(this.dataSource, module);
+                        IDiaDataSource dataSource = this.CreateDataSource();
+                        if (dataSource == null) {
+                            // Without a data source we can't use DIA at all.
+                            break;
+                        }
+                        IDiaSession session = source.LoadSessionForModule(dataSource, module);
                         if (session != null) {
                             this.activeSessions[module] = session;
                             return session;
@@ -81,8 +87,7 @@ namespace JsDbg.Dia {
 
             return null;
         }
-
-        private IDiaDataSource dataSource;
+        
         private Dictionary<string, IDiaSession> activeSessions;
         private IEnumerable<IDiaSessionSource> sources;
     }
