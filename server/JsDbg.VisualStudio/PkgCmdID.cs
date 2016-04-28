@@ -6,8 +6,7 @@ namespace JsDbg.VisualStudio
 {
     static class PkgCmdIDList
     {
-        public const uint cmdidJump =        0x100;
-        public const uint cmdidJumpWindow =    0x101;
+        public const uint cmdidLaunchJsDbg = 0x100;
 
     };
 }

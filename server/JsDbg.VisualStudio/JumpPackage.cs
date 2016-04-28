@@ -29,45 +29,10 @@ namespace JsDbg.VisualStudio
     [InstalledProductRegistration("#110", "#112", "1.0", IconResourceID = 400)]
     // This attribute is needed to let the shell know that this package exposes some menus.
     [ProvideMenuResource("Menus.ctmenu", 1)]
-    // This attribute registers a tool window exposed by this package.
-    [ProvideToolWindow(typeof(MyToolWindow))]
-    [Guid(GuidList.guidJumpPkgString)]
+    [Guid(GuidList.guidJsDbgPkgString)]
     [ProvideAutoLoad(Microsoft.VisualStudio.VSConstants.UICONTEXT.Debugging_string)]
-    public sealed class JumpPackage : Package, IDisposable
+    public sealed class JsDbgPackage : Package, IDisposable
     {
-        /// <summary>
-        /// Default constructor of the package.
-        /// Inside this method you can place any initialization code that does not require 
-        /// any Visual Studio service because at this point the package object is created but 
-        /// not sited yet inside Visual Studio environment. The place to do all the other 
-        /// initialization is the Initialize method.
-        /// </summary>
-        public JumpPackage()
-        {
-            Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Entering constructor for: {0}", this.ToString()));
-        }
-
-        /// <summary>
-        /// This function is called when the user clicks the menu item that shows the 
-        /// tool window. See the Initialize method to see how the menu item is associated to 
-        /// this function using the OleMenuCommandService service and the MenuCommand class.
-        /// </summary>
-        private void ShowToolWindow(object sender, EventArgs e)
-        {
-            // Get the instance number 0 of this tool window. This window is single instance so this instance
-            // is actually the only one.
-            // The last flag is set to true so that if the tool window does not exists it will be created.
-            ToolWindowPane window = this.FindToolWindow(typeof(MyToolWindow), 0, true);
-            if ((null == window) || (null == window.Frame))
-            {
-                throw new NotSupportedException(Resources.CanNotCreateWindow);
-            }
-            IVsWindowFrame windowFrame = (IVsWindowFrame)window.Frame;
-            
-            Microsoft.VisualStudio.ErrorHandler.ThrowOnFailure(windowFrame.Show());
-        }
-
-
         /////////////////////////////////////////////////////////////////////////////
         // Overridden Package Implementation
         #region Package Members
@@ -81,21 +46,14 @@ namespace JsDbg.VisualStudio
             Debug.WriteLine (string.Format(CultureInfo.CurrentCulture, "Entering Initialize() of: {0}", this.ToString()));
             base.Initialize();
 
-            // Add our command handlers for menu (commands must exist in the .vsct file)
+            // Install the command for launching JsDbg.
             OleMenuCommandService mcs = GetService(typeof(IMenuCommandService)) as OleMenuCommandService;
-            if ( null != mcs )
-            {
-                // Create the command for the menu item.
-                CommandID menuCommandID = new CommandID(GuidList.guidJumpCmdSet, (int)PkgCmdIDList.cmdidJump);
-                MenuCommand menuItem = new MenuCommand(MenuItemCallback, menuCommandID );
-                mcs.AddCommand( menuItem );
-                // Create the command for the tool window
-                CommandID toolwndCommandID = new CommandID(GuidList.guidJumpCmdSet, (int)PkgCmdIDList.cmdidJumpWindow);
-                MenuCommand menuToolWin = new MenuCommand(ShowToolWindow, toolwndCommandID);
-                mcs.AddCommand( menuToolWin );
+            if (mcs != null) {
+                MenuCommand launchJsDbgCommand = new MenuCommand(LaunchJsDbg, new CommandID(GuidList.guidJsDbgCmdSet, (int)PkgCmdIDList.cmdidLaunchJsDbg));
+                mcs.AddCommand(launchJsDbgCommand);
             }
 
-            JumpConfiguration configuration = JumpConfiguration.Load();
+            Configuration configuration = Configuration.Load();
             Core.PersistentStore persistentStore = new Core.PersistentStore(configuration.PersistentStoreDirectory);
             Core.UserFeedback userFeedback = new Core.UserFeedback(System.IO.Path.Combine(configuration.PersistentStoreDirectory, "feedback"));
 
@@ -108,25 +66,16 @@ namespace JsDbg.VisualStudio
             }
 
             DebuggerRunner runner = new DebuggerRunner();
-            webServer = new Core.WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot);
-            webServer.LoadExtension("default");
-
-            MyToolWindow window = (MyToolWindow)this.FindToolWindow(typeof(MyToolWindow), 0, true);
-            if (window != null)
-            {
-                window.Webserver = webServer;
-            }
+            this.webServer = new Core.WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot);
+            this.webServer.LoadExtension("default");
         }
         #endregion
 
-        /// <summary>
-        /// This function is the callback used to execute a command when the a menu item is clicked.
-        /// See the Initialize method to see how the menu item is associated to this function using
-        /// the OleMenuCommandService service and the MenuCommand class.
-        /// </summary>
-        private void MenuItemCallback(object sender, EventArgs e)
-        {            
-            this.ShowToolWindow(sender, e);
+        private void LaunchJsDbg(object sender, EventArgs e) {
+            if (!this.webServer.IsListening) {
+                var webserverTask = this.webServer.Listen();
+            }
+            JsDbg.Core.BrowserLauncher.Launch(this.webServer.Url);
         }
 
         public void Dispose() {

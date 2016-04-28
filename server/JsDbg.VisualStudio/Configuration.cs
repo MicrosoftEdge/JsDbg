@@ -5,12 +5,12 @@ using System.Runtime.Serialization.Json;
 
 namespace JsDbg.VisualStudio {
     [DataContract]
-    class JumpConfiguration {
-        internal static JumpConfiguration Load() {
+    class Configuration {
+        internal static Configuration Load() {
             string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
             string configurationPath = Path.Combine(Path.GetDirectoryName(assemblyPath), "configuration.json");
             using (FileStream file = new FileStream(configurationPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
-                JumpConfiguration configuration = (JumpConfiguration)ConfigurationSerializer.ReadObject(file);
+                Configuration configuration = (Configuration)ConfigurationSerializer.ReadObject(file);
                 configuration.extensionDirectory = ExtensionDirectory.EnsureExtensionDirectory();
                 return configuration;
             }
@@ -45,7 +45,7 @@ namespace JsDbg.VisualStudio {
             }
         }
 
-        private static DataContractJsonSerializer ConfigurationSerializer = new DataContractJsonSerializer(typeof(JumpConfiguration));
+        private static DataContractJsonSerializer ConfigurationSerializer = new DataContractJsonSerializer(typeof(Configuration));
 
         private string extensionDirectory;
         private string persistentStoreDirectory;
