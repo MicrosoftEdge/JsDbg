@@ -5,21 +5,32 @@
   <Extern href="vsdbgcmd.h"/>
   <Extern href="vsdebugguids.h"/>
   <Commands package="guidJsDbgPkg">
+     <Groups>
+      <Group guid="guidJsDbgCmdSet" id="ToolsMenuGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS"/>
+      </Group>
+    </Groups>
+      
     <Buttons>
       <!-- Launch JsDbg Button, positioned in the "Watch" section of the Debug Toolbar. -->
       <Button guid="guidJsDbgCmdSet" id="cmdidLaunchJsDbg" priority="0x0100" type="Button">
         <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_WATCH" />
-        <Icon guid="guidImages" id="jsIcon" />
+        <Icon guid="guidJsIcon" id="jsIcon" />
+        <CommandFlag>IconIsMoniker</CommandFlag>
         <Strings>
-          <ButtonText>Launch JsDbg</ButtonText>
+          <ButtonText>Launch JsDbg...</ButtonText>
+        </Strings>
+      </Button>
+    
+    <Button guid="guidJsDbgCmdSet" id="cmdidLaunchJsDbg" priority="0x0100" type="Button">
+        <Parent guid="guidJsDbgCmdSet" id="ToolsMenuGroup" />
+        <Icon guid="guidJsIcon" id="jsIcon" />
+        <CommandFlag>IconIsMoniker</CommandFlag>
+        <Strings>
+          <ButtonText>Launch JsDbg...</ButtonText>
         </Strings>
       </Button>
     </Buttons>
-    
-    <!-- Bitmap for the toolbar button. -->
-    <Bitmaps>
-      <Bitmap guid="guidImages" href="Resources\js.ico" usedList="jsIcon"/>
-    </Bitmaps>
   </Commands>
   
   <Symbols>
@@ -27,9 +38,10 @@
     
     <GuidSymbol name="guidJsDbgCmdSet" value="{c1d45f31-0c86-46e2-b76b-759369366aa1}">
       <IDSymbol name="cmdidLaunchJsDbg" value="0x0100" />
+      <IDSymbol name="ToolsMenuGroup" value="0x101" />
     </GuidSymbol>
-    
-    <GuidSymbol name="guidImages" value="{821d2d92-bbed-487d-a13b-187c2c6931d5}" >
+
+    <GuidSymbol name="guidJsIcon" value="{40120f63-b947-461e-88b4-7d05030a2ae8}">
       <IDSymbol name="jsIcon" value="1" />
     </GuidSymbol>
   </Symbols>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ImageManifest xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns="http://schemas.microsoft.com/VisualStudio/ImageManifestSchema/2014">
+  <Symbols>
+    <Guid Name="guidJsIcon" Value="{40120f63-b947-461e-88b4-7d05030a2ae8}" />
+    <ID Name="jsIcon" Value="1" />
+  </Symbols>
+  <Images>
+    <Image Guid="$(guidJsIcon)" ID="$(jsIcon)" AllowColorInversion="false">
+      <Source Uri="/JsDbg.VisualStudio;Component/Resources/js.xaml" />
+    </Image>
+  </Images>
+  <ImageLists />
+</ImageManifest>
