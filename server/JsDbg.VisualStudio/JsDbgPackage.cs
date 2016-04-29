@@ -62,7 +62,9 @@ namespace JsDbg.VisualStudio
                     Debug.WriteLine("Update pending.");
                 }
             } catch (Exception ex) {
-                userFeedback.RecordUserFeedback(String.Format("Error while checking updates: {0}", ex));
+                try {
+                    userFeedback.RecordUserFeedback(String.Format("Error while checking updates: {0}", ex));
+                } catch { }
             }
 
             DebuggerRunner runner = new DebuggerRunner();

@@ -8,7 +8,9 @@ namespace JsDbg.Core {
             this.counter = 0;
 
             if (!Directory.Exists(location)) {
-                Directory.CreateDirectory(location);
+                try {
+                    Directory.CreateDirectory(location);
+                } catch { }
             }
         }
 
