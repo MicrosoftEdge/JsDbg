@@ -21,7 +21,11 @@ namespace JsDbg.Core {
 
         void debuggerEngine_BitnessChanged(object sender, EventArgs e) {
             Console.Out.WriteLine("Effective processor changed, so invalidating the type cache.  You may need to refresh the browser window.");
-            this.typeCache = new TypeCache(debuggerEngine.IsPointer64Bit);
+            this.ClearTypeCache();
+        }
+
+        public void ClearTypeCache() {
+            this.typeCache = new TypeCache(this.debuggerEngine.IsPointer64Bit);
         }
 
         private async Task<Type> LoadType(string module, string typename) {

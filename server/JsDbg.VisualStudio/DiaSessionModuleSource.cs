@@ -65,8 +65,14 @@ namespace JsDbg.Dia.VisualStudio {
 
         public IDiaSession LoadSessionForModule(IDiaDataSource source, string moduleName) {
             try {
-                source.loadDataForExe(moduleName, this.SymPath, new ModuleReader(this.engine, moduleName));
-            } catch (InvalidOperationException) {
+                string modulePath, symbolPath;
+                this.runner.GetModuleInfo(moduleName, out modulePath, out symbolPath);
+                
+                if (modulePath == null) {
+                    modulePath = moduleName;
+                }
+                source.loadDataForExe(modulePath, this.SymPath, new ModuleReader(this.engine, moduleName));
+            } catch {
                 throw new DiaSourceNotReadyException();
             }
             IDiaSession session;

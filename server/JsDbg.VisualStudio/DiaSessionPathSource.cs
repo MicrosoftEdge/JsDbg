@@ -19,10 +19,13 @@ namespace JsDbg.Dia.VisualStudio {
         }
 
         public IDiaSession LoadSessionForModule(IDiaDataSource source, string moduleName) {
-            string symbolPath;
+            string symbolPath = null;
             try {
-                symbolPath = this.runner.GetModuleSymbolPath(moduleName);
-            } catch {
+                string modulePath;
+                this.runner.GetModuleInfo(moduleName, out modulePath, out symbolPath);
+            } catch { }
+
+            if (symbolPath == null) {
                 throw new DiaSourceNotReadyException();
             }
             source.loadDataFromPdb(symbolPath);

@@ -77,6 +77,7 @@ namespace JsDbg.VisualStudio {
 
                                 this.engine.NotifyBitnessChanged();
                                 this.engine.DiaLoader.ClearSymbols();
+                                this.debugger.ClearTypeCache();
                                 savedProgram = true;
                                 savedThread = true;
                             } else {
@@ -93,6 +94,7 @@ namespace JsDbg.VisualStudio {
                 DisposableComReference.ReleaseIfNotNull(ref this.memoryBytes);
                 DisposableComReference.ReleaseIfNotNull(ref this.dte);
                 this.engine.DiaLoader.ClearSymbols();
+                this.debugger.ClearTypeCache();
             } else if (riidEvent == breakInEvent) {
                 // The debugger broke in, notify the client.
                 this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Break);
@@ -163,18 +165,13 @@ namespace JsDbg.VisualStudio {
             return null;
         }
 
-        internal string GetModuleSymbolPath(string moduleName) {
-            string result = this.GetModuleSymbolPathInternal(moduleName);
-            if (result == null) {
-                throw new DebuggerException(String.Format("Unable to find symbols for module {0}", moduleName));
-            }
-            return result;
-        }
+        internal void GetModuleInfo(string moduleName, out string modulePath, out string symbolPath) {
+            modulePath = null;
+            symbolPath = null;
 
-        private string GetModuleSymbolPathInternal(string moduleName) {
             IEnumDebugModules2 debugModulesEnumerator;
             if (currentDebugProgram.EnumModules(out debugModulesEnumerator) != S_OK) {
-                return null;
+                return;
             }
 
             using (new DisposableComReference(debugModulesEnumerator)) {
@@ -185,26 +182,16 @@ namespace JsDbg.VisualStudio {
                     IDebugModule2 debugModule = debugModuleArray[0];
                     using (new DisposableComReference(debugModule)) {
                         MODULE_INFO[] moduleInfo = new MODULE_INFO[1];
-                        if (debugModule.GetInfo((uint)enum_MODULE_INFO_FIELDS.MIF_NAME, moduleInfo) == S_OK) {
-                            string suffixedModuleName = moduleInfo[0].m_bstrName;
-                            string bareModuleName = suffixedModuleName.Substring(0, suffixedModuleName.LastIndexOf('.'));
-                            if (bareModuleName == moduleName) {
-                                MODULE_SYMBOL_SEARCH_INFO[] symbolSearchInfo = new MODULE_SYMBOL_SEARCH_INFO[1];
-                                if (((IDebugModule3)debugModule).GetSymbolInfo((uint)enum_SYMBOL_SEARCH_INFO_FIELDS.SSIF_VERBOSE_SEARCH_INFO, symbolSearchInfo) == S_OK) {
-                                    string symbolInfo = symbolSearchInfo[0].bstrVerboseSearchInfo;
-                                    int indexOfSymbolLoaded = symbolInfo.IndexOf(": Symbols loaded");
-                                    if (indexOfSymbolLoaded >= 0 && indexOfSymbolLoaded < symbolInfo.Length) {
-                                        string moduleSymbolPath = symbolInfo.Substring(0, indexOfSymbolLoaded);
-                                        return moduleSymbolPath.Substring(moduleSymbolPath.LastIndexOf('\n') + 1);
-                                    }
-                                }
+                        if (debugModule.GetInfo((uint)(enum_MODULE_INFO_FIELDS.MIF_NAME | enum_MODULE_INFO_FIELDS.MIF_URLSYMBOLLOCATION | enum_MODULE_INFO_FIELDS.MIF_URL), moduleInfo) == S_OK) {
+                            if (moduleName.ToLowerInvariant() == System.IO.Path.GetFileNameWithoutExtension(moduleInfo[0].m_bstrName).ToLowerInvariant()) {
+                                modulePath = moduleInfo[0].m_bstrUrl;
+                                symbolPath = moduleInfo[0].m_bstrUrlSymbolLocation;
+                                return;
                             }
                         }
                     }
                 }
             }
-
-            return null;
         }
 
         internal bool IsPointer64Bit {
