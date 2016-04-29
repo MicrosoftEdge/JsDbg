@@ -1,0 +1,6 @@
+{
+    "name": "About",
+    "description": "About JsDbg and loaded extensions.",
+    "headless": "true",
+    "includes": ["about.js"]
+}

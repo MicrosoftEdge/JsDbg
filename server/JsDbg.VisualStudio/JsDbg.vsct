@@ -9,7 +9,7 @@
       <!-- Launch JsDbg Button, positioned in the "Watch" section of the Debug Toolbar. -->
       <Button guid="guidJsDbgCmdSet" id="cmdidLaunchJsDbg" priority="0x0100" type="Button">
         <Parent guid="guidVSDebugGroup" id="IDG_DEBUG_TOOLBAR_WATCH" />
-        <Icon guid="guidImages" id="jsdbgIcon" />
+        <Icon guid="guidImages" id="jsIcon" />
         <Strings>
           <ButtonText>Launch JsDbg</ButtonText>
         </Strings>
@@ -18,7 +18,7 @@
     
     <!-- Bitmap for the toolbar button. -->
     <Bitmaps>
-      <Bitmap guid="guidImages" href="Resources\Images.png" usedList="jsdbgIcon"/>
+      <Bitmap guid="guidImages" href="Resources\js.ico" usedList="jsIcon"/>
     </Bitmaps>
   </Commands>
   
@@ -30,7 +30,7 @@
     </GuidSymbol>
     
     <GuidSymbol name="guidImages" value="{821d2d92-bbed-487d-a13b-187c2c6931d5}" >
-      <IDSymbol name="jsdbgIcon" value="1" />
+      <IDSymbol name="jsIcon" value="1" />
     </GuidSymbol>
   </Symbols>
 </CommandTable>

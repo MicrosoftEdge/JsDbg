@@ -85,6 +85,10 @@ html {
     text-decoration: underline;
 }
 
+.jsdbg-about-link a:hover {
+    text-decoration: underline;
+}
+
 .jsdbg-feedback-pane {
     position:absolute;
     padding:10px;

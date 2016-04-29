@@ -88,6 +88,13 @@ Loader.OnLoad(function () {
         extensions.appendChild(extensionsPane);
         toolbar.appendChild(extensions);
 
+        if (Loader.GetCurrentExtension() != "about") {
+            var aboutLink = document.createElement("div");
+            aboutLink.classList.add("jsdbg-about-link");
+            aboutLink.innerHTML = "<a href=\"/about/\">About</a>";
+            toolbar.appendChild(aboutLink);
+        }
+
         var feedback = document.createElement("div");
         feedback.classList.add("jsdbg-feedback-container");
 

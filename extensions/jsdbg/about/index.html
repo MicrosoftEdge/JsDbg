@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head>
+    <title>About JsDbg</title>
+    <script type="text/javascript" src="/jsdbg/loader.js"></script>
+    <script type="text/javascript">
+        Loader.OnPageReady(function() {
+            var sections = About.GetAllSections();
+            var messages = document.getElementById("messages");
+            sections.forEach(function (section, i) {
+                messages.appendChild(document.createElement("hr"));
+                messages.appendChild(section);
+            })
+        });
+    </script>
+    <style type="text/css">
+        #messages > * {
+            margin:1em 0;
+        }
+
+        #messages hr {
+            border:thin solid #aaa;
+            border-bottom:none;
+        }
+    </style>
+</head>
+<body>
+<h4>For more information about JsDbg, visit <a href="http://aka.ms/jsdbg">http://aka.ms/jsdbg</a>.</h4>
+<div id="messages"></div>
+</body>
+</html>

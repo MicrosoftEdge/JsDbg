@@ -3,6 +3,15 @@
 // https://github.com/peterolson/BigInteger.js (public domain)
 // https://raw.githubusercontent.com/peterolson/BigInteger.js/3fb76bc0c80f093173f89ae6efb7ee4dc0a2ccf3/BigInteger.js
 
+Loader.OnLoad(function() {
+    if (typeof(About) !== typeof(undefined)) {
+        About.AddSection(
+"JsDbg includes <a href=\"https://github.com/peterolson/BigInteger.js\">BigInteger.js</a>, a public domain library \
+for arbitrary length integer arithmetic."
+        )
+    }
+})
+
 var bigInt = (function () {
     var base = 10000000, logBase = 7, zeros = "0000000";
     var sign = {
