@@ -54,7 +54,7 @@ namespace JsDbg.VisualStudio {
             bool savedProgram = false;
             bool savedThread = false;
 
-            if (this.currentDebugProgram != program && program != null && thread != null) {
+            if (riidEvent == breakInEvent && this.currentDebugProgram != program && program != null && thread != null) {
                 // Evaluate an expression get access to the memory context and the bitness.
                 IDebugProperty2 debugProperty = this.EvaluateExpression(thread, "(void**)0x0 + 1");
                 if (debugProperty != null) {
