@@ -7,6 +7,9 @@
   <Images>
     <Image Guid="$(guidJsIcon)" ID="$(jsIcon)" AllowColorInversion="false">
       <Source Uri="/JsDbg.VisualStudio;Component/Resources/js.xaml" />
+      <Source Uri="/JsDbg.VisualStudio;Component/Resources/js16x16.png">
+        <Size Value="16"/>
+      </Source>
     </Image>
   </Images>
   <ImageLists />

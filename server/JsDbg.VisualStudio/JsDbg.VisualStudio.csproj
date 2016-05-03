@@ -214,6 +214,7 @@
     <Content Include="JsDbg.imagemanifest">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
+    <Resource Include="Resources\js16x16.png" />
     <None Include="source.extension.vsixmanifest">
       <SubType>Designer</SubType>
     </None>
