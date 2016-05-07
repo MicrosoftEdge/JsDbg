@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.Debuggers.DbgEng;
 using Dia2Lib;
 using JsDbg.WinDbg;
+using System.IO;
 
 namespace JsDbg.Dia.WinDbg {
     class DiaSessionModuleSource : IDiaSessionSource {
@@ -52,7 +53,8 @@ namespace JsDbg.Dia.WinDbg {
 
         private string SymPath {
             get {
-                string[] caches = { "", @"C:\symbols", @"C:\debuggers\wow64\sym", @"C:\debuggers\sym" };
+                string temporaryPath = Path.Combine(Path.GetTempPath(), "symbols");
+                string[] caches = { "", @"C:\symbols", @"C:\debuggers\wow64\sym", @"C:\debuggers\sym", temporaryPath };
                 string[] servers = { "", "http://symweb/" };
                 return String.Format("CACHE*{0};{2};SRV*{1}", string.Join(";CACHE*", caches), string.Join(";SRV*", servers), this.symbolCache.GetSymbolSearchPath());
             }

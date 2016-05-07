@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Dia2Lib;
 using JsDbg.VisualStudio;
+using System.IO;
 
 namespace JsDbg.Dia.VisualStudio {
     class DiaSessionModuleSource : IDiaSessionSource {
@@ -51,7 +52,8 @@ namespace JsDbg.Dia.VisualStudio {
 
         private string SymPath {
             get {
-                string[] caches = { "", @"C:\symbols", @"C:\debuggers\wow64\sym", @"C:\debuggers\sym" };
+                string temporaryPath = Path.Combine(Path.GetTempPath(), "symbols");
+                string[] caches = { "", @"C:\symbols", @"C:\debuggers\wow64\sym", @"C:\debuggers\sym", temporaryPath };
                 string[] servers = { "", "http://symweb/" };
                 return String.Format("CACHE*{0};SRV*{1}", string.Join(";CACHE*", caches), string.Join(";SRV*", servers));
             }
