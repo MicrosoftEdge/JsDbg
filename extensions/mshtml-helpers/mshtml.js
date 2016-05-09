@@ -283,7 +283,7 @@ var MSHTML = undefined;
             var promise = Promise.join([element.f("_fHasLayoutPtr").val(), element.f("_fHasLayoutAry", "_fHasLayoutPtr").val(), element.f("_fHasMarkupPtr").val()])
             .then(function(bits) {
                 if (bits[0] || bits[1]) {
-                    return element.f("_pLayoutInfo", "_pLayout", "_chain._pLayoutInfo")
+                    return element.f("_pLayoutInfo", "_pLayout", "_chain._pLayoutInfo", "_chain._pLayout")
                     .then(function (layout) {
                         return layout.as("char").idx(0 - layout.pointerValue().mod(4)).as(layout.typeDescription()).f("_pMarkup");
                     })
