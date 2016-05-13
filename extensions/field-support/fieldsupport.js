@@ -284,7 +284,7 @@ var FieldSupport = (function() {
         }
     }
 
-    function initialize(unused1, unused2, defaultTypes, updateUI, container) {
+    function initialize(defaultTypes, updateUI, container) {
         var fieldSupportController = new FieldSupportController(container, updateUI);
         DbgObjectTree.AddTypeNotifier(function (module, typename, isBaseType) {
             fieldSupportController.addType(module, typename, isBaseType);

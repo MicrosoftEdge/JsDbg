@@ -2,7 +2,60 @@
 
 var DisplayTree = undefined;
 Loader.OnLoad(function() {
-    // Add a type description for CDispNode to link to the DisplayTree.
+    // Define the tree.
+    DisplayTree = {
+        Tree: DbgObjectTreeNew.Create("Display Tree"),
+        CreateRenderer: function() { return new DbgObjectTreeRenderer() },
+        InterpretAddress: function(address) {
+            return new DbgObject(MSHTML.Module, "void", address).vcast();
+        },
+        GetRoots: function() {
+            return MSHTML.GetCDocs()
+            .filter(function (doc) {
+                return doc.f("_view._pDispRoot").isNull()
+                .then(function (isNull) {
+                    return !isNull;
+                })
+            })
+            .then(function(docsWithDispRoots) {
+                if (docsWithDispRoots.length == 0) {
+                    return Promise.fail();
+                }
+                return docsWithDispRoots;
+            })
+            .then(null, function(error) {
+                var errorMessage =
+                    "No CDispRoots were found.\
+                    Possible reasons:\
+                    <ul>\
+                        <li>The debuggee is not IE 11 or Edge.</li>\
+                        <li>No page is loaded.</li>\
+                        <li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li>\
+                        <li>Symbols aren't available.</li>\
+                    </ul>\
+                    Refresh the page to try again, or specify a CDispNode explicitly.";
+
+                if (error) {
+                    errorMessage = "<h4>" + error.toString() + "</h4>" + errorMessage;
+                }
+                return Promise.fail(errorMessage);
+            });
+        }
+    };
+
+    DisplayTree.Tree.addChildren(MSHTML.Module, "CDoc", function (doc) {
+        return doc.f("_view");
+    });
+
+    DisplayTree.Tree.addChildren(MSHTML.Module, "CView", function (view) {
+        return view.f("_pDispRoot");
+    });
+
+    DisplayTree.Tree.addChildren(MSHTML.Module, "CDispParentNode", function (dispParentNode) {
+        return dispParentNode.f("_pFirstChild").list("_pNext").vcast();
+    });
+
+    // Add DbgObject actions for links to the display tree.
     DbgObject.AddAction(MSHTML.Module, "CDispNode", "DisplayTree", function (dispNode) {
         function getTopMostDispNode(node) {
             return node.f("_pParent")
@@ -34,68 +87,14 @@ Loader.OnLoad(function() {
             return TreeInspector.GetActions("displaytree", "Display Tree", rootNode, dispNode);
         })
     });
+
     DbgObject.AddAction(MSHTML.Module, "CDoc", "DisplayTree", function (doc) {
         return TreeInspector.GetActions("displaytree", "Display Tree", doc);
-    })
+    });
+
     DbgObject.AddAction(MSHTML.Module, "CView", "DisplayTree", function (view) {
         return TreeInspector.GetActions("displaytree", "Display Tree", view.unembed("CDoc", "_view"), view);
     });
-
-    if (Loader.GetCurrentExtension() == "displaytree") {
-        DbgObjectTree.AddRoot("Display Tree", function() {
-            return MSHTML.GetCDocs()
-            .filter(function (doc) {
-                return doc.f("_view._pDispRoot").isNull()
-                .then(function (isNull) {
-                    return !isNull;
-                })
-            })
-            .then(function(docsWithDispRoots) {
-                if (docsWithDispRoots.length == 0) {
-                    return Promise.fail();
-                }
-                return docsWithDispRoots;
-            })
-            .then(null, function(error) {
-                var errorMessage =
-                    "No CDispRoots were found.\
-                    Possible reasons:\
-                    <ul>\
-                        <li>The debuggee is not IE 11 or Edge.</li>\
-                        <li>No page is loaded.</li>\
-                        <li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li>\
-                        <li>Symbols aren't available.</li>\
-                    </ul>\
-                    Refresh the page to try again, or specify a CDispNode explicitly.";
-
-                if (error) {
-                    errorMessage = "<h4>" + error.toString() + "</h4>" + errorMessage;
-                }
-                return Promise.fail(errorMessage);
-            });
-        });
-
-        DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "CDispNode", address).vcast()
-            .then(null, function (err) {
-                return new DbgObject(MSHTML.Module, "CDoc", address).vcast();
-            })
-        });
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CDoc", null, function (object) {
-            return object.f("_view");
-        });
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CView", null, function (object) {
-            return object.f("_pDispRoot");
-        });
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CDispParentNode", null, function (object) {
-            return object.f("_pFirstChild").latestPatch().list(function (node) {
-                return node.f("_pNext").latestPatch()
-            }).vcast();
-        });
-    }
 
     DbgObject.AddExtendedField(MSHTML.Module, "CDispNode", "Client", "CDispClient", UserEditableFunctions.Create(function (dispNode) {
         // Get the latest patch...
@@ -140,12 +139,4 @@ Loader.OnLoad(function() {
             .join(" ");
         });
     }));
-
-    DisplayTree = {
-        Name: "DisplayTree",
-        RootType: "CDispNode",
-        DefaultTypes: [
-            { module: MSHTML.Module, type: "CDispNode" }
-        ]
-    };
 });

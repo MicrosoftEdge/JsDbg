@@ -5,6 +5,7 @@ var TreeInspector = (function() {
     var pointerField = null;
     var treeContainer = null;
     var treeRoot = null;
+    var renderRoot = null;
     var renderTreeRootPromise = null;
     var lastRenderedPointer = null;
     var currentRoots = [];
@@ -39,14 +40,14 @@ var TreeInspector = (function() {
             })
         },
 
-        Initialize: function(namespace, container) {
+        Initialize: function(getRoots, treeDefinition, treeRenderer, interpretAddress, defaultTypes, container) {
             function createAndRender(emphasisNodePtr) {
                 if (lastRenderedPointer != pointerField.value) {
                     // Don't re-render if we've already rendered.
                     pointerField.value = pointerField.value.trim();
-                    Promise.as(DbgObjectTree.InterpretAddress(new PointerMath.Pointer(pointerField.value, 16)))
+                    Promise.as(interpretAddress(new PointerMath.Pointer(pointerField.value, 16)))
                     .then(function(rootObject) { 
-                        render(rootObject, emphasisNodePtr); 
+                        render(treeDefinition.createTree(rootObject), emphasisNodePtr); 
                     }, showError);
                 } else {
                     emphasizeNode(emphasisNodePtr);
@@ -58,9 +59,12 @@ var TreeInspector = (function() {
                 lastRenderedPointer = pointerField.value;
 
                 var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
-                window.name = Loader.GetCurrentExtension().toLowerCase() + "-" + rootObject.dbgObject.ptr();
+                window.name = Loader.GetCurrentExtension().toLowerCase() + "-" + treeRoot.getObject().ptr();
 
-                renderTreeRootPromise = DbgObjectTree.RenderTreeNode(treeContainer, treeRoot, fullyExpand, treeAlgorithm)
+                renderTreeRootPromise = treeRenderer.createRenderRoot(treeRoot)
+                .then(function (renderRoot) {
+                    return treeAlgorithm.BuildTree(treeContainer, renderRoot, fullyExpand);
+                })
                 .then(function(renderTreeNodeResult) {
                     emphasizeNode(emphasisNodePtr);
                     return renderTreeNodeResult;
@@ -107,7 +111,7 @@ var TreeInspector = (function() {
                 treeContainer.className = "invalid-tree";
                 var errorMessage = "<h3>An error occurred loading the tree.</h3>";
                 var suggestions = [
-                    "Make sure the " + namespace.RootType + " address (" + new PointerMath.Pointer(pointerField.value, 16).toFormattedString() + ") is correct.",
+                    "Make sure the address (" + new PointerMath.Pointer(pointerField.value, 16).toFormattedString() + ") is correct.",
                     "If you're using an iDNA trace, try indexing the trace first.",
                     "Try refreshing the page.",
                     "You can also try to debug the exception using the F12 tools.",
@@ -142,20 +146,16 @@ var TreeInspector = (function() {
             }
 
             function loadRoots() {
-                return DbgObjectTree.GetRootTreeNodes()
+                return getRoots()
                 .then(function (roots) {
                     rootsElement.className = "roots success";
-                    rootsElement.innerHTML = namespace.RootType + " Roots: ";
+                    rootsElement.innerHTML = "";
 
                     currentRoots = roots;
 
-                    if (roots.length == 0) {
-                        rootsElement.innerHTML += "(none)";
-                    }
-
                     roots.forEach(function (root, index) {
                         var link = document.createElement("a");
-                        var rootPtr = root.dbgObject.ptr();
+                        var rootPtr = root.ptr();
                         link.setAttribute("href", "#r=root" + index);
                         link.innerText = rootPtr;
                         rootsElement.appendChild(link);
@@ -195,12 +195,12 @@ var TreeInspector = (function() {
 
                 if (currentRoots.length > 0) {
                     if (rootPtr == null) {
-                        rootPtr = currentRoots[0].dbgObject.ptr();
+                        rootPtr = currentRoots[0].ptr();
                     } else if (rootPtr.indexOf("root") == 0) {
                         // support for r=rootN syntax where N is the Nth root in currentRoots
                         var rootIndex = rootPtr.substr("root".length);
                         rootIndex = Math.min(rootIndex, currentRoots.length - 1);
-                        rootPtr = currentRoots[rootIndex].dbgObject.ptr();
+                        rootPtr = currentRoots[rootIndex].ptr();
                     }
                 }
 
@@ -258,7 +258,7 @@ var TreeInspector = (function() {
             }
 
             function id(str) {
-                return namespace.Name + "." + str;
+                return Loader.GetCurrentExtension() + "." + str;
             }
 
             // Handles copy event to pretty print the selected portion of the tree to the clipboard.
@@ -284,7 +284,6 @@ var TreeInspector = (function() {
 
             rootsElement = createElement("div");
             rootsElement.className = "roots success";
-            rootsElement.innerHTML = namespace.RootType + " Roots: ";
             topPane.appendChild(rootsElement);
 
             var pointerInputControl = createElement("nobr");
@@ -442,9 +441,7 @@ var TreeInspector = (function() {
             refresh();
 
             FieldSupport.Initialize(
-                null, 
-                null, 
-                namespace.DefaultTypes, 
+                defaultTypes, 
                 function() {
                     var defer = window.setImmediate || window.msSetImmediate || (function (f) { window.setTimeout(f, 0); });
                     defer(function() {

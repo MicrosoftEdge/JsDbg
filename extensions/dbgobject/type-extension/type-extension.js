@@ -58,6 +58,31 @@ Loader.OnLoad(function() {
         });
     }
 
+    DbgObjectTypeExtension.prototype.getAllExtensionsIncludingBaseTypes = function(dbgObject) {
+        var that = this;
+        return dbgObject.baseTypes()
+        .then(function (baseTypes) {
+            baseTypes.push(dbgObject);
+
+            var extensions = baseTypes
+            .map(function (dbgObject) {
+                return that.getAllExtensions(dbgObject.module, dbgObject.typename)
+            })
+            .reduce(function (a, b) { return a.concat(b); }, []);
+            
+            var includedExtensions = new Set();
+            var result = [];
+            extensions.forEach(function (item) {
+                if (!includedExtensions.has(item.extension)) {
+                    includedExtensions.add(item.extension);
+                    result.push(item);
+                }
+            });
+
+            return result;
+        });
+    }
+
     DbgObjectTypeExtension.prototype.getExtension = function (module, type, name) {
         if (typeof type == typeof "") {
             var key = typeKey(module, type);
