@@ -60,8 +60,22 @@ var FieldSupport = (function() {
         }
     }
 
+    function ActiveField(rootDbgObject, renderer) {
+        this.rootDbgObject = rootDbgObject;
+        this.renderer = renderer;
+    }
+
+    ActiveField.prototype.apply = function(dbgObject, container) {
+        if (dbgObject.module == this.rootDbgObject.module && dbgObject.typename == this.rootDbgObject.typename) {
+            return this.renderer(dbgObject, container);
+        } else {
+            return null;
+        }
+    }
+
     function FieldSupportController(container, updateTreeUI) {
         this.knownTypes = [];
+        this.activeFields = [];
         this.typeListContainer = document.createElement("div");
         this.updateTreeUI = updateTreeUI;
         this.isUpdateQueued = false;
@@ -194,14 +208,14 @@ var FieldSupport = (function() {
         var that = this;
         if (field.isEnabled) {
             field.context.renderer = this.createRenderer(field);
-            DbgObjectTree.AddField(rootDbgObject.module, rootDbgObject.typeDescription(), field.context.renderer);
+            this.activeFields = this.activeFields.concat([new ActiveField(rootDbgObject, field.context.renderer)]);
             field.allGetters.forEach(function (getter) {
                 UserEditableFunctions.AddListener(getter, that.activeFieldGetterListener);
             });
             this.checkedFields.markEnabled(rootDbgObject.module, rootDbgObject.typeDescription(), field.path);
             this.queueUpdate();
         } else if (field.context.renderer) {
-            DbgObjectTree.RemoveField(rootDbgObject.module, rootDbgObject.typeDescription(), field.context.renderer);
+            this.activeFields = this.activeFields.filter(function (af) { return af.renderer != field.context.renderer; });
             field.context.renderer = null;
             field.allGetters.forEach(function (getter) {
                 UserEditableFunctions.RemoveListener(getter, that.activeFieldGetterListener);
@@ -284,21 +298,56 @@ var FieldSupport = (function() {
         }
     }
 
-    function initialize(defaultTypes, updateUI, container) {
+    function initialize(tree, defaultTypes, updateUI, container) {
         var fieldSupportController = new FieldSupportController(container, updateUI);
-        DbgObjectTree.AddTypeNotifier(function (module, typename, isBaseType) {
-            fieldSupportController.addType(module, typename, isBaseType);
-        });
 
         if (Array.isArray(defaultTypes)) {
             defaultTypes.forEach(function (type) {
                 fieldSupportController.addType(type.module, type.type, /*isBaseType*/false);
             });
         }
+
+        return DbgObjectTreeNew.Map(tree, function (node) {
+            var object = node.getObject();
+            if (object instanceof DbgObject) {
+                fieldSupportController.addType(object.module, object.typename, /*isBaseType*/false);
+                object.baseTypes()
+                .then(function (baseTypes) {
+                    baseTypes.forEach(function (object) {
+                        fieldSupportController.addType(object.module, object.typename, /*isBaseType*/true);
+                    })
+                })
+            }
+
+            return Object.create(node, {
+                createRepresentation: {
+                    value: function() {
+                        var that = this;
+                        return node.createRepresentation()
+                        .then(function (container) {
+                            var object = that.getObject();
+                            if (object instanceof DbgObject) {
+                                return object.baseTypes()
+                                .then(function (baseTypes) {
+                                    fieldSupportController.activeFields.forEach(function (af) {
+                                        af.apply(object, container);
+                                        baseTypes.forEach(function (baseObject) {
+                                            af.apply(baseObject, container);
+                                        })
+                                    });
+
+                                    return container;
+                                })
+                            }
+                        })
+                    }
+                }
+            })
+            return node;
+        })
     }
 
     return {
-        Initialize: initialize,
-        RegisterTypeAlias: function() { }
+        Initialize: initialize
     };
 })();

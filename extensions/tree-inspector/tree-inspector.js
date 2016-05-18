@@ -63,6 +63,24 @@ var TreeInspector = (function() {
 
                 renderTreeRootPromise = treeRenderer.createRenderRoot(treeRoot)
                 .then(function (renderRoot) {
+                    return FieldSupport.Initialize(
+                        renderRoot,
+                        defaultTypes, 
+                        function() {
+                            var defer = window.setImmediate || window.msSetImmediate || (function (f) { window.setTimeout(f, 0); });
+                            defer(function() {
+                                if (renderTreeRootPromise != null) {
+                                    return renderTreeRootPromise
+                                    .then(function updateRenderTree(renderTreeRoot) {
+                                        return renderTreeRoot.updateRepresentation();
+                                    });
+                                }
+                            })
+                        },
+                        createFieldSupportContainer()
+                    )
+                })
+                .then(function (renderRoot) {
                     return treeAlgorithm.BuildTree(treeContainer, renderRoot, fullyExpand);
                 })
                 .then(function(renderTreeNodeResult) {
@@ -273,11 +291,20 @@ var TreeInspector = (function() {
                 }
             }
 
+            function createFieldSupportContainer() {
+                var newNode = createElement("div", null, { class: "field-support-container" });
+                if (fieldSupportContainer != null) {
+                    container.replaceChild(newNode, fieldSupportContainer);
+                } else {
+                    container.appendChild(newNode);
+                }
+                return newNode;
+            }
+
             // Build up the UI.
             container.classList.add("tree-inspector-root");
 
-            var fieldSupportContainer = createElement("div", null, { class: "field-support-container" });
-            container.appendChild(fieldSupportContainer);
+            var fieldSupportContainer = createFieldSupportContainer();
 
             var topPane = createElement("div", null, { class: "tree-inspector-top-pane" });
             container.appendChild(topPane);
@@ -439,22 +466,6 @@ var TreeInspector = (function() {
             document.addEventListener("copy", copyTreeSelection);
 
             refresh();
-
-            FieldSupport.Initialize(
-                defaultTypes, 
-                function() {
-                    var defer = window.setImmediate || window.msSetImmediate || (function (f) { window.setTimeout(f, 0); });
-                    defer(function() {
-                        if (renderTreeRootPromise != null) {
-                            return renderTreeRootPromise
-                            .then(function updateRenderTree(renderTreeRoot) {
-                                return renderTreeRoot.updateRepresentation();
-                            });
-                        }
-                    })
-                },
-                fieldSupportContainer
-            )
         }
     }
 })();
