@@ -11,6 +11,7 @@ var TreeInspector = (function() {
     var currentRoots = [];
     var treeAlgorithm = null;
     var treeAlgorithms = { };
+    var fieldSupportController = null;
 
     return {
         GetActions: function (extension, description, rootObjectPromise, emphasisObjectPromise) {
@@ -63,22 +64,7 @@ var TreeInspector = (function() {
 
                 renderTreeRootPromise = treeRenderer.createRenderRoot(treeRoot)
                 .then(function (renderRoot) {
-                    return FieldSupport.Initialize(
-                        renderRoot,
-                        defaultTypes, 
-                        function() {
-                            var defer = window.setImmediate || window.msSetImmediate || (function (f) { window.setTimeout(f, 0); });
-                            defer(function() {
-                                if (renderTreeRootPromise != null) {
-                                    return renderTreeRootPromise
-                                    .then(function updateRenderTree(renderTreeRoot) {
-                                        return renderTreeRoot.updateRepresentation();
-                                    });
-                                }
-                            })
-                        },
-                        createFieldSupportContainer()
-                    )
+                    return fieldSupportController.bindToTree(renderRoot);
                 })
                 .then(function (renderRoot) {
                     return treeAlgorithm.BuildTree(treeContainer, renderRoot, fullyExpand);
@@ -291,20 +277,23 @@ var TreeInspector = (function() {
                 }
             }
 
-            function createFieldSupportContainer() {
-                var newNode = createElement("div", null, { class: "field-support-container" });
-                if (fieldSupportContainer != null) {
-                    container.replaceChild(newNode, fieldSupportContainer);
-                } else {
-                    container.appendChild(newNode);
-                }
-                return newNode;
+            function updateRenderTree() {
+                var defer = window.setImmediate || window.msSetImmediate || (function (f) { window.setTimeout(f, 0); });
+                defer(function() {
+                    if (renderTreeRootPromise != null) {
+                        return renderTreeRootPromise
+                        .then(function(renderTreeRoot) {
+                            return renderTreeRoot.updateRepresentation();
+                        });
+                    }
+                })
             }
 
             // Build up the UI.
             container.classList.add("tree-inspector-root");
 
-            var fieldSupportContainer = createFieldSupportContainer();
+            var fieldSupportContainer = createElement("div", null, { class: "field-support-container" });
+            container.appendChild(fieldSupportContainer);
 
             var topPane = createElement("div", null, { class: "tree-inspector-top-pane" });
             container.appendChild(topPane);
@@ -464,6 +453,10 @@ var TreeInspector = (function() {
 
             // On copy, update the clipboard with some representation for the selected part of the tree.
             document.addEventListener("copy", copyTreeSelection);
+
+            // Create the FieldSupport controller.
+            fieldSupportController = FieldSupport.Create(updateRenderTree, fieldSupportContainer);
+            defaultTypes.forEach(function (type) { fieldSupportController.addType(type.module, type.type); })
 
             refresh();
         }

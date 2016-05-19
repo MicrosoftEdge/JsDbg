@@ -3,22 +3,10 @@
 var DbgObjectTreeRenderer = (function() {
     function Renderer() {
         this.names = new DbgObject.TypeExtension();
-        this.fields = new DbgObject.TypeExtension();
-        this.nextFieldId = 1;
     }
 
     Renderer.prototype.addNameRenderer = function(module, typename, renderer) {
         this.names.addExtension(module, typename, "", renderer);
-    }
-
-    Renderer.prototype.addField = function(module, typename, fieldRenderer) {
-        var name = (this.nextFieldId++).toString();
-        this.fields.addExtension(module, typename, name, fieldRenderer);
-        return name;
-    }
-
-    Renderer.prototype.removeField = function(module, typename, id) {
-        this.fields.removeExtension(module, typename, id);
     }
 
     Renderer.prototype.createRenderRoot = function(dbgObjectTreeNode) {
@@ -72,25 +60,6 @@ var DbgObjectTreeRenderer = (function() {
             var pointer = DbgObjectInspector.Inspect(dbgObject, dbgObject.ptr());
             result.appendChild(pointer);
             result.appendChild(document.createTextNode(" "));
-
-            return renderer.fields.getAllExtensionsIncludingBaseTypes(dbgObject)
-            .then(function (fieldsToApply) {
-                fieldsToApply.sort(function (a, b) {
-                    return parseInt(a.name) - parseInt(b.name);
-                });
-                fieldsToApply = fieldsToApply.map(function (x) { return x.extension; });
-
-                // Serialize the rendering of the fields.
-                var fieldPromise = Promise.as(null);
-                fieldsToApply.forEach(function (field) {
-                    fieldPromise = fieldPromise.then(function () {
-                        return field(dbgObject, result);
-                    })
-                    .then(null, function () { });
-                });
-
-                return fieldPromise;
-            })
         })
         .then(function () {
             var errors = node.getChildrenErrors();
