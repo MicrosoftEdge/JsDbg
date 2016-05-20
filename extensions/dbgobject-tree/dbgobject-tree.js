@@ -33,6 +33,50 @@ var DbgObjectTree = (function() {
         });
     }
 
+    function filter(root, f) {
+        return filterNodes([root], f)
+        .then(function (filteredNodes) {
+            if (filteredNodes.length == 1) {
+                return map(filteredNodes[0], applyFilterToPermittedNode(f));
+            } else {
+                return {
+                    getObject: function() { return "Root"; },
+                    getChildren: function() {
+                        return Promise.map(filteredNodes, applyFilterToPermittedNode(f));
+                    }
+                }
+            }
+        })
+    }
+
+    function applyFilterToPermittedNode(f) {
+        return function (node) {
+            return Object.create(node, {
+                getChildren: {
+                    value: function() {
+                        return filterNodes(node.getChildren(), f);
+                    }
+                }
+            });
+        }
+    }
+
+    function filterNodes(nodes, f) {
+        return Promise.map(nodes, function (node) {
+            return Promise.as(f(node))
+            .then(function (isPermitted) {
+                if (isPermitted) {
+                    return [node];
+                } else {
+                    return filterNodes(node.getChildren(), f);
+                }
+            })
+        })
+        .then(function (arrayOfArrays) {
+            return arrayOfArrays.reduce(function (a, b) { return a.concat(b); }, []);
+        })
+    }
+
     function DbgObjectTree(name) {
         this.name = name;
         this.typeExtension = new DbgObject.TypeExtension();
@@ -41,6 +85,28 @@ var DbgObjectTree = (function() {
 
     DbgObjectTree.prototype.createTree = function(rootObject) {
         return new DbgObjectTreeNode(rootObject, null, this);
+    }
+
+    DbgObjectTree.prototype.filter = function(f) {
+        var that = this;
+        return Object.create(this, {
+            createTree: {
+                value: function (rootObject) {
+                    return filter(that.createTree(rootObject), f);
+                }
+            }
+        })
+    }
+
+    DbgObjectTree.prototype.map = function(f) {
+        var that = this;
+        return Object.create(this, {
+            createTree: {
+                value: function (rootObject) {
+                    return map(that.createTree(rootObject), f);
+                }
+            }
+        })
     }
 
     DbgObjectTree.prototype.addChildren = function (module, typename, getChildren) {
@@ -164,5 +230,6 @@ var DbgObjectTree = (function() {
     return {
         Create: create,
         Map: map,
+        Filter: filter,
     }
 })();

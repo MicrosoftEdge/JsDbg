@@ -23,7 +23,11 @@ var DbgObjectTreeRenderer = (function() {
 
     Renderer.prototype.getName = function(node) {
         if (!(node.getObject() instanceof DbgObject)) {
-            return Promise.as(node.getObject().toString());
+            if (node.getObject() == null) {
+                return Promise.as("(null)");
+            } else {
+                return Promise.as(node.getObject().toString());   
+            }
         }
 
         return this.names.getExtensionIncludingBaseTypes(node.getObject(), "")

@@ -46,8 +46,9 @@ var TreeInspector = (function() {
                     // Don't re-render if we've already rendered.
                     pointerField.value = pointerField.value.trim();
                     Promise.as(interpretAddress(new PointerMath.Pointer(pointerField.value, 16)))
+                    .then(treeDefinition.createTree.bind(treeDefinition))
                     .then(function(rootObject) { 
-                        render(treeDefinition.createTree(rootObject), emphasisNodePtr); 
+                        render(rootObject, emphasisNodePtr); 
                     }, showError);
                 } else {
                     emphasizeNode(emphasisNodePtr);
