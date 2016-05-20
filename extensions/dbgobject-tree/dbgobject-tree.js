@@ -11,26 +11,46 @@ var DbgObjectTree = (function() {
     }
 
     function mapHelper(root, f, parent) {
-        return Promise.as(f(root))
-        .then(function (newRoot) {
-            var childrenPromise = null;
-            function getChildren() {
-                if (childrenPromise == null) {
-                    childrenPromise = Promise.map(newRoot.getChildren(), function (child) { return mapHelper(child, f, newRoot); });
+        // Before giving the node to the mapping function, lazily apply the map to all the children as well.
+        // If the mapping function wants to control the children, it can do so without having the map applied again.
+        var childrenPromise = null;
+        var rootWithMappedChildren = Object.create(root, {
+            parent: {
+                value: parent,
+            },
+            getChildren: {
+                value: function() {
+                    if (childrenPromise == null) {
+                        childrenPromise = Promise.map(root.getChildren(), function (child) { return mapHelper(child, f, rootWithMappedChildren); });
+                    }
+                    return childrenPromise;
                 }
+            }
+        });
 
-                return childrenPromise;
+        return Promise.as(f(rootWithMappedChildren))
+        .then(function (mappedRoot) {
+            function connectChildToParent(object) {
+                return Object.create(object, { parent: { value: mappedRoot } });
             }
 
-            return Object.create(newRoot, {
-                parent: {
-                    value: parent,
-                },
-                getChildren: {
-                    value: getChildren
-                }
-            })
-        });
+            function connectChildrenToParent() {
+                return Object.create(mappedRoot, {
+                    getChildren: {
+                        value: function() {
+                            return Promise.map(mappedRoot.getChildren(), connectChildToParent);
+                        }
+                    }
+                });
+            }
+
+            if (mappedRoot == rootWithMappedChildren) {
+                return mappedRoot;
+            } else {
+                // The children should point the to correct parent.
+                return connectChildrenToParent();
+            }
+        })
     }
 
     function filter(root, f) {
