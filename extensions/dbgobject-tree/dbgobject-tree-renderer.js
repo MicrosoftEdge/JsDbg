@@ -45,7 +45,7 @@ var DbgObjectTreeRenderer = (function() {
             }
 
             var description = document.createElement("div");
-            description.innerHTML = node.getObject().htmlTypeDescription(); // XXX/psalas: needs to support non-dbgobjects
+            description.innerHTML = name;
             result.appendChild(description);
 
             if (!(node.getObject() instanceof DbgObject)) {

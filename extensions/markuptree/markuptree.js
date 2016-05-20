@@ -2,6 +2,30 @@
 
 var MarkupTree = undefined;
 Loader.OnLoad(function() {
+    MarkupTree = {
+        Tree: DbgObjectTreeNew.Create("Markup Tree"),
+        Renderer: new DbgObjectTreeRenderer(),
+        InterpretAddress: function(address) {
+            return new DbgObject(MSHTML.Module, "CBase", address).vcast()
+            .then(undefined, function (err) {
+                // Virtual-table cast failed, so presume a CTreeNode.
+                return new DbgObject(MSHTML.Module, "CTreeNode", address);
+            });
+        },
+        GetRoots: function() {
+            // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
+            return Promise.sort(
+                MSHTML.GetCDocs(), 
+                function (doc) {
+                    return doc.f("_ulRefs").val().then(function (v) { return 0 - v; });
+                }
+            );
+        },
+        DefaultTypes: [
+            { module: MSHTML.Module, type: "CTreeNode" },
+            { module: MSHTML.Module, type: "CBase" }
+        ]
+    };
 
     // Create an action that will highlight the dbgObject within its markup (dbgObject must support .F('Markup'))
     function getMarkupTreeNodeActions(dbgObject) {
@@ -130,68 +154,56 @@ Loader.OnLoad(function() {
         )
         .map(promoteANode)
     }
+    
+    // Define the tree connections.
+    MarkupTree.Tree.addChildren(MSHTML.Module, "CDoc", function (object) {
+        // Get the primary markup.
+        return object.f("_pWindowPrimary._pCWindow._pMarkup");
+    });
 
-    if (Loader.GetCurrentExtension()== "markuptree") {
-        DbgObjectTree.AddRoot("Markup Tree", function() {
-            // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
-            return Promise.sort(
-                MSHTML.GetCDocs(), 
-                function (doc) {
-                    return doc.f("_ulRefs").val().then(function (v) { return 0 - v; });
-                }
-            );
+    MarkupTree.Tree.addChildren(MSHTML.Module, "CTreeNode", function (object) {
+        return getAllDirectChildren(object)
+        .then(null, function () {
+            // Old Tree Connection
+            return getAllDirectChildrenLegacy(object);
+        })
+        .then(function(children) {
+            return children.filter(function(child) { return child != null; });
+        })
+    });
+
+    MarkupTree.Tree.addChildren(MSHTML.Module, "CTreeNode", function (object) {
+        return object.F("SubordinateMarkup")
+        .then(function (subordinateMarkup) {
+            if (!subordinateMarkup.isNull()) {
+                return subordinateMarkup;
+            } else {
+                return [];
+            }
+        })
+    });
+
+    MarkupTree.Tree.addChildren(MSHTML.Module, "CMarkup", function (markup) {
+        return markup.F("Root").then(function (root) {
+            return root.vcast().then(null, function () { return root; })
         });
+    });
 
-        DbgObjectTree.AddType(null, MSHTML.Module, "CDoc", null, function (object) {
-            // Get the primary markup.
-            return object.f("_pWindowPrimary._pCWindow._pMarkup");
-        });
+    // Add some default renderers for CTreeNodes (Tags) and CMarkups (URLs).
+    MarkupTree.Renderer.addNameRenderer(MSHTML.Module, "CTreeNode", function (treeNode) {
+        return treeNode.desc("Tag");
+    })
 
-        DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
-            return getAllDirectChildren(object)
-            .then(null, function () {
-                // Old Tree Connection
-                return getAllDirectChildrenLegacy(object);
-                    })
-            .then(function(children) {
-                return children.filter(function(child) { return child != null; });
-            })
-        }, function (treeNode) {
-            return treeNode.desc("Tag");
-        });
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CTreeNode", null, function (object) {
-            return object.F("SubordinateMarkup");
-        });
-
-        DbgObjectTree.AddType("Text", MSHTML.Module, "CTreeDataPos"); // TEXTNODEMERGE
-        DbgObjectTree.AddType("TextNode", MSHTML.Module, "CDOMTextNode"); // !TEXTNODEMERGE
-
-        DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "CBase", address).vcast()
-            .then(undefined, function (err) {
-                // Virtual-table cast failed, so presume a CTreeNode.
-                return new DbgObject(MSHTML.Module, "CTreeNode", address);
-            });
-        });
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function (markup) {
-            return markup.F("Root").then(function (root) {
-                return root.vcast().then(null, function () { return root; })
-            });
-        }, function (markup) {
-            return markup.desc("URL")
-            .then(function (url) {
-                if (url != null) {
-                    return "CMarkup (" + url + ")";
-                } else {
-                    return "CMarkup";
-                }
-            })
-        });
-
-        FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDOMTextNode", "TextNode");
-    }
+    MarkupTree.Renderer.addNameRenderer(MSHTML.Module, "CMarkup", function (markup) {
+        return markup.desc("URL")
+        .then(function (url) {
+            if (url != null) {
+                return "CMarkup (" + url + ")";
+            } else {
+                return "CMarkup";
+            }
+        })
+    });
 
     DbgObject.AddTypeDescription(MSHTML.Module, "Tree::ATextData", "Text", false, UserEditableFunctions.Create(function (textData) {
         function processCharacters(characters) {
@@ -233,14 +245,9 @@ Loader.OnLoad(function() {
 
     DbgObject.AddTypeDescription(MSHTML.Module, "CDOMTextNode", "Text", false, UserEditableFunctions.Create(function (textNode) {
         return textNode.f("textData.m_pT").desc("Text");
-    }))
+    }));
 
-    MarkupTree = {
-        Name: "MarkupTree",
-        RootType: "CDoc",
-        DefaultTypes: [
-            { module: MSHTML.Module, type: "CTreeNode" },
-            { module: MSHTML.Module, type: "CBase" }
-        ]
-    }
+    DbgObject.AddTypeDescription(MSHTML.Module, "CTreeDataPos", "Text", false, UserEditableFunctions.Create(function (treeDataPos) {
+        return treeDataPos.f("_spTextData.m_pT").desc("Text");
+    }));
 });

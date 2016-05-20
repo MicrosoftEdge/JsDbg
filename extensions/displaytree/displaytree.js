@@ -40,7 +40,8 @@ Loader.OnLoad(function() {
                 }
                 return Promise.fail(errorMessage);
             });
-        }
+        },
+        DefaultTypes: [{ module: MSHTML.Module, type: "CDispNode" }],
     };
 
     DisplayTree.Tree.addChildren(MSHTML.Module, "CDoc", function (doc) {
