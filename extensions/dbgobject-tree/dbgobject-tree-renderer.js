@@ -29,7 +29,14 @@ var DbgObjectTreeRenderer = (function() {
         return this.names.getExtensionIncludingBaseTypes(node.getObject(), "")
         .then(function (result) {
             if (result == null) {
-                return node.getObject().htmlTypeDescription();
+                var typeName = node.getObject().htmlTypeDescription();
+                var namespaces = typeName.split("::");
+                if (namespaces.length > 1) {
+                    var namespace = namespaces.slice(0, namespaces.length - 1).join("::");
+                    var type = namespaces[namespaces.length - 1];
+                    typeName = "<span class=\"namespace\">" + namespace + "::</span>" + type;
+                }
+                return typeName
             } else {
                 return result.extension(node.getObject());
             }

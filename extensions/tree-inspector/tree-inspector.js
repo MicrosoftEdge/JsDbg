@@ -5,14 +5,12 @@ var TreeInspector = (function() {
     var pointerField = null;
     var treeContainer = null;
     var treeRoot = null;
-    var renderRoot = null;
     var renderTreeRootPromise = null;
     var lastRenderedPointer = null;
     var currentRoots = [];
     var treeAlgorithm = null;
     var treeAlgorithms = { };
     var fieldSupportController = null;
-    var emphasizedNode = null;
 
     return {
         GetActions: function (extension, description, rootObjectPromise, emphasisObjectPromise) {
@@ -57,7 +55,6 @@ var TreeInspector = (function() {
             }
 
             function render(rootObject, emphasisNodePtr) {
-                emphasizedNode = null;
                 treeRoot = rootObject;
                 lastRenderedPointer = pointerField.value;
 
@@ -176,7 +173,7 @@ var TreeInspector = (function() {
                 return getRoots()
                 .then(function (roots) {
                     rootsElement.className = "roots success";
-                    rootsElement.innerHTML = "";
+                    rootsElement.innerHTML = "Roots: ";
 
                     currentRoots = roots;
 
