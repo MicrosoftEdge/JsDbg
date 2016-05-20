@@ -53,7 +53,7 @@ var DbgObjectTree = (function() {
         this.typeExtension.removeExtension(module, typename, name);
     }
 
-    DbgObjectTree.prototype._getChildren = function(node) {
+    DbgObjectTree.prototype._getDbgObjectChildren = function(node) {
         var tree = this;
         return this.typeExtension.getAllExtensionsIncludingBaseTypes(node.object)
         .then(function (results) {
@@ -138,14 +138,16 @@ var DbgObjectTree = (function() {
 
             if (this.object instanceof DbgObject) {
                 // Get the all the registered children expansions.
-                childrenPromise = this.tree._getChildren(this);
+                childrenPromise = this.tree._getDbgObjectChildren(this);
             }
 
             if ((typeof this.object.getChildren) == (typeof function() {})) {
                 childrenPromise = childrenPromise
                 .then(function (children) {
-                    var newChildren = that.object.getChildren();
-                    return children.concat(newChildren);
+                    return Promise.as(that.object.getChildren())
+                    .then(function (additionalChildren) {
+                        return children.concat(additionalChildren);
+                    })
                 })
                 .then(function (childObjects) {
                     return childObjects.map(function (childObject) {

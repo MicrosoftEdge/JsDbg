@@ -26,9 +26,13 @@ Loader.OnLoad(function() {
     });
 
     function getChildrenForUndoManager(undoManager, memberName) {
-        return undoManager.f(memberName).array("Items").map(function (item) {
+        return undoManager.f(memberName).array("Items")
+        .map(function (item) {
             return item.f("m_pT").vcast();
-        });
+        })
+        .then(function (items) {
+            return items.filter(function (item) { return !item.isNull(); })
+        })
     }
 
     UndoManager.Tree.addChildren(MSHTML.Module, "Undo::UndoManager", function (undoManager) {
