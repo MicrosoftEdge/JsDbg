@@ -3,7 +3,7 @@
 var BoxTree = undefined;
 Loader.OnLoad(function() {
     BoxTree = {
-        Tree: DbgObjectTreeNew.Create("Layout Tree"),
+        Tree: DbgObjectTree.Create("Layout Tree"),
         Renderer: new DbgObjectTreeRenderer(),
         InterpretAddress: function(address) {
             return new DbgObject(MSHTML.Module, "Layout::LayoutBox", address).vcast();

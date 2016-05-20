@@ -181,7 +181,7 @@ var FieldSupport = (function() {
 
     FieldSupportController.prototype.applyToTree = function (tree) {
         var fieldSupportController = this;
-        return DbgObjectTreeNew.Map(tree, function (node) {
+        return DbgObjectTree.Map(tree, function (node) {
             var object = node.getObject();
             if (object instanceof DbgObject) {
                 fieldSupportController.addType(object.module, object.typename, /*isBaseType*/false);

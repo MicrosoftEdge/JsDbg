@@ -4,5 +4,5 @@
     "author": "Peter Salas",
     "description": "Provides an interface for traversing a tree of DbgObjects.",
     "dependencies": ["dbgobject", "dbgobject-inspector"],
-    "includes": ["dbgobject-tree.js", "dbgobject-tree.css", "dbgobject-tree-new.js", "dbgobject-tree-renderer.js"]
+    "includes": ["dbgobject-tree.js", "dbgobject-tree.css", "dbgobject-tree-renderer.js"]
 }

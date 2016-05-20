@@ -3,7 +3,7 @@
 var MarkupTree = undefined;
 Loader.OnLoad(function() {
     MarkupTree = {
-        Tree: DbgObjectTreeNew.Create("Markup Tree"),
+        Tree: DbgObjectTree.Create("Markup Tree"),
         Renderer: new DbgObjectTreeRenderer(),
         InterpretAddress: function(address) {
             return new DbgObject(MSHTML.Module, "CBase", address).vcast()

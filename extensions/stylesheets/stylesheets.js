@@ -3,7 +3,7 @@
 var StyleSheets = undefined;
 Loader.OnLoad(function() {
     StyleSheets = {
-        Tree: DbgObjectTreeNew.Create("StyleSheets"),
+        Tree: DbgObjectTree.Create("StyleSheets"),
         Renderer: new DbgObjectTreeRenderer(),
         InterpretAddress: function(address) {
             return new DbgObject(MSHTML.Module, "CBase", address).vcast()

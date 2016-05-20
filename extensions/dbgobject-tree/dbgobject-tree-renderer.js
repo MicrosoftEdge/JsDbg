@@ -12,7 +12,7 @@ var DbgObjectTreeRenderer = (function() {
     Renderer.prototype.createRenderRoot = function(dbgObjectTreeNode) {
         var renderer = this;
 
-        return DbgObjectTreeNew.Map(dbgObjectTreeNode, function(node) {
+        return DbgObjectTree.Map(dbgObjectTreeNode, function(node) {
             return Object.create(node, {
                 createRepresentation: {
                     value: function() { return createRepresentation(this, renderer);  }

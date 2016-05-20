@@ -3,7 +3,7 @@
 var UndoManager = undefined;
 Loader.OnLoad(function() {
     UndoManager = {
-        Tree: DbgObjectTreeNew.Create("Undo Manager"),
+        Tree: DbgObjectTree.Create("Undo Manager"),
         Renderer: new DbgObjectTreeRenderer(),
         InterpretAddress: function(address) {
             return new DbgObject(MSHTML.Module, "CDoc", address);

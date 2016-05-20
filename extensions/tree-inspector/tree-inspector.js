@@ -76,7 +76,7 @@ var TreeInspector = (function() {
             }
 
             function addObjectAddresses(treeRoot) {
-                return DbgObjectTreeNew.Map(treeRoot, function (node) {
+                return DbgObjectTree.Map(treeRoot, function (node) {
                     if (node.getObject() instanceof DbgObject) {
                         return Object.create(node, {
                             createRepresentation: {
