@@ -16,7 +16,7 @@ var DbgObjectTreeNew = (function() {
             var childrenPromise = null;
             function getChildren() {
                 if (childrenPromise == null) {
-                    childrenPromise = Promise.map(newRoot.getChildren(), function (child) { return map(child, f, newRoot); });
+                    childrenPromise = Promise.map(newRoot.getChildren(), function (child) { return mapHelper(child, f, newRoot); });
                 }
 
                 return childrenPromise;

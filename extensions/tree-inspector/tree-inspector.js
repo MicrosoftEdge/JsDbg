@@ -12,6 +12,7 @@ var TreeInspector = (function() {
     var treeAlgorithm = null;
     var treeAlgorithms = { };
     var fieldSupportController = null;
+    var emphasizedNode = null;
 
     return {
         GetActions: function (extension, description, rootObjectPromise, emphasisObjectPromise) {
@@ -56,6 +57,7 @@ var TreeInspector = (function() {
             }
 
             function render(rootObject, emphasisNodePtr) {
+                emphasizedNode = null;
                 treeRoot = rootObject;
                 lastRenderedPointer = pointerField.value;
 
@@ -63,17 +65,37 @@ var TreeInspector = (function() {
                 window.name = Loader.GetCurrentExtension().toLowerCase() + "-" + treeRoot.getObject().ptr();
 
                 renderTreeRootPromise = treeRenderer.createRenderRoot(treeRoot)
-                .then(function (renderRoot) {
-                    return fieldSupportController.bindToTree(renderRoot);
-                })
+                .then(fieldSupportController.applyToTree.bind(fieldSupportController))
+                .then(addObjectAddresses)
                 .then(function (renderRoot) {
                     return treeAlgorithm.BuildTree(treeContainer, renderRoot, fullyExpand);
                 })
-                .then(function(renderTreeNodeResult) {
+                .then(function(renderedTree) {
                     emphasizeNode(emphasisNodePtr);
-                    return renderTreeNodeResult;
-                }, showError);
+                    return renderedTree;
+                })
+                .then(null, showError)
                 return renderTreeRootPromise;
+            }
+
+            function addObjectAddresses(treeRoot) {
+                return DbgObjectTreeNew.Map(treeRoot, function (node) {
+                    if (node.getObject() instanceof DbgObject) {
+                        return Object.create(node, {
+                            createRepresentation: {
+                                value: function() {
+                                    return node.createRepresentation()
+                                    .then(function (result) {
+                                        result.setAttribute("data-object-address", node.getObject().pointerValue().toString(16));
+                                        return result;
+                                    });
+                                }
+                            }
+                        })
+                    } else {
+                        return node;
+                    }
+                });
             }
 
             function emphasizeNode(emphasisNodePtr) {
@@ -85,7 +107,8 @@ var TreeInspector = (function() {
 
                 // Emphasize new node.
                 if (emphasisNodePtr != null) {
-                    var emphasisNode = treeContainer.querySelector("#object-" + emphasisNodePtr.replace("`", ""));
+                    var pointerValue = new PointerMath.Pointer(emphasisNodePtr).value();
+                    var emphasisNode = treeContainer.querySelector("[data-object-address=\"" + pointerValue.toString(16) + "\"]");
                     if (emphasisNode != null) {
                         if (!isVisible(emphasisNode)) {
                             emphasisNode.scrollIntoView();

@@ -214,7 +214,11 @@ var TallTree = (function() {
 
         // create the element for the node itself.
         var element = this.representation;
-        element.className = "node" + (this.isExpanded ? "" : " collapsed");
+        element.classList.add("node");
+        if (!this.isExpanded) {
+            element.classList.add("collapsed");
+        }
+        
         if (element.parentNode != container) {
             container.appendChild(element);
         }

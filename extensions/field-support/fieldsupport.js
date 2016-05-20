@@ -179,7 +179,7 @@ var FieldSupport = (function() {
         });
     }
 
-    FieldSupportController.prototype.bindToTree = function (tree) {
+    FieldSupportController.prototype.applyToTree = function (tree) {
         var fieldSupportController = this;
         return DbgObjectTreeNew.Map(tree, function (node) {
             var object = node.getObject();
