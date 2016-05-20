@@ -212,6 +212,8 @@ var FieldSupport = (function() {
 
                                     return container;
                                 })
+                            } else {
+                                return container;
                             }
                         })
                     }

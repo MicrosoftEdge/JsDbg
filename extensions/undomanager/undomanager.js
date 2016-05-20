@@ -2,17 +2,25 @@
 
 var UndoManager = undefined;
 Loader.OnLoad(function() {
-    DbgObjectTree.AddRoot("Undo Manager", function() {
-        // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
-        return Promise.sort(
-            MSHTML.GetCDocs(), 
-            function (doc) {
-                return doc.f("_ulRefs").val().then(function (v) { return 0 - v; });
-            }
-        );
-    });
+    UndoManager = {
+        Tree: DbgObjectTreeNew.Create("Undo Manager"),
+        Renderer: new DbgObjectTreeRenderer(),
+        InterpretAddress: function(address) {
+            return new DbgObject(MSHTML.Module, "CDoc", address);
+        },
+        GetRoots: function() {
+            // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
+            return Promise.sort(
+                MSHTML.GetCDocs(), 
+                function (doc) {
+                    return doc.f("_ulRefs").val().then(function (v) { return 0 - v; });
+                }
+            );
+        },
+        DefaultTypes: [],
+    };
 
-    DbgObjectTree.AddType(null, MSHTML.Module, "CDoc", null, function (object) {
+    UndoManager.Tree.addChildren(MSHTML.Module, "CDoc", function (object) {
         // Get the undo manager from the CDoc.
         return object.f("edgeUndoManager.m_pT").vcast();
     });
@@ -23,52 +31,40 @@ Loader.OnLoad(function() {
         });
     }
 
-    DbgObjectTree.AddType(null, MSHTML.Module, "Undo::UndoManager", null, function (object) {
+    UndoManager.Tree.addChildren(MSHTML.Module, "Undo::UndoManager", function (undoManager) {
         // Group user, scripted and pending children of the open parent unit with these render-only children of the UndoManager object
         return Promise.join([
             {
-                getBasicDescription : function() {
+                toString : function() {
                     return "User Undo Units"
                 },
                 getChildren : function() {
-                    return getChildrenForUndoManager(this.undoManager, "userUndoUnits");
-                },
-                undoManager: object
+                    return getChildrenForUndoManager(undoManager, "userUndoUnits");
+                }
             },
             {
-                getBasicDescription : function() {
+                toString : function() {
                     return "Scripted Operations"
                 },
                 getChildren : function() {
-                    return getChildrenForUndoManager(this.undoManager, "scriptedOperations");
-                },
-                undoManager: object
+                    return getChildrenForUndoManager(undoManager, "scriptedOperations");
+                }
             },
             {
-                getBasicDescription : function() {
+                toString : function() {
                     return "Children of Open Parent Unit"
                 },
                 getChildren : function() {
-                    return getChildrenForUndoManager(this.undoManager, "childrenForOpenParentUnit");
-                },
-                undoManager: object
+                    return getChildrenForUndoManager(undoManager, "childrenForOpenParentUnit");
+                }
             }
         ]);
     });
 
     // Register ParentUndoUnit so its child units will be shown
-    DbgObjectTree.AddType(null, MSHTML.Module, "Undo::ParentUndoUnit", null, function (object) {
+    UndoManager.Tree.addChildren(MSHTML.Module, "Undo::ParentUndoUnit", function (object) {
         return object.f("childUnits").array("Items").map(function (item) {
             return item.f("m_pT").vcast();
         });
     });
-
-    DbgObjectTree.AddAddressInterpreter(function (address) {
-        return new DbgObject(MSHTML.Module, "CDoc", address);
-    });
-
-    UndoManager = {
-        Name: "UndoManager",
-        RootType: "CDoc"
-    }
 });

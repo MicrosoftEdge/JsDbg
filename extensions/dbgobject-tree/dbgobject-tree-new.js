@@ -59,7 +59,10 @@ var DbgObjectTreeNew = (function() {
         .then(function (results) {
             // Evaluate each of the child expansions.
             return Promise.map(results, function (x) {
-                return x.extension.getChildren(node.object)
+                return Promise.as(null)
+                .then(function() {
+                    return x.extension.getChildren(node.object);
+                })
                 .then(null, function (error) {
                     node._childrenErrors.push(error);
                     return [];
