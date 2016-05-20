@@ -38,7 +38,7 @@ var DbgObjectTreeRenderer = (function() {
                 }
                 return typeName
             } else {
-                return result.extension(node.getObject());
+                return result.extension(node.getObject(), node);
             }
         })
     }

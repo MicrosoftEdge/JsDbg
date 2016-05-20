@@ -2,6 +2,25 @@
 
 var StyleSheets = undefined;
 Loader.OnLoad(function() {
+    StyleSheets = {
+        Tree: DbgObjectTreeNew.Create("StyleSheets"),
+        Renderer: new DbgObjectTreeRenderer(),
+        InterpretAddress: function(address) {
+            return new DbgObject(MSHTML.Module, "CBase", address).vcast()
+            .then(null, function (err) {
+                return new DbgObject(MSHTML.Module, "CSharedStyleSheet", address);
+            })
+        },
+        GetRoots: function() { 
+            return Promise.sort(Promise.filter(MSHTML.GetCDocs().F("PrimaryMarkup"), function (m) { return !m.isNull(); }), function(markup) {
+                return markup.f("_pStyleSheetArray").f("_pageStyleSheets", "_aStyleSheets").array("Items")
+                .then(function (stylesheetArray) {
+                    return 0 - stylesheetArray.length;
+                });
+            });
+        },
+        DefaultTypes: []
+    };
 
     function getAtomFromAtomTable(atomTable, atom) {
         return atomTable.f("_phat")
@@ -161,116 +180,100 @@ Loader.OnLoad(function() {
         return TreeInspector.GetActions("stylesheets", "Stylesheets", markup);
     });
 
-    if (Loader.GetCurrentExtension()== "stylesheets") {
-        DbgObjectTree.AddRoot("StyleSheet", function() { 
-            return Promise.sort(Promise.filter(MSHTML.GetCDocs().F("PrimaryMarkup"), function (m) { return !m.isNull(); }), function(markup) {
-                return markup.f("_pStyleSheetArray").f("_pageStyleSheets", "_aStyleSheets").array("Items")
-                .then(function (stylesheetArray) {
-                    return 0 - stylesheetArray.length;
-                });
-            });
-        });
 
-        DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheetArray", null, function(array) {
-            return array.f("_pageStyleSheets", "_aStyleSheets").array("Items");
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleSheetArray", function(array) {
+        return array.f("_pageStyleSheets", "_aStyleSheets").array("Items");
+    })
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleSheetArray", function(array) {
+        return array.f("_extensionStyleSheets").array("Items");
+    })
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CMarkup", function(markup) {
+        return markup.f("_pStyleSheetArray");
+    })
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleSheet", function(stylesheet) {
+        return stylesheet.f("_pSSSheet");
+    })
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+        return stylesheet.f("_apMediaLists").array("Items");
+    })        
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CMediaList", function(stylesheet) {
+        return stylesheet.f("_apMediaQueries").array("Items");
+    })
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CMediaQuery", function(stylesheet) {
+        return stylesheet.f("_pAA").array("Items");
+    })
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleSheet", function(stylesheet) {
+        return stylesheet.f("_pImportedStyleSheets")
+        .then(function (imports) {
+            if (imports.isNull()) {
+                return [];
+            } else {
+                return [imports];
+            }
         })
+    })        
 
-        DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheetArray", null, function(array) {
-            return array.f("_extensionStyleSheets").array("Items");
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+        return stylesheet.f("_apFontBlocks").array("Items");
+    })
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+        return stylesheet.f("_apPageBlocks").array("Items");
+    })
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+        return stylesheet.f("_apViewportBlocks").array("Items");
+    })
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+        return stylesheet.f("_apImportBlocks").array("Items");
+    })
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+        return stylesheet.f("_apRulesList").array("Items");
+    })
+
+    StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleRule", function(styleRule) {
+        return styleRule.f("_paaStyleProperties").array("Items");
+    })
+
+    StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CMarkup", function (markup) {
+        return markup.desc("URL")
+        .then(function (url) {
+            return "CMarkup (" + url + ")";
         })
+    });
 
-        DbgObjectTree.AddType(null, MSHTML.Module, "CMarkup", null, function(markup) {
-            return markup.f("_pStyleSheetArray");
-        }, function (markup) {
-            return markup.desc("URL")
-            .then(function (url) {
-                return "CMarkup (" + url + ")";
+    StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CStyleSheet", function (stylesheet) {
+        return stylesheet.f("_pSSSheet._achAbsoluteHref").string()
+        .then(function (href) {
+            return "CStyleSheet (" + href + ")";
+        })
+    });
+
+    StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CStyleRule", function (rule, ruleNode) {
+        return getSelectorDescription(rule.f("_pFirstSelector"), ruleNode.parent.getObject());
+    })
+
+    StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CAttrValue", function(attrValue) {
+        return Promise.join([attrValue.desc("Name"), attrValue.desc("Value")])
+        .then(function (nameAndValue) {
+            var name = nameAndValue[0];
+            var value = nameAndValue[1];
+            if (value instanceof DbgObject) {
+                value = value.desc();
+            }
+            return Promise.as(value)
+            .then(function (value) {
+                return name.toLowerCase() + ":" + value;
             })
         })
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheet", null, function(stylesheet) {
-            return stylesheet.f("_pSSSheet");
-        }, function (stylesheet) {
-            return stylesheet.f("_pSSSheet._achAbsoluteHref").string()
-            .then(function (href) {
-                return "CStyleSheet (" + href + ")";
-            })
-        })
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CSharedStyleSheet", null, function(stylesheet) {
-            return stylesheet.f("_apMediaLists").array("Items");
-        })        
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CMediaList", null, function(stylesheet) {
-            return stylesheet.f("_apMediaQueries").array("Items");
-        })
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CMediaQuery", null, function(stylesheet) {
-            return stylesheet.f("_pAA").array("Items");
-        })
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CStyleSheet", null, function(stylesheet) {
-            return stylesheet.f("_pImportedStyleSheets");
-        })        
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CSharedStyleSheet", null, function(stylesheet) {
-            return stylesheet.f("_apFontBlocks").array("Items");
-        })
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CSharedStyleSheet", null, function(stylesheet) {
-            return stylesheet.f("_apPageBlocks").array("Items");
-        })
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CSharedStyleSheet", null, function(stylesheet) {
-            return stylesheet.f("_apViewportBlocks").array("Items");
-        })
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CSharedStyleSheet", null, function(stylesheet) {
-            return stylesheet.f("_apImportBlocks").array("Items");
-        })
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CSharedStyleSheet", null, function(stylesheet) {
-            return stylesheet.f("_apRulesList").array("Items");
-        })
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CStyleRule", null, function(styleRule) {
-            return styleRule.f("_paaStyleProperties").array("Items");
-        }, function (rule, stylesheet) {
-            return getSelectorDescription(rule.f("_pFirstSelector"), stylesheet);
-        })
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "CAttrValue", null, null, function(attrValue) {
-            return Promise.join([attrValue.desc("Name"), attrValue.desc("Value")])
-            .then(function (nameAndValue) {
-                var name = nameAndValue[0];
-                var value = nameAndValue[1];
-                if (value instanceof DbgObject) {
-                    value = value.desc();
-                }
-                return Promise.as(value)
-                .then(function (value) {
-                    return name.toLowerCase() + ":" + value;
-                })
-            })
-        })
-
-        DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "CBase", address).vcast()
-            .then(null, function (err) {
-                return new DbgObject(MSHTML.Module, "CSharedStyleSheet", address);
-            })
-        });
-    }
-
-    var builtInFields = [];
-
-    StyleSheets = {
-        Name: "StyleSheets",
-        RootType: "CMarkup",
-        DefaultFieldType: {
-            module: MSHTML.Module,
-            type: "CStyleSheet"
-        },
-        BuiltInFields: builtInFields
-    };
+    })
 });
