@@ -1,14 +1,19 @@
 # JsDbg: debugger extensions in the browser
-JsDbg is a platform for debugger extensions written for the browser in HTML/JS/CSS.  The extensions currently written for it aid debugging Edge and IE.  The primary goals are to lower the barrier to writing extensions as much as possible, while also enabling interactive extensions with rich UI.
+JsDbg is a platform for debugger extensions that are written in HTML/JS/CSS and run in the browser.  JsDbg extensions can have rich user interfaces and visualizations, but are easier to write than traditional debugger extensions.  JsDbg extensions are also debugger-agnostic and can be used with either WinDbg or Visual Studio 2015.
 
-### How do I use it?
+## Using JsDbg
+
+The current JsDbg extensions are targeted at developers working on Microsoft Edge and Internet Explorer (specifically `edgehtml.dll` and `mshtml.dll`), but are approachable enough that anyone can follow along to get a feel for JsDbg.
+
+### WinDbg
+
 1. **(Optional)** If you're debugging locally, install the JsDbg launcher using
     ```
     \\iefs\users\psalas\jsdbg\install.cmd
     ```
 
     which will copy a small extension to your local WinDbg installation.
-2. Attach WinDbg to Microsoft Edge, IE 11, or any process hosting `mshtml.dll` or `edgehtml.dll` (any process will work, but the current set of extensions target `mshtml.dll` and `edgehtml.dll`).
+2. Attach WinDbg to a process that hosts `edgehtml.dll` or `mshtml.dll` (`MicrosoftEdgeCP.exe`, `iexplore.exe`, `WWAHost.exe`, etc.)
 3. If you installed the launcher in step 1, in WinDbg, run
 
     ```
@@ -21,9 +26,25 @@ JsDbg is a platform for debugger extensions written for the browser in HTML/JS/C
     $$><\\iefs\users\psalas\jsdbg\jsdbg.script
     ```
 
-4. The JsDbg server will launch and prompt you to select a browser. If the debugger is attached to one browser, using a different browser for JsDbg generally works best; e.g. if the debugger is attached to Edge, use Chrome or IE.  You may also be prompted for elevation to register [DIA](https://msdn.microsoft.com/en-us/library/x93ctkx8.aspx) the first time symbols are required.
+4. The JsDbg server will launch and prompt you to select a browser. If the debugger is attached to one browser, using a different browser for JsDbg generally works best; e.g. if the debugger is attached to Edge, use Chrome or IE.
 
-### What extensions are included?
+### Visual Studio 2015
+
+1. If you haven't already, install JsDbg for Visual Studio 2015 by opening
+    ```
+    \\iefs\users\psalas\jsdbg\JsDbg.VisualStudio.vsix
+    ```
+and restarting Visual Studio if necessary.
+
+2. Open Visual Studio and attach to a process that hosts `edgehtml.dll` or `mshtml.dll` (`MicrosoftEdgeCP.exe`, `iexplore.exe`, `WWAHost.exe`, etc.)
+
+3. Once attached, break in to the running process (the "Pause" icon on the Debug toolbar, or `Debug -> Break All`).
+
+4. Launch JsDbg by clicking the "JS" icon on the Debug toolbar or `Tools -> Launch JsDbg`.
+
+5. You will be prompted to select a browser. If the debugger is attached to one browser, using a different browser for JsDbg generally works best; e.g. if the debugger is attached to Edge, use Chrome or IE.
+
+### Included Extensions
 
 The most powerful extensions are the ones that show you the "three trees" of Trident: the markup (MarkupTree), layout (BoxTree), and display trees (DisplayTree).
 

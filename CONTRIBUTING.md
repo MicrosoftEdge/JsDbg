@@ -13,7 +13,7 @@ If you notice something wrong with JsDbg or have an idea for how JsDbg can be be
 
 Contributions to JsDbg are welcome!  JsDbg has two main components:
 
-1. A web server and debugger client built in C#, located in the `js-dbgeng` directory.
+1. A web server and debugger client built in C#, located in the `server` directory.
 2. A set of JavaScript extensions.  Extensions included with JsDbg are located in the `extensions` directory.
 
 The core JsDbg APIs in the `jsdbg` extension relate to type information, reading from memory, loading extensions,

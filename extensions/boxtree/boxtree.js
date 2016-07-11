@@ -297,7 +297,7 @@ Loader.OnLoad(function() {
             lineBox.f("charOffsetInTextBlockRunAtStartOfLine", "characterIndexInTextBlockRunAtStartOfLine").val(),
             lineBox.f("textBlockRunIndexAfterLine").val(),
             lineBox.f("charOffsetInTextBlockRunAfterLine", "characterIndexInTextBlockRunAfterLine").val(),
-            lineBox.f("textBlockOrNode", "textBlock.m_pT")
+            lineBox.f("textBlock", "textBlockOrNode", "textBlock.m_pT")
         ])
         .then(function(fields) {
             // Unpack the fields we just retrieved.
