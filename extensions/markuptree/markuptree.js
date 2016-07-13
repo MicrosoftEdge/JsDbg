@@ -205,6 +205,10 @@ Loader.OnLoad(function() {
         })
     });
 
+    MarkupTree.Renderer.addNameRenderer(MSHTML.Module, "CDOMTextNode", function (textNode) {
+        return "TextNode";
+    });
+
     DbgObject.AddTypeDescription(MSHTML.Module, "Tree::ATextData", "Text", false, UserEditableFunctions.Create(function (textData) {
         function processCharacters(characters) {
             var length = characters.length;
