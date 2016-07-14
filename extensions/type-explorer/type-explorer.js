@@ -599,20 +599,20 @@ Loader.OnLoad(function() {
     }
 
     TypeExplorerField.prototype.disableCompletely = function() {
-        this.setIsEnabled(false);
+        this.setIsEnabled(false, null);
         if (this.childType != null) {
             this.childType.disableCompletely();
         }
     }
 
-    TypeExplorerField.prototype.setIsEnabled = function(isEnabled) {
+    TypeExplorerField.prototype.setIsEnabled = function(isEnabled, enableFieldContext) {
         if (!this.parentType.aggregateType.controller.allowFieldSelection()) {
             return;
         }
 
         if (isEnabled != this.isEnabled) {
             this.isEnabled = isEnabled;
-            this.parentType.aggregateType.controller._notifyFieldChange(this);
+            this.parentType.aggregateType.controller._notifyFieldChange(this, enableFieldContext);
         }
     }
 
@@ -693,11 +693,11 @@ Loader.OnLoad(function() {
         });
     }
 
-    TypeExplorerController.prototype.enableField = function(path) {
+    TypeExplorerController.prototype.enableField = function(path, context) {
         var that = this;
         return UserDbgObjectExtensions.EnsureLoaded()
         .then(function() {
-            return that._enableRemainingPath(that.rootType, path, 0);
+            return that._enableRemainingPath(that.rootType, path, 0, context);
         });
     }
 
@@ -728,15 +728,15 @@ Loader.OnLoad(function() {
         }
     }
 
-    TypeExplorerController.prototype._enableRemainingPath = function (obj, path, currentIndex) {
+    TypeExplorerController.prototype._enableRemainingPath = function (obj, path, currentIndex, enableFieldContext) {
         var that = this;
         if (currentIndex == path.length) {
             if (obj instanceof TypeExplorerField) {
-                obj.setIsEnabled(true);
+                obj.setIsEnabled(true, enableFieldContext);
             }
         } else {
             if (obj instanceof TypeExplorerField) {
-                return that._enableRemainingPath(obj.childType, path, currentIndex);
+                return that._enableRemainingPath(obj.childType, path, currentIndex, enableFieldContext);
             } else if (obj instanceof TypeExplorerSingleType) {
                 var collection = path[currentIndex];
                 collection = obj[collection];
@@ -746,7 +746,7 @@ Loader.OnLoad(function() {
                 .then(function (collection) {
                     for (var i = 0; i < collection.length; ++i) {
                         if (collection[i].name == path[currentIndex]) {
-                            return that._enableRemainingPath(collection[i], path, currentIndex + 1);
+                            return that._enableRemainingPath(collection[i], path, currentIndex + 1, enableFieldContext);
                         }
                     }
                 })
@@ -755,7 +755,7 @@ Loader.OnLoad(function() {
                 .then(function () {
                     for (var i = 0; i < obj.backingTypes.length; ++i) {
                         if (obj.backingTypes[i].typename == path[currentIndex]) {
-                            return that._enableRemainingPath(obj.backingTypes[i], path, currentIndex + 1);
+                            return that._enableRemainingPath(obj.backingTypes[i], path, currentIndex + 1, enableFieldContext);
                         }
                     }
                 });
@@ -775,9 +775,9 @@ Loader.OnLoad(function() {
         return !!this.options.includeBaseTypesByDefault;
     }
 
-    TypeExplorerController.prototype._notifyFieldChange = function(field, changeType) {
+    TypeExplorerController.prototype._notifyFieldChange = function(field, context) {
         if (this.options.onFieldChange) {
-            this.options.onFieldChange(this.dbgObject, this._getFieldForNotification(field), changeType);
+            this.options.onFieldChange(this.dbgObject, this._getFieldForNotification(field), context);
         }
     }
 

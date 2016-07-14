@@ -137,7 +137,7 @@ var FieldSupport = (function() {
                     // We may have rendered it as a base type before.  If so, remove the class.
                     this.typeListContainer.childNodes[i].classList.remove("base-type");
                 }
-                return false;
+                return Promise.as(false);
             }
         }
 
@@ -173,7 +173,7 @@ var FieldSupport = (function() {
         
         var that = this;
         var enabledPaths = this.checkedFields.getEnabledPaths(module, typename);
-        return Promise.map(enabledPaths, explorer.enableField.bind(explorer))
+        return Promise.map(enabledPaths, function (path) { return explorer.enableField(path, /*context*/true); })
         .then(function () {
             return that._renderRootType(newType, newTypeContainer);
         });
@@ -181,7 +181,7 @@ var FieldSupport = (function() {
 
     FieldSupportController.prototype.includeDbgObjectTypes = function(dbgObject) {
         var that = this;
-        return Promise.as(this.addType(dbgObject.module, dbgObject.typename, /*isBaseType*/false))
+        return this.addType(dbgObject.module, dbgObject.typename, /*isBaseType*/false)
         .then(function (alreadyPresent) {
             if (!alreadyPresent) {
                 // The type wasn't there before.  Add the base types as well.
@@ -252,7 +252,7 @@ var FieldSupport = (function() {
         })
     }
 
-    FieldSupportController.prototype._onFieldChange = function(rootDbgObject, field) {
+    FieldSupportController.prototype._onFieldChange = function(rootDbgObject, field, enableFieldContext) {
         var that = this;
         if (field.isEnabled) {
             field.context.renderer = this._createRenderer(field);
@@ -261,7 +261,12 @@ var FieldSupport = (function() {
                 UserEditableFunctions.AddListener(getter, that.activeFieldGetterListener);
             });
             this.checkedFields.markEnabled(rootDbgObject.module, rootDbgObject.typeDescription(), field.path);
-            this._queueUpdate();
+
+            // When we're explicitly enabling a field we don't need to queue an update
+            // because the request came from adding the type.
+            if (enableFieldContext !== true) {
+                this._queueUpdate();
+            }
         } else if (field.context.renderer) {
             this.activeFields = this.activeFields.filter(function (af) { return af.renderer != field.context.renderer; });
             field.context.renderer = null;
@@ -338,6 +343,7 @@ var FieldSupport = (function() {
         if (this.isUpdateQueued) {
             return;
         } else {
+            this.isUpdateQueued = true;
             var that = this;
             window.requestAnimationFrame(function() {
                 that.updateTreeUI();

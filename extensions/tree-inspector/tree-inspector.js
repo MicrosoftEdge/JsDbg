@@ -346,12 +346,20 @@ var TreeInspector = (function() {
                 }
             }
 
+            var isRenderTreeUpdateQueued = false;
             function updateRenderTree() {
+                if (isRenderTreeUpdateQueued) {
+                    return;
+                } else {
+                    isRenderTreeUpdateQueued = true;
+                }
+
                 var defer = window.setImmediate || window.msSetImmediate || (function (f) { window.setTimeout(f, 0); });
                 defer(function() {
                     if (renderTreeRootPromise != null) {
                         return renderTreeRootPromise
                         .then(function(renderTreeRoot) {
+                            isRenderTreeUpdateQueued = false;
                             return renderTreeRoot.updateRepresentation();
                         });
                     }
@@ -525,9 +533,9 @@ var TreeInspector = (function() {
 
             // Create the FieldSupport controller.
             fieldSupportController = FieldSupport.Create(updateRenderTree, fieldSupportContainer);
-            defaultTypes.forEach(function (type) { fieldSupportController.addType(type.module, type.type); })
 
-            refresh();
+            Promise.map(defaultTypes, function (type) { return fieldSupportController.addType(type.module, type.type); })
+            .then(refresh);
         }
     }
 })();
