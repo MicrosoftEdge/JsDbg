@@ -65,12 +65,12 @@ var FieldSupport = (function() {
         this.renderer = renderer;
     }
 
+    ActiveField.prototype.shouldBeApplied = function (dbgObject) {
+        return dbgObject.module == this.rootDbgObject.module && dbgObject.typename == this.rootDbgObject.typename;
+    }
+
     ActiveField.prototype.apply = function(dbgObject, container) {
-        if (dbgObject.module == this.rootDbgObject.module && dbgObject.typename == this.rootDbgObject.typename) {
-            return this.renderer(dbgObject, container);
-        } else {
-            return null;
-        }
+        return this.renderer(dbgObject, container);
     }
 
     function FieldSupportController(updateTreeUI, container) {
@@ -193,18 +193,31 @@ var FieldSupport = (function() {
     }
 
     FieldSupportController.prototype.renderFields = function(dbgObject, container) {
-        var that = this;
-        if (that.activeFields.length > 0) {
+        if (this.activeFields.length > 0) {
+            var that = this;
+            var fieldsToApply = this.activeFields.slice();
+            
             return dbgObject.baseTypes()
             .then(function (baseTypes) {
-                that.activeFields.forEach(function (af) {
-                    af.apply(dbgObject, container);
-                    baseTypes.forEach(function (baseObject) {
-                        af.apply(baseObject, container);
-                    })
-                });
+                baseTypes.unshift(dbgObject);
 
-                return container;
+                function applyRemainingFieldsAndReturnContainer() {
+                    if (fieldsToApply.length == 0) {
+                        return container;
+                    }
+
+                    var fieldToApply = fieldsToApply.shift();
+                    for (var i = 0; i < baseTypes.length; ++i) {
+                        if (fieldToApply.shouldBeApplied(baseTypes[i])) {
+                            return Promise.as(fieldToApply.apply(baseTypes[i], container))
+                            .then(applyRemainingFieldsAndReturnContainer);
+                        }
+                    }
+
+                    return applyRemainingFieldsAndReturnContainer();
+                }
+
+                return Promise.as(applyRemainingFieldsAndReturnContainer())
             });
         } else {
             return container;
