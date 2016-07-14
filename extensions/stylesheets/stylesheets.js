@@ -3,7 +3,7 @@
 var StyleSheets = undefined;
 Loader.OnLoad(function() {
     StyleSheets = {
-        Tree: DbgObjectTree.Create("StyleSheets"),
+        Tree: new TreeReader.DbgObjectTreeReader(new TreeReader.ObjectTreeReader()),
         Renderer: new DbgObjectTreeRenderer(),
         InterpretAddress: function(address) {
             return new DbgObject(MSHTML.Module, "CBase", address).vcast()
@@ -258,8 +258,8 @@ Loader.OnLoad(function() {
         })
     });
 
-    StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CStyleRule", function (rule, ruleNode) {
-        return getSelectorDescription(rule.f("_pFirstSelector"), ruleNode.parent.getObject());
+    StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CStyleRule", function (rule, sharedStyleSheet) {
+        return getSelectorDescription(rule.f("_pFirstSelector"), sharedStyleSheet);
     })
 
     StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CAttrValue", function(attrValue) {

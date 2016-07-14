@@ -137,7 +137,7 @@ var FieldSupport = (function() {
                     // We may have rendered it as a base type before.  If so, remove the class.
                     this.typeListContainer.childNodes[i].classList.remove("base-type");
                 }
-                return;
+                return false;
             }
         }
 
@@ -179,48 +179,36 @@ var FieldSupport = (function() {
         });
     }
 
-    FieldSupportController.prototype.applyToTree = function (tree) {
-        var fieldSupportController = this;
-        return DbgObjectTree.Map(tree, function (node) {
-            var object = node.getObject();
-            if (object instanceof DbgObject) {
-                fieldSupportController.addType(object.module, object.typename, /*isBaseType*/false);
-                object.baseTypes()
-                .then(function (baseTypes) {
-                    baseTypes.forEach(function (object) {
-                        fieldSupportController.addType(object.module, object.typename, /*isBaseType*/true);
-                    })
+    FieldSupportController.prototype.includeDbgObjectTypes = function(dbgObject) {
+        if (this.addType(dbgObject.module, dbgObject.typename, /*isBaseType*/false)) {
+            // The type wasn't there before.  Add the base types as well.
+            var that = this;
+            dbgObject.baseTypes()
+            .then(function (baseTypes) {
+                baseTypes.forEach(function (dbgObject) {
+                    that.addType(dbgObject.module, dbgObject.typename, /*isBaseType*/true);
                 })
-            }
-
-            return Object.create(node, {
-                createRepresentation: {
-                    value: function() {
-                        var that = this;
-                        return node.createRepresentation()
-                        .then(function (container) {
-                            var object = that.getObject();
-                            if (object instanceof DbgObject) {
-                                return object.baseTypes()
-                                .then(function (baseTypes) {
-                                    fieldSupportController.activeFields.forEach(function (af) {
-                                        af.apply(object, container);
-                                        baseTypes.forEach(function (baseObject) {
-                                            af.apply(baseObject, container);
-                                        })
-                                    });
-
-                                    return container;
-                                })
-                            } else {
-                                return container;
-                            }
-                        })
-                    }
-                }
             })
-            return node;
-        })
+        }
+    }
+
+    FieldSupportController.prototype.renderFields = function(dbgObject, container) {
+        var that = this;
+        if (that.activeFields.length > 0) {
+            return dbgObject.baseTypes()
+            .then(function (baseTypes) {
+                that.activeFields.forEach(function (af) {
+                    af.apply(dbgObject, container);
+                    baseTypes.forEach(function (baseObject) {
+                        af.apply(baseObject, container);
+                    })
+                });
+
+                return container;
+            });
+        } else {
+            return container;
+        }
     }
 
     FieldSupportController.prototype._renderRootType = function(rootType, typeContainer) {

@@ -12,6 +12,75 @@ var TreeInspector = (function() {
     var treeAlgorithms = { };
     var fieldSupportController = null;
 
+    function TreeInspectorTreeReader(previousReader, renderer, fieldSupportController) {
+        this.previousReader = previousReader;
+        this.fieldSupportController = fieldSupportController;
+        this.renderer = renderer;
+        this.allDbgObjects = new Set();
+    }
+
+    TreeInspectorTreeReader.prototype._wrap = function (parent, node) {
+        var isDuplicate = false;
+        var object = this.previousReader.getObject(node);
+        if (object instanceof DbgObject) {
+            // Notify the field support controller.
+            this.fieldSupportController.includeDbgObjectTypes(object);
+
+            // Check if it's a duplicate.
+            var ptr = object.ptr();
+            isDuplicate = this.allDbgObjects.has(ptr);
+            if (!isDuplicate) {
+                this.allDbgObjects.add(ptr);
+            }
+        }
+
+        return {
+            parentNode: parent,
+            previousNode: node,
+            errors: [],
+            isDuplicate: isDuplicate,
+            childrenPromise: undefined
+        };
+    }
+
+    TreeInspectorTreeReader.prototype.createRoot = function(object) {
+        return this.previousReader.createRoot(object).then(this._wrap.bind(this, null));
+    }
+
+    TreeInspectorTreeReader.prototype.getObject = function(node) {
+        return this.previousReader.getObject(node.previousNode);
+    }
+
+    TreeInspectorTreeReader.prototype.getChildren = function(node) {
+        if (node.childrenPromise === undefined) {
+            if (node.isDuplicate) {
+                node.childrenPromise = Promise.as([]);
+            } else {
+                node.childrenPromise = Promise.map(this.previousReader.getChildren(node.previousNode, node.errors), this._wrap.bind(this, node));
+            }
+        }
+        return node.childrenPromise;
+    }
+
+    TreeInspectorTreeReader.prototype.createRepresentation = function(node) {
+        var object = this.getObject(node);
+        var that = this;
+        return this.renderer.createRepresentation(
+            object,
+            node.parentNode != null ? this.getObject(node.parentNode) : null,
+            node.errors,
+            node.isDuplicate
+        )
+        .then(function (container) {
+            if (object instanceof DbgObject) {
+                container.setAttribute("data-object-address", object.pointerValue().toString(16));
+                return that.fieldSupportController.renderFields(object, container);
+            } else {
+                return container;
+            }
+        })
+    }
+
     return {
         GetActions: function (extension, description, rootObjectPromise, emphasisObjectPromise) {
             return Promise.join([rootObjectPromise, emphasisObjectPromise])
@@ -46,7 +115,6 @@ var TreeInspector = (function() {
                     // Don't re-render if we've already rendered.
                     pointerField.value = pointerField.value.trim();
                     Promise.as(interpretAddress(new PointerMath.Pointer(pointerField.value, 16)))
-                    .then(treeDefinition.createTree.bind(treeDefinition))
                     .then(function(rootObject) { 
                         render(rootObject, emphasisNodePtr); 
                     }, showError);
@@ -56,44 +124,24 @@ var TreeInspector = (function() {
             }
 
             function render(rootObject, emphasisNodePtr) {
+                window.name = Loader.GetCurrentExtension().toLowerCase() + "-" + rootObject.ptr();
                 treeRoot = rootObject;
                 lastRenderedPointer = pointerField.value;
 
-                var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
-                window.name = Loader.GetCurrentExtension().toLowerCase() + "-" + treeRoot.getObject().ptr();
+                var treeReader = new TreeInspectorTreeReader(treeDefinition, treeRenderer, fieldSupportController);
 
-                renderTreeRootPromise = treeRenderer.createRenderRoot(treeRoot)
-                .then(fieldSupportController.applyToTree.bind(fieldSupportController))
-                .then(addObjectAddresses)
-                .then(function (renderRoot) {
-                    return treeAlgorithm.BuildTree(treeContainer, renderRoot, fullyExpand);
+                renderTreeRootPromise = treeReader.createRoot(rootObject)
+                .then(function (rootNode) {
+                    var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
+                    return treeAlgorithm.BuildTree(treeContainer, treeReader, rootNode, fullyExpand);
                 })
                 .then(function(renderedTree) {
                     emphasizeNode(emphasisNodePtr);
                     return renderedTree;
                 })
-                .then(null, showError)
-                return renderTreeRootPromise;
-            }
+                .then(null, showError);
 
-            function addObjectAddresses(treeRoot) {
-                return DbgObjectTree.Map(treeRoot, function (node) {
-                    if (node.getObject() instanceof DbgObject) {
-                        return Object.create(node, {
-                            createRepresentation: {
-                                value: function() {
-                                    return node.createRepresentation()
-                                    .then(function (result) {
-                                        result.setAttribute("data-object-address", node.getObject().pointerValue().toString(16));
-                                        return result;
-                                    });
-                                }
-                            }
-                        })
-                    } else {
-                        return node;
-                    }
-                });
+                return renderTreeRootPromise;
             }
 
             function emphasizeNode(emphasisNodePtr) {

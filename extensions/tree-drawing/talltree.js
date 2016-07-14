@@ -26,7 +26,8 @@ var TallTree = (function() {
         }
     })(); 
 
-    function DrawingTreeNode(node, parent) {
+    function DrawingTreeNode(treeManager, node, parent) {
+        this.treeManager = treeManager;
         this.innerNode = node;
         this.parent = parent;
         this.children = [];
@@ -34,8 +35,8 @@ var TallTree = (function() {
         this.childContainer = null;
     }
 
-    DrawingTreeNode._instantiate = function(node, parent) {
-        var drawingNode = new DrawingTreeNode(node, parent);
+    DrawingTreeNode._instantiate = function(treeManager, node, parent) {
+        var drawingNode = new DrawingTreeNode(treeManager, node, parent);
         return drawingNode._realize()
             .then(function() { return drawingNode; });
 
@@ -43,7 +44,7 @@ var TallTree = (function() {
 
     DrawingTreeNode.prototype._realize = function() {
         var that = this;
-        return that.innerNode.getChildren()
+        return that.treeManager.getChildren(that.innerNode)
             .then(function gotChildren(children) {
                 that.nodeChildren = children;
                 that.isExpanded = that.nodeChildren.length == 0;
@@ -72,46 +73,46 @@ var TallTree = (function() {
 
     DrawingTreeNode.prototype._createRepresentation = function() {
         var that = this;
-        return this.innerNode.createRepresentation()
-            .then(function(innerRepresentation) {
-                that.representation = innerRepresentation;
+        return this.treeManager.createRepresentation(this.innerNode)
+        .then(function(innerRepresentation) {
+            that.representation = innerRepresentation;
 
-                var childrenCount = document.createElement("div");
-                childrenCount.className = "children";
-                childrenCount.innerHTML = pad(that.nodeChildren.length, 2);
-                if (that.representation.firstChild != null) {
-                    that.representation.insertBefore(document.createTextNode(" "), that.representation.firstChild);
-                    that.representation.insertBefore(childrenCount, that.representation.firstChild);
-                } else {
-                    that.representation.appendChild(childrenCount);
+            var childrenCount = document.createElement("div");
+            childrenCount.className = "children";
+            childrenCount.innerHTML = pad(that.nodeChildren.length, 2);
+            if (that.representation.firstChild != null) {
+                that.representation.insertBefore(document.createTextNode(" "), that.representation.firstChild);
+                that.representation.insertBefore(childrenCount, that.representation.firstChild);
+            } else {
+                that.representation.appendChild(childrenCount);
+            }
+
+            that.representation.addEventListener("click", function(e) {
+                if (e.target.tagName == "A") {
+                    return;
                 }
-
-                that.representation.addEventListener("click", function(e) {
-                    if (e.target.tagName == "A") {
-                        return;
-                    }
-                    enqueueWork(function() {
-                        if (!that.isExpanded) {
-                            var clock = Timer.Start();
-                            return that._expand(e.ctrlKey)
-                            .then(function expanded() {
-                                console.log("Expansion took " + clock.Elapsed() + "s");
-                                that._redraw();
-                                console.log("Full Redraw took " + clock.Elapsed() + "s");
-                            });
-                        } else if (e.ctrlKey) {
-                            that._collapse(false);
+                enqueueWork(function() {
+                    if (!that.isExpanded) {
+                        var clock = Timer.Start();
+                        return that._expand(e.ctrlKey)
+                        .then(function expanded() {
+                            console.log("Expansion took " + clock.Elapsed() + "s");
                             that._redraw();
-                        }
-                    });
-                });
-
-                that.representation.addEventListener("mousedown", function(e) {
-                    if (e.ctrlKey) {
-                        e.preventDefault();
+                            console.log("Full Redraw took " + clock.Elapsed() + "s");
+                        });
+                    } else if (e.ctrlKey) {
+                        that._collapse(false);
+                        that._redraw();
                     }
                 });
             });
+
+            that.representation.addEventListener("mousedown", function(e) {
+                if (e.ctrlKey) {
+                    e.preventDefault();
+                }
+            });
+        });
     }
 
     DrawingTreeNode.prototype._getChildContainer = function() {
@@ -168,7 +169,7 @@ var TallTree = (function() {
 
         // Construct the children.
         this.children = this.nodeChildren.map(function(x) {
-            return new DrawingTreeNode(x, that);
+            return new DrawingTreeNode(that.treeManager, x, that);
         })
 
         // Realize them and expand them as needed...
@@ -301,9 +302,9 @@ var TallTree = (function() {
     }
 
     return {
-        BuildTree: function(container, root, expandFully) {
+        BuildTree: function(container, treeManager, root, expandFully) {
             return enqueueWork(function() {
-                return DrawingTreeNode._instantiate(root)
+                return DrawingTreeNode._instantiate(treeManager, root)
                 .then(function(drawingRoot) {
                     if (expandFully && !drawingRoot.isExpanded) {
                         return drawingRoot._expand(true)
