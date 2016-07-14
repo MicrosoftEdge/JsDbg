@@ -1,3 +1,7 @@
+.dbgobject-inspector {
+    color:black;
+}
+
 .dbgobject-inspector > .drop-down {
     display:inline;
     font-family:Segoe UI;
