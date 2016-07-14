@@ -180,23 +180,26 @@ var FieldSupport = (function() {
     }
 
     FieldSupportController.prototype.includeDbgObjectTypes = function(dbgObject) {
-        if (this.addType(dbgObject.module, dbgObject.typename, /*isBaseType*/false)) {
-            // The type wasn't there before.  Add the base types as well.
-            var that = this;
-            dbgObject.baseTypes()
-            .then(function (baseTypes) {
-                baseTypes.forEach(function (dbgObject) {
-                    that.addType(dbgObject.module, dbgObject.typename, /*isBaseType*/true);
-                })
-            })
-        }
+        var that = this;
+        return Promise.as(this.addType(dbgObject.module, dbgObject.typename, /*isBaseType*/false))
+        .then(function (alreadyPresent) {
+            if (!alreadyPresent) {
+                // The type wasn't there before.  Add the base types as well.
+                return Promise.map(
+                    dbgObject.baseTypes(),
+                    function (dbgObject) {
+                        return that.addType(dbgObject.module, dbgObject.typename, /*isBaseType*/true);
+                    }
+                );
+            }
+        })
     }
 
     FieldSupportController.prototype.renderFields = function(dbgObject, container) {
         if (this.activeFields.length > 0) {
             var that = this;
             var fieldsToApply = this.activeFields.slice();
-            
+
             return dbgObject.baseTypes()
             .then(function (baseTypes) {
                 baseTypes.unshift(dbgObject);
