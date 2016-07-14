@@ -11,12 +11,14 @@ var TreeInspector = (function() {
     var treeAlgorithm = null;
     var treeAlgorithms = { };
     var fieldSupportController = null;
+    var treeReader = null;
 
     function TreeInspectorTreeReader(previousReader, renderer, fieldSupportController) {
         this.previousReader = previousReader;
         this.fieldSupportController = fieldSupportController;
         this.renderer = renderer;
         this.allDbgObjects = new Set();
+        this.cachedRootPromise = null;
     }
 
     TreeInspectorTreeReader.prototype._wrap = function (parent, node) {
@@ -44,7 +46,23 @@ var TreeInspector = (function() {
     }
 
     TreeInspectorTreeReader.prototype.createRoot = function(object) {
-        return this.previousReader.createRoot(object).then(this._wrap.bind(this, null));
+        if (this.cachedRootPromise != null) {
+            // Check if the object is the same.
+            var that = this;
+            return this.cachedRootPromise
+            .then(function (cachedRoot) {
+                if (that.getObject(cachedRoot) === object) {
+                    return cachedRoot;
+                } else {
+                    // A different object.  Clear the cache and try again.
+                    that.cachedRootPromise = null;
+                    return that.createRoot(object);
+                }
+            })
+        } else {
+            this.cachedRootPromise = this.previousReader.createRoot(object).then(this._wrap.bind(this, null));
+            return this.cachedRootPromise;
+        }
     }
 
     TreeInspectorTreeReader.prototype.getObject = function(node) {
@@ -128,7 +146,9 @@ var TreeInspector = (function() {
                 treeRoot = rootObject;
                 lastRenderedPointer = pointerField.value;
 
-                var treeReader = new TreeInspectorTreeReader(treeDefinition, treeRenderer, fieldSupportController);
+                if (treeReader == null) {
+                    treeReader = new TreeInspectorTreeReader(treeDefinition, treeRenderer, fieldSupportController);
+                }
 
                 renderTreeRootPromise = treeReader.createRoot(rootObject)
                 .then(function (rootNode) {

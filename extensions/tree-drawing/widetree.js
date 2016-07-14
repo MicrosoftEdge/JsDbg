@@ -31,7 +31,8 @@ var WideTree = (function() {
     var NODE_HEIGHT = 80;
     var NODE_MARGIN_Y = 20;
 
-    function DrawingTreeNode(node, parent) {
+    function DrawingTreeNode(treeManager, node, parent) {
+        this.treeManager = treeManager;
         this.innerNode = node;
         this.parent = parent;
         this.children = [];
@@ -40,8 +41,8 @@ var WideTree = (function() {
         this.requiredWidth = -1;
     }
 
-    DrawingTreeNode._instantiate = function(node, parent) {
-        var drawingNode = new DrawingTreeNode(node, parent);
+    DrawingTreeNode._instantiate = function(treeManager, node, parent) {
+        var drawingNode = new DrawingTreeNode(treeManager, node, parent);
         return drawingNode._realize()
             .then(function() { return drawingNode; });
 
@@ -49,7 +50,7 @@ var WideTree = (function() {
 
     DrawingTreeNode.prototype._realize = function() {
         var that = this;
-        return that.innerNode.getChildren()
+        return that.treeManager.getChildren(that.innerNode)
             .then(function gotChildren(children) {
                 that.nodeChildren = children;
                 that.isExpanded = that.nodeChildren.length == 0;
@@ -65,7 +66,7 @@ var WideTree = (function() {
 
     DrawingTreeNode.prototype._createRepresentation = function() {
         var that = this;
-        return this.innerNode.createRepresentation()
+        return this.treeManager.createRepresentation(this.innerNode)
             .then(function(innerRepresentation) {
                 that.representation = innerRepresentation;
 
@@ -151,7 +152,7 @@ var WideTree = (function() {
 
         // Construct the children.
         this.children = this.nodeChildren.map(function(x) {
-            return new DrawingTreeNode(x, that);
+            return new DrawingTreeNode(that.treeManager, x, that);
         })
 
         // Realize them and expand them as needed...
@@ -309,9 +310,9 @@ var WideTree = (function() {
     }
 
     return {
-        BuildTree: function(container, root, expandFully) {
+        BuildTree: function(container, treeManager, root, expandFully) {
             return enqueueWork(function() {
-                return DrawingTreeNode._instantiate(root)
+                return DrawingTreeNode._instantiate(treeManager, root)
                 .then(function(drawingRoot) {
                     if (expandFully && !drawingRoot.isExpanded) {
                         return drawingRoot._expand(true)
