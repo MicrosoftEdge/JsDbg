@@ -1,8 +1,8 @@
 
 var TreeSaver = (function() {
 
-    function Save(node) {
-        SerializeNode(node)
+    function Save(reader, node) {
+        SerializeNode(reader, node)
         .then(function(nodeHtml) {
             var preamble =
 "<!doctype html>\n\
@@ -48,16 +48,16 @@ div.children {\
         })
     }
 
-    function SerializeNode(node) {
+    function SerializeNode(reader, node) {
         var html = ["<div class=\"node\">"]
-        return node.createRepresentation()
+        return reader.createRepresentation(node)
         .then(function(representation) {
             html.push(representation.outerHTML);
-            return node.getChildren();
+            return reader.getChildren(node);
         })
         .then(function(children) {
             if (node.drawingTreeNodeIsExpanded) {
-                return Promise.map(children, SerializeNode);
+                return Promise.map(children, function (child) { return SerializeNode(reader, child); });
             } else if (children.length > 1) {
                 return ["(" + children.length + " collapsed children" + "...)"];
             } else if (children.length == 1) {

@@ -432,7 +432,7 @@ var TreeInspector = (function() {
             loadSaveControl.appendChild(createElement("button", "Save", null, {
                 "click": function() {
                     if (treeRoot != null) {
-                        TreeSaver.Save(treeRoot);
+                        TreeSaver.Save(treeReader, treeRoot);
                     }
                 }
             }))
