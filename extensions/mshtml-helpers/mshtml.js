@@ -566,7 +566,10 @@ var MSHTML = undefined;
                         if (version > versionToFind) {
                             return findMatchingPatch(patch.f("_pNextPatch"));
                         } else {
-                            return patch;
+                            return {
+                                patch: patch,
+                                version: version
+                            };
                         }
                     })
                 })
@@ -578,8 +581,14 @@ var MSHTML = undefined;
                 .then(function (patchableObject) {
                     return Promise.join(
                     [patchableObject.f("_iVersion").val(), findMatchingPatch(patchableObject.f("_pNextPatch"), that.version)],
-                    function (objectVersion, matchingPatch) {
-                        if (matchingPatch.isNull()) {
+                    function (objectVersion, matchingPatchAndVersion) {
+                        var matchingPatch = matchingPatchAndVersion.patch;
+                        var matchingVersion = matchingPatchAndVersion.version;
+                        // If there is no matching patch, or the given object was actually a patch and is a better match
+                        // than the best patch, use the original object.  This means that getCurrentVersion can be called
+                        // multiple times without effect as long as the initial object was not already an earlier patch
+                        // the current version.
+                        if (matchingPatch.isNull() || (objectVersion > matchingVersion && that.version >= objectVersion)) {
                             return patchableObject;
                         } else {
                             return matchingPatch.as(patchableObject.typename)
