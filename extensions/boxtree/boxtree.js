@@ -289,14 +289,17 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "DisplayNode", "CDispNode", UserEditableFunctions.Create(function (containerBox) {
-        return Promise.join([containerBox.f("isDisplayNodeExtracted").val(), containerBox.f("rawDisplayNode")])
-        .then(function (results) {
-            if (!results[0]) {
-                return results[1];
-            } else {
-                return new DbgObject(MSHTML.Module, "CDispNode", 0);
+        return Promise.join(
+            [containerBox.f("isDisplayNodeExtracted").val(), containerBox.f("rawDisplayNode")],
+            function (isDisplayNodeExtracted, displayNode) {
+                // If there's a non-UI thread patch version chosen, ignore isDisplayNodeExtracted.
+                if (MSHTML.GetCurrentPatchVersion() != Infinity || !isDisplayNodeExtracted) {
+                    return displayNode.currentPatch();
+                } else {
+                    return new DbgObject(MSHTML.Module, "CDispNode", 0);
+                }
             }
-        })
+        );
     }));
 
     DbgObject.AddArrayField(MSHTML.Module, "CTreeNode", "LayoutBoxes", "Layout::LayoutBox[]", UserEditableFunctions.Create(function(treeNode) {

@@ -1332,6 +1332,12 @@ var MSHTML = undefined;
             },
             GetElementLookasidePointer: GetElementLookasidePointer,
 
+            _help_GetCurrentPatchVersion: {
+                description: "Gets the current patch version used by DbgObject.currentPatch().",
+                returns: "A number indicating the current version."
+            },
+            GetCurrentPatchVersion: function (version) { return patchManager.version; },
+
             _help_SetCurrentPatchVersion: {
                 description: "Sets the current patch version used by DbgObject.currentPatch().",
                 arguments: [
