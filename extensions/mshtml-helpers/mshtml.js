@@ -554,23 +554,54 @@ var MSHTML = undefined;
             return GetObjectFromDataCache(GetThreadstateFromObject(object).f("_p" + cacheType + "Cache"), index);
         }
 
+        function PatchManager(initialVersion) {
+            this.version = initialVersion;
+        }
+        PatchManager.prototype.getCurrentVersion = function (patchableObjectPromise) {
+            function findMatchingPatch(patchPromise, versionToFind) {
+                return Promise.as(patchPromise)
+                .then(function (patch) {
+                    return patch.f("_iVersion").val()
+                    .then(function (version) {
+                        if (version > versionToFind) {
+                            return findMatchingPatch(patch.f("_pNextPatch"));
+                        } else {
+                            return patch;
+                        }
+                    })
+                })
+            }
+            
+            var that = this;
+            return new PromisedDbgObject(
+                Promise.as(patchableObjectPromise)
+                .then(function (patchableObject) {
+                    return Promise.join(
+                    [patchableObject.f("_iVersion").val(), findMatchingPatch(patchableObject.f("_pNextPatch"), that.version)],
+                    function (objectVersion, matchingPatch) {
+                        if (matchingPatch.isNull()) {
+                            return patchableObject;
+                        } else {
+                            return matchingPatch.as(patchableObject.typename)
+                        }
+                    });
+                })
+            );
+        }
+        PatchManager.prototype.setVersion = function (newVersion) {
+            this.version = newVersion;
+        }
+        var patchManager = new PatchManager(Infinity);
+
         // Extend DbgObject to ease navigation of patchable objects.
-        DbgObject.prototype._help_latestPatch = {
+        DbgObject.prototype._help_currentPatch = {
             description: "(injected by MSHTML) Gets the latest patch from a CPatchableObject, casted back to the original type.",
             returns: "(A promise to) a DbgObject"
         },
-        DbgObject.prototype.latestPatch = function() {
-            var that = this;        
-            return this.f("_pNextPatch")
-            .then(function(nextPatch) {
-                if (!nextPatch.isNull()) {
-                    return nextPatch.as(that.typename);
-                } else {
-                    return that;
-                }
-            });
+        DbgObject.prototype.currentPatch = function() {
+            return patchManager.getCurrentVersion(this)
         }
-        PromisedDbgObject.IncludePromisedMethod("latestPatch", PromisedDbgObject);
+        PromisedDbgObject.IncludePromisedMethod("currentPatch", PromisedDbgObject);
 
         // Provide additional type info on some fields.
         DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bVisibility", "styleVisibility");
@@ -1224,6 +1255,14 @@ var MSHTML = undefined;
                 returns: "A promised DbgObject representing the lookaside object or null if it is not present."
             },
             GetElementLookasidePointer: GetElementLookasidePointer,
+
+            _help_SetCurrentPatchVersion: {
+                description: "Sets the current patch version used by DbgObject.currentPatch().",
+                arguments: [
+                    {name:"version", type:"Number", description:"The patch version to use. Use '0' or 'Infinity' for the render or UI threads, respectively."}
+                ]
+            },
+            SetCurrentPatchVersion: function (version) { patchManager.setVersion(version); }
         };
 
         Help.Register(MSHTML);

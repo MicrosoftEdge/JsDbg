@@ -134,27 +134,25 @@ var TreeInspector = (function() {
                     pointerField.value = pointerField.value.trim();
                     Promise.as(interpretAddress(new PointerMath.Pointer(pointerField.value, 16)))
                     .then(function(rootObject) { 
-                        render(rootObject, emphasisNodePtr); 
+                        treeReader = new TreeInspectorTreeReader(treeDefinition, treeRenderer, fieldSupportController);
+                        return treeReader.createRoot(rootObject)
+                    })
+                    .then(function (rootNode) {
+                        render(rootNode, emphasisNodePtr); 
                     }, showError);
                 } else {
                     emphasizeNode(emphasisNodePtr);
                 }
             }
 
-            function render(rootObject, emphasisNodePtr) {
-                window.name = Loader.GetCurrentExtension().toLowerCase() + "-" + rootObject.ptr();
-                treeRoot = rootObject;
+            function render(rootNode, emphasisNodePtr) {
+                window.name = Loader.GetCurrentExtension().toLowerCase() + "-" + treeReader.getObject(rootNode).ptr();
+                treeRoot = rootNode;
                 lastRenderedPointer = pointerField.value;
 
-                if (treeReader == null) {
-                    treeReader = new TreeInspectorTreeReader(treeDefinition, treeRenderer, fieldSupportController);
-                }
+                var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
 
-                renderTreeRootPromise = treeReader.createRoot(rootObject)
-                .then(function (rootNode) {
-                    var fullyExpand = window.sessionStorage.getItem(id("FullyExpand")) !== "false";
-                    return treeAlgorithm.BuildTree(treeContainer, treeReader, rootNode, fullyExpand);
-                })
+                renderTreeRootPromise = treeAlgorithm.BuildTree(treeContainer, treeReader, rootNode, fullyExpand)
                 .then(function(renderedTree) {
                     emphasizeNode(emphasisNodePtr);
                     return renderedTree;
@@ -395,12 +393,15 @@ var TreeInspector = (function() {
             var topPane = createElement("div", null, { class: "tree-inspector-top-pane" });
             container.appendChild(topPane);
 
+            var toolbar = createElement("div", null, { class: "tree-inspector-toolbar" });
+            topPane.appendChild(toolbar);
+
             rootsElement = createElement("div");
             rootsElement.className = "roots success";
-            topPane.appendChild(rootsElement);
+            toolbar.appendChild(rootsElement);
 
             var pointerInputControl = createElement("nobr");
-            topPane.appendChild(pointerInputControl);
+            toolbar.appendChild(pointerInputControl);
 
             pointerInputControl.appendChild(createElement("label",  "Pointer:", {"for": id("pointer")}));
             pointerInputControl.appendChild(ws());
@@ -411,10 +412,10 @@ var TreeInspector = (function() {
             });
             pointerInputControl.appendChild(pointerField);
 
-            topPane.appendChild(ws());
+            toolbar.appendChild(ws());
 
             var loadSaveControl = createElement("nobr");
-            topPane.appendChild(loadSaveControl);
+            toolbar.appendChild(loadSaveControl);
             loadSaveControl.appendChild(createElement("button", "Load", null, {
                 "click": function() { saveHashAndQueueCreateAndRender(); }
             }));
@@ -427,7 +428,7 @@ var TreeInspector = (function() {
                 }
             }))
 
-            topPane.appendChild(ws());
+            toolbar.appendChild(ws());
 
             treeAlgorithms[id("TallTree")] = TallTree;
             treeAlgorithms[id("WideTree")] = WideTree;
@@ -437,7 +438,7 @@ var TreeInspector = (function() {
             }
 
             var treeAlgorithmControl = createElement("nobr");
-            topPane.appendChild(treeAlgorithmControl);
+            toolbar.appendChild(treeAlgorithmControl);
             treeAlgorithmControl.appendChild(createElement("input", null, {
                 name: "treeAlgorithm",
                 id: id("TallTree"),
@@ -462,9 +463,9 @@ var TreeInspector = (function() {
                 "for": id("WideTree")
             }));
 
-            topPane.appendChild(ws());
+            toolbar.appendChild(ws());
             var expandTreeControl = createElement("nobr");
-            topPane.appendChild(expandTreeControl);
+            toolbar.appendChild(expandTreeControl);
             expandTreeControl.appendChild(createElement("input", null, {
                 name: "fullyExpand",
                 id: id("FullyExpand"),
@@ -489,9 +490,9 @@ var TreeInspector = (function() {
                 }
             });
             
-            topPane.appendChild(ws());
+            toolbar.appendChild(ws());
             var updateCheckboxControl = createElement("nobr");
-            topPane.appendChild(updateCheckboxControl);
+            toolbar.appendChild(updateCheckboxControl);
 
             var messageContainer = createElement("div", null, {
                 id: id("RefreshOnBreakMessage"),
@@ -556,6 +557,8 @@ var TreeInspector = (function() {
 
             Promise.map(defaultTypes, function (type) { return fieldSupportController.addType(type.module, type.type); })
             .then(refresh);
+
+            return refresh;
         }
     }
 })();

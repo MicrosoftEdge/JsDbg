@@ -49,11 +49,15 @@ Loader.OnLoad(function() {
     });
 
     DisplayTree.Tree.addChildren(MSHTML.Module, "CView", function (view) {
-        return view.f("_pDispRoot");
+        return view.f("_pDispRoot").currentPatch();
     });
 
     DisplayTree.Tree.addChildren(MSHTML.Module, "CDispParentNode", function (dispParentNode) {
-        return dispParentNode.f("_pFirstChild").list("_pNext").vcast();
+        return dispParentNode.f("_pFirstChild").currentPatch()
+        .list(function (current) {
+            return current.f("_pNext").currentPatch();
+        })
+        .vcast();
     });
 
     // Add DbgObject actions for links to the display tree.
@@ -98,27 +102,22 @@ Loader.OnLoad(function() {
     });
 
     DbgObject.AddExtendedField(MSHTML.Module, "CDispNode", "Client", "CDispClient", UserEditableFunctions.Create(function (dispNode) {
-        // Get the latest patch...
-        return dispNode.latestPatch()
-
         // Check if it has advanced display...
-        .then(function(latestPatch) {
-            return latestPatch.f("_flags._fAdvanced").val()
+        return dispNode.f("_flags._fAdvanced").val()
 
-            // And get the disp client.
-            .then(
-                function(hasAdvanced) {
-                    if (hasAdvanced) {
-                        return latestPatch.f("_pAdvancedDisplay._pDispClient").vcast();
-                    } else {
-                        return latestPatch.f("_pDispClient").vcast();
-                    }
-                },
-                function() {
-                    return latestPatch.f("_pDispClient").vcast();
+        // And get the disp client.
+        .then(
+            function(hasAdvanced) {
+                if (hasAdvanced) {
+                    return dispNode.f("_pAdvancedDisplay._pDispClient").vcast();
+                } else {
+                    return dispNode.f("_pDispClient").vcast();
                 }
-            );
-        });
+            },
+            function() {
+                return dispNode.f("_pDispClient").vcast();
+            }
+        );
     }));
 
     DbgObject.AddExtendedField(MSHTML.Module, "CDispClient", "AsContainerBox", "Layout::ContainerBox", UserEditableFunctions.Create(function (client) {

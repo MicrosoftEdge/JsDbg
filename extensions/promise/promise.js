@@ -248,8 +248,8 @@ var Promise = (function() {
         arguments: [{name:"promises", type:"array of any", description:"The array of promises/values to wait for."}],
         notes:"The given array can contain any combination of promises or values."
     }
-    Promise.join = function(promises) {
-        return new Promise(function promiseJoiner(success, error, joinPromise) {
+    Promise.join = function(promises, spreadFn) {
+        var result = new Promise(function promiseJoiner(success, error, joinPromise) {
             var results = new Array(promises.length);
             var remaining = promises.length;
             var didError = false;
@@ -282,6 +282,15 @@ var Promise = (function() {
                 }
             });
         })
+
+        if (spreadFn && (typeof spreadFn == "function")) {
+            return result
+            .then(function (joinedResults) {
+                return spreadFn.apply(this, joinedResults);
+            })
+        } else {
+            return result;
+        }
     }
 
     Promise._help_map = {
