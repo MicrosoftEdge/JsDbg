@@ -24,9 +24,10 @@ var TreeInspector = (function() {
     TreeInspectorTreeReader.prototype._wrap = function (parent, node) {
         var isDuplicate = false;
         var object = this.previousReader.getObject(node);
+        var typesIncludedPromise = Promise.as(null);
         if (object instanceof DbgObject) {
             // Notify the field support controller.
-            this.fieldSupportController.includeDbgObjectTypes(object);
+            typesIncludedPromise = this.fieldSupportController.includeDbgObjectTypes(object);
 
             // Check if it's a duplicate.
             var ptr = object.ptr();
@@ -36,13 +37,16 @@ var TreeInspector = (function() {
             }
         }
 
-        return {
-            parentNode: parent,
-            previousNode: node,
-            errors: [],
-            isDuplicate: isDuplicate,
-            childrenPromise: undefined
-        };
+        return typesIncludedPromise
+        .then(function() {
+            return {
+                parentNode: parent,
+                previousNode: node,
+                errors: [],
+                isDuplicate: isDuplicate,
+                childrenPromise: undefined
+            };
+        })
     }
 
     TreeInspectorTreeReader.prototype.createRoot = function(object) {
