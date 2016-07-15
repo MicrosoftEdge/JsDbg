@@ -15,20 +15,9 @@
                 document.body
             );
 
-            var toolbar = document.querySelector(".tree-inspector-toolbar");
-
-            var label = document.createElement("label");
-            var uiThreadCheckbox = document.createElement("input");
-            uiThreadCheckbox.type = "checkbox";
-            uiThreadCheckbox.checked = true;
-            uiThreadCheckbox.addEventListener("change", function () {
-                MSHTML.SetCurrentPatchVersion(uiThreadCheckbox.checked ? Infinity : 0);
-                refresh();
-            })
-            toolbar.appendChild(document.createTextNode(" "));
-            toolbar.appendChild(label);
-            label.appendChild(uiThreadCheckbox);
-            label.appendChild(document.createTextNode("UI Thread"));
+            var patchControl = MSHTML.CreatePatchVersionControl(refresh);
+            patchControl.style.marginLeft = "0.5em";
+            document.querySelector(".tree-inspector-toolbar").appendChild(patchControl);
         });
     </script>
 </head>

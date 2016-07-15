@@ -554,9 +554,18 @@ var MSHTML = undefined;
             return GetObjectFromDataCache(GetThreadstateFromObject(object).f("_p" + cacheType + "Cache"), index);
         }
 
-        function PatchManager(initialVersion) {
-            this.version = initialVersion;
+        function PatchManager() {
+            var savedVersion = window.sessionStorage.getItem(this.sessionStorageKey);
+            if (savedVersion == null) {
+                // Default to the UI thread.
+                savedVersion = Infinity;
+            } else {
+                savedVersion = this.parseVersion(savedVersion);
+            }
+            this.version = savedVersion;
+            this.updateUIWidgets = function() {};
         }
+        PatchManager.prototype.sessionStorageKey = "MSHTML-PatchManager-Version";
         PatchManager.prototype.getCurrentVersion = function (patchableObjectPromise) {
             function findMatchingPatch(patchPromise, versionToFind) {
                 return Promise.as(patchPromise)
@@ -598,13 +607,71 @@ var MSHTML = undefined;
             );
         }
         PatchManager.prototype.setVersion = function (newVersion) {
+            newVersion = this.parseVersion(newVersion);
             this.version = newVersion;
+            window.sessionStorage.setItem(this.sessionStorageKey, newVersion.toString());
+            this.updateUIWidgets();
         }
-        var patchManager = new PatchManager(Infinity);
+
+        PatchManager.prototype.parseVersion = function (version) {
+            if (version === "Infinity" || typeof(version) == "Number") {
+                return version;
+            } else {
+                return parseInt(version);
+            }
+        }
+
+        PatchManager.prototype.createUIWidget = function (onChange) {
+            function setValueAndEnsureOption(select, value) {
+                if (select.querySelector("[value=\"" + value + "\"]") == null) {
+                    var option = document.createElement("option");
+                    option.setAttribute("value", value);
+                    option.textContent = value;
+                    select.appendChild(option);
+                }
+                select.value = value;
+            }
+
+            var that = this;
+            var select = document.createElement("select");
+            select.innerHTML = "<option value=Infinity>UI Thread</option><option value=0>Render Thread</option><option value=-1>Other Version...</option>";
+            setValueAndEnsureOption(select, this.version);
+
+            select.addEventListener("change", function () {
+                if (select.value == -1) {
+                    var promptedVersion = prompt("Which version would you like to use?");
+                    if (promptedVersion == null) {
+                        promptedVersion = that.version;
+                    } else {
+                        promptedVersion = that.parseVersion(promptedVersion);
+                    }
+                    setValueAndEnsureOption(select, promptedVersion)
+                }
+
+                var selectedVersion = that.parseVersion(select.value);
+                if (selectedVersion != that.version) {
+                    that.setVersion(selectedVersion);
+                    onChange();
+                }
+            });
+
+            var previousUpdateWidgets = this.updateUIWidgets;
+            this.updateUIWidgets = function() {
+                if (that.parseVersion(select.value) != that.version) {
+                    setValueAndEnsureOption(select, that.version);
+                    onChange();
+                }
+                previousUpdateWidgets();
+            };
+
+            return select;
+        }
+
+        var patchManager = new PatchManager();
 
         // Extend DbgObject to ease navigation of patchable objects.
         DbgObject.prototype._help_currentPatch = {
-            description: "(injected by MSHTML) Gets the latest patch from a CPatchableObject, casted back to the original type.",
+            description: "(injected by MSHTML) Gets the current version's patch from a CPatchableObject, casted back to the original type.",
             returns: "(A promise to) a DbgObject"
         },
         DbgObject.prototype.currentPatch = function() {
@@ -1271,7 +1338,15 @@ var MSHTML = undefined;
                     {name:"version", type:"Number", description:"The patch version to use. Use '0' or 'Infinity' for the render or UI threads, respectively."}
                 ]
             },
-            SetCurrentPatchVersion: function (version) { patchManager.setVersion(version); }
+            SetCurrentPatchVersion: function (version) { patchManager.setVersion(version); },
+
+            _help_CreatePatchVersionControl: {
+                description: "Creates a UI control that allows the user to select the patch version to use.",
+                arguments: [
+                    {name:"onChange", type:"function", description:"A function that is called when the version is changed."}
+                ]
+            },
+            CreatePatchVersionControl: function (onChange) { return patchManager.createUIWidget(onChange); },
         };
 
         Help.Register(MSHTML);
