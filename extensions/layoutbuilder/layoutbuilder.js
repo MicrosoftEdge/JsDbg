@@ -2,24 +2,14 @@
 
 var LayoutBuilder = undefined;
 Loader.OnLoad(function() {
-    // Add a type description for LayoutBoxBuilder to link to the LayoutBuilder stack.
-    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBoxBuilder", "LayoutBuilders", true, function(boxBuilder) {
-        if (boxBuilder.isNull()) {
-            return "null";
-        } else {
-            return "<a href=\"/layoutbuilder/#" + boxBuilder.ptr() + "\">" + boxBuilder.ptr() + "</a>";
-        }
-    });
-    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LayoutBuilder", "LayoutBuilders", true, function(layoutBuilder) {
-        if (layoutBuilder.isNull()) {
-            return "null";
-        } else {
-            return "<a href=\"/layoutbuilder/#" + layoutBuilder.ptr() + "\">" + layoutBuilder.ptr() + "</a>";
-        }
-    });
 
-    if (Loader.GetCurrentExtension()== "layoutbuilder") {
-        DbgObjectTree.AddRoot("LayoutBuilder Stack", function() {
+    LayoutBuilder = {
+        Tree: new TreeReader.DbgObjectTreeReader(new TreeReader.ObjectTreeReader()),
+        Renderer: new DbgObjectTreeRenderer(),
+        InterpretAddress: function(address) {
+            return new DbgObject(MSHTML.Module, "void", address).vcast();
+        },
+        GetRoots: function() {
             return DbgObject.locals(MSHTML.Module, "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder").f("sp.m_pT")
             .then(undefined, function (err) {
                 if (err.message.indexOf("Could not find local symbol") == 0) {
@@ -59,32 +49,77 @@ Loader.OnLoad(function() {
                     return layoutBuilders;
                 }
             });
-        });
-
-        DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "Layout::LayoutBuilder", address).vcast();
-        });
-
-        DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "Layout::LayoutBoxBuilder", address).vcast();
-        });
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::LayoutBuilder", null, function (object) {
-            return object.f("currentBuilder.m_pT").vcast().then(function (builder) { return [builder]; });
-        });
-
-        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::LayoutBoxBuilder", null, function (object) {
-            return object.f("parentBuilder.m_pT").vcast().then(function (builder) { return [builder]; });
-        })
+        },
+        DefaultTypes: [{ module: MSHTML.Module, type: "Layout::ContainerBoxBuilder" }, { module: MSHTML.Module, type: "Layout::LayoutBoxBuilder" }],
     }
 
-    LayoutBuilder = {
-        Name: "LayoutBuilder",
-        RootType: "LayoutBoxBuilder",
-        DefaultTypes: [
-            { module: MSHTML.Module, type: "Layout::ContainerBoxBuilder" },
-            { module: MSHTML.Module, type: "Layout::LayoutBoxBuilder" },
-            { module: MSHTML.Module, type: "Layout::SvgBoxBuilder" }
-        ]
-    };
+    LayoutBuilder.Tree.addChildren(MSHTML.Module, "Layout::LayoutBuilder", function (object) {
+        return object.f("currentBuilder.m_pT").vcast();
+    });
+
+    LayoutBuilder.Tree.addChildren(MSHTML.Module, "Layout::LayoutBoxBuilder", function (object) {
+        return object.f("parentBuilder.m_pT").vcast().then(function (parentBuilder) {
+            if (parentBuilder.isNull()) {
+                return [];
+            } else {
+                return parentBuilder;
+            }
+        })
+    })
+
+    // Add a type description for LayoutBoxBuilder to link to the LayoutBuilder stack
+    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBoxBuilder", "LayoutBuilder", function(boxBuilder) {
+        function findTopMostBuilder(builder) {
+            return builder.f("parentBuilder.m_pT")
+            .then(function (parentBuilder) {
+                if (parentBuilder.isNull()) {
+                    return builder;
+                } else {
+                    return findTopMostBuilder(parentBuilder);
+                }
+            })
+        }
+
+        return LayoutBuilder.GetRoots()
+        .then(null, function() { return []; })
+        .then(function (layoutBuilders) {
+            if (layoutBuilders.length == 0) {
+                return layoutBuilders;
+            } else {
+                // Find the builder whose top-most builder is the same as this builder.
+                return Promise.map(layoutBuilders, function (layoutBuilder) {
+                    return findTopMostBuilder(layoutBuilder.f("currentBuilder.m_pT"));
+                })
+                .then(function (topMostBuildersForLayoutBuilders) {
+                    return findTopMostBuilder(boxBuilder)
+                    .then(function (topMostBuilder) {
+                        return layoutBuilders.filter(function (layoutBuilder, i) {
+                            return topMostBuildersForLayoutBuilders[i].equals(topMostBuilder);
+                        })
+                    })
+                })
+            }
+        })
+        .then(function (layoutBuilders) {
+            if (layoutBuilders.length == 0) {
+                return TreeInspector.GetActions("layoutbuilder", "Layout Builder", boxBuilder);
+            } else {
+                return TreeInspector.GetActions("layoutBuilder", "Layout Builder", layoutBuilders[0], boxBuilder);
+            }
+        })
+    });
+
+    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBox", "LayoutBuilder", function(box) {
+        return box.vcast()
+        .then(function (vcastedBox) {
+            return Promise.join(
+                [vcastedBox.f("builder"), vcastedBox.f("isAttachedToBuilder").val()],
+                function (builder, isAttachedToBuilder) {
+                    if (isAttachedToBuilder) {
+                        return builder.actions("LayoutBuilder");
+                    }
+                }
+            );
+        });
+    });
 });
