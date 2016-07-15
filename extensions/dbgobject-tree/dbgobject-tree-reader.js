@@ -120,10 +120,13 @@ var TreeReader = (function() {
             additionalChildren = Promise.as([]);
         }
 
-        return Promise.join([previousChildren, additionalChildren])
-        .then(function (results) {
-            return results[0].concat(results[1]);
-        });
+        return Promise.join(
+            [previousChildren, additionalChildren],
+            function (previous, additional) {
+                // Filter out any null DbgObject children.
+                return previous.concat(additional.filter(function (x) { return !x.isNull(); }));
+            }
+        );
     }
 
     // DbgObject children methods

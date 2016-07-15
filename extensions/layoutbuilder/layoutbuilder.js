@@ -58,13 +58,7 @@ Loader.OnLoad(function() {
     });
 
     LayoutBuilder.Tree.addChildren(MSHTML.Module, "Layout::LayoutBoxBuilder", function (object) {
-        return object.f("parentBuilder.m_pT").vcast().then(function (parentBuilder) {
-            if (parentBuilder.isNull()) {
-                return [];
-            } else {
-                return parentBuilder;
-            }
-        })
+        return object.f("parentBuilder.m_pT").vcast();
     })
 
     // Add a type description for LayoutBoxBuilder to link to the LayoutBuilder stack
