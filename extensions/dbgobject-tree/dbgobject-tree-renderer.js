@@ -35,7 +35,7 @@ var DbgObjectTreeRenderer = (function() {
         })
     }
 
-    Renderer.prototype.createRepresentation = function(object, parentObject, errors, isDuplicate) {
+    Renderer.prototype.createRepresentation = function(object, parentObject, errors, isDuplicate, includeInspector) {
         var result = document.createElement("div");
         return this.getName(object, parentObject)
         .then(function (name) {
@@ -55,7 +55,12 @@ var DbgObjectTreeRenderer = (function() {
 
             result.appendChild(document.createTextNode(" "));
 
-            var pointer = DbgObjectInspector.Inspect(object, object.ptr());
+            var pointer = null;
+            if (includeInspector) {
+                pointer = DbgObjectInspector.Inspect(object, object.ptr());
+            } else {
+                pointer = document.createTextNode(object.ptr());
+            }
             result.appendChild(pointer);
             result.appendChild(document.createTextNode(" "));
         })

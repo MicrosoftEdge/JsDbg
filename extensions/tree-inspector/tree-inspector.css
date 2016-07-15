@@ -4,6 +4,14 @@
     padding:0;
 }
 
+.tree-inspector-root-link {
+    margin-right:0.5em;
+}
+
+.tree-inspector-root-link, .tree-inspector-root-link > * {
+    display:inline;
+}
+
 .tree-inspector-top-pane {
     border-right:thin solid #eee;
     box-sizing:border-box;

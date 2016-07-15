@@ -48,6 +48,17 @@ Loader.OnLoad(function() {
         return doc.f("_view");
     });
 
+    DisplayTree.Renderer.addNameRenderer(MSHTML.Module, "CDoc", function (doc) {
+        return doc.F("PrimaryMarkup").desc("URL")
+        .then(function (url) {
+            if (url != null) {
+                return "CDoc (" + url + ")"
+            } else {
+                return "CDoc";
+            }
+        })
+    })
+
     DisplayTree.Tree.addChildren(MSHTML.Module, "CView", function (view) {
         return view.f("_pDispRoot").currentPatch();
     });

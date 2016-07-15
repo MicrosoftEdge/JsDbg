@@ -93,21 +93,10 @@ Loader.OnLoad(function() {
 
     // Add actions to link LayoutBoxes, CMarkups, and CDocs to the box tree.
     DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBox", "BoxTree", function(box) {
-        return box.vcast().F("TreeNode.Markup.Doc.PrimaryMarkup.Root")
-        .then(function (rootNode) {
-            return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(rootNode)
-            .then(function (layoutBox) {
-                if (layoutBox.isNull()) {
-                    return box;
-                } else {
-                    return layoutBox;
-                }
-            })
-        }, function (err) {
-            return box;
-        })
-        .then(function (rootBox) {
-            return TreeInspector.GetActions("boxtree", "Box Tree", rootBox, box);
+        return box.vcast().F("TreeNode.Markup.Doc")
+        .then(null, function (err) { return box; })
+        .then(function (root) {
+            return TreeInspector.GetActions("boxtree", "Box Tree", root, box);
         })
     });
     DbgObject.AddAction(MSHTML.Module, "CMarkup", "BoxTree", function(markup) { 
@@ -119,6 +108,17 @@ Loader.OnLoad(function() {
 
     BoxTree.Tree.addChildren(MSHTML.Module, "CDoc", function (object) {
         return object.f("_view");
+    })
+
+    BoxTree.Renderer.addNameRenderer(MSHTML.Module, "CDoc", function (doc) {
+        return doc.F("PrimaryMarkup").desc("URL")
+        .then(function (url) {
+            if (url != null) {
+                return "CDoc (" + url + ")"
+            } else {
+                return "CDoc";
+            }
+        })
     })
 
     BoxTree.Tree.addChildren(MSHTML.Module, "CView", function (object) {

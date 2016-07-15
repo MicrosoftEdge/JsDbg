@@ -91,7 +91,8 @@ var TreeInspector = (function() {
             object,
             node.parentNode != null ? this.getObject(node.parentNode) : null,
             node.errors,
-            node.isDuplicate
+            node.isDuplicate,
+            /*includeInspector*/true
         )
         .then(function (container) {
             if (object instanceof DbgObject) {
@@ -248,15 +249,19 @@ var TreeInspector = (function() {
 
                     currentRoots = roots;
 
-                    roots.forEach(function (root, index) {
-                        var link = document.createElement("a");
-                        var rootPtr = root.ptr();
-                        link.setAttribute("href", "#r=root" + index);
-                        link.innerText = rootPtr;
-                        rootsElement.appendChild(link);
-                        rootsElement.appendChild(document.createTextNode(" "));
-                    });
-
+                    return Promise.map(roots, function (root) {
+                        return treeRenderer.createRepresentation(root, null, [], false, false);
+                    })
+                    .then(function (rootRepresentations) {
+                        rootRepresentations.forEach(function (root, index) {
+                            var link = document.createElement("a");
+                            link.setAttribute("href", "#r=root" + index);
+                            root.classList.add("tree-inspector-root-link");
+                            link.appendChild(root);
+                            rootsElement.appendChild(link);
+                            rootsElement.appendChild(document.createTextNode(" "));
+                        })
+                    })
                 }, function (error) {
                     rootsElement.className = "roots error";
                     rootsElement.innerHTML = error;

@@ -194,6 +194,17 @@ Loader.OnLoad(function() {
         return treeNode.desc("Tag");
     })
 
+    MarkupTree.Renderer.addNameRenderer(MSHTML.Module, "CDoc", function (doc) {
+        return doc.F("PrimaryMarkup").desc("URL")
+        .then(function (url) {
+            if (url != null) {
+                return "CDoc (" + url + ")"
+            } else {
+                return "CDoc";
+            }
+        })
+    })
+
     MarkupTree.Renderer.addNameRenderer(MSHTML.Module, "CMarkup", function (markup) {
         return markup.desc("URL")
         .then(function (url) {
