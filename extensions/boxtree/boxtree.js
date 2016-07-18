@@ -302,7 +302,7 @@ Loader.OnLoad(function() {
         );
     }));
 
-    DbgObject.AddArrayField(MSHTML.Module, "CTreeNode", "LayoutBoxes", "Layout::LayoutBox[]", UserEditableFunctions.Create(function(treeNode) {
+    DbgObject.AddArrayField(MSHTML.Module, "CTreeNode", "LayoutBoxes", "Layout::LayoutBox", UserEditableFunctions.Create(function(treeNode) {
         return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode)
         .then(function (layoutBox) {
             return layoutBox.list(["nextLayoutBox", "associatedBoxLink"]);
