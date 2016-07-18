@@ -191,7 +191,7 @@ namespace JsDbg.VisualStudio {
             throw new DebuggerException("Cannot load locals from the Visual Studio debugger directly.");
         }
 
-        public Task<SSymbolNameResultAndDisplacement> LookupSymbolName(ulong pointer) {
+        public Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer) {
             throw new DebuggerException("Cannot load symbols from the Visual Studio debugger directly.");
         }
 

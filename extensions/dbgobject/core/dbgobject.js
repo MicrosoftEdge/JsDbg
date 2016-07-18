@@ -192,7 +192,11 @@ Loader.OnLoad(function() {
     DbgObject.symbol = function(address) {
         return jsDbgPromise(JsDbg.LookupSymbolName, address)
         .then(function (result) {
-            return result.name;
+            if (result.displacement == 0) {
+                return result.name;
+            } else {
+                throw new Error("The address 0x" + address.toString(16) + " is not a valid symbol address.");
+            }
         })
     }
 

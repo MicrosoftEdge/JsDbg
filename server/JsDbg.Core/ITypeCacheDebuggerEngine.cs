@@ -6,6 +6,12 @@ using System.Threading.Tasks;
 using JsDbg.Dia;
 
 namespace JsDbg.Core {
+    public struct SStackFrame {
+        public ulong InstructionAddress;
+        public ulong StackAddress;
+        public ulong FrameAddress;
+    }
+
     public struct SStackFrameWithContext {
         public SStackFrame StackFrame;
         public object Context;
@@ -45,7 +51,7 @@ namespace JsDbg.Core {
 
         Task<IEnumerable<SSymbolResult>> LookupLocalsInStackFrame(SStackFrameWithContext stackFrameWithContext, string symbolName);
 
-        Task<SSymbolNameResultAndDisplacement> LookupSymbolName(ulong pointer);
+        Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer);
 
         #endregion
     }

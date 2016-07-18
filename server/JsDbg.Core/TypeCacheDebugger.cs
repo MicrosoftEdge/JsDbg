@@ -247,7 +247,7 @@ namespace JsDbg.Core {
 
             IEnumerable<SStackFrameWithContext> stackFrames = await this.debuggerEngine.GetCurrentCallStack();
             foreach (SStackFrameWithContext stackFrameWithContext in stackFrames) {
-                SSymbolNameResult stackFrameName;
+                SSymbolNameAndDisplacement stackFrameName;
                 SModule stackFrameModule;
                 try {
                     stackFrameModule = await this.debuggerEngine.GetModuleForAddress(stackFrameWithContext.StackFrame.InstructionAddress);
@@ -261,7 +261,7 @@ namespace JsDbg.Core {
                 }
 
                 try {
-                    stackFrameName = (await this.LookupSymbolNameWithDisplacement(stackFrameWithContext.StackFrame.InstructionAddress)).Symbol;
+                    stackFrameName = await this.LookupSymbolName(stackFrameWithContext.StackFrame.InstructionAddress);
                 } catch {
                     continue;
                 }
@@ -336,15 +336,7 @@ namespace JsDbg.Core {
             }
         }
 
-        public async Task<SSymbolNameResult> LookupSymbolName(ulong pointer) {
-            SSymbolNameResultAndDisplacement result = await this.LookupSymbolNameWithDisplacement(pointer);
-            if (result.Displacement != 0) {
-                throw new DebuggerException(String.Format("Invalid symbol address: 0x{0:x8}", pointer));
-            }
-            return result.Symbol;
-        }
-
-        private async Task<SSymbolNameResultAndDisplacement> LookupSymbolNameWithDisplacement(ulong pointer) {
+        public async Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer) {
             try {
                 SModule module = await this.debuggerEngine.GetModuleForAddress(pointer);
                 Dia2Lib.IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(module.Name);
@@ -364,7 +356,7 @@ namespace JsDbg.Core {
                     string name;
                     symbol.get_undecoratedNameEx(0x1000, out name);
 
-                    return new SSymbolNameResultAndDisplacement() { Symbol = new SSymbolNameResult() { Module = module.Name, Name = name }, Displacement = displacement };
+                    return new SSymbolNameAndDisplacement() { Module = module.Name, Name = name, Displacement = displacement };
                 } else {
                     return await this.debuggerEngine.LookupSymbolName(pointer);
                 }

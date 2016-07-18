@@ -717,8 +717,8 @@ namespace JsDbg.Core {
 
             string responseString;
             try {
-                SSymbolNameResult symbolName = await this.debugger.LookupSymbolName(pointer);
-                responseString = String.Format("{{ \"module\": \"{0}\", \"name\": \"{1}\" }}", symbolName.Module, symbolName.Name);
+                SSymbolNameAndDisplacement symbolName = await this.debugger.LookupSymbolName(pointer);
+                responseString = String.Format("{{ \"module\": \"{0}\", \"name\": \"{1}\", \"displacement\": {2} }}", symbolName.Module, symbolName.Name, symbolName.Displacement);
             } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }

@@ -14,19 +14,9 @@ namespace JsDbg.Core {
         }
     }
 
-    public struct SStackFrame {
-        public ulong InstructionAddress;
-        public ulong StackAddress;
-        public ulong FrameAddress;
-    }
-
-    public struct SSymbolNameResult {
+    public struct SSymbolNameAndDisplacement {
         public string Module;
         public string Name;
-    }
-
-    public struct SSymbolNameResultAndDisplacement {
-        public SSymbolNameResult Symbol;
         public ulong Displacement;
     }
 
@@ -83,7 +73,7 @@ namespace JsDbg.Core {
         Task<SFieldResult> LookupField(string module, string typename, string fieldName);
         Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol);
         Task<IEnumerable<SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbol, int maxCount);
-        Task<SSymbolNameResult> LookupSymbolName(ulong pointer);
+        Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer);
         Task<uint> LookupTypeSize(string module, string typename);
         Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct;
         Task<T> ReadMemory<T>(ulong pointer) where T : struct;

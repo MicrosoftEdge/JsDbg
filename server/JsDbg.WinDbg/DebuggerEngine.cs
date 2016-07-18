@@ -355,8 +355,8 @@ namespace JsDbg.WinDbg {
             
         }
 
-        public Task<SSymbolNameResultAndDisplacement> LookupSymbolName(ulong pointer) {
-            return this.AttemptOperation<SSymbolNameResultAndDisplacement>(() => {
+        public Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer) {
+            return this.AttemptOperation<SSymbolNameAndDisplacement>(() => {
                 string fullyQualifiedSymbolName;
                 ulong displacement;
                 this.symbolCache.GetSymbolName(pointer, out fullyQualifiedSymbolName, out displacement);
@@ -364,7 +364,7 @@ namespace JsDbg.WinDbg {
                     throw new Exception();
                 }
                 string[] parts = fullyQualifiedSymbolName.Split(new char[] { '!' }, 2);
-                return new SSymbolNameResultAndDisplacement() { Symbol = new SSymbolNameResult() { Module = parts[0], Name = parts[1] }, Displacement = displacement };
+                return new SSymbolNameAndDisplacement() { Module = parts[0], Name = parts[1], Displacement = displacement };
             }, String.Format("Unable to lookup symbol at pointer: 0x{0:x8}", pointer));
         }
 
