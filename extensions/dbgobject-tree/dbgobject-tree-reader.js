@@ -124,7 +124,7 @@ var TreeReader = (function() {
             [previousChildren, additionalChildren],
             function (previous, additional) {
                 // Filter out any null DbgObject children.
-                return previous.concat(additional.filter(function (x) { return !x.isNull(); }));
+                return previous.concat(additional.filter(function (x) { return !(x instanceof DbgObject && x.isNull()); }));
             }
         );
     }
