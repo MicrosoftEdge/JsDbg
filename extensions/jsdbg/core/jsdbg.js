@@ -360,18 +360,28 @@ Loader.OnLoad(function () {
             JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol), callback, JsDbgTransport.CacheType.Cached);
         },
 
-        _help_LookupLocalSymbols: {
-            description: "Evaluates a local symbolic expression and returns the type of and pointer to the each value on the stack.",
+        _help_GetCallStack: {
+            description: "Gets the call stack (instruction pointer, stack pointer, frame pointer) of the current thread.",
             arguments: [
-                {name:"module", type:"string", description:"The module containing the method."},
-                {name:"method", type:"string", description:"The method whose local symbol should be retrieved."},
-                {name:"symbol", type:"string", description:"The symbolic expression to evaluate."},
-                {name:"maxCount", type:"int", description:"The maximum number of stack frames to collect from."},
-                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
-            ]
+                {name:"frameCount", type:"integer", description:"The number of stack frames to retrieve.  Use -1 to retrieve the entire callstack."},
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."},
+            ],
         },
-        LookupLocalSymbols: function(module, method, symbol, maxCount, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg-server/localsymbols?module=" + esc(module) + "&method=" + esc(method) + "&symbol=" + esc(symbol) + "&maxCount=" + esc(maxCount), callback, JsDbgTransport.CacheType.TransientCache);
+        GetCallStack: function(frameCount, callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/callstack?count=" + esc(frameCount), callback, JsDbgTransport.CacheType.TransientCache);
+        },
+
+        _help_LookupLocalsInStackFrame: {
+            description: "Gets the local symbols in a given stack frame.",
+            arguments: [
+                {name:"instructionAddress", type:"integer", description:"The address of the next instruction to be executed in the stack frame."},
+                {name:"stackAddress", type:"integer", description:"The address of the end of the stack frame."},
+                {name:"frameAddress", type:"integer", description:"The address of the start of the stack frame."},
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."},
+            ],
+        },
+        LookupLocalsInStackFrame: function (instructionAddress, stackAddress, frameAddress, callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/locals?instructionAddress=" + esc(instructionAddress) + "&stackAddress=" + esc(stackAddress) + "&frameAddress=" + esc(frameAddress), callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_GetPersistentData: {

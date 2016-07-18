@@ -102,19 +102,22 @@ namespace JsDbg.WinDbg {
             }, String.Format("Unable to write to memory address: 0x{0:x8}", pointer));
         }
 
-        public Task<IEnumerable<Core.SStackFrameWithContext>> GetCurrentCallStack() {
-            return this.AttemptOperation<IEnumerable<Core.SStackFrameWithContext>>(() => {
-                List<Core.SStackFrameWithContext> stackFrames = new List<Core.SStackFrameWithContext>();
+        public Task<IEnumerable<Core.SStackFrame>> GetCurrentCallStack(int requestedFrameCount) {
+            return this.AttemptOperation<IEnumerable<Core.SStackFrame>>(() => {
+                List<Core.SStackFrame> stackFrames = new List<Core.SStackFrame>();
 
-                DebugStackTrace stack = this.control.GetStackTrace(128);
+                uint frameCount = 0;
+                if (requestedFrameCount < 0) {
+                    frameCount = 512; // TODO: Don't set an artificial max.
+                } else {
+                    frameCount = (uint)requestedFrameCount;
+                }
+                DebugStackTrace stack = this.control.GetStackTrace(frameCount);
                 foreach (DebugStackFrame frame in stack) {
-                    stackFrames.Add(new Core.SStackFrameWithContext() {
-                        Context = frame,
-                        StackFrame = new SStackFrame() {
-                            FrameAddress = frame.FrameOffset,
-                            StackAddress = frame.StackOffset,
-                            InstructionAddress = frame.InstructionOffset
-                        }
+                    stackFrames.Add(new SStackFrame() {
+                        FrameAddress = frame.FrameOffset,
+                        StackAddress = frame.StackOffset,
+                        InstructionAddress = frame.InstructionOffset
                     });
                 }
 
@@ -306,53 +309,6 @@ namespace JsDbg.WinDbg {
                     throw new DebuggerException(String.Format("Internal error with symbol: {0}", fullyQualifiedSymbolName));
                 }
             }, String.Format("Unable to lookup global symbol: {0}!{1}", module, symbol));
-        }
-
-        public Task<IEnumerable<SSymbolResult>> LookupLocalsInStackFrame(Core.SStackFrameWithContext stackFrameWithContext, string symbolName) {
-            return this.AttemptOperation<IEnumerable<SSymbolResult>>(() => {
-                List<SSymbolResult> results = new List<SSymbolResult>();
-
-                // Save the previous scope.
-                ulong previousInstructionOffset;
-                DebugStackFrame previousStackFrame;
-                this.symbols.GetScope(out previousInstructionOffset, out previousStackFrame, null);
-
-                // Jump to the scope in the context, and see if the symbol is there.
-                this.symbols.SetScope(0, (DebugStackFrame)stackFrameWithContext.Context, null);
-                DebugSymbolGroup symbolGroup = this.symbols.GetScopeSymbolGroup(GroupScope.Arguments | GroupScope.Locals);
-                for (uint i = 0; i < symbolGroup.NumberSymbols; ++i) {
-                    if (symbolName == symbolGroup.GetSymbolName(i)) {
-                        DebugSymbolEntry entry = symbolGroup.GetSymbolEntryInformation(i);
-
-                        SSymbolResult result = new SSymbolResult();
-                        result.Module = this.symbols.GetModuleNameStringByBaseAddress(ModuleName.Module, entry.ModuleBase);
-                        result.Type = this.symbolCache.GetTypeName(entry.ModuleBase, entry.TypeId);
-
-                        if (entry.Offset != 0) {
-                            // The variable is located in memory.
-                            result.Pointer = entry.Offset;
-                        } else {
-                            // The variable is located in a register.  If the variable is a pointer, we can automatically dereference it, but otherwise we don't currently have a way to express the location.
-                            if (result.Type.EndsWith("*")) {
-                                // Trim off the last * because the offset we were given is the value itself (i.e. it is the pointer, not the pointer to the pointer).
-                                result.Type = result.Type.Substring(0, result.Type.Length - 1);
-                                this.symbols.GetOffsetByName(symbolName, out result.Pointer);
-                            } else {
-                                // Don't include it.  In the future, we could perhaps express this object as living in its own address space so that the client can at least dereference it.
-                                break;
-                            }
-                        }
-                        results.Add(result);
-                        break;
-                    }
-                }
-
-                // Restore the previous scope.
-                this.symbols.SetScope(0, previousStackFrame, null);
-
-                return results;
-            }, String.Format("Unable to lookup local symbol: {0}", symbolName));
-            
         }
 
         public Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer) {

@@ -26,6 +26,17 @@ namespace JsDbg.Core {
         public string Module;
     }
 
+    public struct SNamedSymbol {
+        public SSymbolResult Symbol;
+        public string Name;
+    }
+
+    public struct SStackFrame {
+        public ulong InstructionAddress;
+        public ulong StackAddress;
+        public ulong FrameAddress;
+    }
+
     public struct SFieldResult {
         public uint Offset;
         public uint Size;
@@ -72,7 +83,8 @@ namespace JsDbg.Core {
         Task<SConstantResult> LookupConstant(string module, string type, string constantName);
         Task<SFieldResult> LookupField(string module, string typename, string fieldName);
         Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol);
-        Task<IEnumerable<SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbol, int maxCount);
+        Task<IEnumerable<SStackFrame>> GetCallStack(int frameCount);
+        Task<IEnumerable<SNamedSymbol>> GetSymbolsInStackFrame(ulong instructionAddress, ulong stackAddress, ulong frameAddress);
         Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer);
         Task<uint> LookupTypeSize(string module, string typename);
         Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct;

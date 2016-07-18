@@ -137,10 +137,10 @@ namespace JsDbg.VisualStudio {
             throw new DebuggerException("Memory writes are not yet supported in Visual Studio.");
         }
 
-        public async Task<IEnumerable<Core.SStackFrameWithContext>> GetCurrentCallStack() {
+        public async Task<IEnumerable<Core.SStackFrame>> GetCurrentCallStack(int requestedFrameCount) {
             await this.runner.WaitForBreakIn();
 
-            List<Core.SStackFrameWithContext> results = new List<Core.SStackFrameWithContext>();
+            List<Core.SStackFrame> results = new List<Core.SStackFrame>();
 
             IDebugThread2 thread = this.runner.CurrentThread;
             if (thread == null) {
@@ -151,7 +151,11 @@ namespace JsDbg.VisualStudio {
 
             using (new DisposableComReference(frameEnumerator)) {
                 uint frameCount = 0;
-                frameEnumerator.GetCount(out frameCount);
+                if (requestedFrameCount < 0) {
+                    frameEnumerator.GetCount(out frameCount);
+                } else {
+                    frameCount = (uint)requestedFrameCount;
+                }
                 FRAMEINFO[] frames = new FRAMEINFO[frameCount];
 
                 frameEnumerator.Reset();
@@ -165,7 +169,7 @@ namespace JsDbg.VisualStudio {
                                 codeContext.GetInfo((uint)enum_CONTEXT_INFO_FIELDS.CIF_ADDRESS, contextInfo);
                                 ulong instructionAddress = ulong.Parse(contextInfo[0].bstrAddress.Substring(2), System.Globalization.NumberStyles.AllowHexSpecifier);
                                 // TODO: the -8 below seems architecture dependent
-                                results.Add(new Core.SStackFrameWithContext() { Context = null, StackFrame = new SStackFrame() { FrameAddress = frame.m_addrMin - 8, InstructionAddress = instructionAddress, StackAddress = frame.m_addrMax } });
+                                results.Add(new SStackFrame() { FrameAddress = frame.m_addrMin - 8, InstructionAddress = instructionAddress, StackAddress = frame.m_addrMax });
                             }
                         }
                     }
@@ -185,10 +189,6 @@ namespace JsDbg.VisualStudio {
 
         public Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol) {
             throw new DebuggerException("Cannot load symbols from the Visual Studio debugger directly.");
-        }
-
-        public Task<IEnumerable<SSymbolResult>> LookupLocalsInStackFrame(Core.SStackFrameWithContext stackFrameWithContext, string symbolName) {
-            throw new DebuggerException("Cannot load locals from the Visual Studio debugger directly.");
         }
 
         public Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer) {

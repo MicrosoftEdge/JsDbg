@@ -326,8 +326,11 @@ namespace JsDbg.Core {
                 case "global":
                     this.ServeGlobalSymbol(query, respond, fail);
                     break;
-                case "localsymbols":
-                    this.ServeLocalSymbols(query, respond, fail);
+                case "callstack":
+                    this.ServeCallStack(query, respond, fail);
+                    break;
+                case "locals":
+                    this.ServeLocals(query, respond, fail);
                     break;
                 case "isenum":
                     this.ServeIsEnum(query, respond, fail);
@@ -745,28 +748,67 @@ namespace JsDbg.Core {
             respond(responseString);
         }
 
-        private async void ServeLocalSymbols(NameValueCollection query, Action<string> respond, Action fail) {
-            string module = query["module"];
-            string method = query["method"];
-            string symbol = query["symbol"];
-            string maxCountString = query["maxCount"];
-
-            if (module == null || method == null || symbol == null) {
+        private async void ServeCallStack(NameValueCollection query, Action<string> respond, Action fail) {
+            string countString = query["count"];
+            int count;
+            if (countString == null || !WebServer.ParseInteger(countString, out count)) {
                 fail();
                 return;
             }
 
-            int maxCount;
-            WebServer.ParseInteger(maxCountString, out maxCount);
+            string responseString;
+            try {
+                IEnumerable<SStackFrame> stackFrames = await this.debugger.GetCallStack(count);
+
+                List<string> jsonFragments = new List<string>();
+                foreach (SStackFrame frame in stackFrames) {
+                    jsonFragments.Add(
+                        string.Format("{{ \"instructionAddress\": {0}, \"stackAddress\": {1}, \"frameAddress\": {2} }}",
+                            WebServer.ToJsonNumber(frame.InstructionAddress),
+                            WebServer.ToJsonNumber(frame.StackAddress),
+                            WebServer.ToJsonNumber(frame.FrameAddress)
+                        )
+                    );
+                }
+
+                responseString = "[" + string.Join(",", jsonFragments) + "]";
+            } catch (DebuggerException ex) {
+                responseString = ex.JSONError;
+            }
+
+            respond(responseString);
+        }
+
+        private async void ServeLocals(NameValueCollection query, Action<string> respond, Action fail) {
+            string instructionAddressString = query["instructionAddress"];
+            string stackAddressString = query["stackAddress"];
+            string frameAddressString = query["frameAddress"];
+
+            ulong instructionAddress, stackAddress, frameAddress;
+            if (instructionAddressString == null || !WebServer.ParseInteger(instructionAddressString, out instructionAddress) ||
+                stackAddressString == null || !WebServer.ParseInteger(stackAddressString, out stackAddress) ||
+                frameAddressString == null || !WebServer.ParseInteger(frameAddressString, out frameAddress)
+            ) {
+                fail();
+                return;
+            }
 
             string responseString;
             try {
-                IEnumerable<SSymbolResult> results = await this.debugger.LookupLocalSymbols(module, method, symbol, maxCount);
+                IEnumerable<SNamedSymbol> results = await this.debugger.GetSymbolsInStackFrame(instructionAddress, stackAddress, frameAddress);
 
                 List<string> jsonFragments = new List<string>();
-                foreach (SSymbolResult result in results) {
-                    jsonFragments.Add(String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type));
+                foreach (SNamedSymbol symbol in results) {
+                    jsonFragments.Add(
+                        string.Format("{{ \"module\": \"{0}\", \"type\": \"{1}\", \"name\": \"{2}\", \"address\": {3} }}",
+                            symbol.Symbol.Module,
+                            symbol.Symbol.Type,
+                            symbol.Name,
+                            WebServer.ToJsonNumber(symbol.Symbol.Pointer)
+                        )
+                    );
                 }
+
                 responseString = "[" + String.Join(",", jsonFragments) + "]";
             } catch (DebuggerException ex) {
                 responseString = ex.JSONError;

@@ -6,12 +6,6 @@ using System.Threading.Tasks;
 using JsDbg.Dia;
 
 namespace JsDbg.Core {
-    public struct SStackFrame {
-        public ulong InstructionAddress;
-        public ulong StackAddress;
-        public ulong FrameAddress;
-    }
-
     public struct SStackFrameWithContext {
         public SStackFrame StackFrame;
         public object Context;
@@ -37,7 +31,7 @@ namespace JsDbg.Core {
         Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct;
         Task WriteValue<T>(ulong pointer, T value) where T : struct;
 
-        Task<IEnumerable<SStackFrameWithContext>> GetCurrentCallStack();
+        Task<IEnumerable<SStackFrame>> GetCurrentCallStack(int frameCount);
 
         event DebuggerChangeEventHandler DebuggerChange;
         event EventHandler BitnessChanged;
@@ -48,8 +42,6 @@ namespace JsDbg.Core {
         Task<Type> GetTypeFromDebugger(string module, string typename);
 
         Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol);
-
-        Task<IEnumerable<SSymbolResult>> LookupLocalsInStackFrame(SStackFrameWithContext stackFrameWithContext, string symbolName);
 
         Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer);
 

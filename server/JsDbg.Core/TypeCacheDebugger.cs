@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Dia2Lib;
 using JsDbg.Dia;
@@ -239,101 +240,67 @@ namespace JsDbg.Core {
             }
         }
 
-        public async Task<IEnumerable<SSymbolResult>> LookupLocalSymbols(string module, string methodName, string symbolName, int maxCount) {
-            ulong requestedModuleBase = (await this.debuggerEngine.GetModuleForName(module)).BaseAddress;
-
-            bool foundStackFrame = false;
-            List<SSymbolResult> results = new List<SSymbolResult>();
-
-            IEnumerable<SStackFrameWithContext> stackFrames = await this.debuggerEngine.GetCurrentCallStack();
-            foreach (SStackFrameWithContext stackFrameWithContext in stackFrames) {
-                SSymbolNameAndDisplacement stackFrameName;
-                SModule stackFrameModule;
-                try {
-                    stackFrameModule = await this.debuggerEngine.GetModuleForAddress(stackFrameWithContext.StackFrame.InstructionAddress);
-                } catch {
-                    // No module found.  Could be a JIT stack so just keep going.
-                    continue;
-                }
-                if (requestedModuleBase != stackFrameModule.BaseAddress) {
-                    // Check the module before looking up the name to avoid loading symbols for modules we're not interested in.
-                    continue;
-                }
-
-                try {
-                    stackFrameName = await this.LookupSymbolName(stackFrameWithContext.StackFrame.InstructionAddress);
-                } catch {
-                    continue;
-                }
-
-                if (stackFrameName.Name == methodName) {
-                    foundStackFrame = true;
-
-                    // This is the stack frame that we're being asked about.
-                    IList<SLocalVariable> localsFromDia = await this.GetLocalsFromDia(module, methodName, (uint)(stackFrameWithContext.StackFrame.InstructionAddress - stackFrameModule.BaseAddress), symbolName);
-                    if (localsFromDia != null) {
-                        if (localsFromDia.Count > 0) {
-                            // We might get multiple local variables with the same name.  Just use the first one.
-                            ulong address = localsFromDia[0].IsOffsetFromBottom ? stackFrameWithContext.StackFrame.StackAddress : stackFrameWithContext.StackFrame.FrameAddress;
-                            address = (ulong)((long)address + localsFromDia[0].FrameOffset);
-                            results.Add(new SSymbolResult() { Module = module, Pointer = address, Type = localsFromDia[0].Type });
-                        }
-                    } else {
-                        // Unable to get any locals from DIA.  Try the debugger engine.
-                        IEnumerable<SSymbolResult> localsFromDebugger = await this.debuggerEngine.LookupLocalsInStackFrame(stackFrameWithContext, symbolName);
-                        if (localsFromDebugger != null) {
-                            results.AddRange(localsFromDebugger);
-                        }
-                    }
-                }
-            }
-
-            if (!foundStackFrame) {
-                throw new DebuggerException(String.Format("Could not find stack frame: {0}", methodName));
-            } else if (results.Count == 0) {
-                throw new DebuggerException(String.Format("Could not find local symbol: {0}", symbolName));
-            } else {
-                return results;
-            }
+        public Task<IEnumerable<SStackFrame>> GetCallStack(int frameCount) {
+            return this.debuggerEngine.GetCurrentCallStack(frameCount);
         }
 
-        public async Task<IList<SLocalVariable>> GetLocalsFromDia(string module, string method, uint rva, string symbolName) {
-            IDiaSession diaSession = await this.debuggerEngine.DiaLoader.LoadDiaSession(module);
-            if (diaSession == null) {
-                return null;
+        public async Task<IEnumerable<SNamedSymbol>> GetSymbolsInStackFrame(ulong instructionAddress, ulong stackAddress, ulong frameAddress) {
+            List<SNamedSymbol> results = new List<SNamedSymbol>();
+            SModule module = await this.debuggerEngine.GetModuleForAddress(instructionAddress);
+
+            Dia2Lib.IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(module.Name);
+            if (session == null) {
+                throw new DebuggerException("Loading stack frame symbols directly from the debugger is not supported.");
             }
 
-            List<SLocalVariable> results = new List<SLocalVariable>();
-            IDiaEnumSymbols symbols;
-            diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagFunction, method, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out symbols);
+            Dia2Lib.IDiaSymbol symbol;
+            uint rva = (uint)(instructionAddress - module.BaseAddress);
+            try {
+                session.findSymbolByRVA(rva, Dia2Lib.SymTagEnum.SymTagNull, out symbol);
+            } catch {
+                throw new DebuggerException(string.Format("Invalid symbol address: 0x:{0:x8}", instructionAddress));
+            }
 
-            foreach (IDiaSymbol symbol in symbols) {
-                List<IDiaSymbol> symbolResults = new List<IDiaSymbol>();
-                this.AccumulateChildLocalSymbols(symbol, symbolName, rva, symbolResults);
-                foreach (IDiaSymbol resultSymbol in symbolResults) {
-                    if ((DiaHelpers.LocationType)resultSymbol.locationType == DiaHelpers.LocationType.LocIsRegRel) {
-                        // If the register id is %rsp or %esp, the offset is from the bottom.
-                        bool offsetFromBottom = (resultSymbol.registerId == 335 || resultSymbol.registerId == 21);
-                        results.Add(new SLocalVariable() { FrameOffset = resultSymbol.offset, Type = DiaHelpers.GetTypeName(resultSymbol.type), IsOffsetFromBottom = offsetFromBottom });
+            do {
+                IDiaEnumSymbols symbols = null;
+                symbol.findChildrenExByRVA(SymTagEnum.SymTagData, null, (uint)DiaHelpers.NameSearchOptions.nsNone, rva, out symbols);
+                
+                foreach (IDiaSymbol localSymbol in symbols) {
+                    DiaHelpers.LocationType location = (DiaHelpers.LocationType)localSymbol.locationType;
+                    if (location == DiaHelpers.LocationType.LocIsRegRel) {
+                        // Check if the offset is from the stack address or frame address.
+                        DiaHelpers.CV_HREG_e register = (DiaHelpers.CV_HREG_e)localSymbol.registerId;
+                        ulong relativeAddress = 0;
+                        switch (register) {
+                            case DiaHelpers.CV_HREG_e.CV_AMD64_RSP:
+                            case DiaHelpers.CV_HREG_e.CV_AMD64_ESP: // Also CV_REG_ESP
+                                relativeAddress = stackAddress;
+                                break;
+                            case DiaHelpers.CV_HREG_e.CV_AMD64_RBP:
+                            case DiaHelpers.CV_HREG_e.CV_AMD64_EBP: // Also CV_REG_EBP
+                            case DiaHelpers.CV_HREG_e.CV_ALLREG_VFRAME:
+                                relativeAddress = frameAddress;
+                                break;
+                            default:
+                                // Relative to a register that's not the frame pointer or stack pointer.  We don't have support for this yet.
+                                continue;
+                        }
+
+                        results.Add(new SNamedSymbol() {
+                            Symbol = new SSymbolResult() {
+                                Module = module.Name,
+                                Pointer = (ulong)((long)relativeAddress + localSymbol.offset),
+                                Type = DiaHelpers.GetTypeName(localSymbol.type)
+                            },
+                            Name = localSymbol.name
+                        });
                     }
                 }
-            }
+
+                // If the symbol wasn't a function (e.g. it was a block) keep going until we reach containing function.
+            } while ((SymTagEnum)symbol.symTag != SymTagEnum.SymTagFunction && ((symbol = symbol.lexicalParent) != null));
 
             return results;
-        }
-
-        private void AccumulateChildLocalSymbols(IDiaSymbol symbol, string symbolName, uint rva, List<IDiaSymbol> results) {
-            IDiaEnumSymbols dataSymbols;
-            symbol.findChildrenExByRVA(SymTagEnum.SymTagData, symbolName, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, rva, out dataSymbols);
-            foreach (IDiaSymbol dataSymbol in dataSymbols) {
-                results.Add(dataSymbol);
-            }
-
-            IDiaEnumSymbols blockSymbols;
-            symbol.findChildrenExByRVA(SymTagEnum.SymTagBlock, null, (uint)DiaHelpers.NameSearchOptions.nsNone, rva, out blockSymbols);
-            foreach (IDiaSymbol blockSymbol in blockSymbols) {
-                AccumulateChildLocalSymbols(blockSymbol, symbolName, rva, results);
-            }
         }
 
         public async Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer) {

@@ -7,12 +7,13 @@ Loader.OnLoad(function() {
         Tree: new TreeReader.DbgObjectTreeReader(new TreeReader.ObjectTreeReader()),
         Renderer: new DbgObjectTreeRenderer(),
         InterpretAddress: function(address) {
-            return new DbgObject(MSHTML.Module, "void", address).vcast();
+            // vcast ensures that the LayoutBuilder is valid and will also cast to LayoutBoxBuilder if necessary.
+            return new DbgObject(MSHTML.Module, "Layout::LayoutBuilder", address).vcast();
         },
         GetRoots: function() {
             return DbgObject.locals(MSHTML.Module, "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder").f("sp.m_pT")
-            .then(undefined, function (err) {
-                if (err.message.indexOf("Could not find local symbol") == 0) {
+            .then(function (layoutBuilders) {
+                if (layoutBuilders.length == 0) {
                     // Try other places.
                     var otherMethods = [
                         "Layout::LayoutBuilder::BuildBoxItem",
@@ -22,25 +23,23 @@ Loader.OnLoad(function() {
                         "Layout::LayoutBuilder::EnterInitialBlock",
                         "Layout::LayoutBuilder::ExitBlock"
                     ];
-                    return Promise.join(
-                        otherMethods.map(function(method) {
-                            return DbgObject.locals(MSHTML.Module, method, "this")
-                            .then(
-                                function (result) {
-                                    if (result.length > 0 && result[0].isPointer()) {
-                                        return result[0].deref();
-                                    }
-                                },
-                                function(err) { return null; }
-                            )
+                    return Promise.map(otherMethods, function (method) {
+                        return DbgObject.locals(MSHTML.Module, method, "this")
+                        .map(function (local) {
+                            if (local.isPointer()) {
+                                return local.deref();
+                            } else {
+                                return local;
+                            }
                         })
-                    )
+                    })
                     .then(function (results) {
-                        return results.filter(function (r) { return r != null; });
-                    });
-                } else {
-                    return [];
+                        // Flatten the array.
+                        return results.reduce(function (a, b) { return a.concat(b); }, []);
+                    })
                 }
+
+                return layoutBuilders;
             })
             .then(function (layoutBuilders) {
                 if (layoutBuilders.length == 0) {

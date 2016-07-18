@@ -168,16 +168,42 @@ Loader.OnLoad(function() {
         arguments: [
             {name:"module", type:"string", description:"The module containing the method."},
             {name:"method", type:"string", description:"The method containing the local symbol."},
-            {name:"symbol", type:"string", description:"The symbol to evaluate."}
+            {name:"symbolName", type:"string", description:"The symbol to evaluate."}
         ]
     }
-    DbgObject.locals = function(module, method, symbol) {
+    DbgObject.locals = function(module, method, symbolName) {
         return new PromisedDbgObject.Array(
-            jsDbgPromise(JsDbg.LookupLocalSymbols, module, method, symbol, /*maxCount*/0)
-            .then(function(resultArray) {
-                return resultArray.map(function(result) {
-                    return new DbgObject(result.module, result.type, result.pointer);
-                });
+            jsDbgPromise(JsDbg.GetCallStack, /*maxCount*/-1)
+            .then(function(stackFrames) {
+                // Filter the stack frames to only those that match the given method name.
+                return Promise.filter(stackFrames, function (frame) {
+                    return jsDbgPromise(JsDbg.LookupSymbolName, frame.instructionAddress)
+                    .then(function (symbol) {
+                        return (
+                            DbgObject.NormalizeModule(symbol.module) == DbgObject.NormalizeModule(module) &&
+                            symbol.name == method
+                        );
+                    })
+                    .then(null, function (error) { return false; });
+                })
+                .then(function (filteredStackFrames) {
+                    // Now get the local symbols for each of the stack frames.
+                    return Promise.map(filteredStackFrames, function (frame) {
+                        return jsDbgPromise(JsDbg.LookupLocalsInStackFrame, frame.instructionAddress, frame.stackAddress, frame.frameAddress)
+                        .then(function (symbols) {
+                            // Limit the symbols only to those that match the given name.
+                            return symbols.filter(function (symbol) { return symbol.name == symbolName; })
+                        })
+                    })
+                })
+                .then(function (symbols) {
+                    // Finally, flatten the array of symbols and turn them into DbgObjects.
+                    return symbols
+                    .reduce(function (a, b) { return a.concat(b); }, [])
+                    .map(function (symbol) {
+                        return new DbgObject(symbol.module, symbol.type, symbol.address);
+                    })
+                })
             })
         );
     }
