@@ -96,7 +96,9 @@ var TreeInspector = (function() {
         )
         .then(function (container) {
             if (object instanceof DbgObject) {
-                container.setAttribute("data-object-address", object.pointerValue().toString(16));
+                if (!node.isDuplicate) {
+                    container.setAttribute("data-object-address", object.pointerValue().toString(16));
+                }
                 return that.fieldSupportController.renderFields(object, container);
             } else {
                 return container;
