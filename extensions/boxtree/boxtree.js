@@ -93,10 +93,18 @@ Loader.OnLoad(function() {
 
     // Add actions to link LayoutBoxes, CMarkups, and CDocs to the box tree.
     DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBox", "BoxTree", function(box) {
-        return box.vcast().F("TreeNode.Markup.Doc")
-        .then(null, function (err) { return box; })
-        .then(function (root) {
-            return TreeInspector.GetActions("boxtree", "Box Tree", root, box);
+        return box.vcast().f("isAttachedToBuilder").val()
+        .then(null, function () { return false; })
+        .then(function (isAttachedToBuilder) {
+            if (!isAttachedToBuilder) {
+                return box.vcast().F("TreeNode.Markup.Doc")
+                .then(null, function (err) { return box; })
+                .then(function (root) {
+                    return TreeInspector.GetActions("boxtree", "Box Tree", root, box);
+                })
+            } else {
+                return box.vcast().f("builder").actions("BoxTree");
+            }
         })
     });
     DbgObject.AddAction(MSHTML.Module, "CMarkup", "BoxTree", function(markup) { 
@@ -105,6 +113,20 @@ Loader.OnLoad(function() {
     DbgObject.AddAction(MSHTML.Module, "CDoc", "BoxTree", function(doc) {
         return TreeInspector.GetActions("boxtree", "Box Tree", doc, doc);
     })
+
+    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBoxBuilder", "BoxTree", function(builder) {
+        return builder.list("parentBuilder.m_pT").f("boxReference.m_pT")
+        .then(function (boxReferences) {
+            // Use the top-most box as the root.
+            var firstBox = boxReferences[0];
+            var lastBox;
+            do {
+                lastBox = boxReferences.pop();
+            } while (lastBox.isNull());
+
+            return TreeInspector.GetActions("boxtree", "Box Tree", lastBox, firstBox);
+        })
+    });
 
     BoxTree.Tree.addChildren(MSHTML.Module, "CDoc", function (object) {
         return object.f("_view");
