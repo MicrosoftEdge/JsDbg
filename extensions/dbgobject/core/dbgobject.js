@@ -70,19 +70,7 @@ Loader.OnLoad(function() {
     }
 
     function jsDbgPromise(method) {
-        if (typeof(method) != typeof(function() {})) {
-            throw new Error("Invalid method.");
-        }
-        var methodArguments = [];
-        for (var i = 1; i < arguments.length; ++i) {
-            methodArguments.push(arguments[i]);
-        };
-        return new Promise(function(success, error) {
-            methodArguments.push(function(result) {
-                success(result);
-            });
-            method.apply(JsDbg, methodArguments)
-        })
+        return Promise.call.apply(Promise, [JsDbg, method].concat(Array.from(arguments).slice(1)))
         .then(function (result) { 
             if (result.error) {
                 return Promise.fail(new Error(result.error));

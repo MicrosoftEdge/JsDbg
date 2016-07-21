@@ -199,6 +199,23 @@ var Promise = (function() {
         }
     }
 
+    Promise.call = function(thisObject, method) {
+        if (typeof(method) != typeof(function() {})) {
+            throw new Error("Invalid method.");
+        }
+        var methodArguments = [];
+        for (var i = 2; i < arguments.length; ++i) {
+            methodArguments.push(arguments[i]);
+        };
+
+        return new Promise(function(success, error) {
+            methodArguments.push(function(result) {
+                success(result);
+            });
+            method.apply(thisObject, methodArguments)
+        })
+    }
+
     Promise.realize = function(promise) {
         if (Promise.isPromise(promise) && promise.getPromisedValue) {
             return promise.getPromisedValue();
