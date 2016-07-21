@@ -261,17 +261,18 @@ namespace JsDbg.Core {
                 throw new DebuggerException(string.Format("Invalid symbol address: 0x:{0:x8}", instructionAddress));
             }
 
-            do {
-                IDiaEnumSymbols symbols = null;
-                symbol.findChildrenExByRVA(SymTagEnum.SymTagData, null, (uint)DiaHelpers.NameSearchOptions.nsNone, rva, out symbols);
-                
-                foreach (IDiaSymbol localSymbol in symbols) {
-                    DiaHelpers.LocationType location = (DiaHelpers.LocationType)localSymbol.locationType;
-                    if (location == DiaHelpers.LocationType.LocIsRegRel) {
-                        // Check if the offset is from the stack address or frame address.
-                        DiaHelpers.CV_HREG_e register = (DiaHelpers.CV_HREG_e)localSymbol.registerId;
-                        ulong relativeAddress = 0;
-                        switch (register) {
+            if ((SymTagEnum)symbol.symTag == SymTagEnum.SymTagFunction || (SymTagEnum)symbol.symTag == SymTagEnum.SymTagBlock) {
+                do {
+                    IDiaEnumSymbols symbols = null;
+                    symbol.findChildrenExByRVA(SymTagEnum.SymTagData, null, (uint)DiaHelpers.NameSearchOptions.nsNone, rva, out symbols);
+
+                    foreach (IDiaSymbol localSymbol in symbols) {
+                        DiaHelpers.LocationType location = (DiaHelpers.LocationType)localSymbol.locationType;
+                        if (location == DiaHelpers.LocationType.LocIsRegRel) {
+                            // Check if the offset is from the stack address or frame address.
+                            DiaHelpers.CV_HREG_e register = (DiaHelpers.CV_HREG_e)localSymbol.registerId;
+                            ulong relativeAddress = 0;
+                            switch (register) {
                             case DiaHelpers.CV_HREG_e.CV_AMD64_RSP:
                             case DiaHelpers.CV_HREG_e.CV_AMD64_ESP: // Also CV_REG_ESP
                                 relativeAddress = stackAddress;
@@ -284,21 +285,22 @@ namespace JsDbg.Core {
                             default:
                                 // Relative to a register that's not the frame pointer or stack pointer.  We don't have support for this yet.
                                 continue;
+                            }
+
+                            results.Add(new SNamedSymbol() {
+                                Symbol = new SSymbolResult() {
+                                    Module = module.Name,
+                                    Pointer = (ulong)((long)relativeAddress + localSymbol.offset),
+                                    Type = DiaHelpers.GetTypeName(localSymbol.type)
+                                },
+                                Name = localSymbol.name
+                            });
                         }
-
-                        results.Add(new SNamedSymbol() {
-                            Symbol = new SSymbolResult() {
-                                Module = module.Name,
-                                Pointer = (ulong)((long)relativeAddress + localSymbol.offset),
-                                Type = DiaHelpers.GetTypeName(localSymbol.type)
-                            },
-                            Name = localSymbol.name
-                        });
                     }
-                }
 
-                // If the symbol wasn't a function (e.g. it was a block) keep going until we reach containing function.
-            } while ((SymTagEnum)symbol.symTag != SymTagEnum.SymTagFunction && ((symbol = symbol.lexicalParent) != null));
+                    // If the symbol wasn't a function (e.g. it was a block) keep going until we reach containing function.
+                } while ((SymTagEnum)symbol.symTag != SymTagEnum.SymTagFunction && ((symbol = symbol.lexicalParent) != null));
+            }
 
             return results;
         }
