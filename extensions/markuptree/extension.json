@@ -8,7 +8,8 @@
         "tree-inspector"
     ],
     "includes": [
-        "markuptree.js"
+        "markuptree.js",
+        "markuptree.css",
     ],
     "augments": [
         "dbgobject"

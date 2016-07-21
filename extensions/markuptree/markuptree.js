@@ -193,6 +193,48 @@ Loader.OnLoad(function() {
         FieldSupport.RegisterTypeAlias(MSHTML.Module, "CDOMTextNode", "TextNode");
     }
 
+    var hasListener = false;
+    function setTextWhitespaceFormatting(stateChange, span) {
+        if (!hasListener) {
+            hasListener = true;
+            document.addEventListener("click", function (e) {
+                if (e.target.classList.contains("dom-text") && e.altKey) {
+                    setTextWhitespaceFormatting(1, e.target);
+                }
+            }, true)
+        }
+
+        var text = span.getAttribute("data-text");
+        var stateAttribute = span.getAttribute("data-text-state");
+        var state = (parseInt(stateAttribute == null ? 0 : stateAttribute) + stateChange) % 4;
+        span.setAttribute("data-text-state", state);
+
+        if (state == 0) {
+            span.textContent = '"' + text + '"';
+            span.classList.remove("dom-text-pre");
+        } else if (state == 1) {
+            span.textContent = text.replace(/ /g, '\xb7').replace(/\t/g, '\u21E5').replace(/\n/g, '\u21b5');
+        } else if (state == 2) {
+            span.textContent = text;
+            span.classList.add("dom-text-pre");
+        } else if (state == 3) {
+            span.textContent = text.replace(/ /g, '\xb7').replace(/\t/g, '\u21E5');
+        }
+    }
+
+    function createFormattedText(text) {
+        var span = document.createElement("span");
+        span.classList.add("dom-text");
+        span.title = "Alt-Click to change whitespace formatting";
+        span.setAttribute("data-text", text);
+        setTextWhitespaceFormatting(0, span);
+        return span;
+    }
+
+    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextData", "Text", false, UserEditableFunctions.Create(function (textData) {
+        return textData.f("text").string(textData.f("textLength").val()).then(MarkupTree.CreateFormattedText)
+    }));
+
     DbgObject.AddTypeDescription(MSHTML.Module, "Tree::ATextData", "Text", false, UserEditableFunctions.Create(function (textData) {
         function processCharacters(characters) {
             var length = characters.length;
@@ -201,7 +243,7 @@ Loader.OnLoad(function() {
                 textArray.push(String.fromCharCode(characters[i]));
             }
         
-            return "\"" + textArray.join("") + "\"";
+            return textArray.join("");
         }
 
         return textData.f("isTextDataSlice", "_fIsTextDataSlice").val()
@@ -227,12 +269,12 @@ Loader.OnLoad(function() {
             }
         })
         .then(function (characters) {
-            return document.createTextNode(processCharacters(characters));
+            return MarkupTree.CreateFormattedText(processCharacters(characters));
         });
     }));
 
     DbgObject.AddTypeDescription(MSHTML.Module, "CDOMTextNode", "Text", false, UserEditableFunctions.Create(function (textNode) {
-        return textNode.f("textData.m_pT").desc("Text");
+        return textNode.f("textData.m_pT").desc("Text")
     }))
 
     MarkupTree = {
@@ -241,6 +283,7 @@ Loader.OnLoad(function() {
         DefaultTypes: [
             { module: MSHTML.Module, type: "CTreeNode" },
             { module: MSHTML.Module, type: "CBase" }
-        ]
+        ],
+        CreateFormattedText: createFormattedText
     }
 });
