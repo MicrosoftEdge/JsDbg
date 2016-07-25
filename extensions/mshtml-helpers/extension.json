@@ -4,6 +4,6 @@
     "description": "Helper functions for mshtml.dll",
     "headless": true,
     "dependencies": ["dbgobject", "user-editable-functions", "help"],
-    "includes": ["mshtml.js"],
+    "includes": ["mshtml.js", "dispids/mshtml-dispids.js"],
     "augments": ["dbgobject"]
 }

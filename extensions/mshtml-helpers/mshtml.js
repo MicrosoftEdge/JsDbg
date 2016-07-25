@@ -763,7 +763,16 @@ var MSHTML = undefined;
                 if (hasDispId) {
                     return attrVal.f("_dispid").uval()
                     .then(function (dispid) {
-                        return "DISPID(0x" + dispid.toString(16) + ")";
+                        var names = MSHTML.GetDispIdNames(dispid);
+                        if (names == null) {
+                            return "DISPID(0x" + dispid.toString(16) + ")";
+                        } else if (names.indexOf("DISPID_CElement_propdescname") > 0) {
+                            // This DISPID has lots of collisions and is common enoguh that enumerating every "name" variant is annoying.
+                            return "name";
+                        } else {
+                            // There are multiple colliding dispids.
+                            return names.join("/");
+                        }
                     })
                 } else {
                     return attrVal.f("_pPropertyDesc.pstrName").string();
@@ -1107,6 +1116,16 @@ var MSHTML = undefined;
             }
         )
 
+        var dispidNameToValue = {};
+        var dispidValueToName = {};
+        function registerDispId(name, value) {
+            if (!(value in dispidValueToName)) {
+                dispidValueToName[value] = [];
+            }
+            dispidValueToName[value].push(name);
+            dispidNameToValue[name] = value;
+        }
+
         MSHTML = {
             _help : {
                 name: "MSHTML",
@@ -1224,6 +1243,14 @@ var MSHTML = undefined;
                 returns: "A promised DbgObject representing the lookaside object or null if it is not present."
             },
             GetElementLookasidePointer: GetElementLookasidePointer,
+
+            RegisterDispId: registerDispId,
+            GetDispIdNames: function(value) {
+                return dispidValueToName[value] || null;
+            },
+            GetDispIdValue: function(name) {
+                return dispidNameToValue[name] || null;
+            },
         };
 
         Help.Register(MSHTML);
