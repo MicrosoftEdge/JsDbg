@@ -969,10 +969,12 @@ var MSHTML = undefined;
             })
         });
 
-        DbgObject.AddTypeDescription(moduleName, "Math::SLayoutMeasure", "Length", true, function(layoutMeasure) {
-            return Promise.as(layoutMeasure.val())
-            .then(function(val) { return val / 100 + "px"; });
-        });
+        function describeLayoutMeasure(layoutMeasure) {
+            return layoutMeasure.val().then(function(val) { return val / 100 + "px"; });
+        }
+
+        DbgObject.AddTypeDescription(moduleName, "Math::SLayoutMeasure", "Length", true, describeLayoutMeasure);
+        DbgObject.AddTypeDescription(moduleName, "Utilities::SLayoutMeasure", "Length", true, describeLayoutMeasure);
 
         DbgObject.AddTypeDescription(moduleName, "Layout::SBoxFrame", "Frame", true, function(rect) {
             var sideNames = ["top", "right", "bottom", "left"];
@@ -982,13 +984,16 @@ var MSHTML = undefined;
             });
         });
 
-        DbgObject.AddTypeDescription(moduleName, "Math::SPoint", "Point", true, function(point) {
-           var fieldNames = ["x", "y"];
-            return Promise.join(fieldNames.map(function(side) { return point.f(side).desc(); }))
-            .then(function (values) {
-                return "(" + values[0] + ", " + values[1] + ")";
-            }); 
-        });
+        function describePoint(point) {
+            var fieldNames = ["x", "y"];
+             return Promise.join(fieldNames.map(function(side) { return point.f(side).desc(); }))
+             .then(function (values) {
+                 return "(" + values[0] + ", " + values[1] + ")";
+             }); 
+        }
+
+        DbgObject.AddTypeDescription(moduleName, "Math::SPoint", "Point", true, describePoint);
+        DbgObject.AddTypeDescription(moduleName, "Utilities::SPoint", "Point", true, describePoint);
 
         DbgObject.AddArrayField(
             moduleName,
