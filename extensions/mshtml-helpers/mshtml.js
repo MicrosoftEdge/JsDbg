@@ -1009,9 +1009,9 @@ var MSHTML = undefined;
 
         DbgObject.AddArrayField(
             moduleName, 
-            function(type) { return type.match(/^Collections::SRawArray<.*>$/) != null; },
+            function(type) { return type.match(/^(Collections|CFlatRuntime)::SRawArray<.*>$/) != null; },
             "Items",
-            function(type) { return type.match(/^Collections::SRawArray<(.*)>$/)[1]; },
+            function(type) { return type.match(/^(Collections|CFlatRuntime)::SRawArray<(.*)>$/)[2]; },
             function(array) {
                 return array.f("data").array(array.f("length"));
             }
