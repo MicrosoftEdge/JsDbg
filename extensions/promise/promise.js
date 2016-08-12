@@ -537,5 +537,7 @@ var Promise = (function() {
         return result;
     }
 
+    Promise.prototype.catch = function(onError) { return this.then(null, onError); }
+
     return Promise;
 })();

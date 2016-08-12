@@ -280,7 +280,11 @@ var MSHTML = undefined;
         }));
 
         DbgObject.AddExtendedField(moduleName, "CElement", "Markup", "CMarkup", UserEditableFunctions.Create(function (element) {
-            var promise = Promise.join([element.f("_fHasLayoutPtr").val(), element.f("_fHasLayoutAry", "_fHasLayoutPtr").val(), element.f("_fHasMarkupPtr").val()])
+            var promise = Promise.join([
+                element.f("_fHasLayoutPtr").val().catch(function() { return 0; }),
+                element.f("_fHasLayoutAry").val().catch(function() { return 0; }),
+                element.f("_fHasMarkupPtr").val()
+            ])
             .then(function(bits) {
                 if (bits[0] || bits[1]) {
                     return element.f("_pLayoutInfo", "_pLayout", "_chain._pLayoutInfo", "_chain._pLayout")
