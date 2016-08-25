@@ -106,7 +106,7 @@ Loader.OnLoad(function() {
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
             // Collect floaters.
-            return object.f("geometry").array("Items")
+            return object.f("geometry").f("m_pT", "").array("Items")
                 .f("floaterBoxReference.m_pT")
                 .latestPatch()
                 .f("data.BoxReference.m_pT")

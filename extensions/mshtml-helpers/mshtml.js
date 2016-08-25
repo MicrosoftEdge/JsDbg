@@ -1007,6 +1007,20 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
+            moduleName,
+            function (type) { return type.match(/^Microsoft::CFlat::Array<.*,1>$/) != null; },
+            "Items",
+            function (type) { return type.match(/^Microsoft::CFlat::Array<(.*),1>$/)[1]; },
+            function (array) {
+                if (array.isNull()) {
+                    return [];
+                } else {
+                    return array.f("_data").array(array.f("_bounds.Length").val());
+                }
+            }
+        );
+
+        DbgObject.AddArrayField(
             moduleName, 
             function(type) { return type.match(/^Layout::PatchableArray<.*>$/) != null; },
             "Items",
@@ -1022,7 +1036,7 @@ var MSHTML = undefined;
             "Items",
             function(type) { return type.match(/^(Collections|CFlatRuntime)::SRawArray<(.*)>$/)[2]; },
             function(array) {
-                return array.f("data").array(array.f("length"));
+                return array.f("data").f("ptr", "").array(array.f("length"));
             }
         );
 
