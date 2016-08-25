@@ -99,10 +99,18 @@ Loader.OnLoad(function() {
             return collectChildrenInPositionedItems(object.f("positionedItems"));
         });
 
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::InlineLayoutDisplayClient", null, function (object) {
+            return collectChildrenInPositionedItems(object.f("positionedItems"));
+        });
+
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
             // Collect static flow.
             return collectChildrenInFlow(object.f("flow"));
         });
+
+        DbgObjectTree.AddType(null, MSHTML.Module, "Layout::InlineBox", null, function (object) {
+            return collectChildrenInFlow(object.f("firstItem"));
+        })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "Layout::FlowBox", null, function (object) {
             // Collect floaters.
