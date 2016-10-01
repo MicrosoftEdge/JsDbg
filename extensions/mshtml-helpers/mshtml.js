@@ -280,27 +280,29 @@ var MSHTML = undefined;
         }));
 
         DbgObject.AddExtendedField(moduleName, "CElement", "Markup", "CMarkup", UserEditableFunctions.Create(function (element) {
-            var promise = Promise.join([
-                element.f("_fHasLayoutPtr").val().catch(function() { return 0; }),
-                element.f("_fHasLayoutAry").val().catch(function() { return 0; }),
-                element.f("_fHasMarkupPtr").val()
-            ])
-            .then(function(bits) {
-                if (bits[0] || bits[1]) {
-                    return element.f("_pLayoutInfo", "_pLayout", "_chain._pLayoutInfo", "_chain._pLayout")
-                    .then(function (layout) {
-                        return layout.as("char").idx(0 - layout.pointerValue().mod(4)).as(layout.typeDescription()).f("_pMarkup");
-                    })
-                } else if (bits[2]) {
-                    return element.f("_chain._pMarkup", "_pMarkup")
-                    .then(function (markup) {
-                        return markup.as("char").idx(0 - markup.pointerValue().mod(4)).as("CMarkup");
-                    })
-                } else {
-                    return new DbgObject(moduleName, "CMarkup", 0);
-                }
-            });
-            return promise;
+            return element.f("markup")
+            .catch(function () {
+                return Promise.join([
+                    element.f("_fHasLayoutPtr").val().catch(function() { return 0; }),
+                    element.f("_fHasLayoutAry").val().catch(function() { return 0; }),
+                    element.f("_fHasMarkupPtr").val()
+                ])
+                .then(function(bits) {
+                    if (bits[0] || bits[1]) {
+                        return element.f("_pLayoutInfo", "_pLayout", "_chain._pLayoutInfo", "_chain._pLayout")
+                        .then(function (layout) {
+                            return layout.as("char").idx(0 - layout.pointerValue().mod(4)).as(layout.typeDescription()).f("_pMarkup");
+                        })
+                    } else if (bits[2]) {
+                        return element.f("_chain._pMarkup", "_pMarkup")
+                        .then(function (markup) {
+                            return markup.as("char").idx(0 - markup.pointerValue().mod(4)).as("CMarkup");
+                        })
+                    } else {
+                        return new DbgObject(moduleName, "CMarkup", 0);
+                    }
+                });
+            })
         }));
 
         DbgObject.AddExtendedField(moduleName, "CDOMTextNode", "Markup", "CMarkup", UserEditableFunctions.Create(function (domTextNode) {

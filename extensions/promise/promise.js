@@ -377,9 +377,16 @@ var Promise = (function() {
             return this.promise.then.apply(this.promise, arguments);
         };
 
+        promisedType.prototype.catch = function() {
+            return this.promise.catch.apply(this.promise, arguments);
+        };
+
         promisedType.Array = function(promise) { this.promise = promise; }
         promisedType.Array.prototype.then = function() {
             return this.promise.then.apply(this.promise, arguments);
+        };
+        promisedType.Array.prototype.catch = function() {
+            return this.promise.catch.apply(this.promise, arguments);
         };
         promisedType.Array.prototype.filter = function(f) {
             return new promisedType.Array(Promise.filter(this.promise, f));
