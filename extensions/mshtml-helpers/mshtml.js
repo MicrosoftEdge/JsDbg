@@ -1094,11 +1094,59 @@ var MSHTML = undefined;
 
         DbgObject.AddArrayField(
             moduleName,
+            function (type) { return type.match(/^Utilities::SCircularBuffer<.*>$/) != null; },
+            "Items",
+            function (type) { return type.match(/^Utilities::SCircularBuffer<(.*)>$/)[1]; },
+            function (buffer) {
+                var items = buffer.f("items.m_pT")
+
+                var arrayStart = items.f("_data");
+                var arrayLength = items.f("_bounds.Length").val();
+                var count = buffer.f("count").val();
+                var offset = buffer.f("offset").val();
+
+                return Promise.join([arrayStart, arrayLength, count, offset])
+                .then(function(result) {
+                    var arrayStart = result[0];
+                    var arrayLength = result[1];
+                    var count = result[2];
+                    var offset = result[3];
+
+                    var upperItemCount = Math.min(arrayLength - offset, count);
+                    var lowerItemCount = Math.max(offset + count - arrayLength, 0);
+                    return Promise.join([
+                        arrayStart.idx(offset).array(upperItemCount),
+                        arrayStart.idx(0).array(lowerItemCount)
+                    ])
+                }).then(function(result) {
+                    // Return the circular buffer as a single array in the correct order
+                    return result[0].concat(result[1]);
+                });
+            }
+        );
+
+        DbgObject.AddArrayField(
+            moduleName,
             function (type) { return type.match(/^Collections::SGrowingArray<.*>$/) != null; },
             "Items",
             function (type) { return type.match(/^Collections::SGrowingArray<(.*)>$/)[1]; },
             function (growingArray) {
                 return growingArray.f("items._array").array(growingArray.f("count"));
+            }
+        );
+
+        DbgObject.AddArrayField(
+            moduleName,
+            function (type) { return type.match(/^Utilities::SGrowingArray<.*>$/) != null; },
+            "Items",
+            function (type) { return type.match(/^Utilities::SGrowingArray<(.*)>$/)[1]; },
+            function (growingArray) {
+
+                if (growingArray.isNull()) {
+                    return [];
+                } else {
+                    return growingArray.f("items.m_pT._data").array(growingArray.f("count"));
+                }
             }
         );
 

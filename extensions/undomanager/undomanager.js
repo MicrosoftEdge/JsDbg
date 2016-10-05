@@ -18,7 +18,7 @@ Loader.OnLoad(function() {
     });
 
     function getChildrenForUndoManager(undoManager, memberName) {
-        return undoManager.f(memberName).array("Items").map(function (item) {
+        return undoManager.f(memberName).f("m_pT", "").array("Items").map(function (item) {
             return item.f("m_pT").vcast();
         });
     }
