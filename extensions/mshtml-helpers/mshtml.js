@@ -118,7 +118,13 @@ var MSHTML = undefined;
         }));
 
         DbgObject.AddTypeDescription(moduleName, "CMarkup", "URL", false, UserEditableFunctions.Create(function (markup) {
-            return markup.f("_pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
+            return markup.f("_pHtmCtx")
+            .then(function (parserContext) {
+                return parserContext.vcast().catch(function () { return parserContext; });
+            })
+            .then(function (parserContext) {
+                return parserContext.f("_pDwnInfo._cusUri.m_LPWSTRProperty");
+            })
             .then(function (str) {
                  if (!str.isNull()) {
                     return str.string();
@@ -167,6 +173,20 @@ var MSHTML = undefined;
         DbgObject.AddExtendedField(moduleName, "Tree::ElementNode", "TreeNode", "CTreeNode", function (element) {
             return MSHTML.GetCTreeNodeFromTreeElement(element);
         });
+
+        DbgObject.AddArrayField(moduleName, "CTreeNode", "LayoutBoxes", "Layout::LayoutBox", UserEditableFunctions.Create(function (treeNode) {
+            return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode)
+            .then(function (layoutBox) {
+                return layoutBox.list(["nextLayoutBox", "associatedBoxLink"]);
+            })
+            .then(function (layoutBoxes) {
+                return Promise.join(layoutBoxes.map(function (layoutBox) { return layoutBox.vcast(); }));
+            })
+        }));
+
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "ComputedBlock", "Tree::ComputedBlock", UserEditableFunctions.Create(function (treeNode) {
+            return MSHTML.GetLayoutAssociationFromCTreeNode(treeNode, 0x1).vcast();
+        }));
 
         function GetCTreeNodeFromTreeElement(element) {
             return new PromisedDbgObject(
@@ -612,6 +632,7 @@ var MSHTML = undefined;
         DbgObject.AddTypeOverride(moduleName, "CBorderDefinition", "_bBorderStyles", "Tree::CssBorderStyleEnum[4]");
         DbgObject.AddTypeOverride(moduleName, "CBorderInfo", "abStyles", "Tree::CssBorderStyleEnum[4]");
         DbgObject.AddTypeOverride(moduleName, "CInput", "_type", "htmlInput");
+        DbgObject.AddTypeOverride(moduleName, "Tree::RenderSafeTextBlockRun", "_runType", "Tree::TextBlockRunTypeEnum");
 
         // Provide some type descriptions.
         DbgObject.AddTypeDescription(moduleName, "CTreeNode", "Tag", false, UserEditableFunctions.Create(function (treeNode) {
@@ -997,6 +1018,14 @@ var MSHTML = undefined;
         DbgObject.AddTypeDescription(moduleName, "Math::SPoint", "Point", true, describePoint);
         DbgObject.AddTypeDescription(moduleName, "Utilities::SPoint", "Point", true, describePoint);
 
+        DbgObject.AddTypeDescription(moduleName, "Microsoft::CFlat::ReferenceCount", "RefCount", true, function (refCount) {
+            return refCount.f("_refCount").val();
+        });
+
+        DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^TSmartPointer<.*>$/) != null; }, "Pointer", true, function (smartPointer) {
+            return smartPointer.f("m_pT");
+        })
+
         DbgObject.AddArrayField(
             moduleName,
             function (type) { return type.match(/^SArray<.*>$/) != null; },
@@ -1039,6 +1068,20 @@ var MSHTML = undefined;
             function(type) { return type.match(/^(Collections|CFlatRuntime)::SRawArray<(.*)>$/)[2]; },
             function(array) {
                 return array.f("data").f("ptr", "").array(array.f("length"));
+            }
+        );
+
+        DbgObject.AddArrayField(
+            moduleName,
+            function (type) { return type.match(/^Microsoft::CFlat::TrailingArrayField<.*>$/) != null; },
+            "Items",
+            function (type) { return type.match(/^Microsoft::CFlat::TrailingArrayField<(.*)>$/)[1]; },
+            function (array) {
+                if (array.isNull()) {
+                    return [];
+                } else {
+                    return array.f("_elements").array(array.f("_length").val());
+                }
             }
         );
 

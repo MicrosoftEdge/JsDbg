@@ -234,7 +234,7 @@ Loader.OnLoad(function() {
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CStyleRule", null, function(styleRule) {
-            return styleRule.f("_paaStyleProperties").array("Items");
+            return styleRule.f("_spSpecifiedStyle.m_pT.attrArray.m_pT", "_paaStyleProperties").array("Items");
         }, function (rule, stylesheet) {
             return getSelectorDescription(rule.f("_pFirstSelector"), stylesheet);
         })

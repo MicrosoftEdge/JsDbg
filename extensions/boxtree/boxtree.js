@@ -280,8 +280,8 @@ Loader.OnLoad(function() {
         return flowBox.f("flow").array("Items");
     }));
 
-    DbgObject.AddArrayField(MSHTML.Module, "Layout::LineBox", "Runs", "Layout::LineBox::SRenderSafeTextBlockRunAndCp", UserEditableFunctions.Create(function (lineBox) {
-        return lineBox.vcast().f("Runs").array(lineBox.f("numberOfRuns"));
+    DbgObject.AddArrayField(MSHTML.Module, "Layout::LineBox", "Runs", "Layout::LineBox::SRunBoxAndCp", UserEditableFunctions.Create(function (lineBox) {
+        return lineBox.vcast().f("runArray").array("Items");
     }));
 
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LineBox", "Text", false, UserEditableFunctions.Create(function (lineBox) {
@@ -306,7 +306,7 @@ Loader.OnLoad(function() {
                 // Get some fields from the text run...
                 return Promise
                 .join([
-                    textRun.f("_cchOffset").val(),
+                    textRun.f("_cchOffsetInTextData", "_cchOffset").val(),
                     textRun.f("_cchRunLength").val(),
                     textRun.f("_fHasTextTransformOrPassword").val()
                 ])
@@ -317,10 +317,10 @@ Loader.OnLoad(function() {
                     var textData;
 
                     if (textRunFields[2]) {
-                        textData = textRun.f("_characterSourceUnion._pchTransformedCharacters");
+                        textData = new PromisedDbgObject(textRun.f("_pTextData").f("text").then(null, function () { return textRun.f("_characterSourceUnion._pchTransformedCharacters") }));
                         offset = 0; // No offset when transformed.
                     } else {
-                        textData = textRun.f("_characterSourceUnion._pTextData").as("Tree::TextData").f("text", "_pText");
+                        textData = textRun.f("_pTextData", "_characterSourceUnion._pTextData").as("Tree::TextData").f("text", "_pText");
                     }
 
                     var stringLength = textRunLength;
