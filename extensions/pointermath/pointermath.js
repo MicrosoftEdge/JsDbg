@@ -31,7 +31,7 @@ Loader.OnLoad(function() {
         toFormattedString: function() {
             var hexString = this._value.toString(16);
             if (hexString == "0") {
-                return "NULL";
+                return "nullptr";
             } else {
                 var length = hexString.length;
                 if (length > 8) {
@@ -91,7 +91,7 @@ Loader.OnLoad(function() {
         });
 
         Tests.AddTest(testSuite, "PointerMath.Pointer.prototype.toFormattedString", function (assert) {
-            assert.equals("NULL", new Pointer(0).toFormattedString(), "0 => NULL");
+            assert.equals("nullptr", new Pointer(0).toFormattedString(), "0 => nullptr");
             assert.equals("0x00001234", new Pointer(0x1234).toFormattedString(), "0x1234 => 0x00001234");
             assert.equals("0x00000001`00001234", new Pointer(0x100001234).toFormattedString(), "0x100001234 => 0x00000001`00001234");
         })
