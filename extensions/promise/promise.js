@@ -194,6 +194,10 @@ var Promise = (function() {
                         return Promise.fail(ex);
                     }
                 },
+                catch: function() {
+                    // Simple promises are never in the failed state.
+                    return this;
+                },
                 getPromisedValue: function getPromisedValue() { return value; }
             };
         }
