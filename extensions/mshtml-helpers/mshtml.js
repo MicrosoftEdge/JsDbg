@@ -123,7 +123,11 @@ var MSHTML = undefined;
                 return parserContext.vcast().catch(function () { return parserContext; });
             })
             .then(function (parserContext) {
-                return parserContext.f("_pDwnInfo._cusUri.m_LPWSTRProperty");
+                if (!parserContext.isNull()) {
+                    return parserContext.f("_pDwnInfo._cusUri.m_LPWSTRProperty");
+                } else {
+                    return DbgObject.NULL;
+                }
             })
             .then(function (str) {
                  if (!str.isNull()) {
@@ -1023,7 +1027,7 @@ var MSHTML = undefined;
         });
 
         DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^TSmartPointer<.*>$/) != null; }, "Pointer", true, function (smartPointer) {
-            return smartPointer.f("m_pT");
+            return smartPointer.f("m_pT").desc();
         })
 
         DbgObject.AddArrayField(
