@@ -1260,6 +1260,7 @@ public:
     {
         return
             Machine == IMAGE_FILE_MACHINE_AMD64 ||
+            Machine == IMAGE_FILE_MACHINE_ARM64 ||
             Machine == IMAGE_FILE_MACHINE_IA64;
     }
     bool IsCurMachine64(void)

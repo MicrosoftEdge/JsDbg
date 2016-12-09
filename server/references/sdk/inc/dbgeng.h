@@ -11,8 +11,8 @@
 
 #include <winapifamily.h>
 
-#pragma region Desktop Family
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#pragma region Desktop Family or WER Package
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_PKG_WER)
 
 #include <stdarg.h>
 #include <objbase.h>
@@ -86,6 +86,18 @@ DEFINE_GUID(IID_IDebugClient6, 0xfd28b4c5, 0xc498, 0x4686,
 /* 13586be3-542e-481e-b1f2-8497ba74f9a9 */
 DEFINE_GUID(IID_IDebugClient7, 0x13586be3, 0x542e, 0x481e,
             0xb1, 0xf2, 0x84, 0x97, 0xba, 0x74, 0xf9, 0xa9);
+/* a02b66c4-aea3-4234-a9f7-fe4c383d4e29 */
+DEFINE_GUID(IID_IDebugPlmClient, 0xa02b66c4, 0xaea3, 0x4234,
+            0xa9, 0xf7, 0xfe, 0x4c, 0x38, 0x3d, 0x4e, 0x29);
+/* 597c980d-e7bd-4309-962c-9d9b69a7372c */
+DEFINE_GUID(IID_IDebugPlmClient2, 0x597c980d, 0xe7bd, 0x4309,
+            0x96, 0x2c, 0x9d, 0x9b, 0x69, 0xa7, 0x37, 0x2c);
+/* cdf48669-901f-4791-b868-7d2cb3a2d7fc */
+DEFINE_GUID(IID_IDebugPlmClient3, 0xcdf48669, 0x901f, 0x4791,
+            0xb8, 0x68, 0x7d, 0x2c, 0xb3, 0xa2, 0xd7, 0xfc);
+/* 7782d8f2-2b85-4059-ab88-28ceddca1c80 */
+DEFINE_GUID(IID_IDebugOutputStream, 0x7782d8f2, 0x2b85, 0x4059,
+            0xab, 0x88, 0x28, 0xce, 0xdd, 0xca, 0x1c, 0x80);
 /* 5182e668-105e-416e-ad92-24ef800424ba */
 DEFINE_GUID(IID_IDebugControl, 0x5182e668, 0x105e, 0x416e,
             0xad, 0x92, 0x24, 0xef, 0x80, 0x04, 0x24, 0xba);
@@ -208,6 +220,14 @@ typedef interface DECLSPEC_UUID("fd28b4c5-c498-4686-a28e-62cad2154eb3")
     IDebugClient6* PDEBUG_CLIENT6;
 typedef interface DECLSPEC_UUID("13586be3-542e-481e-b1f2-8497ba74f9a9")
     IDebugClient7* PDEBUG_CLIENT7;
+typedef interface DECLSPEC_UUID("a02b66c4-aea3-4234-a9f7-fe4c383d4e29")
+    IDebugPlmClient* PIDEBUG_PLMCLIENT;
+typedef interface DECLSPEC_UUID("597c980d-e7bd-4309-962c-9d9b69a7372c")
+    IDebugPlmClient2* PIDEBUG_PLMCLIENT2;
+typedef interface DECLSPEC_UUID("d4a5dbd1-ca02-4d90-856a-2a92bfd0f20f")
+    IDebugPlmClient3* PIDEBUG_PLMCLIENT3;
+typedef interface DECLSPEC_UUID("7782d8f2-2b85-4059-ab88-28ceddca1c80")
+    IDebugOutputStream* PDEBUG_OUTPUT_STREAM;
 typedef interface DECLSPEC_UUID("5182e668-105e-416e-ad92-24ef800424ba")
     IDebugControl* PDEBUG_CONTROL;
 typedef interface DECLSPEC_UUID("d4366723-44df-4bed-8c7e-4c05424f4588")
@@ -589,6 +609,10 @@ typedef struct _DEBUG_CACHED_SYMBOL_INFO
 // Arg64 - Module base.
 // Arg32 - Unused.
 #define DEBUG_SRCFILE_SYMBOL_TOKEN_SOURCE_COMMAND_WIDE 1
+
+// Arg64 - Module base.
+// Arg32 - Unused
+#define DEBUG_SRCFILE_SYMBOL_CHECKSUMINFO 2
 
 //
 // GetSymbolInformation requests.
@@ -6112,6 +6136,216 @@ DECLARE_INTERFACE_(IDebugClient7, IUnknown)
         THIS_
         _In_reads_bytes_(ContextSize) PVOID Context,
         _In_ ULONG ContextSize
+        ) PURE;
+};
+
+#undef INTERFACE
+#define INTERFACE IDebugPlmClient
+DECLARE_INTERFACE_(IDebugPlmClient, IUnknown)
+{
+    // IUnknown.
+    STDMETHOD(QueryInterface)(
+        THIS_
+        _In_ REFIID InterfaceId,
+        _Out_ PVOID* Interface
+        ) PURE;
+    STDMETHOD_(ULONG, AddRef)(
+        THIS
+        ) PURE;
+    STDMETHOD_(ULONG, Release)(
+        THIS
+        ) PURE;
+
+    // IDebugPlmClient
+
+    // Launches suspended Plm Application
+    STDMETHOD(LaunchPlmPackageForDebugWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ ULONG Timeout,
+        _In_ PCWSTR PackageFullName,
+        _In_ PCWSTR AppName,
+        _In_opt_ PCWSTR Arguments,
+        _Out_ PULONG ProcessId,
+        _Out_ PULONG ThreadId
+        ) PURE;
+};
+
+#undef INTERFACE
+#define INTERFACE IDebugPlmClient2
+DECLARE_INTERFACE_(IDebugPlmClient2, IUnknown)
+{
+    // IUnknown.
+    STDMETHOD(QueryInterface)(
+        THIS_
+        _In_ REFIID InterfaceId,
+        _Out_ PVOID* Interface
+        ) PURE;
+    STDMETHOD_(ULONG, AddRef)(
+        THIS
+        ) PURE;
+    STDMETHOD_(ULONG, Release)(
+        THIS
+        ) PURE;
+
+    // IDebugPlmClient
+
+    // Launches suspended Plm Application
+    STDMETHOD(LaunchPlmPackageForDebugWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ ULONG Timeout,
+        _In_ PCWSTR PackageFullName,
+        _In_ PCWSTR AppName,
+        _In_opt_ PCWSTR Arguments,
+        _Out_ PULONG ProcessId,
+        _Out_ PULONG ThreadId
+        ) PURE;
+
+    // IDebugPlmClient2
+
+     // Launches suspended Plm Bg Task
+    STDMETHOD(LaunchPlmBgTaskForDebugWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ ULONG Timeout,
+        _In_ PCWSTR PackageFullName,
+        _In_ PCWSTR BackgroundTaskId,
+        _Out_ PULONG ProcessId,
+        _Out_ PULONG ThreadId
+        ) PURE;
+};
+
+#undef INTERFACE
+#define INTERFACE IDebugPlmClient3
+DECLARE_INTERFACE_(IDebugPlmClient3, IUnknown)
+{
+    // IUnknown.
+    STDMETHOD(QueryInterface)(
+        THIS_
+        _In_ REFIID InterfaceId,
+        _Out_ PVOID* Interface
+        ) PURE;
+    STDMETHOD_(ULONG, AddRef)(
+        THIS
+        ) PURE;
+    STDMETHOD_(ULONG, Release)(
+        THIS
+        ) PURE;
+
+    // IDebugPlmClient
+
+    // Launches suspended Plm Application
+    STDMETHOD(LaunchPlmPackageForDebugWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ ULONG Timeout,
+        _In_ PCWSTR PackageFullName,
+        _In_ PCWSTR AppName,
+        _In_opt_ PCWSTR Arguments,
+        _Out_ PULONG ProcessId,
+        _Out_ PULONG ThreadId
+        ) PURE;
+
+    // IDebugPlmClient2
+
+     // Launches suspended Plm Bg Task
+    STDMETHOD(LaunchPlmBgTaskForDebugWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ ULONG Timeout,
+        _In_ PCWSTR PackageFullName,
+        _In_ PCWSTR BackgroundTaskId,
+        _Out_ PULONG ProcessId,
+        _Out_ PULONG ThreadId
+        ) PURE;
+
+    // IDebugPlmClient3
+
+    STDMETHOD(QueryPlmPackageWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ PCWSTR PackageFullName,
+        _In_ PDEBUG_OUTPUT_STREAM Stream
+        ) PURE;
+
+    STDMETHOD(QueryPlmPackageList)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ PDEBUG_OUTPUT_STREAM Stream
+        ) PURE;
+
+    STDMETHOD(EnablePlmPackageDebugWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ PCWSTR PackageFullName
+        ) PURE;
+
+    STDMETHOD(DisablePlmPackageDebugWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ PCWSTR PackageFullName
+        ) PURE;
+
+    STDMETHOD(SuspendPlmPackageWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ PCWSTR PackageFullName
+        ) PURE;
+
+    STDMETHOD(ResumePlmPackageWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ PCWSTR PackageFullName
+        ) PURE;
+
+    STDMETHOD(TerminatePlmPackageWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ PCWSTR PackageFullName
+        ) PURE;
+
+    // Launches and attaches to Plm Application. Starts debugger session
+    // if it is not already started
+    STDMETHOD(LaunchAndDebugPlmAppWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ PCWSTR PackageFullName,
+        _In_ PCWSTR AppName,
+        _In_ PCWSTR Arguments
+        ) PURE;
+
+    // Launches and attaches to Plm Bg Task. Starts debugger session
+    // if it is not already started
+    STDMETHOD(ActivateAndDebugPlmBgTaskWide)(
+        THIS_
+        _In_ ULONG64 Server,
+        _In_ PCWSTR PackageFullName,
+        _In_ PCWSTR BackgroundTaskId
+        ) PURE;
+};
+
+#undef INTERFACE
+#define INTERFACE IDebugOutputStream
+DECLARE_INTERFACE_(IDebugOutputStream, IUnknown)
+{
+    // IUnknown.
+    STDMETHOD(QueryInterface)(
+        THIS_
+        __in REFIID InterfaceId,
+        __out PVOID* Interface
+        ) PURE;
+    STDMETHOD_(ULONG, AddRef)(
+        THIS
+        ) PURE;
+    STDMETHOD_(ULONG, Release)(
+        THIS
+        ) PURE;
+
+    // IDebugOutputStream.
+    STDMETHOD(Write)(
+        THIS_
+        _In_ PCWSTR psz
         ) PURE;
 };
 
@@ -15518,6 +15752,7 @@ DECLARE_INTERFACE_(IDebugControl7, IUnknown)
 #define DEBUG_DATA_KdPrintBufferSizeAddr                720
 #define DEBUG_DATA_MmBadPagesDetected                   800
 #define DEBUG_DATA_EtwpDebuggerData                     816
+#define DEBUG_DATA_PteBase                              864
 
 #define DEBUG_DATA_PaeEnabled                        100000
 #define DEBUG_DATA_SharedUserData                    100008
@@ -18434,6 +18669,11 @@ typedef struct _DEBUG_MODULE_PARAMETERS
 #define DEBUG_FIND_SOURCE_NO_SRCSRV    0x00000004
 // Restrict FindSourceFileAndToken to token lookup only.
 #define DEBUG_FIND_SOURCE_TOKEN_LOOKUP 0x00000008
+// Indicates that the FileToken/FileTokenSize arguments refer to the checksum
+// information for the source file obtained from a call to the 
+// GetSourceFileInformation method with the 'Which' parameter
+// set to DEBUG_SRCFILE_SYMBOL_CHECKSUMINFO
+#define DEBUG_FIND_SOURCE_WITH_CHECKSUM 0x00000010
 
 // A special value marking an offset that should not
 // be treated as a valid offset.  This is only used
@@ -24436,10 +24676,33 @@ DebugCommandException(ULONG Command, ULONG ArgSize, PVOID Arg)
 // to be able to query session information.
 typedef HRESULT (CALLBACK* PDEBUG_EXTENSION_INITIALIZE)
     (_Out_ PULONG Version, _Out_ PULONG Flags);
-// Exit routine.  Called once just before the extension DLL is
-// unloaded.  As with initialization, a session may or
-// may not be active at the time of the call.
+// Exit routine.  Called once just before attempting to unload
+// the extension DLL.  If DebugExtensionCanUnload is present,
+// it will be called between the return of this callback and
+// an actual unload of the DLL.  If not, the extension DLL 
+// will be unloaded upon return of this method.  As with 
+// initialization, a session may or may not be active at the 
+// time of the call.
 typedef void (CALLBACK* PDEBUG_EXTENSION_UNINITIALIZE)
+    (void);
+// Routine to check if a debug extension can unload after
+// the uninitialization call.  If present, this is called
+// between the uninitialize callback and actual unload of
+// the DLL.  The extension should return either S_OK (if no
+// objects are present which would prevent unload of the
+// extension) or S_FALSE (if there are still outstanding 
+// references to model objects in the debugger extension)
+// 
+// This is the debugger's equivalent of DllCanUnloadNow
+// for extensions which manipulate the debugger's object
+// model.
+typedef HRESULT (CALLBACK* PDEBUG_EXTENSION_CANUNLOAD)
+    (void);
+// Unload routine.  If and only if DebugExtensionCanUnload
+// is presnt in the debugger extension, this will be called
+// after a successful CanUnload call immediately before the 
+// debugger actually unloads the extension DLL.
+typedef void (CALLBACK* PDEBUG_EXTENSION_UNLOAD)
     (void);
 
 // A debuggee has been discovered for the session.  It
@@ -25275,7 +25538,7 @@ public:
 
 #endif // #ifdef __cplusplus
 
-#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */
+#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_PKG_WER) */
 #pragma endregion
 
 #endif // #ifndef __DBGENG_H__

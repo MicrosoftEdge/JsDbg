@@ -1,74 +1,65 @@
 #include <stdio.h>
-#include <engextcpp.hpp>
+#include <windows.h>
+#include <dbgeng.h>
 
-const char ScriptName[] = "jsdbg.script";
-const char CommandPrefix[] = "$$><";
-EXTERN_C IMAGE_DOS_HEADER __ImageBase;
- 
+const char StableCommand[] = "$$><\\\\iefs\\users\\psalas\\jsdbg\\support\\scripts\\jsdbg.script";
+const char UnstableCommand[] = "$$><\\\\iefs\\users\\psalas\\jsdbg\\support\\scripts\\jsdbg-UNSTABLE.script";
 
-class EXT_CLASS : public ExtExtension
+extern "C" HRESULT CALLBACK DebugExtensionInitialize(PULONG Version, PULONG Flags)
 {
-public:
-	EXT_COMMAND_METHOD(launch);
-	EXT_COMMAND_METHOD(jsdbg);
-};
-
-EXT_DECLARE_GLOBALS();
-
-EXT_COMMAND(jsdbg,
-	"Launches the JsDbg server.  Identical to !jsdbg.launch.",
-	nullptr)
-{
-	this->launch();
+    *Version = DEBUG_EXTENSION_VERSION(1, 0);
+    *Flags = 0;
+    return S_OK;
 }
 
-EXT_COMMAND(launch,
-	"Launches the JsDbg server.  Identical to !jsdbg.jsdbg.",
-	nullptr)
+extern "C" HRESULT CALLBACK jsdbg(PDEBUG_CLIENT4 client, PCSTR args)
 {
-	char dllPath[MAX_PATH] = { 0 };
-	GetModuleFileName((HINSTANCE)&__ImageBase, dllPath, _countof(dllPath));
-	size_t dllPathLength = strnlen_s(dllPath, _countof(dllPath));
-	int index = dllPathLength - 1;
-	while (index >= 0 && dllPath[index] != '\\') {
-		--index;
-	}
+    const char* command = StableCommand;
+    if (args != nullptr && strstr(args, "-u") == args) {
+        command = UnstableCommand;
+    }
 
-	if (index < 0) {
-		Out("Unable to find the script to launch.\n");
-		return;
-	}
+    // Get an IDebugControl and execute the command.
+    IDebugControl* control = nullptr;
+    HRESULT hr = S_OK;
+    if ((hr = client->QueryInterface(__uuidof(IDebugControl), (void**)&control)) != S_OK)
+    {
+        return hr;
+    }
 
-	// Advance past the '\' character.
-	++index;
+    control->Execute(DEBUG_OUTCTL_ALL_CLIENTS, command, DEBUG_EXECUTE_NOT_LOGGED);
+    control->Release();
 
-	strcpy_s(dllPath + index, sizeof(dllPath) - index, ScriptName);
+    return S_OK;
+}
 
-	HRESULT Status = S_OK;
-	IDebugClient* client = nullptr;
-	if ((Status = DebugCreate(__uuidof(IDebugClient),
-		(void**)&client)) != S_OK)
-	{
-		Out("DebugCreate failed, 0x%X\n", Status);
-		return;
-	}
+extern "C" HRESULT CALLBACK help(PDEBUG_CLIENT4 client, PCSTR args)
+{
+    // Get an IDebugControl and print the help.
+    IDebugControl* control = nullptr;
+    HRESULT hr = S_OK;
+    if ((hr = client->QueryInterface(__uuidof(IDebugControl), (void**)&control)) != S_OK)
+    {
+        return hr;
+    }
 
-	// Query for some other interfaces that we'll need.
-	IDebugControl* control = nullptr;
-	if ((Status = client->QueryInterface(__uuidof(IDebugControl),
-		(void**)&control)) != S_OK)
-	{
-		Out("QueryInterface failed, 0x%X\n", Status);
-		client->Release();
-		return;
-	}
+    if (args == nullptr || strlen(args) == 0)
+    {
+        control->Output(DEBUG_OUTPUT_NORMAL, "!jsdbg [-unstable]         - Launches JsDbg, debugger extensions in the browser (http://aka.ms/jsdbg)\n");
+        hr = DEBUG_EXTENSION_CONTINUE_SEARCH;
+    }
+    else if (strcmp(args, "jsdbg") == 0)
+    {
+        control->Output(DEBUG_OUTPUT_NORMAL, "JsDbg is a platform for debugger extensions that run in a web browser.  For more information, see http://aka.ms/jsdbg.\n"
+                                             "!jsdbg [-unstable]\n"
+                                             "  -[u]nstable - Launches the latest unstable version of JsDbg.\n");
+        hr = S_OK;
+    }
+    else
+    {
+        hr = DEBUG_EXTENSION_CONTINUE_SEARCH;
+    }
 
-	char commandBuffer[MAX_PATH + _countof(CommandPrefix)];
-	sprintf_s(commandBuffer, sizeof(commandBuffer), "%s%s", CommandPrefix, dllPath);
-
-	control->Execute(DEBUG_OUTCTL_ALL_CLIENTS, commandBuffer, DEBUG_EXECUTE_NOT_LOGGED
-		);
-
-	control->Release();
-	client->Release();
+    control->Release();
+    return hr;
 }

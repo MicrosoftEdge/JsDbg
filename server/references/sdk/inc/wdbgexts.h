@@ -1471,6 +1471,11 @@ typedef struct _KDDEBUGGER_DATA64 {
     USHORT    OffsetKPriQueueThreadListHead;
     USHORT    OffsetKThreadWaitReason;
 
+    // Windows 10 RS1 Addition
+
+    USHORT    Padding;
+    ULONG64   PteBase;
+
 } KDDEBUGGER_DATA64, *PKDDEBUGGER_DATA64;
 
 
@@ -2504,7 +2509,7 @@ GetShortField (
     static ULONG   ReadPhysical;
     FIELD_INFO flds = {(PUCHAR) Name, NULL, 0, DBG_DUMP_FIELD_FULL_NAME, 0, NULL};
     SYM_DUMP_PARAM Sym = {
-       (ULONG)sizeof (SYM_DUMP_PARAM), SavedName, DBG_DUMP_NO_PRINT | ((StoreAddress & 2) ? DBG_DUMP_READ_PHYSICAL : 0),
+       (ULONG)sizeof (SYM_DUMP_PARAM), SavedName, DBG_DUMP_NO_PRINT | ((StoreAddress & 2) ? DBG_DUMP_READ_PHYSICAL : (ULONG)0),
        SavedAddress, NULL, NULL, NULL, 1, &flds
     };
 

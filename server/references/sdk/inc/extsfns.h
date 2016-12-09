@@ -92,13 +92,13 @@ typedef HRESULT
 // GetProcessCommit
 
 typedef struct _PROCESS_COMMIT_USAGE {
-    UCHAR ImageFileName[ 16 ];
+    UCHAR ImageFileName[16];
     ULONG64 ClientId;
     ULONG64 ProcessAddress;
     ULONG64 CommitCharge;
-    ULONG64 NumberOfPrivatePages;
-    ULONG64 NumberOfLockedPages;
+    ULONG64 SharedCommitCharge;
     ULONG64 ReleasedCommitDebt;
+    ULONG64 Reserved;
 } PROCESS_COMMIT_USAGE, *PPROCESS_COMMIT_USAGE;
 
 typedef HRESULT
@@ -593,6 +593,7 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_VERIFIER_FOUND_DEADLOCK, // Possible deadlock found, run !deadlock
     DEBUG_FLR_PG_MISMATCH,  // Patchguard nt!KiMismatchSummary
     DEBUG_FLR_DEVICE_NODE,
+    DEBUG_FLR_POWERREQUEST_ADDRESS,
 
     DEBUG_FLR_IRP_ADDRESS = 0x100,
     DEBUG_FLR_IRP_MAJOR_FN,
@@ -709,6 +710,11 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_BUGCHECK_P4,
     DEBUG_FLR_CRITICAL_PROCESS, // Value is the name of the critical process.
 
+
+    // Clustering (RHS)
+    DEBUG_FLR_RESOURCE_CALL_TYPE = 0x1100,
+    DEBUG_FLR_RESOURCE_CALL_TYPE_STR,
+
     // Notification IDs, values under it doesn't have significance
     DEBUG_FLR_CORRUPT_MODULE_LIST = 0x2000,
     DEBUG_FLR_BAD_STACK,
@@ -769,6 +775,8 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_WRONG_SYMBOLS_SIZE,       // Size of Missing/Wrong Symbol
     DEBUG_FLR_MISSING_IMPORTANT_SYMBOL, // Important module doesn't have private symbols
     DEBUG_FLR_MISSING_CLR_SYMBOL,       // CLR doesn't have private symbols
+
+    DEBUG_FLR_TARGET_TIME,                     // Target event (crash) time in ISO 8601 format
 
     // Known analyzed failure cause or problem that bucketing could be
     // applied against.
@@ -946,6 +954,7 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_DRIVER_XML_MANUFACTURER,
     DEBUG_FLR_DRIVER_XML_VERSION,
     DEBUG_FLR_BUILD_VERSION_STRING,
+    DEBUG_FLR_BUILD_OS_FULL_VERSION_STRING,      // Asimov-compatible version string
     DEBUG_FLR_ORIGINAL_CAB_NAME,
     DEBUG_FLR_FAULTING_SOURCE_CODE,
     DEBUG_FLR_FAULTING_SERVICE_NAME,
@@ -970,9 +979,9 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_BUCKET_ID_FUNC_OFFSET, // when pruning the offset from the bucket ID, it is saved in this string instead
     DEBUG_FLR_XHCI_FIRMWARE_VERSION,
     DEBUG_FLR_FAILURE_ANALYSIS_SOURCE,  // Kernel/User/TruScan/Radar/Xbox/Phone etc..
-    DEBUG_FLR_FAILURE_ID_HASH,  // MD5 Hash of the Failure source + FAILURE_BUCKET_ID
-    DEBUG_FLR_FAILURE_ID_HASH_STRING,  // The string used to compute the FAILURE_ID_HASH
-    DEBUG_FLR_FAILURE_ID_REPORT_LINK,  // Failure ID Report URL - OCA.INI:debugger-params!failurereporturl+FAILURE_ID_HASH
+    DEBUG_FLR_FAILURE_ID_HASH,          // MD5 Hash of DEBUG_FLR_FAILURE_ID_HASH_STRING
+    DEBUG_FLR_FAILURE_ID_HASH_STRING,   // LowerCase(DEBUG_FLR_FAILURE_ANALYSIS_SOURCE+FAILURE_BUCKET_ID)
+    DEBUG_FLR_FAILURE_ID_REPORT_LINK,   // Failure ID Report URL - OCA.INI:debugger-params!failurereporturl+FAILURE_ID_HASH
     DEBUG_FLR_HOLDINFO,                // Live Debug hold info metadata
     DEBUG_FLR_HOLDINFO_ACTIVE_HOLD_COUNT,
     DEBUG_FLR_HOLDINFO_TENET_SOCRE,
@@ -989,7 +998,7 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_FAILURE_PROBLEM_CLASS, 
     DEBUG_FLR_FAILURE_EXCEPTION_CODE,
     DEBUG_FLR_FAILURE_IMAGE_NAME,
-    DEBUG_FLR_FAILURE_FUNCTION,
+    DEBUG_FLR_FAILURE_FUNCTION_NAME,
     DEBUG_FLR_FAILURE_SYMBOL_NAME,
 
     // RETracer support
@@ -1014,7 +1023,10 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_USER_MODE_BUCKET_P6,
     DEBUG_FLR_USER_MODE_BUCKET_P7,
     DEBUG_FLR_USER_MODE_BUCKET_STRING,
-                            
+    DEBUG_FLR_CRITICAL_PROCESS_REPORTGUID,
+
+    DEBUG_FLR_FAILURE_MODULE_NAME,
+
     // User-mode specific stuff
     DEBUG_FLR_USERMODE_DATA = 0x100000,
     DEBUG_FLR_THREAD_ATTRIBUTES, // Thread attributes
@@ -1069,6 +1081,7 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_APPLICATION_VERIFIER_LOADED,
     DEBUG_FLR_DUMP_CLASS,
     DEBUG_FLR_DUMP_QUALIFIER,
+    DEBUG_FLR_KM_MODULE_LIST,
 
     // Analysis structured data
     DEBUG_FLR_STACK = 0x200000,
@@ -1164,6 +1177,12 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_FRAME_SOURCE_FILE_PATH,
     DEBUG_FLR_FRAME_SOURCE_LINE_NUMBER,
 
+    DEBUG_FLR_XML_MODULE_INFO_SYMSRV_IMAGE_STATUS,
+    DEBUG_FLR_XML_MODULE_INFO_SYMSRV_IMAGE_ERROR,
+    DEBUG_FLR_XML_MODULE_INFO_SYMSRV_PDB_STATUS,
+    DEBUG_FLR_XML_MODULE_INFO_SYMSRV_PDB_ERROR,
+    DEBUG_FLR_XML_MODULE_INFO_DRIVER_GROUP,
+
     // cabbed text data / structured data
     DEBUG_FLR_REGISTRY_DATA = 0x300000,
     DEBUG_FLR_WMI_QUERY_DATA = 0x301000,
@@ -1172,14 +1191,14 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_USER_PROBLEM_CLASSES = 0x304000,
 
 #ifdef AUTOBUG_PROCESSING_SUPPORT
-    // tabs to support autobug cab processing
-    DEBUG_FLR_EXCEPTION_CODE_STR_deprecated = 0x101000,    // This is the string representation of the exception code (ie. c0000005)
-    // this is defined earlier as DEBUG_FLR_EXCEPTION_CODE_STR
+    // tags to support autobug cab processing
+    DEBUG_FLR_EXCEPTION_CODE_STR_deprecated = 0x101000, // String representation of the exception code (ie. c0000005)
+                                                        // This is defined earlier as DEBUG_FLR_EXCEPTION_CODE_STR
     DEBUG_FLR_BUCKET_ID_PREFIX_STR,  // This is the prefix part of BUCKET_ID. Everything before the start of the module name
-    DEBUG_FLR_BUCKET_ID_MODULE_STR,  // This is module, without the .dll/exe/tmp, etc. extension
+    DEBUG_FLR_BUCKET_ID_MODULE_STR,  // This is module, without the offset or _ni postfix
     DEBUG_FLR_BUCKET_ID_MODVER_STR,  // This is version of the aforementioned module, 0.0.0.0 if none.
     DEBUG_FLR_BUCKET_ID_FUNCTION_STR,// This is same as Sym from Watson. If missing 'unknown'.
-    DEBUG_FLR_AUTOBUG_BUCKET_ID_OFFSET,      // The offset portion SYMBOL_NAME
+    DEBUG_FLR_BUCKET_ID_OFFSET,      // The offset portion SYMBOL_NAME
     DEBUG_FLR_OSBUILD,               // This is the OS build number.
     DEBUG_FLR_OSSERVICEPACK,         // This is the trailing part of the oca tag BUILD.
     DEBUG_FLR_BUILDLAB_STR,          // Only the build lab part of BUILD_VERSION_STRING (like winmain_idx03)
@@ -1205,7 +1224,42 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_ANALYSIS_SESSION_HOST,  // machine on which analysis is running
     DEBUG_FLR_ANALYSIS_SESSION_ELAPSED_TIME, // processing time for analysis set in milliseconds
     DEBUG_FLR_ANALYSIS_VERSION,       // !analyze version
+    DEBUG_FLR_BUCKET_ID_IMAGE_STR,    // This is image, with the .dll/exe/tmp, etc. extension
+    DEBUG_FLR_BUCKET_ID_PRIVATE,
 #endif
+
+    // Compressed store specific information
+    DEBUG_FLR_SM_COMPRESSION_FORMAT = 0x50000000,
+    DEBUG_FLR_SM_SOURCE_PFN1,
+    DEBUG_FLR_SM_SOURCE_PFN2,
+    DEBUG_FLR_SM_SOURCE_OFFSET,
+    DEBUG_FLR_SM_SOURCE_SIZE,
+    DEBUG_FLR_SM_TARGET_PFN,
+    DEBUG_FLR_SM_BUFFER_HASH,
+    DEBUG_FLR_SM_ONEBIT_SOLUTION_COUNT,
+
+    // Windows Store specific information
+    DEBUG_FLR_STORE_PRODUCT_ID = 0x60000000,
+    DEBUG_FLR_STORE_PRODUCT_DISPLAY_NAME,
+    DEBUG_FLR_STORE_PRODUCT_DESCRIPTION,
+    DEBUG_FLR_STORE_PRODUCT_EXTENDED_NAME,
+    DEBUG_FLR_STORE_PUBLISHER_ID,
+    DEBUG_FLR_STORE_PUBLISHER_NAME,
+    DEBUG_FLR_STORE_PUBLISHER_CERTIFICATE_NAME,
+    DEBUG_FLR_STORE_DEVELOPER_NAME,
+    DEBUG_FLR_STORE_PACKAGE_FAMILY_NAME,
+    DEBUG_FLR_STORE_PACKAGE_IDENTITY_NAME,
+    DEBUG_FLR_STORE_PRIMARY_PARENT_PRODUCT_ID,
+    DEBUG_FLR_STORE_LEGACY_PARENT_PRODUCT_ID,
+    DEBUG_FLR_STORE_LEGACY_WINDOWS_STORE_PRODUCT_ID,
+    DEBUG_FLR_STORE_LEGACY_WINDOWS_PHONE_PRODUCT_ID,
+    DEBUG_FLR_STORE_LEGACY_XBOX_ONE_PRODUCT_ID,
+    DEBUG_FLR_STORE_LEGACY_XBOX_360_PRODUCT_ID,
+    DEBUG_FLR_STORE_XBOX_TITLE_ID,
+    DEBUG_FLR_STORE_PREFERRED_SKU_ID,
+    DEBUG_FLR_STORE_IS_MICROSOFT_PRODUCT,
+    DEBUG_FLR_STORE_URL_APP,
+    DEBUG_FLR_STORE_URL_APPHEALTH,
 
     // Windows Phone specific information
     DEBUG_FLR_PHONE_VERSIONMAJOR=0x70000000,
@@ -1239,6 +1293,7 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_PHONE_UIF_APPID,
     DEBUG_FLR_PHONE_UIF_CATEGORY,
     DEBUG_FLR_PHONE_UIF_ORIGIN,
+
     DEBUG_FLR_SIMULTANEOUS_TELSVC_INSTANCES,
     DEBUG_FLR_SIMULTANEOUS_TELWP_INSTANCES,
     DEBUG_FLR_MINUTES_SINCE_LAST_EVENT,
@@ -1282,18 +1337,32 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
     DEBUG_FLR_TESTRESULTSERVER = 0xF0000000,
     DEBUG_FLR_TESTRESULTGUID,
     DEBUG_FLR_CUSTOMREPORTTAG,
-
+    DEBUG_FLR_DISKSEC_ORGID,
+    DEBUG_FLR_DISKSEC_MODEL,
+    DEBUG_FLR_DISKSEC_MFGID,
+    DEBUG_FLR_DISKSEC_ISSUEDESCSTRING,
+    DEBUG_FLR_DISKSEC_PUBLIC_TOTSIZE,
+    DEBUG_FLR_DISKSEC_PUBLIC_OFFSET,
+    DEBUG_FLR_DISKSEC_PUBLIC_DATASIZE,
+    DEBUG_FLR_DISKSEC_PRIVATE_TOTSIZE,
+    DEBUG_FLR_DISKSEC_PRIVATE_OFFSET,
+    DEBUG_FLR_DISKSEC_PRIVATE_DATASIZE,
+    DEBUG_FLR_DISKSEC_TOTALSIZE, 
+    DEBUG_FLR_DISKSEC_REASON,
+  
     DEBUG_FLR_MASK_ALL = 0xFFFFFFFF
 
 } DEBUG_FLR_PARAM_TYPE;
 
 #ifdef AUTOBUG_PROCESSING_SUPPORT
-    // redifine older tabs to support autobug cab processing
+    // redefine older tags to support autobug cab processing
 #define DEBUG_FLR_AUTOBUG_EXCEPTION_CODE_STR        DEBUG_FLR_EXCEPTION_CODE_STR
 #define DEBUG_FLR_AUTOBUG_BUCKET_ID_PREFIX_STR      DEBUG_FLR_BUCKET_ID_PREFIX_STR
+#define DEBUG_FLR_AUTOBUG_BUCKET_ID_IMAGE_STR       DEBUG_FLR_BUCKET_ID_IMAGE_STR
 #define DEBUG_FLR_AUTOBUG_BUCKET_ID_MODULE_STR      DEBUG_FLR_BUCKET_ID_MODULE_STR
 #define DEBUG_FLR_AUTOBUG_BUCKET_ID_MODVER_STR      DEBUG_FLR_BUCKET_ID_MODVER_STR
 #define DEBUG_FLR_AUTOBUG_BUCKET_ID_FUNCTION_STR    DEBUG_FLR_BUCKET_ID_FUNCTION_STR
+#define DEBUG_FLR_AUTOBUG_BUCKET_ID_OFFSET          DEBUG_FLR_BUCKET_ID_OFFSET
 #define DEBUG_FLR_AUTOBUG_OSBUILD                   DEBUG_FLR_OSBUILD
 #define DEBUG_FLR_AUTOBUG_OSSERVICEPACK             DEBUG_FLR_OSSERVICEPACK
 #define DEBUG_FLR_AUTOBUG_BUILDLAB_STR              DEBUG_FLR_BUILDLAB_STR
@@ -1301,6 +1370,7 @@ typedef enum _DEBUG_FLR_PARAM_TYPE {
 #define DEBUG_FLR_AUTOBUG_BUILDOSVER_STR            DEBUG_FLR_BUILDOSVER_STR
 #define DEBUG_FLR_AUTOBUG_BUCKET_ID_TIMEDATESTAMP   DEBUG_FLR_BUCKET_ID_TIMEDATESTAMP
 #define DEBUG_FLR_AUTOBUG_BUCKET_ID_CHECKSUM        DEBUG_FLR_BUCKET_ID_CHECKSUM
+#define DEBUG_FLR_AUTOBUG_BUCKET_ID_PRIVATE         DEBUG_FLR_BUCKET_ID_PRIVATE
 #define DEBUG_FLR_AUTOBUG_BUILD_FLAVOR_STR          DEBUG_FLR_BUILD_FLAVOR_STR
 #define DEBUG_FLR_AUTOBUG_BUCKET_ID_FLAVOR_STR      DEBUG_FLR_BUCKET_ID_FLAVOR_STR
 #define DEBUG_FLR_AUTOBUG_OS_SKU                    DEBUG_FLR_OS_SKU
@@ -1789,6 +1859,10 @@ DECLARE_INTERFACE_(IDebugFailureAnalysis2, IUnknown)
 #define FAILURE_ANALYSIS_CREATE_INSTANCE        0x100000
 // Evaluate failure for holding a live debug session
 #define FAILURE_ANALYSIS_LIVE_DEBUG_HOLD_CHECK  0x200000
+// produces XML file output 
+#define FAILURE_ANALYSIS_XML_FILE_OUTPUT        0x400000
+// verify Analysis XML against XSD 
+#define FAILURE_ANALYSIS_XSD_VERIFY             0x800000
 
 // GetFailureAnalysis Extension function, deprecated
 typedef HRESULT

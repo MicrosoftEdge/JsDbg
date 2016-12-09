@@ -24,7 +24,4 @@
       <Filter>Source Files</Filter>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="install.cmd" />
-  </ItemGroup>
 </Project>
