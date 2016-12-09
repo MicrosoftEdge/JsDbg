@@ -147,17 +147,17 @@ namespace JsDbg.Core {
                         }
 
                         continue;
-                    } else if (ex.ErrorCode == 183 && this.port < EndPortNumber) {
+                    } else if ((ex.ErrorCode == 32 || ex.ErrorCode == 183) && this.port < EndPortNumber) {
                         // Registration conflicts with existing registration.  Try the next port.
                         ++this.port;
                         continue;
                     } else {
-                        Console.Out.WriteLine(ex.Message);
-                        throw ex;
+                        Console.Out.WriteLine("HttpListenerException with error code {0}: {1}", ex.ErrorCode, ex.Message);
+                        throw;
                     }
                 } catch (Exception ex) {
-                    Console.Out.WriteLine(ex.Message);
-                    throw ex;
+                    Console.Out.WriteLine("HttpListener.Start() threw an exception: {0}", ex.Message);
+                    throw;
                 }
 
                 break;
@@ -205,11 +205,11 @@ namespace JsDbg.Core {
                             continue;
                         }
                     } catch (HttpListenerException listenerException) {
-                        Console.Out.WriteLine("HttpListenerException: {0}", listenerException.Message);
+                        Console.Out.WriteLine("HttpListenerException during request handling: {0}", listenerException.Message);
                     }
                 }
             } catch (Exception ex) {
-                Console.Out.WriteLine(ex.Message);
+                Console.Out.WriteLine("Unhandled exception during request handling: {0}", ex.Message);
             }
         }
 
