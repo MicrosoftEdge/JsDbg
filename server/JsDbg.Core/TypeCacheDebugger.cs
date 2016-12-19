@@ -359,12 +359,14 @@ namespace JsDbg.Core {
                     while ((Dia2Lib.SymTagEnum)symbol.symTag == Dia2Lib.SymTagEnum.SymTagBlock) {
                         symbol = symbol.lexicalParent;
                     }
-                    ulong displacement = (ulong)(rva - symbol.relativeVirtualAddress);
 
-                    string name;
-                    symbol.get_undecoratedNameEx(0x1000, out name);
-
-                    return new SSymbolNameResultAndDisplacement() { Symbol = new SSymbolNameResult() { Module = module.Name, Name = name }, Displacement = displacement };
+                    return new SSymbolNameResultAndDisplacement() {
+                        Symbol = new SSymbolNameResult() {
+                            Module = module.Name,
+                            Name = symbol.name
+                        },
+                        Displacement = (ulong)(rva - symbol.relativeVirtualAddress)
+                    };
                 } else {
                     return await this.debuggerEngine.LookupSymbolName(pointer);
                 }
