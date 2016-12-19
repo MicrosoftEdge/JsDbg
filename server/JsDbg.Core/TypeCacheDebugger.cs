@@ -360,10 +360,19 @@ namespace JsDbg.Core {
                         symbol = symbol.lexicalParent;
                     }
 
+                    SymTagEnum symTag = (SymTagEnum)symbol.symTag;
+                    string name;
+                    if (symTag == SymTagEnum.SymTagPublicSymbol || symTag == SymTagEnum.SymTagThunk) {
+                        // Public symbols have decorated names that need to be undecorated (see dbghelp!diaFillSymbolInfo).
+                        symbol.get_undecoratedNameEx(0x1000, out name);
+                    } else {
+                        name = symbol.name;
+                    }
+
                     return new SSymbolNameResultAndDisplacement() {
                         Symbol = new SSymbolNameResult() {
                             Module = module.Name,
-                            Name = symbol.name
+                            Name = name
                         },
                         Displacement = (ulong)(rva - symbol.relativeVirtualAddress)
                     };
