@@ -27,7 +27,7 @@ namespace JsDbg.Dia {
             try {
                 string dllName = Path.Combine(
                     Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location),
-                    "msdia110.dll"
+                    "msdia140.dll"
                 );
                 uint hr = DiaSessionLoader.LoadDataSource(dllName, out result);
             } catch { }
