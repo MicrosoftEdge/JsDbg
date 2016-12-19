@@ -61,7 +61,7 @@ namespace JsDbg.WinDbg {
                     SynchronizationContext.SetSynchronizationContext(syncContext);
 
                     // Run the debugger.  If the debugger ends, kill the web server.
-                    runner.Run().ContinueWith((Task result) => { 
+                    runner.Run().ContinueWith((Task result) => {
                         webServer.Abort();
                     });
 
@@ -82,6 +82,8 @@ namespace JsDbg.WinDbg {
 
                     // Process requests until the web server is taken down.
                     syncContext.RunOnCurrentThread();
+                } catch (Exception ex) {
+                    Console.WriteLine("Shutting down due to exception: {0}", ex.Message);
                 } finally {
                     SynchronizationContext.SetSynchronizationContext(previousContext);
                 }
