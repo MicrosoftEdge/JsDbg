@@ -14,7 +14,7 @@
   </Dependencies>
   <Assets>
     <Asset Type="Microsoft.VisualStudio.VsPackage" d:Source="Project" d:ProjectName="%CurrentProject%" Path="|%CurrentProject%;PkgdefProjectOutputGroup|" />
-    <Asset Type="JsDbg.Resource" d:Source="File" Path="msdia110.dll" />
+    <Asset Type="JsDbg.Resource" d:Source="File" Path="msdia140.dll" />
     <Asset Type="JsDbg.ExtensionPackage" d:Source="File" Path="extensions.zip" />
     <Asset Type="JsDbg.Configuration" d:Source="File" Path="configuration.json" />
   </Assets>
