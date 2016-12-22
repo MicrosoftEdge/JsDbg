@@ -348,9 +348,75 @@ var FieldSelector = (function() {
         }
     }
 
+    // FieldTreeReader augments a DbgObjectTree.DbgObjectTreeRenderer with fields selected from the field control.
+    function FieldTreeReader(treeRenderer, fieldSupportController) {
+        this.treeRenderer = treeRenderer;
+        this.fieldSupportController = fieldSupportController;
+    }
+
+    FieldTreeReader.prototype.createRoot = function(object) {
+        var that = this;
+        return this.treeRenderer.createRoot(object)
+        .then(function (root) {
+            return that._notifyControllerOfDbgObjectTypes([object])
+            .then(function() {
+                return root;
+            });
+        })
+    }
+
+    FieldTreeReader.prototype.getObject = function(node) {
+        return this.treeRenderer.getObject(node);
+    }
+
+    FieldTreeReader.prototype.getChildren = function(node) {
+        var that = this;
+        return this.treeRenderer.getChildren(node)
+        .then(function (children) {
+            return that._notifyControllerOfDbgObjectTypes(
+                children.map(function (child) { return that.getObject(child); })
+            )
+            .then(function() {
+                return children;
+            });
+        })
+    }
+
+    FieldTreeReader.prototype.createRepresentation = function(node) {
+        var that = this;
+        return this.treeRenderer.createRepresentation(node)
+        .then(function (container) {
+            var object = that.getObject(node);
+            if (object instanceof DbgObject) {
+                return that.fieldSupportController.renderFields(object, container);
+            } else {
+                return container;
+            }
+        })
+    }
+
+    FieldTreeReader.prototype._notifyControllerOfDbgObjectTypes = function(objects) {
+        var that = this;
+        return Promise.join(
+            objects.map(function (object) {
+                if (object instanceof DbgObject) {
+                    return that.fieldSupportController.includeDbgObjectTypes(object);
+                } else {
+                    return true;
+                }
+            })
+        );
+    }
+
+    FieldTreeReader.prototype.getTreeRenderer = function() {
+        return this.treeRenderer;
+    }
+
     return {
         Create: function(updateUI, container) {
             return new FieldSelectorController(updateUI, container);
-        }
+        },
+
+        TreeReader: FieldTreeReader
     };
 })();

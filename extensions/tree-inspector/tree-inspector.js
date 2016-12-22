@@ -13,70 +13,6 @@ var TreeInspector = (function() {
     var fieldSupportController = null;
     var treeReader = null;
 
-    // FieldTreeReader augments a DbgObjectTree.DbgObjectTreeRenderer with fields selected from the field control.
-    function FieldTreeReader(treeInspectorTreeReader, fieldSupportController) {
-        this.treeInspectorTreeReader = treeInspectorTreeReader;
-        this.fieldSupportController = fieldSupportController;
-    }
-
-    FieldTreeReader.prototype.createRoot = function(object) {
-        var that = this;
-        return this.treeInspectorTreeReader.createRoot(object)
-        .then(function (root) {
-            return that._notifyControllerOfDbgObjectTypes([object])
-            .then(function() {
-                return root;
-            });
-        })
-    }
-
-    FieldTreeReader.prototype.getObject = function(node) {
-        return this.treeInspectorTreeReader.getObject(node);
-    }
-
-    FieldTreeReader.prototype.getChildren = function(node) {
-        var that = this;
-        return this.treeInspectorTreeReader.getChildren(node)
-        .then(function (children) {
-            return that._notifyControllerOfDbgObjectTypes(
-                children.map(function (child) { return that.getObject(child); })
-            )
-            .then(function() {
-                return children;
-            });
-        })
-    }
-
-    FieldTreeReader.prototype.createRepresentation = function(node) {
-        var that = this;
-        return this.treeInspectorTreeReader.createRepresentation(node)
-        .then(function (container) {
-            var object = that.getObject(node);
-            if (object instanceof DbgObject) {
-                return that.fieldSupportController.renderFields(object, container);
-            } else {
-                return container;
-            }
-        })
-    }
-
-    FieldTreeReader.prototype._notifyControllerOfDbgObjectTypes = function(objects) {
-        var that = this;
-        return Promise.join(
-            objects.map(function (object) {
-                if (object instanceof DbgObject) {
-                    return that.fieldSupportController.includeDbgObjectTypes(object);
-                } else {
-                    return true;
-                }
-            })
-        );
-    }
-
-    FieldTreeReader.prototype.getTreeRenderer = function() {
-        return this.treeInspectorTreeReader;
-    }
-
     return {
         GetActions: function (extension, description, rootObjectPromise, emphasisObjectPromise) {
             return Promise.join([rootObjectPromise, emphasisObjectPromise])
@@ -105,14 +41,14 @@ var TreeInspector = (function() {
             })
         },
 
-        Initialize: function(getRoots, treeDefinition, treeRenderer, interpretAddress, defaultTypes, container) {
+        Initialize: function(getRoots, treeDefinition, dbgObjectRenderer, interpretAddress, defaultTypes, container) {
             function createAndRender(emphasisNodePtr) {
                 if (lastRenderedPointer != pointerField.value) {
                     // Don't re-render if we've already rendered.
                     pointerField.value = pointerField.value.trim();
                     Promise.as(interpretAddress(new PointerMath.Pointer(pointerField.value, 16)))
                     .then(function(rootObject) { 
-                        treeReader = new FieldTreeReader(new DbgObjectTree.DbgObjectTreeRenderer(treeDefinition, treeRenderer), fieldSupportController);
+                        treeReader = new FieldSelector.TreeReader(new DbgObjectTree.DbgObjectTreeRenderer(treeDefinition, dbgObjectRenderer), fieldSupportController);
                         return treeReader.createRoot(rootObject)
                     })
                     .then(function (rootNode) {
@@ -211,7 +147,7 @@ var TreeInspector = (function() {
                     currentRoots = roots;
 
                     return Promise.map(roots, function (root) {
-                        return treeRenderer.createRepresentation(root, null, [], false);
+                        return dbgObjectRenderer.createRepresentation(root, null, [], false);
                     })
                     .then(function (rootRepresentations) {
                         rootRepresentations.forEach(function (root, index) {
