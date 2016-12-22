@@ -1,0 +1,6 @@
+{
+    "name": "jsdbg-polyfills",
+    "headless": true,
+    "description": "A collection of polyfills (primarily for IE 11).",
+    "includes": ["polyfills.js"]
+}

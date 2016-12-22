@@ -3,6 +3,6 @@
     "author": "Peter Salas",
     "headless": true,
     "description": "Core JsDbg functionality used by all extensions.",
-    "dependencies": ["jsdbg/styles", "jsdbg/core", "jsdbg/toolbar", "jsdbg/about"],
+    "dependencies": ["jsdbg/polyfills", "jsdbg/styles", "jsdbg/core", "jsdbg/toolbar", "jsdbg/about"],
     "augments": ["about"]
 }
