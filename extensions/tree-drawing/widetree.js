@@ -258,7 +258,10 @@ var WideTree = (function() {
 
         // create the element for the node itself.
         var element = this.representation;
-        element.className = "node" + (this.isExpanded ? "" : " collapsed");
+        element.classList.add("node");
+        if (!this.isExpanded) {
+            element.classList.add("collapsed");
+        }
         element.style.left = viewport.x + "px";
         element.style.top = viewport.y + "px";
         if (element.parentNode != container) {
