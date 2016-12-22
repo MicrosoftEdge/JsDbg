@@ -1,11 +1,15 @@
 "use strict";
 
 var TreeInspector = (function() {
+    function id(str) {
+        return Loader.GetCurrentExtension() + "." + str;
+    }
 
     function TreeInspectorUIController(getRoots, treeDefinition, dbgObjectRenderer, interpretAddress) {
+        this.expandTreeAutomatically = (window.sessionStorage.getItem(id("FullyExpand")) !== "false");
+
         this.rootsElement = null;
         this.pointerField = null;
-        this.fullyExpandCheckbox = null;
         this.treeContainer = null;
         this.fieldSupportContainer = null;
         this.treeRoot = null;
@@ -22,6 +26,11 @@ var TreeInspector = (function() {
         this.dbgObjectRenderer = dbgObjectRenderer;
         this.debuggerHasRunSinceLastRefresh = false;
         this.currentOperation = Promise.as(true);
+    }
+
+    TreeInspectorUIController.prototype.setExpandTreeAutomatically = function (value) {
+        this.expandTreeAutomatically = value;
+        window.sessionStorage.setItem(id("FullyExpand"), value);
     }
 
     TreeInspectorUIController.prototype.createAndRender = function(emphasisNodePtr) {
@@ -54,7 +63,7 @@ var TreeInspector = (function() {
         this.lastRenderedPointer = this.pointerField.value;
 
         var that = this;
-        this.renderTreeRootPromise = this.treeAlgorithm.BuildTree(this.treeContainer, this.treeReader, this.treeRoot, this.fullyExpandCheckbox.checked)
+        this.renderTreeRootPromise = this.treeAlgorithm.BuildTree(this.treeContainer, this.treeReader, this.treeRoot, this.expandTreeAutomatically)
         .then(function(renderedTree) {
             if (emphasisNodePtr != null) {
                 emphasizeNode(emphasisNodePtr, that.treeRoot, that.treeReader);
@@ -182,7 +191,7 @@ var TreeInspector = (function() {
     }
 
     TreeInspectorUIController.prototype.saveHashAndQueueCreateAndRender = function() {
-        window.location.hash = "r=" + that.pointerField.value;
+        window.location.hash = "r=" + this.pointerField.value;
         // Changing the hash will trigger a create and render on the hash change.
     }
 
@@ -250,10 +259,6 @@ var TreeInspector = (function() {
             return document.createTextNode(" ");
         }
 
-        function id(str) {
-            return Loader.GetCurrentExtension() + "." + str;
-        }
-
         // Build up the UI.
         container.classList.add("tree-inspector-root");
 
@@ -287,7 +292,7 @@ var TreeInspector = (function() {
         var loadSaveControl = createElement("nobr");
         toolbar.appendChild(loadSaveControl);
         loadSaveControl.appendChild(createElement("button", "Load", null, {
-            "click": function() { saveHashAndQueueCreateAndRender(); }
+            "click": function() { that.saveHashAndQueueCreateAndRender(); }
         }));
         loadSaveControl.appendChild(ws());
         loadSaveControl.appendChild(createElement("button", "Save", null, {
@@ -350,15 +355,16 @@ var TreeInspector = (function() {
         var expandTreeControl = createElement("nobr");
         toolbar.appendChild(expandTreeControl);
 
-        this.fullyExpandCheckbox = createElement("input", null, {
+        expandTreeControl.appendChild(createElement("input", null, {
             name: "fullyExpand",
             id: id("FullyExpand"),
             type: "checkbox",
-            checked: window.sessionStorage.getItem(id("FullyExpand")) === "false" ? undefined : "checked"
+            checked: this.expandTreeAutomatically ? "checked" : undefined
         }, {
-            "change": createCheckboxChangeHandler(id("FullyExpand"))
-        })
-        expandTreeControl.appendChild(this.fullyExpandCheckbox);
+            "change": function(e) {
+                that.setExpandTreeAutomatically(e.target.checked);
+            }
+        }));
         expandTreeControl.appendChild(createElement("label", "Expand Tree Automatically", {
             "for": id("FullyExpand")
         }));
