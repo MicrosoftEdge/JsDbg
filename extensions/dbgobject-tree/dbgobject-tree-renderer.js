@@ -9,25 +9,37 @@
     }
 
     TreeRenderer.prototype._wrap = function (parent, node) {
-        var isDuplicate = false;
         var object = this.previousReader.getObject(node);
-        if (object instanceof DbgObject && parent != null) {
-            // Check if it's a duplicate.
-            var ptr = object.ptr();
-            isDuplicate = parent.allDbgObjects.has(ptr);
-            if (!isDuplicate) {
-                parent.allDbgObjects.add(ptr);
-            }
-        }
 
-        return {
+        var result = {
             parentNode: parent,
             previousNode: node,
             errors: [],
-            isDuplicate: isDuplicate,
             childrenPromise: undefined,
-            allDbgObjects: parent == null ? new Set() : parent.allDbgObjects
+            lastRepresentation: null,
+            isDuplicate: false,
+            root: null
         };
+
+        if (parent == null) {
+            result.root = result;
+            result.dbgObjectTreeMap = new Map();
+            result.lastEmphasis = null;
+        } else {
+            result.root = parent.root;
+        }
+
+        if (object instanceof DbgObject) {
+            // Check if it's a duplicate.
+            var ptr = object.ptr();
+            if (!result.root.dbgObjectTreeMap.has(ptr)) {
+                result.root.dbgObjectTreeMap.set(ptr, result);
+            } else {
+                result.isDuplicate = true;
+            }
+        }
+
+        return result;
     }
 
     TreeRenderer.prototype.createRoot = function(object) {
@@ -70,10 +82,20 @@
             /*includeInspector*/!node.isDuplicate
         )
         .then(function (container) {
+            node.lastRepresentation = container;
             if (node.isDuplicate) {
                 container.style.color = "#aaa";
                 container.insertBefore(document.createTextNode("(DUPLICATE) "), container.firstChild);
+                container.style.cursor = "pointer";
+                container.addEventListener("click", function() {
+                    that.emphasizeDbgObject(object.ptr(), node.root);
+                })
             }
+
+            if (node.root.lastEmphasis != null && node.root.lastEmphasis == object.ptr()) {
+                container.classList.add("emphasized-node");
+            }
+
             if (object instanceof DbgObject) {
                 if (!node.isDuplicate) {
                     container.setAttribute("data-object-address", object.pointerValue().toString(16));
@@ -83,6 +105,39 @@
                 return container;
             }
         })
+    }
+
+    function isVisible(node) {
+        var rect = node.getBoundingClientRect();
+        var x = rect.left + 3;
+        var y = rect.top + 3;
+        var hit = document.elementFromPoint(x, y);
+        return (node == hit || node.contains(hit));
+    }
+
+    TreeRenderer.prototype.emphasizeDbgObject = function(dbgObjectPtr, root) {
+        if (!root.dbgObjectTreeMap.has(dbgObjectPtr)) {
+            // DbgObject isn't in this tree.
+            return false;
+        }
+        
+        var element = root.dbgObjectTreeMap.get(dbgObjectPtr).lastRepresentation;
+        if (element == null) {
+            // It hasn't been rendered yet.
+            return false;
+        }
+
+        if (root.lastEmphasis != null) {
+            root.dbgObjectTreeMap.get(root.lastEmphasis).lastRepresentation.classList.remove("emphasized-node");
+        }
+        root.lastEmphasis = dbgObjectPtr;
+        element.classList.add("emphasized-node");
+
+        if (!isVisible(element)) {
+            element.scrollIntoView();
+        }
+
+        return true;
     }
 
     DbgObjectTree.DbgObjectTreeRenderer = TreeRenderer;

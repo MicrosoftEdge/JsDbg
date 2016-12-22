@@ -23,7 +23,7 @@ var TreeInspector = (function() {
         var that = this;
         return this.treeInspectorTreeReader.createRoot(object)
         .then(function (root) {
-            return that.notifyControllerOfDbgObjectTypes([object])
+            return that._notifyControllerOfDbgObjectTypes([object])
             .then(function() {
                 return root;
             });
@@ -38,26 +38,13 @@ var TreeInspector = (function() {
         var that = this;
         return this.treeInspectorTreeReader.getChildren(node)
         .then(function (children) {
-            return that.notifyControllerOfDbgObjectTypes(
+            return that._notifyControllerOfDbgObjectTypes(
                 children.map(function (child) { return that.getObject(child); })
             )
             .then(function() {
                 return children;
             });
         })
-    }
-
-    FieldTreeReader.prototype.notifyControllerOfDbgObjectTypes = function(objects) {
-        var that = this;
-        return Promise.join(
-            objects.map(function (object) {
-                if (object instanceof DbgObject) {
-                    return that.fieldSupportController.includeDbgObjectTypes(object);
-                } else {
-                    return true;
-                }
-            })
-        );
     }
 
     FieldTreeReader.prototype.createRepresentation = function(node) {
@@ -71,6 +58,23 @@ var TreeInspector = (function() {
                 return container;
             }
         })
+    }
+
+    FieldTreeReader.prototype._notifyControllerOfDbgObjectTypes = function(objects) {
+        var that = this;
+        return Promise.join(
+            objects.map(function (object) {
+                if (object instanceof DbgObject) {
+                    return that.fieldSupportController.includeDbgObjectTypes(object);
+                } else {
+                    return true;
+                }
+            })
+        );
+    }
+
+    FieldTreeReader.prototype.getTreeRenderer = function() {
+        return this.treeInspectorTreeReader;
     }
 
     return {
@@ -115,7 +119,9 @@ var TreeInspector = (function() {
                         render(rootNode, emphasisNodePtr); 
                     }, showError);
                 } else {
-                    emphasizeNode(emphasisNodePtr);
+                    if (emphasisNodePtr != null) {
+                        emphasizeNode(emphasisNodePtr, treeRoot, treeReader);
+                    }
                 }
             }
 
@@ -128,7 +134,9 @@ var TreeInspector = (function() {
 
                 renderTreeRootPromise = treeAlgorithm.BuildTree(treeContainer, treeReader, rootNode, fullyExpand)
                 .then(function(renderedTree) {
-                    emphasizeNode(emphasisNodePtr);
+                    if (emphasisNodePtr != null) {
+                        emphasizeNode(emphasisNodePtr, rootNode, treeReader);
+                    }
                     return renderedTree;
                 })
                 .then(null, showError);
@@ -136,27 +144,11 @@ var TreeInspector = (function() {
                 return renderTreeRootPromise;
             }
 
-            function emphasizeNode(emphasisNodePtr) {
-                // Deemphasize old node.
-                var oldEmphasizedNode = treeContainer.querySelector(".emphasize.node");
-                if (oldEmphasizedNode != null) {
-                    oldEmphasizedNode.classList.remove("emphasize"); 
-                };
-
-                // Emphasize new node.
-                if (emphasisNodePtr != null) {
-                    var pointerValue = new PointerMath.Pointer(emphasisNodePtr).value();
-                    var emphasisNode = treeContainer.querySelector("[data-object-address=\"" + pointerValue.toString(16) + "\"]");
-                    if (emphasisNode != null) {
-                        if (!isVisible(emphasisNode)) {
-                            emphasisNode.scrollIntoView();
-                        }
-                        emphasisNode.classList.add("emphasize");
-                    } else {
-                        if (confirm("The object you selected was not found in the tree.  Use it as the root instead?")) {
-                            pointerField.value = emphasisNodePtr;
-                            saveHashAndQueueCreateAndRender();
-                        }
+            function emphasizeNode(emphasisNodePtr, rootNode, fieldRenderer) {
+                if (!fieldRenderer.getTreeRenderer().emphasizeDbgObject(emphasisNodePtr, rootNode)) {
+                    if (confirm("The object you selected was not found in the tree.  Use it as the root instead?")) {
+                        pointerField.value = emphasisNodePtr;
+                        saveHashAndQueueCreateAndRender();
                     }
                 }
             }
