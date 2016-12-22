@@ -69,7 +69,7 @@ var FieldSelector = (function() {
         return this.renderer(dbgObject, container);
     }
 
-    function FieldSelectorController(updateTreeUI, container) {
+    function FieldSelectorController(container, updateTreeUI) {
         this.knownTypes = [];
         this.activeFields = [];
         this.typeListContainer = document.createElement("div");
@@ -413,8 +413,8 @@ var FieldSelector = (function() {
     }
 
     return {
-        Create: function(updateUI, container) {
-            return new FieldSelectorController(updateUI, container);
+        Create: function(container, updateUI) {
+            return new FieldSelectorController(container, updateUI);
         },
 
         TreeReader: FieldTreeReader
