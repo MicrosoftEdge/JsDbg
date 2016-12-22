@@ -26,8 +26,8 @@ Revision History:
 
 #include <winapifamily.h>
 
-#pragma region Desktop Family
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
+#pragma region Desktop Family or WER Package
+#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_PKG_WER)
 
 
 // As a general principal always call the 64 bit version
@@ -1100,6 +1100,16 @@ enum SymTagEnum
     SymTagManagedType,
     SymTagDimension,
     SymTagCallSite,
+    SymTagInlineSite,
+    SymTagBaseInterface,
+    SymTagVectorType,
+    SymTagMatrixType,
+    SymTagHLSLType,
+    SymTagCaller,
+    SymTagCallee,
+    SymTagExport,
+    SymTagHeapAllocationSite,
+    SymTagCoffGroup,
     SymTagMax
 };
 
@@ -2188,6 +2198,30 @@ SymGetSourceFileToken(
     _In_ PCSTR FileSpec,
     _Outptr_ PVOID *Token,
     _Out_ DWORD *Size
+    );
+
+BOOL
+IMAGEAPI
+SymGetSourceFileChecksumW(
+    _In_ HANDLE hProcess,
+    _In_ ULONG64 Base,
+    _In_ PCWSTR FileSpec,
+    _Out_ DWORD *pCheckSumType,
+    _Out_writes_(checksumSize) BYTE *pChecksum,
+    _In_ DWORD checksumSize,
+    _Out_ DWORD *pActualBytesWritten
+    );
+
+BOOL
+IMAGEAPI
+SymGetSourceFileChecksum(
+    _In_ HANDLE hProcess,
+    _In_ ULONG64 Base,
+    _In_ PCSTR FileSpec,
+    _Out_ DWORD *pCheckSumType,
+    _Out_writes_(checksumSize) BYTE *pChecksum,
+    _In_ DWORD checksumSize,
+    _Out_ DWORD *pActualBytesWritten
     );
 
 BOOL
@@ -3344,6 +3378,7 @@ typedef DWORD (WINAPI *PSYMBOLSERVERVERSION)();
 typedef BOOL (CALLBACK WINAPI *PSYMBOLSERVERMESSAGEPROC)(UINT_PTR action, ULONG64 data, ULONG64 context);
 typedef BOOL (WINAPI *PSYMBOLSERVERWEXPROC)(PCWSTR, PCWSTR, PVOID, DWORD, DWORD, PWSTR, PSYMSRV_EXTENDED_OUTPUT_DATA);
 typedef BOOL (WINAPI *PSYMBOLSERVERPINGPROCWEX)(PCWSTR);
+typedef BOOL (WINAPI *PSYMBOLSERVERGETOPTIONDATAPROC)(UINT_PTR, PULONG64);
 
 #define SYMSRV_VERSION              2
 
@@ -3377,13 +3412,19 @@ typedef BOOL (WINAPI *PSYMBOLSERVERPINGPROCWEX)(PCWSTR);
 #define SSRVOPT_DISABLE_PING_HOST   0x04000000
 #define SSRVOPT_DISABLE_TIMEOUT     0x08000000
 #define SSRVOPT_ENABLE_COMM_MSG     0x10000000
+#define SSRVOPT_URI_FILTER          0x20000000
+#define SSRVOPT_URI_TIERS           0x40000000
 
-#define SSRVOPT_MAX                 0x10000000
+#define SSRVOPT_MAX                 0x40000000
 
 #define SSRVOPT_RESET               ((ULONG_PTR)-1)
 
+#define NUM_SSRVOPTS                31
 
-#define NUM_SSRVOPTS                30
+#define SSRVURI_NORMAL              0x01
+#define SSRVURI_COMPRESSED          0x02
+#define SSRVURI_FILEPTR             0x04
+#define SSRVURI_ALL                 0xFF
 
 #define SSRVACTION_TRACE        1
 #define SSRVACTION_QUERYCANCEL  2
@@ -3837,7 +3878,7 @@ RangeMapWrite(
 #include <minidumpapiset.h>
 
 
-#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */
+#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP | WINAPI_PARTITION_PKG_WER) */
 #pragma endregion
 
 #endif // _DBGHELP_

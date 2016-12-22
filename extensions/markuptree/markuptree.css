@@ -1,0 +1,7 @@
+.dom-text-pre {
+    position:absolute;
+    white-space: pre;
+    z-index:10;
+    background-color:white;
+    border:thin solid #eee;
+}

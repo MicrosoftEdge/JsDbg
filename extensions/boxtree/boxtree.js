@@ -156,14 +156,21 @@ Loader.OnLoad(function() {
         return collectChildrenInPositionedItems(object.f("positionedItems"));
     });
 
+    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::InlineLayoutDisplayClient", function (object) {
+        return collectChildrenInPositionedItems(object.f("positionedItems"));
+    });
+
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::FlowBox", function (object) {
         // Collect static flow.
         return collectChildrenInFlow(object.f("flow"));
     });
 
+    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::InlineBox", function (object) {
+        return collectChildrenInFlow(object.f("firstItem"));
+    })
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::FlowBox", function (object) {
         // Collect floaters.
-        return object.f("geometry").array("Items")
+        return object.f("geometry").f("m_pT", "").array("Items")
             .f("floaterBoxReference.m_pT")
             .currentPatch()
             .f("data.BoxReference.m_pT")
@@ -344,8 +351,8 @@ Loader.OnLoad(function() {
         return flowBox.f("flow").array("Items");
     }));
 
-    DbgObject.AddArrayField(MSHTML.Module, "Layout::LineBox", "Runs", "Layout::LineBox::SRenderSafeTextBlockRunAndCp", UserEditableFunctions.Create(function (lineBox) {
-        return lineBox.vcast().f("Runs").array(lineBox.f("numberOfRuns"));
+    DbgObject.AddArrayField(MSHTML.Module, "Layout::LineBox", "Runs", "Layout::LineBox::SRunBoxAndCp", UserEditableFunctions.Create(function (lineBox) {
+        return lineBox.vcast().f("runArray").array("Items");
     }));
 
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LineBox", "Text", false, UserEditableFunctions.Create(function (lineBox) {
@@ -370,7 +377,7 @@ Loader.OnLoad(function() {
                 // Get some fields from the text run...
                 return Promise
                 .join([
-                    textRun.f("_cchOffset").val(),
+                    textRun.f("_cchOffsetInTextData", "_cchOffset").val(),
                     textRun.f("_cchRunLength").val(),
                     textRun.f("_fHasTextTransformOrPassword").val()
                 ])
@@ -381,10 +388,10 @@ Loader.OnLoad(function() {
                     var textData;
 
                     if (textRunFields[2]) {
-                        textData = textRun.f("_characterSourceUnion._pchTransformedCharacters");
+                        textData = new PromisedDbgObject(textRun.f("_pTextData").f("text").then(null, function () { return textRun.f("_characterSourceUnion._pchTransformedCharacters") }));
                         offset = 0; // No offset when transformed.
                     } else {
-                        textData = textRun.f("_characterSourceUnion._pTextData").as("Tree::TextData").f("text", "_pText");
+                        textData = textRun.f("_pTextData", "_characterSourceUnion._pTextData").as("Tree::TextData").f("text", "_pText");
                     }
 
                     var stringLength = textRunLength;

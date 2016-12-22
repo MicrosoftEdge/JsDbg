@@ -118,7 +118,17 @@ var MSHTML = undefined;
         }));
 
         DbgObject.AddTypeDescription(moduleName, "CMarkup", "URL", false, UserEditableFunctions.Create(function (markup) {
-            return markup.f("_pHtmCtx._pDwnInfo._cusUri.m_LPWSTRProperty")
+            return markup.f("_pHtmCtx")
+            .then(function (parserContext) {
+                return parserContext.vcast().catch(function () { return parserContext; });
+            })
+            .then(function (parserContext) {
+                if (!parserContext.isNull()) {
+                    return parserContext.f("_pDwnInfo._cusUri.m_LPWSTRProperty");
+                } else {
+                    return DbgObject.NULL;
+                }
+            })
             .then(function (str) {
                  if (!str.isNull()) {
                     return str.string();
@@ -167,6 +177,20 @@ var MSHTML = undefined;
         DbgObject.AddExtendedField(moduleName, "Tree::ElementNode", "TreeNode", "CTreeNode", function (element) {
             return MSHTML.GetCTreeNodeFromTreeElement(element);
         });
+
+        DbgObject.AddArrayField(moduleName, "CTreeNode", "LayoutBoxes", "Layout::LayoutBox", UserEditableFunctions.Create(function (treeNode) {
+            return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode)
+            .then(function (layoutBox) {
+                return layoutBox.list(["nextLayoutBox", "associatedBoxLink"]);
+            })
+            .then(function (layoutBoxes) {
+                return Promise.join(layoutBoxes.map(function (layoutBox) { return layoutBox.vcast(); }));
+            })
+        }));
+
+        DbgObject.AddExtendedField(moduleName, "CTreeNode", "ComputedBlock", "Tree::ComputedBlock", UserEditableFunctions.Create(function (treeNode) {
+            return MSHTML.GetLayoutAssociationFromCTreeNode(treeNode, 0x1).vcast();
+        }));
 
         function GetCTreeNodeFromTreeElement(element) {
             return new PromisedDbgObject(
@@ -280,23 +304,29 @@ var MSHTML = undefined;
         }));
 
         DbgObject.AddExtendedField(moduleName, "CElement", "Markup", "CMarkup", UserEditableFunctions.Create(function (element) {
-            var promise = Promise.join([element.f("_fHasLayoutPtr").val(), element.f("_fHasLayoutAry", "_fHasLayoutPtr").val(), element.f("_fHasMarkupPtr").val()])
-            .then(function(bits) {
-                if (bits[0] || bits[1]) {
-                    return element.f("_pLayoutInfo", "_pLayout", "_chain._pLayoutInfo", "_chain._pLayout")
-                    .then(function (layout) {
-                        return layout.as("char").idx(0 - layout.pointerValue().mod(4)).as(layout.typeDescription()).f("_pMarkup");
-                    })
-                } else if (bits[2]) {
-                    return element.f("_chain._pMarkup", "_pMarkup")
-                    .then(function (markup) {
-                        return markup.as("char").idx(0 - markup.pointerValue().mod(4)).as("CMarkup");
-                    })
-                } else {
-                    return new DbgObject(moduleName, "CMarkup", 0);
-                }
-            });
-            return promise;
+            return element.f("markup")
+            .catch(function () {
+                return Promise.join([
+                    element.f("_fHasLayoutPtr").val().catch(function() { return 0; }),
+                    element.f("_fHasLayoutAry").val().catch(function() { return 0; }),
+                    element.f("_fHasMarkupPtr").val()
+                ])
+                .then(function(bits) {
+                    if (bits[0] || bits[1]) {
+                        return element.f("_pLayoutInfo", "_pLayout", "_chain._pLayoutInfo", "_chain._pLayout")
+                        .then(function (layout) {
+                            return layout.as("char").idx(0 - layout.pointerValue().mod(4)).as(layout.typeDescription()).f("_pMarkup");
+                        })
+                    } else if (bits[2]) {
+                        return element.f("_chain._pMarkup", "_pMarkup")
+                        .then(function (markup) {
+                            return markup.as("char").idx(0 - markup.pointerValue().mod(4)).as("CMarkup");
+                        })
+                    } else {
+                        return new DbgObject(moduleName, "CMarkup", 0);
+                    }
+                });
+            })
         }));
 
         DbgObject.AddExtendedField(moduleName, "CDOMTextNode", "Markup", "CMarkup", UserEditableFunctions.Create(function (domTextNode) {
@@ -713,6 +743,7 @@ var MSHTML = undefined;
         DbgObject.AddTypeOverride(moduleName, "CBorderDefinition", "_bBorderStyles", "Tree::CssBorderStyleEnum[4]");
         DbgObject.AddTypeOverride(moduleName, "CBorderInfo", "abStyles", "Tree::CssBorderStyleEnum[4]");
         DbgObject.AddTypeOverride(moduleName, "CInput", "_type", "htmlInput");
+        DbgObject.AddTypeOverride(moduleName, "Tree::RenderSafeTextBlockRun", "_runType", "Tree::TextBlockRunTypeEnum");
 
         // Provide some type descriptions.
         DbgObject.AddTypeDescription(moduleName, "CTreeNode", "Tag", false, UserEditableFunctions.Create(function (treeNode) {
@@ -870,7 +901,16 @@ var MSHTML = undefined;
                 if (hasDispId) {
                     return attrVal.f("_dispid").uval()
                     .then(function (dispid) {
-                        return "DISPID(0x" + dispid.toString(16) + ")";
+                        var names = MSHTML.GetDispIdNames(dispid);
+                        if (names == null) {
+                            return "DISPID(0x" + dispid.toString(16) + ")";
+                        } else if (names.indexOf("DISPID_CElement_propdescname") > 0) {
+                            // This DISPID has lots of collisions and is common enoguh that enumerating every "name" variant is annoying.
+                            return "name";
+                        } else {
+                            // There are multiple colliding dispids.
+                            return names.join("/");
+                        }
                     })
                 } else {
                     return attrVal.f("_pPropertyDesc.pstrName").string();
@@ -1063,10 +1103,12 @@ var MSHTML = undefined;
             })
         });
 
-        DbgObject.AddTypeDescription(moduleName, "Math::SLayoutMeasure", "Length", true, function(layoutMeasure) {
-            return Promise.as(layoutMeasure.val())
-            .then(function(val) { return val / 100 + "px"; });
-        });
+        function describeLayoutMeasure(layoutMeasure) {
+            return layoutMeasure.val().then(function(val) { return val / 100 + "px"; });
+        }
+
+        DbgObject.AddTypeDescription(moduleName, "Math::SLayoutMeasure", "Length", true, describeLayoutMeasure);
+        DbgObject.AddTypeDescription(moduleName, "Utilities::SLayoutMeasure", "Length", true, describeLayoutMeasure);
 
         DbgObject.AddTypeDescription(moduleName, "Layout::SBoxFrame", "Frame", true, function(rect) {
             var sideNames = ["top", "right", "bottom", "left"];
@@ -1076,13 +1118,24 @@ var MSHTML = undefined;
             });
         });
 
-        DbgObject.AddTypeDescription(moduleName, "Math::SPoint", "Point", true, function(point) {
-           var fieldNames = ["x", "y"];
-            return Promise.join(fieldNames.map(function(side) { return point.f(side).desc(); }))
-            .then(function (values) {
-                return "(" + values[0] + ", " + values[1] + ")";
-            }); 
+        function describePoint(point) {
+            var fieldNames = ["x", "y"];
+             return Promise.join(fieldNames.map(function(side) { return point.f(side).desc(); }))
+             .then(function (values) {
+                 return "(" + values[0] + ", " + values[1] + ")";
+             }); 
+        }
+
+        DbgObject.AddTypeDescription(moduleName, "Math::SPoint", "Point", true, describePoint);
+        DbgObject.AddTypeDescription(moduleName, "Utilities::SPoint", "Point", true, describePoint);
+
+        DbgObject.AddTypeDescription(moduleName, "Microsoft::CFlat::ReferenceCount", "RefCount", true, function (refCount) {
+            return refCount.f("_refCount").val();
         });
+
+        DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^TSmartPointer<.*>$/) != null; }, "Pointer", true, function (smartPointer) {
+            return smartPointer.f("m_pT").desc();
+        })
 
         DbgObject.AddArrayField(
             moduleName,
@@ -1092,6 +1145,20 @@ var MSHTML = undefined;
             function (array) {
                 var arrayStart = array.f("_array");
                 return arrayStart.array(arrayStart.as("SArrayHeader").idx(-1).f("Length"));
+            }
+        );
+
+        DbgObject.AddArrayField(
+            moduleName,
+            function (type) { return type.match(/^Microsoft::CFlat::Array<.*,1>$/) != null; },
+            "Items",
+            function (type) { return type.match(/^Microsoft::CFlat::Array<(.*),1>$/)[1]; },
+            function (array) {
+                if (array.isNull()) {
+                    return [];
+                } else {
+                    return array.f("_data").array(array.f("_bounds.Length").val());
+                }
             }
         );
 
@@ -1107,11 +1174,25 @@ var MSHTML = undefined;
 
         DbgObject.AddArrayField(
             moduleName, 
-            function(type) { return type.match(/^Collections::SRawArray<.*>$/) != null; },
+            function(type) { return type.match(/^(Collections|CFlatRuntime)::SRawArray<.*>$/) != null; },
             "Items",
-            function(type) { return type.match(/^Collections::SRawArray<(.*)>$/)[1]; },
+            function(type) { return type.match(/^(Collections|CFlatRuntime)::SRawArray<(.*)>$/)[2]; },
             function(array) {
-                return array.f("data").array(array.f("length"));
+                return array.f("data").f("ptr", "").array(array.f("length"));
+            }
+        );
+
+        DbgObject.AddArrayField(
+            moduleName,
+            function (type) { return type.match(/^Microsoft::CFlat::TrailingArrayField<.*>$/) != null; },
+            "Items",
+            function (type) { return type.match(/^Microsoft::CFlat::TrailingArrayField<(.*)>$/)[1]; },
+            function (array) {
+                if (array.isNull()) {
+                    return [];
+                } else {
+                    return array.f("_elements").array(array.f("_length").val());
+                }
             }
         );
 
@@ -1167,11 +1248,59 @@ var MSHTML = undefined;
 
         DbgObject.AddArrayField(
             moduleName,
+            function (type) { return type.match(/^Utilities::SCircularBuffer<.*>$/) != null; },
+            "Items",
+            function (type) { return type.match(/^Utilities::SCircularBuffer<(.*)>$/)[1]; },
+            function (buffer) {
+                var items = buffer.f("items.m_pT")
+
+                var arrayStart = items.f("_data");
+                var arrayLength = items.f("_bounds.Length").val();
+                var count = buffer.f("count").val();
+                var offset = buffer.f("offset").val();
+
+                return Promise.join([arrayStart, arrayLength, count, offset])
+                .then(function(result) {
+                    var arrayStart = result[0];
+                    var arrayLength = result[1];
+                    var count = result[2];
+                    var offset = result[3];
+
+                    var upperItemCount = Math.min(arrayLength - offset, count);
+                    var lowerItemCount = Math.max(offset + count - arrayLength, 0);
+                    return Promise.join([
+                        arrayStart.idx(offset).array(upperItemCount),
+                        arrayStart.idx(0).array(lowerItemCount)
+                    ])
+                }).then(function(result) {
+                    // Return the circular buffer as a single array in the correct order
+                    return result[0].concat(result[1]);
+                });
+            }
+        );
+
+        DbgObject.AddArrayField(
+            moduleName,
             function (type) { return type.match(/^Collections::SGrowingArray<.*>$/) != null; },
             "Items",
             function (type) { return type.match(/^Collections::SGrowingArray<(.*)>$/)[1]; },
             function (growingArray) {
                 return growingArray.f("items._array").array(growingArray.f("count"));
+            }
+        );
+
+        DbgObject.AddArrayField(
+            moduleName,
+            function (type) { return type.match(/^Utilities::SGrowingArray<.*>$/) != null; },
+            "Items",
+            function (type) { return type.match(/^Utilities::SGrowingArray<(.*)>$/)[1]; },
+            function (growingArray) {
+
+                if (growingArray.isNull()) {
+                    return [];
+                } else {
+                    return growingArray.f("items.m_pT._data").array(growingArray.f("count"));
+                }
             }
         );
 
@@ -1213,6 +1342,16 @@ var MSHTML = undefined;
                 return result;
             }
         )
+
+        var dispidNameToValue = {};
+        var dispidValueToName = {};
+        function registerDispId(name, value) {
+            if (!(value in dispidValueToName)) {
+                dispidValueToName[value] = [];
+            }
+            dispidValueToName[value].push(name);
+            dispidNameToValue[name] = value;
+        }
 
         MSHTML = {
             _help : {
@@ -1353,6 +1492,14 @@ var MSHTML = undefined;
                 ]
             },
             CreatePatchVersionControl: function (onChange) { return patchManager.createUIWidget(onChange); },
+
+            RegisterDispId: registerDispId,
+            GetDispIdNames: function(value) {
+                return dispidValueToName[value] || null;
+            },
+            GetDispIdValue: function(name) {
+                return dispidNameToValue[name] || null;
+            },
         };
 
         Help.Register(MSHTML);

@@ -44,7 +44,7 @@ namespace JsDbg.Deployment {
             // Copy the JsDbg binaries.
             string binaryPath = Path.Combine(repositoryRoot, "server", "JsDbg.WinDbg", "bin", "x86", "Release");
             var binaryDirectory = new DirectoryInfo(binaryPath);
-            foreach (var file in binaryDirectory.GetFiles("*.dll").Concat(binaryDirectory.GetFiles("JsDbg.exe"))) {
+            foreach (var file in binaryDirectory.GetFiles("*.dll").Concat(binaryDirectory.GetFiles("JsDbg.exe")).Concat(binaryDirectory.GetFiles("unelevate.exe"))) {
                 File.Copy(file.FullName, Path.Combine(temporaryPath, file.Name));
             }
 

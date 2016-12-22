@@ -7,26 +7,14 @@ The current JsDbg extensions are targeted at developers working on Microsoft Edg
 
 ### WinDbg
 
-1. **(Optional)** If you're debugging locally, install the JsDbg launcher using
+1. Attach WinDbg to a process that hosts `edgehtml.dll` or `mshtml.dll` (`MicrosoftEdgeCP.exe`, `iexplore.exe`, `WWAHost.exe`, etc.)
+
+2. In the WinDbg command window, run
     ```
-    \\iefs\users\psalas\jsdbg\install.cmd
+    !jsdbg
     ```
 
-    which will copy a small extension to your local WinDbg installation.
-2. Attach WinDbg to a process that hosts `edgehtml.dll` or `mshtml.dll` (`MicrosoftEdgeCP.exe`, `iexplore.exe`, `WWAHost.exe`, etc.)
-3. If you installed the launcher in step 1, in WinDbg, run
-
-    ```
-    !jsdbg.launch
-    ```
-
-    If you're connected to a remote or don't want to use the launcher, run
-
-    ```
-    $$><\\iefs\users\psalas\jsdbg\jsdbg.script
-    ```
-
-4. The JsDbg server will launch and prompt you to select a browser. If the debugger is attached to one browser, using a different browser for JsDbg generally works best; e.g. if the debugger is attached to Edge, use Chrome or IE.
+3. The JsDbg server will launch and prompt you to select a browser. If the debugger is attached to one browser, using a different browser for JsDbg generally works best; e.g. if the debugger is attached to Edge, use Chrome or IE.
 
 ### Visual Studio 2015
 

@@ -241,7 +241,7 @@ Loader.OnLoad(function() {
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleRule", function(styleRule) {
-        return styleRule.f("_paaStyleProperties").array("Items");
+        return styleRule.f("_spSpecifiedStyle.m_pT.attrArray.m_pT", "_paaStyleProperties").array("Items");
     })
 
     StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CMarkup", function (markup) {
@@ -266,6 +266,16 @@ Loader.OnLoad(function() {
         return Promise.join([attrValue.desc("Name"), attrValue.desc("Value")])
         .then(function (nameAndValue) {
             var name = nameAndValue[0];
+            if (name.split("/").length > 1) {
+                var prefix = "DISPID_CCSSStyleDeclaration_";
+                var formattedNames = name.split("/")
+                    .filter(function (dispid) { return dispid.indexOf(prefix) == 0; })
+                    .map(function (dispid) { return dispid.substr(prefix.length); })
+
+                if (formattedNames.length == 1) {
+                    name = formattedNames[0];
+                }
+            }
             var value = nameAndValue[1];
             if (value instanceof DbgObject) {
                 value = value.desc();

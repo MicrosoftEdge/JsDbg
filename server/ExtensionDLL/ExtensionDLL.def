@@ -1,17 +1,4 @@
 EXPORTS
-
-;--------------------------------------------------------------------
-; Core exports provided by the ExtCpp framework.
-;--------------------------------------------------------------------
-
     DebugExtensionInitialize
-    DebugExtensionUninitialize
-    DebugExtensionNotify
-    help
-
-;--------------------------------------------------------------------
-; Extension commands.
-;--------------------------------------------------------------------
-
 	jsdbg
-    launch
+	help

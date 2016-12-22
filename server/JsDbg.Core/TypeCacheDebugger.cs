@@ -320,12 +320,21 @@ namespace JsDbg.Core {
                     while ((Dia2Lib.SymTagEnum)symbol.symTag == Dia2Lib.SymTagEnum.SymTagBlock) {
                         symbol = symbol.lexicalParent;
                     }
-                    ulong displacement = (ulong)(rva - symbol.relativeVirtualAddress);
 
+                    SymTagEnum symTag = (SymTagEnum)symbol.symTag;
                     string name;
-                    symbol.get_undecoratedNameEx(0x1000, out name);
+                    if (symTag == SymTagEnum.SymTagPublicSymbol || symTag == SymTagEnum.SymTagThunk) {
+                        // Public symbols have decorated names that need to be undecorated (see dbghelp!diaFillSymbolInfo).
+                        symbol.get_undecoratedNameEx(0x1000, out name);
+                    } else {
+                        name = symbol.name;
+                    }
 
-                    return new SSymbolNameAndDisplacement() { Module = module.Name, Name = name, Displacement = displacement };
+                    return new SSymbolNameAndDisplacement() {
+                        Module = module.Name,
+                        Name = name,
+                        Displacement = (ulong)(rva - symbol.relativeVirtualAddress)
+                    };
                 } else {
                     return await this.debuggerEngine.LookupSymbolName(pointer);
                 }
