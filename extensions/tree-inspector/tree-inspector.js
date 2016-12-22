@@ -13,92 +13,59 @@ var TreeInspector = (function() {
     var fieldSupportController = null;
     var treeReader = null;
 
-    function TreeInspectorTreeReader(previousReader, renderer, fieldSupportController) {
-        this.previousReader = previousReader;
+    // FieldTreeReader augments a DbgObjectTree.DbgObjectTreeRenderer with fields selected from the field control.
+    function FieldTreeReader(treeInspectorTreeReader, fieldSupportController) {
+        this.treeInspectorTreeReader = treeInspectorTreeReader;
         this.fieldSupportController = fieldSupportController;
-        this.renderer = renderer;
-        this.allDbgObjects = new Set();
-        this.cachedRootPromise = null;
     }
 
-    TreeInspectorTreeReader.prototype._wrap = function (parent, node) {
-        var isDuplicate = false;
-        var object = this.previousReader.getObject(node);
-        var typesIncludedPromise = Promise.as(null);
-        if (object instanceof DbgObject) {
-            // Notify the field support controller.
-            typesIncludedPromise = this.fieldSupportController.includeDbgObjectTypes(object);
-
-            // Check if it's a duplicate.
-            var ptr = object.ptr();
-            isDuplicate = this.allDbgObjects.has(ptr);
-            if (!isDuplicate) {
-                this.allDbgObjects.add(ptr);
-            }
-        }
-
-        return typesIncludedPromise
-        .then(function() {
-            return {
-                parentNode: parent,
-                previousNode: node,
-                errors: [],
-                isDuplicate: isDuplicate,
-                childrenPromise: undefined
-            };
+    FieldTreeReader.prototype.createRoot = function(object) {
+        var that = this;
+        return this.treeInspectorTreeReader.createRoot(object)
+        .then(function (root) {
+            return that.notifyControllerOfDbgObjectTypes([object])
+            .then(function() {
+                return root;
+            });
         })
     }
 
-    TreeInspectorTreeReader.prototype.createRoot = function(object) {
-        if (this.cachedRootPromise != null) {
-            // Check if the object is the same.
-            var that = this;
-            return this.cachedRootPromise
-            .then(function (cachedRoot) {
-                if (that.getObject(cachedRoot) === object) {
-                    return cachedRoot;
+    FieldTreeReader.prototype.getObject = function(node) {
+        return this.treeInspectorTreeReader.getObject(node);
+    }
+
+    FieldTreeReader.prototype.getChildren = function(node) {
+        var that = this;
+        return this.treeInspectorTreeReader.getChildren(node)
+        .then(function (children) {
+            return that.notifyControllerOfDbgObjectTypes(
+                children.map(function (child) { return that.getObject(child); })
+            )
+            .then(function() {
+                return children;
+            });
+        })
+    }
+
+    FieldTreeReader.prototype.notifyControllerOfDbgObjectTypes = function(objects) {
+        var that = this;
+        return Promise.join(
+            objects.map(function (object) {
+                if (object instanceof DbgObject) {
+                    return that.fieldSupportController.includeDbgObjectTypes(object);
                 } else {
-                    // A different object.  Clear the cache and try again.
-                    that.cachedRootPromise = null;
-                    return that.createRoot(object);
+                    return true;
                 }
             })
-        } else {
-            this.cachedRootPromise = this.previousReader.createRoot(object).then(this._wrap.bind(this, null));
-            return this.cachedRootPromise;
-        }
+        );
     }
 
-    TreeInspectorTreeReader.prototype.getObject = function(node) {
-        return this.previousReader.getObject(node.previousNode);
-    }
-
-    TreeInspectorTreeReader.prototype.getChildren = function(node) {
-        if (node.childrenPromise === undefined) {
-            if (node.isDuplicate) {
-                node.childrenPromise = Promise.as([]);
-            } else {
-                node.childrenPromise = Promise.map(this.previousReader.getChildren(node.previousNode, node.errors), this._wrap.bind(this, node));
-            }
-        }
-        return node.childrenPromise;
-    }
-
-    TreeInspectorTreeReader.prototype.createRepresentation = function(node) {
-        var object = this.getObject(node);
+    FieldTreeReader.prototype.createRepresentation = function(node) {
         var that = this;
-        return this.renderer.createRepresentation(
-            object,
-            node.parentNode != null ? this.getObject(node.parentNode) : null,
-            node.errors,
-            node.isDuplicate,
-            /*includeInspector*/true
-        )
+        return this.treeInspectorTreeReader.createRepresentation(node)
         .then(function (container) {
+            var object = that.getObject(node);
             if (object instanceof DbgObject) {
-                if (!node.isDuplicate) {
-                    container.setAttribute("data-object-address", object.pointerValue().toString(16));
-                }
                 return that.fieldSupportController.renderFields(object, container);
             } else {
                 return container;
@@ -141,7 +108,7 @@ var TreeInspector = (function() {
                     pointerField.value = pointerField.value.trim();
                     Promise.as(interpretAddress(new PointerMath.Pointer(pointerField.value, 16)))
                     .then(function(rootObject) { 
-                        treeReader = new TreeInspectorTreeReader(treeDefinition, treeRenderer, fieldSupportController);
+                        treeReader = new FieldTreeReader(new DbgObjectTree.DbgObjectTreeRenderer(treeDefinition, treeRenderer), fieldSupportController);
                         return treeReader.createRoot(rootObject)
                     })
                     .then(function (rootNode) {
@@ -252,7 +219,7 @@ var TreeInspector = (function() {
                     currentRoots = roots;
 
                     return Promise.map(roots, function (root) {
-                        return treeRenderer.createRepresentation(root, null, [], false, false);
+                        return treeRenderer.createRepresentation(root, null, [], false);
                     })
                     .then(function (rootRepresentations) {
                         rootRepresentations.forEach(function (root, index) {
@@ -563,8 +530,8 @@ var TreeInspector = (function() {
             // On copy, update the clipboard with some representation for the selected part of the tree.
             document.addEventListener("copy", copyTreeSelection);
 
-            // Create the FieldSupport controller.
-            fieldSupportController = FieldSupport.Create(updateRenderTree, fieldSupportContainer);
+            // Create the FieldSelector controller.
+            fieldSupportController = FieldSelector.Create(updateRenderTree, fieldSupportContainer);
 
             Promise.map(defaultTypes, function (type) { return fieldSupportController.addType(type.module, type.type); })
             .then(refresh);

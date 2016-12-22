@@ -1,0 +1,15 @@
+{
+    "name": "tree-inspector-field-selector",
+    "headless": true,
+    "dependencies": [
+        "dbgobject",
+        "dbgobject-tree",
+        "promise",
+        "type-explorer",
+        "user-editable-functions"
+    ],
+    "includes": [
+        "field-selector.css",
+        "field-selector.js"
+    ]
+}

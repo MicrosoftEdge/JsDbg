@@ -1,99 +1,89 @@
 "use strict";
 
-var DbgObjectTreeRenderer = (function() {
-    function Renderer() {
-        this.names = new DbgObject.TypeExtension();
+(function() {
+
+    // TreeRenderer combines a TreeReader and a DbgObjectRenderer to render a tree of DbgObjects or native JS objects.
+    function TreeRenderer(previousReader, renderer) {
+        this.previousReader = previousReader;
+        this.renderer = renderer;
     }
 
-    Renderer.prototype.addNameRenderer = function(module, typename, renderer) {
-        this.names.addExtension(module, typename, "", renderer);
-    }
-
-    Renderer.prototype.getName = function(object, parentObject) {
-        if (!(object instanceof DbgObject)) {
-            if (object == null) {
-                return Promise.as("(null)");
-            } else {
-                return Promise.as(object.toString());   
+    TreeRenderer.prototype._wrap = function (parent, node) {
+        var isDuplicate = false;
+        var object = this.previousReader.getObject(node);
+        if (object instanceof DbgObject && parent != null) {
+            // Check if it's a duplicate.
+            var ptr = object.ptr();
+            isDuplicate = parent.allDbgObjects.has(ptr);
+            if (!isDuplicate) {
+                parent.allDbgObjects.add(ptr);
             }
         }
 
-        return this.names.getExtensionIncludingBaseTypes(object, "")
-        .then(function (result) {
-            if (result == null) {
-                var typeName = object.htmlTypeDescription();
-                var namespaces = typeName.split("::");
-                if (namespaces.length > 1) {
-                    var namespace = namespaces.slice(0, namespaces.length - 1).join("::");
-                    var type = namespaces[namespaces.length - 1];
-                    typeName = "<span class=\"namespace\">" + namespace + "::</span>" + type;
-                }
-                return typeName
-            } else {
-                return result.extension(object, parentObject);
-            }
-        })
+        return {
+            parentNode: parent,
+            previousNode: node,
+            errors: [],
+            isDuplicate: isDuplicate,
+            childrenPromise: undefined,
+            allDbgObjects: parent == null ? new Set() : parent.allDbgObjects
+        };
     }
 
-    Renderer.prototype.createRepresentation = function(object, parentObject, errors, isDuplicate, includeInspector) {
-        var result = document.createElement("div");
-        return this.getName(object, parentObject)
-        .then(function (name) {
-            if (isDuplicate) {
-                result.style.color = "#aaa";
-                name = "(DUPLICATE) " + name;
-            }
+    TreeRenderer.prototype.createRoot = function(object) {
+        console.log("TreeRenderer.createRoot");
+        var that = this;
+        return this.previousReader.createRoot(object)
+        .then(function (node) {
+            return that._wrap(null, node);
+        });
+    }
 
-            var description = document.createElement("div");
-            description.innerHTML = name;
-            result.appendChild(description);
+    TreeRenderer.prototype.getObject = function(node) {
+        return this.previousReader.getObject(node.previousNode);
+    }
 
-            if (!(object instanceof DbgObject)) {
-                // For non-DbgObjects, return a representation which is just the basic description.
-                return;
-            }
-
-            result.appendChild(document.createTextNode(" "));
-
-            var pointer = null;
-            if (includeInspector) {
-                pointer = DbgObjectInspector.Inspect(object, object.ptr());
+    TreeRenderer.prototype.getChildren = function(node) {
+        if (node.childrenPromise === undefined) {
+            if (node.isDuplicate) {
+                node.childrenPromise = Promise.as([]);
             } else {
-                pointer = document.createTextNode(object.ptr());
-            }
-            result.appendChild(pointer);
-            result.appendChild(document.createTextNode(" "));
-        })
-        .then(function () {
-            if (errors.length > 0) {
-                var errorContainer = document.createElement("div");
-                errorContainer.className = "error-container";
-
-                var errorDiv = document.createElement("div");
-                errorDiv.className = "error-icon";
-                errorDiv.textContent = "!";
-                errorContainer.appendChild(errorDiv);
-
-                var descriptions = document.createElement("div");
-                descriptions.className = "error-descriptions";
-                errors.forEach(function (error) {
-                    var errorElement = document.createElement("div");
-                    if (error instanceof Error) {
-                        errorElement.textContent = error.toString();
-                    } else {
-                        errorElement.textContent = JSON.stringify(error);
+                var that = this;
+                node.childrenPromise = Promise.map(
+                    this.previousReader.getChildren(node.previousNode, node.errors),
+                    function (childNode) {
+                        return that._wrap(node, childNode);
                     }
-                    descriptions.appendChild(errorElement);
-                })
-                errorContainer.appendChild(descriptions);
-                result.appendChild(errorContainer);
+                );
             }
-        })
-        .then(
-            function () { return result; },
-            function () { return result; }
-        );
+        }
+        return node.childrenPromise;
     }
 
-    return Renderer;
+    TreeRenderer.prototype.createRepresentation = function(node) {
+        var object = this.getObject(node);
+        var that = this;
+        return this.renderer.createRepresentation(
+            object,
+            node.parentNode != null ? this.getObject(node.parentNode) : null,
+            node.errors,
+            /*includeInspector*/!node.isDuplicate
+        )
+        .then(function (container) {
+            if (node.isDuplicate) {
+                container.style.color = "#aaa";
+                container.insertBefore(document.createTextNode("(DUPLICATE) "), container.firstChild);
+            }
+            if (object instanceof DbgObject) {
+                if (!node.isDuplicate) {
+                    container.setAttribute("data-object-address", object.pointerValue().toString(16));
+                }
+                return container;
+            } else {
+                return container;
+            }
+        })
+    }
+
+    DbgObjectTree.DbgObjectTreeRenderer = TreeRenderer;
 })();

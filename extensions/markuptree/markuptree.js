@@ -3,8 +3,8 @@
 var MarkupTree = undefined;
 Loader.OnLoad(function() {
     MarkupTree = {
-        Tree: new TreeReader.DbgObjectTreeReader(new TreeReader.ObjectTreeReader()),
-        Renderer: new DbgObjectTreeRenderer(),
+        Tree: new DbgObjectTree.DbgObjectTreeReader(),
+        Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
             return new DbgObject(MSHTML.Module, "CBase", address).vcast()
             .then(undefined, function (err) {

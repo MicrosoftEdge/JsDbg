@@ -4,8 +4,8 @@ var DisplayTree = undefined;
 Loader.OnLoad(function() {
     // Define the tree.
     DisplayTree = {
-        Tree: new TreeReader.DbgObjectTreeReader(new TreeReader.ObjectTreeReader()),
-        Renderer: new DbgObjectTreeRenderer(),
+        Tree: new DbgObjectTree.DbgObjectTreeReader(),
+        Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
             return new DbgObject(MSHTML.Module, "void", address).vcast();
         },

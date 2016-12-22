@@ -1,6 +1,6 @@
 "use strict";
 
-var TreeReader = (function() {
+(function() {
 
     // Readers:
     // createRoot(object) -> returns a promise to the root node from a given object
@@ -96,7 +96,7 @@ var TreeReader = (function() {
     }
 
     function DbgObjectTreeReader(previousReader) {
-        this.previousReader = previousReader;
+        this.previousReader = previousReader ? previousReader : new ObjectTreeReader();
         this.typeExtension = new DbgObject.TypeExtension();
         this.nextId = 1;
     }
@@ -205,11 +205,9 @@ var TreeReader = (function() {
         })
     }
     
-    return {
-        ObjectTreeReader: ObjectTreeReader,
-        DbgObjectTreeReader: DbgObjectTreeReader,
-        MapTreeReader: MapTreeReader,
-        FilterTreeReader: FilterTreeReader,
-        InspectTreeReader: InspectTreeReader
-    }
+    DbgObjectTree.ObjectTreeReader = ObjectTreeReader
+    DbgObjectTree.DbgObjectTreeReader = DbgObjectTreeReader;
+    DbgObjectTree.MapTreeReader = MapTreeReader;
+    DbgObjectTree.FilterTreeReader = FilterTreeReader;
+    DbgObjectTree.InspectTreeReader = InspectTreeReader;
 })();

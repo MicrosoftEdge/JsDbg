@@ -4,8 +4,8 @@
     "description": "UI for the tree inspectors.",
     "headless": true,
     "dependencies": [
+        "tree-inspector/field-selector",
         "dbgobject-tree",
-        "field-support",
         "tree-drawing",
         "promise"
     ],

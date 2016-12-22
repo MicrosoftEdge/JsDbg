@@ -4,8 +4,8 @@ var LayoutBuilder = undefined;
 Loader.OnLoad(function() {
 
     LayoutBuilder = {
-        Tree: new TreeReader.DbgObjectTreeReader(new TreeReader.ObjectTreeReader()),
-        Renderer: new DbgObjectTreeRenderer(),
+        Tree: new DbgObjectTree.DbgObjectTreeReader(),
+        Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
             // vcast ensures that the LayoutBuilder is valid and will also cast to LayoutBoxBuilder if necessary.
             return new DbgObject(MSHTML.Module, "Layout::LayoutBuilder", address).vcast();

@@ -3,8 +3,8 @@
 var BoxTree = undefined;
 Loader.OnLoad(function() {
     BoxTree = {
-        Tree: new TreeReader.DbgObjectTreeReader(new TreeReader.ObjectTreeReader()),
-        Renderer: new DbgObjectTreeRenderer(),
+        Tree: new DbgObjectTree.DbgObjectTreeReader(),
+        Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
             return new DbgObject(MSHTML.Module, "Layout::LayoutBox", address).vcast();
         },
@@ -112,6 +112,9 @@ Loader.OnLoad(function() {
     })
     DbgObject.AddAction(MSHTML.Module, "CDoc", "BoxTree", function(doc) {
         return TreeInspector.GetActions("boxtree", "Box Tree", doc, doc);
+    })
+    DbgObject.AddAction(MSHTML.Module, "CView", "BoxTree", function(view) {
+        return TreeInspector.GetActions("boxtree", "Box Tree", view.unembed("CDoc", "_view"), view);
     })
 
     DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBoxBuilder", "BoxTree", function(builder) {

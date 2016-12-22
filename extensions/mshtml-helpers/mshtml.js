@@ -178,16 +178,6 @@ var MSHTML = undefined;
             return MSHTML.GetCTreeNodeFromTreeElement(element);
         });
 
-        DbgObject.AddArrayField(moduleName, "CTreeNode", "LayoutBoxes", "Layout::LayoutBox", UserEditableFunctions.Create(function (treeNode) {
-            return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode)
-            .then(function (layoutBox) {
-                return layoutBox.list(["nextLayoutBox", "associatedBoxLink"]);
-            })
-            .then(function (layoutBoxes) {
-                return Promise.join(layoutBoxes.map(function (layoutBox) { return layoutBox.vcast(); }));
-            })
-        }));
-
         DbgObject.AddExtendedField(moduleName, "CTreeNode", "ComputedBlock", "Tree::ComputedBlock", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetLayoutAssociationFromCTreeNode(treeNode, 0x1).vcast();
         }));
