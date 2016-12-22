@@ -176,7 +176,7 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="configuration.json">
+    <Content Include="$(SolutionDir)configurations\VisualStudio\$(ConfigurationName)\configuration.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
@@ -231,14 +231,6 @@
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="'$(VSToolsPath)' != ''" />
   <PropertyGroup>
-    <PreBuildEvent>$(SolutionDir)ZipFolder\$(OutDir)ZipFolder.exe $(SolutionDir)..\extensions $(ProjectDir)extensions.zip
-copy $(SolutionDir)configurations\VisualStudio\$(ConfigurationName)\configuration.json $(ProjectDir)configuration.json</PreBuildEvent>
+    <PreBuildEvent>$(SolutionDir)ZipFolder\$(OutDir)ZipFolder.exe $(SolutionDir)..\extensions $(ProjectDir)extensions.zip</PreBuildEvent>
   </PropertyGroup>
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
-  <Target Name="AfterBuild">
-  </Target>
-  -->
 </Project>
