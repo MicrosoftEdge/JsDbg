@@ -111,7 +111,7 @@ Loader.OnLoad(function() {
         return TreeInspector.GetActions("boxtree", "Box Tree", markup.F("Doc"), MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(markup.f("root").as("CTreeNode")));
     })
     DbgObject.AddAction(MSHTML.Module, "CDoc", "BoxTree", function(doc) {
-        return TreeInspector.GetActions("boxtree", "Box Tree", doc, doc);
+        return TreeInspector.GetActions("boxtree", "Box Tree", doc);
     })
     DbgObject.AddAction(MSHTML.Module, "CView", "BoxTree", function(view) {
         return TreeInspector.GetActions("boxtree", "Box Tree", view.unembed("CDoc", "_view"), view);
