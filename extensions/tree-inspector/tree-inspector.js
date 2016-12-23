@@ -5,8 +5,25 @@ var TreeInspector = (function() {
         return Loader.GetCurrentExtension() + "." + str;
     }
 
+    var TreeAlgorithms = { }
+    TreeAlgorithms[id("TallTree")] = TallTree;
+    TreeAlgorithms[id("WideTree")] = WideTree;
+
     function TreeInspectorUIController(getRoots, treeDefinition, dbgObjectRenderer, interpretAddress) {
         this.expandTreeAutomatically = (window.sessionStorage.getItem(id("FullyExpand")) !== "false");
+        var selectedTreeAlgorithm = (window.sessionStorage.getItem(id("TreeAlgorithm")));
+        this.treeAlgorithm = selectedTreeAlgorithm in TreeAlgorithms ? TreeAlgorithms[selectedTreeAlgorithm] : TallTree;
+
+        this.refreshOnBreak = (window.sessionStorage.getItem(id("RefreshOnBreak")) === "true");
+        this.notifyOnBreak = !this.refreshOnBreak;
+        this.debuggerHasRunSinceLastRefresh = false;
+        var that = this;
+        JsDbg.RegisterOnBreakListener(function() {
+            that.debuggerHasRunSinceLastRefresh = true;
+            if (that.refreshOnBreak) {
+                that.refreshIfNecessary();
+            }
+        })
 
         this.rootsElement = null;
         this.pointerField = null;
@@ -16,21 +33,47 @@ var TreeInspector = (function() {
         this.renderTreeRootPromise = null;
         this.lastRenderedPointer = null;
         this.currentRoots = [];
-        this.treeAlgorithm = null;
-        this.treeAlgorithms = { };
         this.fieldSupportController = null;
         this.treeReader = null;
         this.interpretAddress = interpretAddress;
         this.getRoots = getRoots;
         this.treeDefinition = treeDefinition;
         this.dbgObjectRenderer = dbgObjectRenderer;
-        this.debuggerHasRunSinceLastRefresh = false;
         this.currentOperation = Promise.as(true);
     }
 
     TreeInspectorUIController.prototype.setExpandTreeAutomatically = function (value) {
         this.expandTreeAutomatically = value;
         window.sessionStorage.setItem(id("FullyExpand"), value);
+    }
+
+    TreeInspectorUIController.prototype.setTreeAlgorithm = function(algorithmId) {
+        var newAlgorithm = TreeAlgorithms[algorithmId];
+        if (newAlgorithm == this.treeAlgorithm) {
+            return;
+        }
+
+        this.treeAlgorithm = newAlgorithm;
+        window.sessionStorage.setItem(id("TreeAlgorithm"), algorithmId);
+
+        if (this.treeRoot != null) {
+            this.renderTreeRootPromise = this.treeAlgorithm.BuildTree(this.treeContainer, this.treeReader, this.treeRoot, this.expandTreeAutomatically)
+        }
+    }
+
+    TreeInspectorUIController.prototype.setRefreshOnBreak = function(value) {
+        this.refreshOnBreak = value;
+        window.sessionStorage.setItem(id("RefreshOnBreak"), value);
+        if (value) {
+            this.refreshIfNecessary();
+            this.setNotifyOnBreak(false);
+        } else {
+            this.setNotifyOnBreak(true);
+        }
+    }
+
+    TreeInspectorUIController.prototype.setNotifyOnBreak = function(value) {
+        this.notifyOnBreak = value;
     }
 
     TreeInspectorUIController.prototype.createAndRender = function(emphasisNodePtr) {
@@ -44,35 +87,24 @@ var TreeInspector = (function() {
                 that.treeReader = new FieldSelector.TreeReader(new DbgObjectTree.DbgObjectTreeRenderer(that.treeDefinition, that.dbgObjectRenderer), that.fieldSupportController);
                 return that.treeReader.createRoot(rootObject)
             })
-            .then(
-                function (rootNode) {
-                    that.render(rootNode, emphasisNodePtr); 
-                },
-                that.showError.bind(that)
-            );
+            .then(function (rootNode) {
+                window.name = Loader.GetCurrentExtension().toLowerCase() + "-" + that.treeReader.getObject(rootNode).ptr();
+                that.treeRoot = rootNode;
+                that.lastRenderedPointer = that.pointerField.value;
+                that.renderTreeRootPromise = that.treeAlgorithm.BuildTree(that.treeContainer, that.treeReader, that.treeRoot, that.expandTreeAutomatically)
+                return that.renderTreeRootPromise;
+            })
+            .then(function (renderRoot) {
+                if (emphasisNodePtr != null) {
+                    that.emphasizeNode(emphasisNodePtr, that.treeRoot, that.treeReader);
+                }
+            })
+            .catch(this.showError.bind(this));
         } else {
             if (emphasisNodePtr != null) {
                 this.emphasizeNode(emphasisNodePtr, this.treeRoot, this.treeReader);
             }
         }
-    }
-
-    TreeInspectorUIController.prototype.render = function(rootNode, emphasisNodePtr) {
-        window.name = Loader.GetCurrentExtension().toLowerCase() + "-" + this.treeReader.getObject(rootNode).ptr();
-        this.treeRoot = rootNode;
-        this.lastRenderedPointer = this.pointerField.value;
-
-        var that = this;
-        this.renderTreeRootPromise = this.treeAlgorithm.BuildTree(this.treeContainer, this.treeReader, this.treeRoot, this.expandTreeAutomatically)
-        .then(function(renderedTree) {
-            if (emphasisNodePtr != null) {
-                emphasizeNode(emphasisNodePtr, that.treeRoot, that.treeReader);
-            }
-            return renderedTree;
-        })
-        .catch(this.showError.bind(this));
-
-        return this.renderTreeRootPromise;
     }
 
     TreeInspectorUIController.prototype.emphasizeNode = function(emphasisNodePtr, rootNode, fieldRenderer) {
@@ -111,6 +143,12 @@ var TreeInspector = (function() {
 
         // However, the caller might want to see the error, so hand them a promise that might fail.
         return resultPromise;
+    }
+
+    TreeInspectorUIController.prototype.refreshIfNecessary = function() {
+        if (this.debuggerHasRunSinceLastRefresh) {
+            this.refresh();
+        }
     }
 
     TreeInspectorUIController.prototype.refresh = function() {
@@ -227,12 +265,6 @@ var TreeInspector = (function() {
     }
 
     TreeInspectorUIController.prototype.instantiateUI = function(container) {
-        function createCheckboxChangeHandler(checkboxId) {
-            return function() {
-                window.sessionStorage.setItem(checkboxId, document.getElementById(checkboxId).checked);
-            };
-        }
-
         function createElement(tag, innerHTML, attributes, events) {
             var e = document.createElement(tag);
             if (innerHTML) {
@@ -305,26 +337,7 @@ var TreeInspector = (function() {
 
         toolbar.appendChild(ws());
 
-        this.treeAlgorithms[id("TallTree")] = TallTree;
-        this.treeAlgorithms[id("WideTree")] = WideTree;
-        this.treeAlgorithm = TallTree;
-        if (window.sessionStorage.getItem(id("TreeAlgorithm")) == id("WideTree")) {
-            thsi.treeAlgorithm = WideTree;
-        }
-
         var that = this;
-        function treeAlgorithmRadioChanged(e) {
-            if (e.target.checked) {
-                var oldTreeAlgorithm = that.treeAlgorithm;
-                that.treeAlgorithm = that.treeAlgorithms[e.target.id];
-                window.sessionStorage.setItem(id("TreeAlgorithm"), e.target.id);
-
-                if (that.treeRoot != null && that.treeAlgorithm != oldTreeAlgorithm) {
-                    that.render(that.treeRoot);
-                }
-            }
-        }
-
         var treeAlgorithmControl = createElement("nobr");
         toolbar.appendChild(treeAlgorithmControl);
         treeAlgorithmControl.appendChild(createElement("input", null, {
@@ -333,7 +346,11 @@ var TreeInspector = (function() {
             type: "radio",
             checked: this.treeAlgorithm == TallTree ? "checked" : undefined
         }, {
-            "change": treeAlgorithmRadioChanged
+            "change": function(e) {
+                if (e.target.checked) {
+                    that.setTreeAlgorithm(e.target.id);
+                }
+            }
         }));
         treeAlgorithmControl.appendChild(createElement("label", "Tall Tree", {
             "for": id("TallTree")
@@ -345,7 +362,11 @@ var TreeInspector = (function() {
             type: "radio",
             checked: this.treeAlgorithm == WideTree ? "checked" : undefined
         }, {
-            "change": treeAlgorithmRadioChanged
+            "change": function(e) {
+                if (e.target.checked) {
+                    that.setTreeAlgorithm(e.target.id);
+                }
+            }
         }));
         treeAlgorithmControl.appendChild(createElement("label", "Wide Tree", {
             "for": id("WideTree")
@@ -369,18 +390,6 @@ var TreeInspector = (function() {
             "for": id("FullyExpand")
         }));
 
-        var notifyOnBreak = true;
-        JsDbg.RegisterOnBreakListener(function() {
-            that.debuggerHasRunSinceLastRefresh = true;
-            if (document.getElementById(id("RefreshOnBreak")).checked) {
-                that.refresh();
-            } else {
-                if (notifyOnBreak) {
-                    messageContainer.classList.add("show");
-                }
-            }
-        });
-        
         var updateCheckboxControl = createElement("nobr");
         toolbar.appendChild(updateCheckboxControl);
         updateCheckboxControl.appendChild(ws());
@@ -399,7 +408,7 @@ var TreeInspector = (function() {
         }, { 
             click: function () {
                 messageContainer.classList.remove("show");
-                that.refresh();
+                that.refreshIfNecessary();
             }
         }));
         buttons.appendChild(createElement("button", "Not Now", {
@@ -407,9 +416,16 @@ var TreeInspector = (function() {
         }, {
             click: function () {
                 messageContainer.classList.remove("show");
-                notifyOnBreak = false;
+                that.setNotifyOnBreak(false);
             }
         }));
+
+        JsDbg.RegisterOnBreakListener(function() {
+            if (that.notifyOnBreak) {
+                messageContainer.classList.add("show");
+            }
+        });
+
         message.appendChild(buttons);
         messageContainer.appendChild(message);
 
@@ -420,12 +436,9 @@ var TreeInspector = (function() {
             type: "checkbox",
             checked: window.sessionStorage.getItem(id("RefreshOnBreak")) === "true" ? "checked" : undefined
         }, {
-            "change": function () {
-                createCheckboxChangeHandler(id("RefreshOnBreak"))();
+            "change": function (e) {
                 messageContainer.classList.remove("show");
-                if (that.debuggerHasRunSinceLastRefresh) {
-                    that.refresh();
-                }
+                that.setRefreshOnBreak(e.target.checked);
             }
         }));
         updateCheckboxControl.appendChild(createElement("label", "Update When Debugger Breaks", {
