@@ -90,9 +90,7 @@
                 container.addEventListener("click", function() {
                     that.emphasizeDbgObject(object.ptr(), node.root);
                 })
-            }
-
-            if (node.root.lastEmphasis != null && node.root.lastEmphasis == object.ptr()) {
+            } else if (node.root.lastEmphasis != null && node.root.lastEmphasis == object.ptr()) {
                 container.classList.add("emphasized-node");
             }
 
