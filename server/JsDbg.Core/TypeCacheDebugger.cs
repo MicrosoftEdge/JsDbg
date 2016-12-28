@@ -208,7 +208,7 @@ namespace JsDbg.Core {
                 result.TypeName = field.TypeName;
                 result.Size = field.Size;
             } else {
-                throw new DebuggerException(String.Format("Invalid field name: {0}", fieldName));
+                throw new DebuggerException(String.Format("Unknown field {0} in type: {1}", fieldName, typename));
             }
 
             return result;
