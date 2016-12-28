@@ -9,9 +9,6 @@
     ],
     "includes": [
         "talltree.css",
-        "talltree.js",
-        "widetree.css",
-        "widetree.js",
-        "treesaver.js"
+        "talltree.js"
     ]
 }

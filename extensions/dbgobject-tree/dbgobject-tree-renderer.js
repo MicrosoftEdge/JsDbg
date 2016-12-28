@@ -43,7 +43,6 @@
     }
 
     TreeRenderer.prototype.createRoot = function(object) {
-        console.log("TreeRenderer.createRoot");
         var that = this;
         return this.previousReader.createRoot(object)
         .then(function (node) {
@@ -95,9 +94,6 @@
             }
 
             if (object instanceof DbgObject) {
-                if (!node.isDuplicate) {
-                    container.setAttribute("data-object-address", object.pointerValue().toString(16));
-                }
                 return container;
             } else {
                 return container;
@@ -105,12 +101,17 @@
         })
     }
 
+    TreeRenderer.prototype.getLastRepresentation = function(node) {
+        return node.lastRepresentation;
+    }
+
     function isVisible(node) {
         var rect = node.getBoundingClientRect();
-        var x = rect.left + 3;
-        var y = rect.top + 3;
-        var hit = document.elementFromPoint(x, y);
-        return (node == hit || node.contains(hit));
+        var x = rect.left;
+        var y = rect.top;
+        var method = (document.elementsFromPoint || document.msElementsFromPoint).bind(document);
+        var nodeList = method(x, y);
+        return nodeList != null && Array.from(nodeList).indexOf(node) >= 0;
     }
 
     TreeRenderer.prototype.emphasizeDbgObject = function(dbgObjectPtr, root) {

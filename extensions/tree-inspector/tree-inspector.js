@@ -5,14 +5,8 @@ var TreeInspector = (function() {
         return Loader.GetCurrentExtension() + "." + str;
     }
 
-    var TreeAlgorithms = { }
-    TreeAlgorithms[id("TallTree")] = TallTree;
-    TreeAlgorithms[id("WideTree")] = WideTree;
-
     function TreeInspectorUIController(getRoots, treeDefinition, dbgObjectRenderer, interpretAddress) {
         this.expandTreeAutomatically = (window.sessionStorage.getItem(id("FullyExpand")) !== "false");
-        var selectedTreeAlgorithm = (window.sessionStorage.getItem(id("TreeAlgorithm")));
-        this.treeAlgorithm = selectedTreeAlgorithm in TreeAlgorithms ? TreeAlgorithms[selectedTreeAlgorithm] : TallTree;
 
         this.refreshOnBreak = (window.sessionStorage.getItem(id("RefreshOnBreak")) === "true");
         this.notifyOnBreak = !this.refreshOnBreak;
@@ -30,7 +24,6 @@ var TreeInspector = (function() {
         this.treeContainer = null;
         this.fieldSupportContainer = null;
         this.treeRoot = null;
-        this.renderTreeRootPromise = null;
         this.lastRenderedPointer = null;
         this.currentRoots = [];
         this.fieldSupportController = null;
@@ -45,20 +38,6 @@ var TreeInspector = (function() {
     TreeInspectorUIController.prototype.setExpandTreeAutomatically = function (value) {
         this.expandTreeAutomatically = value;
         window.sessionStorage.setItem(id("FullyExpand"), value);
-    }
-
-    TreeInspectorUIController.prototype.setTreeAlgorithm = function(algorithmId) {
-        var newAlgorithm = TreeAlgorithms[algorithmId];
-        if (newAlgorithm == this.treeAlgorithm) {
-            return;
-        }
-
-        this.treeAlgorithm = newAlgorithm;
-        window.sessionStorage.setItem(id("TreeAlgorithm"), algorithmId);
-
-        if (this.treeRoot != null) {
-            this.renderTreeRootPromise = this.treeAlgorithm.BuildTree(this.treeContainer, this.treeReader, this.treeRoot, this.expandTreeAutomatically)
-        }
     }
 
     TreeInspectorUIController.prototype.setRefreshOnBreak = function(value) {
@@ -91,10 +70,9 @@ var TreeInspector = (function() {
                 window.name = Loader.GetCurrentExtension().toLowerCase() + "-" + that.treeReader.getObject(rootNode).ptr();
                 that.treeRoot = rootNode;
                 that.lastRenderedPointer = that.pointerField.value;
-                that.renderTreeRootPromise = that.treeAlgorithm.BuildTree(that.treeContainer, that.treeReader, that.treeRoot, that.expandTreeAutomatically)
-                return that.renderTreeRootPromise;
+                return that.enqueueWork(function() { return TallTree.BuildTree(that.treeContainer, that.treeReader, that.treeRoot, that.expandTreeAutomatically) })
             })
-            .then(function (renderRoot) {
+            .then(function () {
                 if (emphasisNodePtr != null) {
                     that.emphasizeNode(emphasisNodePtr, that.treeRoot, that.treeReader);
                 }
@@ -238,23 +216,10 @@ var TreeInspector = (function() {
             throw new Error("UI must be instantiated before the field controller.");
         }
 
-        var isRenderTreeUpdateQueued = false;
         var that = this;
-        this.fieldSupportController = FieldSelector.Create(this.fieldSupportContainer, function updateRenderTree() {
-            if (isRenderTreeUpdateQueued) {
-                return;
-            } else {
-                isRenderTreeUpdateQueued = true;
-            }
-
-            window.requestAnimationFrame(function() {
-                if (that.renderTreeRootPromise != null) {
-                    return that.renderTreeRootPromise
-                    .then(function(renderTreeRoot) {
-                        isRenderTreeUpdateQueued = false;
-                        return renderTreeRoot.updateRepresentation();
-                    });
-                }
+        this.fieldSupportController = FieldSelector.Create(this.fieldSupportContainer, function updateRenderTree(updatedDbgObjects) {
+            that.enqueueWork(function() {
+                return that.treeReader.updateFields(that.treeRoot, updatedDbgObjects);
             })
         });
 
@@ -310,67 +275,29 @@ var TreeInspector = (function() {
         var pointerInputControl = createElement("nobr");
         toolbar.appendChild(pointerInputControl);
 
-        pointerInputControl.appendChild(createElement("label",  "Pointer:", {"for": id("pointer")}));
+        pointerInputControl.appendChild(createElement("label",  "Address:", {"for": id("pointer")}));
         pointerInputControl.appendChild(ws());
 
+        var loadButton = createElement("button", "Load", null, {
+            "click": function() { that.saveHashAndQueueCreateAndRender(); }
+        });
         this.pointerField = createElement("input", null, {
             "type": "text", 
             "id": id("pointer")
+        }, {
+            "keypress": function (e) {
+                if (e.which == 13) {
+                    loadButton.click();
+                }
+            }
         });
         pointerInputControl.appendChild(this.pointerField);
 
         toolbar.appendChild(ws());
 
-        var loadSaveControl = createElement("nobr");
-        toolbar.appendChild(loadSaveControl);
-        loadSaveControl.appendChild(createElement("button", "Load", null, {
-            "click": function() { that.saveHashAndQueueCreateAndRender(); }
-        }));
-        loadSaveControl.appendChild(ws());
-        loadSaveControl.appendChild(createElement("button", "Save", null, {
-            "click": function() {
-                if (treeRoot != null) {
-                    TreeSaver.Save(treeReader, treeRoot);
-                }
-            }
-        }))
+        toolbar.appendChild(loadButton);
 
         toolbar.appendChild(ws());
-
-        var that = this;
-        var treeAlgorithmControl = createElement("nobr");
-        toolbar.appendChild(treeAlgorithmControl);
-        treeAlgorithmControl.appendChild(createElement("input", null, {
-            name: "treeAlgorithm",
-            id: id("TallTree"),
-            type: "radio",
-            checked: this.treeAlgorithm == TallTree ? "checked" : undefined
-        }, {
-            "change": function(e) {
-                if (e.target.checked) {
-                    that.setTreeAlgorithm(e.target.id);
-                }
-            }
-        }));
-        treeAlgorithmControl.appendChild(createElement("label", "Tall Tree", {
-            "for": id("TallTree")
-        }));
-
-        treeAlgorithmControl.appendChild(createElement("input", null, {
-            name: "treeAlgorithm",
-            id: id("WideTree"),
-            type: "radio",
-            checked: this.treeAlgorithm == WideTree ? "checked" : undefined
-        }, {
-            "change": function(e) {
-                if (e.target.checked) {
-                    that.setTreeAlgorithm(e.target.id);
-                }
-            }
-        }));
-        treeAlgorithmControl.appendChild(createElement("label", "Wide Tree", {
-            "for": id("WideTree")
-        }));
 
         toolbar.appendChild(ws());
         var expandTreeControl = createElement("nobr");
@@ -386,6 +313,8 @@ var TreeInspector = (function() {
                 that.setExpandTreeAutomatically(e.target.checked);
             }
         }));
+
+        var that = this;
         expandTreeControl.appendChild(createElement("label", "Expand Tree Automatically", {
             "for": id("FullyExpand")
         }));
@@ -458,7 +387,7 @@ var TreeInspector = (function() {
             var s = window.getSelection();
             var r = s.getRangeAt(0);
 
-            var t = that.treeAlgorithm.GetTreeRangeAsText(r);
+            var t = TallTree.GetTreeRangeAsText(r);
             if (t) {
                 event.clipboardData.setData("text/plain", t);
                 event.preventDefault();

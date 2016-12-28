@@ -74,13 +74,14 @@ var FieldSelector = (function() {
         this.activeFields = [];
         this.typeListContainer = document.createElement("div");
         this.updateTreeUI = updateTreeUI;
-        this.isUpdateQueued = false;
+        this.dbgObjectUpdaterWeakMap = new WeakMap();
+        this.updatedDbgObjects = [];
         this.checkedFields = new CheckedFields();
         this.checkedFields.deserialize();
 
         var that = this;
-        this.activeFieldGetterListener = function() {
-            that._queueUpdate();
+        this.activeFieldGetterListener = function(updatedDbgObject) {
+            that._queueUpdate(updatedDbgObject);
         };
 
         var isHidden = window.sessionStorage.getItem("FieldSelector-HideTypes") == "true";
@@ -248,29 +249,45 @@ var FieldSelector = (function() {
         })
     }
 
+    FieldSelectorController.prototype._getFieldListener = function(rootDbgObject) {
+        if (this.dbgObjectUpdaterWeakMap.has(rootDbgObject)) {
+            return this.dbgObjectUpdaterWeakMap.get(rootDbgObject);
+        } else {
+            var that = this;
+            var result = function() {
+                that._queueUpdate(rootDbgObject);
+            };
+            this.dbgObjectUpdaterWeakMap.set(rootDbgObject, result);
+            return result;
+        }
+    }
+
     FieldSelectorController.prototype._onFieldChange = function(rootDbgObject, field, enableFieldContext) {
         var that = this;
         if (field.isEnabled) {
             field.context.renderer = this._createRenderer(field);
             this.activeFields = this.activeFields.concat([new ActiveField(rootDbgObject, field.context.renderer)]);
+
+            var listener = this._getFieldListener(rootDbgObject);
             field.allGetters.forEach(function (getter) {
-                UserEditableFunctions.AddListener(getter, that.activeFieldGetterListener);
+                UserEditableFunctions.AddListener(getter, listener);
             });
             this.checkedFields.markEnabled(rootDbgObject.module, rootDbgObject.typeDescription(), field.path);
 
             // When we're explicitly enabling a field we don't need to queue an update
             // because the request came from adding the type.
             if (enableFieldContext !== true) {
-                this._queueUpdate();
+                this._queueUpdate(rootDbgObject);
             }
         } else if (field.context.renderer) {
             this.activeFields = this.activeFields.filter(function (af) { return af.renderer != field.context.renderer; });
             field.context.renderer = null;
+            var listener = this._getFieldListener(rootDbgObject);
             field.allGetters.forEach(function (getter) {
-                UserEditableFunctions.RemoveListener(getter, that.activeFieldGetterListener);
+                UserEditableFunctions.RemoveListener(getter, listener);
             });
             this.checkedFields.markDisabled(rootDbgObject.module, rootDbgObject.typeDescription(), field.path);
-            this._queueUpdate();
+            this._queueUpdate(rootDbgObject);
         }
     }
 
@@ -335,15 +352,18 @@ var FieldSelector = (function() {
         }
     }
 
-    FieldSelectorController.prototype._queueUpdate = function() {
-        if (this.isUpdateQueued) {
-            return;
+    FieldSelectorController.prototype._queueUpdate = function(updatedDbgObject) {
+        if (this.updatedDbgObjects.length > 0) {
+            var alreadyPresent = this.updatedDbgObjects.reduce(function (accumulator, currentValue) { return accumulator || updatedDbgObject == currentValue; }, false);
+            if (!alreadyPresent) {
+                this.updatedDbgObjects.push(updatedDbgObject);
+            }
         } else {
-            this.isUpdateQueued = true;
+            this.updatedDbgObjects.push(updatedDbgObject);
             var that = this;
             window.requestAnimationFrame(function() {
-                that.updateTreeUI();
-                that.isUpdateQueued = false;
+                that.updateTreeUI(that.updatedDbgObjects);
+                that.updatedDbgObjects = [];
             })
         }
     }
@@ -410,6 +430,40 @@ var FieldSelector = (function() {
 
     FieldTreeReader.prototype.getTreeRenderer = function() {
         return this.treeRenderer;
+    }
+
+    FieldTreeReader.prototype.updateFields = function(treeRoot, updatedDbgObjects) {
+        var dbgObject = this.getObject(treeRoot);
+        var that = this;
+        return Promise.as()
+        .then(function() {
+            if (dbgObject instanceof DbgObject) {
+                return Promise.join(updatedDbgObjects.map(function (updatedDbgObject) { return dbgObject.isType(updatedDbgObject.typename); }));
+            } else {
+                return [];
+            }
+        })
+        .then(function (requiresUpdateArray) {
+            var lastRepresentation = that.treeRenderer.getLastRepresentation(treeRoot);
+            if (lastRepresentation != null && document.documentElement.contains(lastRepresentation)) {
+                var requiresUpdate = requiresUpdateArray.reduce(function (accumulator, currentValue) { return accumulator || currentValue; }, false);
+                return Promise.as(null)
+                .then(function() {
+                    if (requiresUpdate) {
+                        return that.createRepresentation(treeRoot)
+                        .then(function (newRepresentation) {
+                            lastRepresentation.parentNode.replaceChild(newRepresentation, lastRepresentation);
+                        })
+                    }
+                })
+                .then(function() {
+                    return that.treeRenderer.getChildren(treeRoot)
+                })
+                .then(function (children) {
+                    return Promise.join(children.map(function (child) { return that.updateFields(child, updatedDbgObjects); }));
+                });
+            }
+        })
     }
 
     return {
