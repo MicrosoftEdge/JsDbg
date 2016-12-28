@@ -1,0 +1,6 @@
+{
+    "name": "dbgobject-profiler",
+    "headless": true,
+    "includes": ["profiler.js"],
+    "augments": ["dbgobject"]
+}
