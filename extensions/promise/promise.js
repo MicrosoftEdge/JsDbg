@@ -203,21 +203,106 @@ var Promise = (function() {
         }
     }
 
-    Promise.call = function(thisObject, method) {
-        if (typeof(method) != typeof(function() {})) {
-            throw new Error("Invalid method.");
-        }
-        var methodArguments = [];
-        for (var i = 2; i < arguments.length; ++i) {
-            methodArguments.push(arguments[i]);
-        };
+    var promisifiedMethodsByLength = [
+        function(method, check) {
+            return new Promise(function (success, error) {
+                return success(method());
+            }).then(check);
+        },
+        function(method, check) {
+            return function() {
+                return new Promise(function (success, error) {
+                    return method(success);
+                }).then(check);
+            }
+        },
+        function(method, check) {
+            return function(a1) {
+                return new Promise(function (success, error) {
+                    return method(a1, success);
+                }).then(check);
+            }
+        },
+        function(method, check) {
+            return function(a1, a2) {
+                return new Promise(function (success, error) {
+                    return method(a1, a2, success);
+                }).then(check);
+            }
+        },
+        function(method, check) {
+            return function(a1, a2, a3) {
+                return new Promise(function (success, error) {
+                    return method(a1, a2, a3, success);
+                }).then(check);
+            }
+        },
+        function(method, check) {
+            return function(a1, a2, a3, a4) {
+                return new Promise(function (success, error) {
+                    return method(a1, a2, a3, a4, success);
+                }).then(check);
+            }
+        },
+        function(method, check) {
+            return function(a1, a2, a3, a4, a5) {
+                return new Promise(function (success, error) {
+                    return method(a1, a2, a3, a4, a5, success);
+                }).then(check);
+            }
+        },
+        function(method, check) {
+            return function(a1, a2, a3, a4, a5, a6) {
+                return new Promise(function (success, error) {
+                    return method(a1, a2, a3, a4, a5, a6, success);
+                }).then(check);
+            }
+        },
+        function(method, check) {
+            return function(a1, a2, a3, a4, a5, a6, a7) {
+                return new Promise(function (success, error) {
+                    return method(a1, a2, a3, a4, a5, a6, a7, success);
+                }).then(check);
+            }
+        },
+        function(method, check) {
+            return function(a1, a2, a3, a4, a5, a6, a7, a8) {
+                return new Promise(function (success, error) {
+                    return method(a1, a2, a3, a4, a5, a6, a7, a8, success);
+                }).then(check);
+            }
+        },
+        function(method, check) {
+            return function(a1, a2, a3, a4, a5, a6, a7, a8, a9) {
+                return new Promise(function (success, error) {
+                    return method(a1, a2, a3, a4, a5, a6, a7, a8, a9, success);
+                }).then(check);
+            }
+        },
+        function(method, check) {
+            return function(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10) {
+                return new Promise(function (success, error) {
+                    return method(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, success);
+                }).then(check);
+            }
+        },
+    ]
 
-        return new Promise(function(success, error) {
-            methodArguments.push(function(result) {
-                success(result);
-            });
-            method.apply(thisObject, methodArguments)
+    Promise.promisify = function(module, check) {
+        var methodNames = Object.getOwnPropertyNames(module).filter(function (propertyName) {
+            return module[propertyName] instanceof Function && module[propertyName].length > 0;
+        });
+
+        var promisifiedModule = Object.create(module);
+        methodNames.forEach(function (methodName) {
+            var method = module[methodName];
+            if (method.length >= promisifiedMethodsByLength.length) {
+                throw new Error("Cannot promisify a method with length " + method.length);
+            }
+            promisifiedModule[methodName] = promisifiedMethodsByLength[method.length](method.bind(module), check);
         })
+
+        return promisifiedModule;
     }
 
     Promise.realize = function(promise) {

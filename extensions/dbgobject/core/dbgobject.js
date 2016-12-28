@@ -69,15 +69,15 @@ Loader.OnLoad(function() {
         }
     }
 
-    function jsDbgPromise(method) {
-        return Promise.call.apply(Promise, [JsDbg, method].concat(Array.from(arguments).slice(1)))
-        .then(function (result) { 
-            if (result.error) {
-                return Promise.fail(new Error(result.error));
-            }
-            return result; 
-        });
+    function checkJsDbgError(result) {
+        if (result.error) {
+            return Promise.fail(result.error);
+        } else {
+            return result;
+        }
     }
+    var JsDbgPromise = Promise.promisify(JsDbg, checkJsDbgError);
+    var MemoryCachePromise = Promise.promisify(MemoryCache, checkJsDbgError);
 
     var typeOverrides = {};
     DbgObject._help_AddTypeOverride = {
@@ -143,7 +143,7 @@ Loader.OnLoad(function() {
     }
     DbgObject.global = function(module, symbol) {
         return new PromisedDbgObject(
-            jsDbgPromise(JsDbg.LookupGlobalSymbol, module, symbol)
+            JsDbgPromise.LookupGlobalSymbol(module, symbol)
             .then(function(result) {
                 return new DbgObject(result.module, result.type, result.pointer);
             })
@@ -161,11 +161,11 @@ Loader.OnLoad(function() {
     }
     DbgObject.locals = function(module, method, symbolName) {
         return new PromisedDbgObject.Array(
-            jsDbgPromise(JsDbg.GetCallStack, /*maxCount*/-1)
+            JsDbgPromise.GetCallStack(/*maxCount*/-1)
             .then(function(stackFrames) {
                 // Filter the stack frames to only those that match the given method name.
                 return Promise.filter(stackFrames, function (frame) {
-                    return jsDbgPromise(JsDbg.LookupSymbolName, frame.instructionAddress)
+                    return JsDbgPromise.LookupSymbolName(frame.instructionAddress)
                     .then(function (symbol) {
                         return (
                             DbgObject.NormalizeModule(symbol.module) == DbgObject.NormalizeModule(module) &&
@@ -177,7 +177,7 @@ Loader.OnLoad(function() {
                 .then(function (filteredStackFrames) {
                     // Now get the local symbols for each of the stack frames.
                     return Promise.map(filteredStackFrames, function (frame) {
-                        return jsDbgPromise(JsDbg.LookupLocalsInStackFrame, frame.instructionAddress, frame.stackAddress, frame.frameAddress)
+                        return JsDbgPromise.LookupLocalsInStackFrame(frame.instructionAddress, frame.stackAddress, frame.frameAddress)
                         .then(function (symbols) {
                             // Limit the symbols only to those that match the given name.
                             return symbols.filter(function (symbol) { return symbol.name == symbolName; })
@@ -204,7 +204,7 @@ Loader.OnLoad(function() {
         ]
     }
     DbgObject.symbol = function(address) {
-        return jsDbgPromise(JsDbg.LookupSymbolName, address)
+        return JsDbgPromise.LookupSymbolName(address)
         .then(function (result) {
             if (result.displacement == 0) {
                 return result.name;
@@ -224,7 +224,7 @@ Loader.OnLoad(function() {
         ]
     }
     DbgObject.constantValue = function(module, type, constantName) {
-        return jsDbgPromise(JsDbg.LookupConstantValue, module, type, constantName)
+        return JsDbgPromise.LookupConstantValue(module, type, constantName)
         .then(function (result) {
             return result.value;
         });
@@ -295,7 +295,7 @@ Loader.OnLoad(function() {
         } else if (this == DbgObject.NULL) {
             return Promise.as(0);
         } else {
-            return jsDbgPromise(JsDbg.LookupTypeSize, this.module, this.typename).then(function(result) {
+            return JsDbgPromise.LookupTypeSize(this.module, this.typename).then(function(result) {
                 return result.size;
             });
         }
@@ -440,7 +440,7 @@ Loader.OnLoad(function() {
         }
 
         var that = this;
-        return jsDbgPromise(JsDbg.LookupFieldOffset, that.module, that.typename, field)
+        return JsDbgPromise.LookupFieldOffset(that.module, that.typename, field)
         .then(function(result) {
             var target = new DbgObject(
                 that.module, 
@@ -480,7 +480,7 @@ Loader.OnLoad(function() {
             return new PromisedDbgObject(DbgObject.NULL);
         }
         var that = this;
-        return jsDbgPromise(JsDbg.LookupFieldOffset, that.module, type, field)
+        return JsDbgPromise.LookupFieldOffset(that.module, type, field)
         .then(function(result) { 
             return new DbgObject(that.module, type, that.isNull() ? 0 : that._pointer.add(-result.offset)); 
         });
@@ -620,7 +620,7 @@ Loader.OnLoad(function() {
             }
             return Promise.as(arrayCount)
             .then(function (arrayCount) {
-                return jsDbgPromise(MemoryCache.ReadArray, that._pointer.value(), structSize, unsigned, that._isFloat(), arrayCount);
+                return MemoryCachePromise.ReadArray(that._pointer.value(), structSize, unsigned, that._isFloat(), arrayCount);
             })
         })
 
@@ -675,7 +675,7 @@ Loader.OnLoad(function() {
             }
 
             // Read the current value first.  If it's not different, don't go through with the write.
-            return jsDbgPromise(MemoryCache.ReadNumber, that._pointer.value(), structSize, unsigned, that._isFloat())
+            return MemoryCachePromise.ReadNumber(that._pointer.value(), structSize, unsigned, that._isFloat())
             .then(function (currentValue) {
                 // If we're a bit field, compute the full value to write.
                 if (that.bitcount && that.bitoffset !== undefined && !that._isFloat()) {
@@ -708,7 +708,7 @@ Loader.OnLoad(function() {
             })
             .then(function (valueToWrite) {
                 if (valueToWrite != null) {
-                    return jsDbgPromise(JsDbg.WriteNumber, that._pointer.value(), structSize, unsigned, that._isFloat(), valueToWrite);
+                    return JsDbgPromise.WriteNumber(that._pointer.value(), structSize, unsigned, that._isFloat(), valueToWrite);
                 }
             })
             .then(function () {
@@ -774,7 +774,7 @@ Loader.OnLoad(function() {
         returns: "A promise to a bool."
     }
     DbgObject.prototype.isEnum = function() {
-        return jsDbgPromise(JsDbg.IsTypeEnum, this.module, this.typename)
+        return JsDbgPromise.IsTypeEnum(this.module, this.typename)
         .then(function (result) { return result.isEnum; })
     }
 
@@ -791,7 +791,7 @@ Loader.OnLoad(function() {
         return this.ubigval()
         // Lookup the constant name...
         .then(function(value) { 
-            return jsDbgPromise(JsDbg.LookupConstantName, that.module, that.typename, value); })
+            return JsDbgPromise.LookupConstantName(that.module, that.typename, value); })
 
         // And return it.
         .then(function(result) { return result.name; })
@@ -1000,7 +1000,7 @@ Loader.OnLoad(function() {
             }
 
             // Lookup the base class offset...
-            return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, vtableType)
+            return JsDbgPromise.LookupBaseTypes(that.module, vtableType)
 
             // And shift/cast.
             .then(function(baseTypes) {
@@ -1011,7 +1011,7 @@ Loader.OnLoad(function() {
                 }
 
                 // Maybe the vtable type is a base type of the original...
-                return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, that.typename)
+                return JsDbgPromise.LookupBaseTypes(that.module, that.typename)
                 .then(function(originalBaseTypes) {
                     for (var i = 0; i < originalBaseTypes.length; ++i) {
                         if (originalBaseTypes[i].type == vtableType) {
@@ -1085,7 +1085,7 @@ Loader.OnLoad(function() {
         }
 
         var that = this;
-        return jsDbgPromise(JsDbg.LookupBaseTypes, that.module, that.typename)
+        return JsDbgPromise.LookupBaseTypes(that.module, that.typename)
         .then(function (baseTypes) {
             // Put base types with greater offsets earlier so that the order proxies the order of fields.
             // So,
@@ -1129,7 +1129,7 @@ Loader.OnLoad(function() {
 
         var that = this;
         // Lookup the fields...
-        return jsDbgPromise(JsDbg.LookupFields, this.module, this.typename, includeBaseTypes)
+        return JsDbgPromise.LookupFields(this.module, this.typename, includeBaseTypes)
 
         // Sort them by offset and massage the output.
         .then(function(result) {
