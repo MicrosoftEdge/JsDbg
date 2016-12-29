@@ -19,7 +19,7 @@ Loader.OnLoad(function() {
             .then(function (cdocs) {
                 // In addition to CDocs with viewboxes, we also want each of the non-primary boxes.
                 return Promise.map(cdocs, function (doc) {
-                    return doc.f("_view._pFlow").currentPatch().f("data.boxReference.m_pT")
+                    return doc.f("_view._pFlow").f("data.boxReference.m_pT")
                     .then(function (viewBox) {
                         return Promise.filter(doc.F("PrimaryMarkup.Root").array("LayoutBoxes"), function (box) { return !box.equals(viewBox); })
                         .then(function (nonViewBoxes) {
@@ -68,8 +68,7 @@ Loader.OnLoad(function() {
 
     function collectChildrenInFlow(flow) {
         return flow
-        .currentPatch()
-        .list(function (flowItem) { return flowItem.f("data.next").currentPatch(); })
+        .list("data.next")
             .f("data.boxReference.m_pT")
             .vcast();
     }
@@ -79,7 +78,7 @@ Loader.OnLoad(function() {
         .vcast()
         .map(function (listItem) {
             if (listItem.typeDescription() == "Layout::PositionedBoxItem") {
-                return listItem.f("boxItem", "flowItem").currentPatch().f("data.boxReference.m_pT").vcast();
+                return listItem.f("boxItem", "flowItem").f("data.boxReference.m_pT").vcast();
             } else if (listItem.typeDescription() == "Layout::PositionedInlineLayoutItem") {
                 return listItem.f("inlineLayoutReference.m_pT");
             } else {
@@ -147,7 +146,7 @@ Loader.OnLoad(function() {
     })
 
     BoxTree.Tree.addChildren(MSHTML.Module, "CView", function (object) {
-        return object.f("_pFlow").currentPatch().f("data.boxReference.m_pT").vcast();
+        return object.f("_pFlow").f("data.boxReference.m_pT").vcast();
     })
     
     // Define the BoxTree linkage.
@@ -175,7 +174,6 @@ Loader.OnLoad(function() {
         // Collect floaters.
         return object.f("geometry").f("m_pT", "").array("Items")
             .f("floaterBoxReference.m_pT")
-            .currentPatch()
             .f("data.BoxReference.m_pT")
             .vcast();
     });
@@ -195,7 +193,7 @@ Loader.OnLoad(function() {
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::TableGridBox", function (object) {
         return object.f("firstRowLayout.m_pT")
         .list("nextRowLayout.m_pT")
-            .f("Columns.m_pT").currentPatch()
+            .f("Columns.m_pT")
         .map(function(columns) {
             return columns.array("Items")
                 .f("cellBoxReference.m_pT").vcast()
@@ -206,14 +204,14 @@ Loader.OnLoad(function() {
     });
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::GridBox", function (object) {
-        return object.f("Items.m_pT").currentPatch().array("Items").f("BoxReference.m_pT").vcast()
+        return object.f("Items.m_pT").array("Items").f("BoxReference.m_pT").vcast()
     });
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::FlexBox", function (object) {
         return object.f("items", "flow")
         .then(function (items) {
             if (items.typeDescription().indexOf("FlexBoxItemArray") != -1) {
-                return items.f("m_pT").currentPatch().array("Items").f("BoxReference.m_pT").vcast();
+                return items.f("m_pT").array("Items").f("BoxReference.m_pT").vcast();
             } else if (items.typeDescription() == "Layout::BoxItem") {
                 return collectChildrenInFlow(items);
             } else if (items.typeDescription() == "SArray<Layout::FlexBox::SFlexBoxItem>") {
@@ -225,7 +223,7 @@ Loader.OnLoad(function() {
     });
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::MultiColumnBox", function (object) {
-        return object.f("items.m_pT").currentPatch().array("Items").f("BoxReference.m_pT").vcast();
+        return object.f("items.m_pT").array("Items").f("BoxReference.m_pT").vcast();
     });
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::LineBox", function(object) {
@@ -262,11 +260,11 @@ Loader.OnLoad(function() {
     });
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::SvgCssContainerBox", function (object) {
-        return collectChildrenInFlow(object.f("firstSvgItem", "firstChildItem"));
+        return collectChildrenInFlow(object.f("firstChildItem", "firstSvgItem"));
     });
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::SvgContainerBox", function (object) {
-        return collectChildrenInFlow(object.f("firstSvgItem", "firstChildItem"));
+        return collectChildrenInFlow(object.f("firstChildItem", "firstSvgItem"));
     });
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::SvgTextBox", function (object) {
@@ -324,9 +322,8 @@ Loader.OnLoad(function() {
         return Promise.join(
             [containerBox.f("isDisplayNodeExtracted").val(), containerBox.f("rawDisplayNode")],
             function (isDisplayNodeExtracted, displayNode) {
-                // If there's a non-UI thread patch version chosen, ignore isDisplayNodeExtracted.
-                if (MSHTML.GetCurrentPatchVersion() != Infinity || !isDisplayNodeExtracted) {
-                    return displayNode.currentPatch();
+                if (!isDisplayNodeExtracted) {
+                    return displayNode;
                 } else {
                     return new DbgObject(MSHTML.Module, "CDispNode", 0);
                 }
@@ -345,8 +342,8 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddArrayField(MSHTML.Module, "Layout::BoxItem", "Items", "Layout::BoxItemDataMembers", UserEditableFunctions.Create(function (flowItem) {
-        return flowItem.currentPatch().f("data").list(function (current) {
-            return current.f("next").currentPatch().f("data");
+        return flowItem.f("data").list(function (current) {
+            return current.f("next").f("data");
         })
     }));
 

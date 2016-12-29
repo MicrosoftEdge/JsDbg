@@ -429,7 +429,7 @@ var TreeInspector = (function() {
 
             uiController.instantiateFieldController(defaultTypes)
             .then(function () {
-                uiController.refresh();
+                window.requestAnimationFrame(function() { uiController.refresh(); });
             })
 
             return function() {

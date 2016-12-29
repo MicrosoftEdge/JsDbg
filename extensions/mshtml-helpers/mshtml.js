@@ -584,16 +584,32 @@ var MSHTML = undefined;
             }
             this.version = savedVersion;
             this.updateUIWidgets = function() {};
+            this.weakMap = new WeakMap();
+            JsDbg.RegisterOnBreakListener(this.invalidateCache.bind(this));
         }
         PatchManager.prototype.sessionStorageKey = "MSHTML-PatchManager-Version";
+
         PatchManager.prototype.getCurrentVersion = function (patchableObjectPromise) {
+            var that = this;
+            return Promise.as(patchableObjectPromise)
+            .then(function (patchableObject) {
+                var result = that.weakMap.get(patchableObject);
+                if (!result) {
+                    result = that.getCurrentVersionHelper(patchableObject);
+                    that.weakMap.set(patchableObject, result);
+                }
+                return result;
+            })
+        }
+
+        PatchManager.prototype.getCurrentVersionHelper = function (patchableObject) {
             function findMatchingPatch(patchPromise, versionToFind) {
                 return Promise.as(patchPromise)
                 .then(function (patch) {
-                    return patch.f("_iVersion").val()
+                    return patch.field("_iVersion").val()
                     .then(function (version) {
                         if (version > versionToFind) {
-                            return findMatchingPatch(patch.f("_pNextPatch"));
+                            return findMatchingPatch(patch.field("_pNextPatch").deref());
                         } else {
                             return {
                                 patch: patch,
@@ -603,34 +619,38 @@ var MSHTML = undefined;
                     })
                 })
             }
-            
-            var that = this;
-            return new PromisedDbgObject(
-                Promise.as(patchableObjectPromise)
-                .then(function (patchableObject) {
-                    return Promise.join(
-                    [patchableObject.f("_iVersion").val(), findMatchingPatch(patchableObject.f("_pNextPatch"), that.version)],
-                    function (objectVersion, matchingPatchAndVersion) {
-                        var matchingPatch = matchingPatchAndVersion.patch;
-                        var matchingVersion = matchingPatchAndVersion.version;
-                        // If there is no matching patch, or the given object was actually a patch and is a better match
-                        // than the best patch, use the original object.  This means that getCurrentVersion can be called
-                        // multiple times without effect as long as the initial object was not already an earlier patch
-                        // the current version.
-                        if (matchingPatch.isNull() || (objectVersion > matchingVersion && that.version >= objectVersion)) {
-                            return patchableObject;
-                        } else {
-                            return matchingPatch.as(patchableObject.typename)
-                        }
-                    });
-                })
+
+            return Promise.join([
+                    patchableObject.field("_iVersion").val(),
+                    findMatchingPatch(patchableObject.field("_pNextPatch").deref(), this.version)
+                ],
+                function (objectVersion, matchingPatchAndVersion) {
+                    var matchingPatch = matchingPatchAndVersion.patch;
+                    var matchingVersion = matchingPatchAndVersion.version;
+                    // If there is no matching patch, or the given object was actually a patch and is a better match
+                    // than the best patch, use the original object.  This means that getCurrentVersion can be called
+                    // multiple times without effect as long as the initial object was not already an earlier patch
+                    // the current version.
+                    if (matchingPatch.isNull() || (objectVersion > matchingVersion && that.version >= objectVersion)) {
+                        return patchableObject;
+                    } else {
+                        return matchingPatch.as(patchableObject.typename)
+                    }
+                }
             );
         }
         PatchManager.prototype.setVersion = function (newVersion) {
             newVersion = this.parseVersion(newVersion);
             this.version = newVersion;
+            if (this.version != newVersion) {
+                this.invalidateCache();
+            }
             window.sessionStorage.setItem(this.sessionStorageKey, newVersion.toString());
             this.updateUIWidgets();
+        }
+
+        PatchManager.prototype.invalidateCache = function() {
+            this.weakMap = new WeakMap();
         }
 
         PatchManager.prototype.parseVersion = function (version) {
@@ -687,17 +707,27 @@ var MSHTML = undefined;
             return select;
         }
 
-        var patchManager = new PatchManager();
-
-        // Extend DbgObject to ease navigation of patchable objects.
-        DbgObject.prototype._help_currentPatch = {
-            description: "(injected by MSHTML) Gets the current version's patch from a CPatchableObject, casted back to the original type.",
-            returns: "(A promise to) a DbgObject"
-        },
-        DbgObject.prototype.currentPatch = function() {
-            return patchManager.getCurrentVersion(this)
+        var patchManager = null;
+        function ensurePatchManager() {
+            if (patchManager == null) {
+                patchManager = new PatchManager();
+                DbgObject.RegisterFHandler(function (dbgObject, path, next) {
+                    return dbgObject.isType("CPatchableObject")
+                    .then(function (isPatchableObject) {
+                        return dbgObject;
+                        if (isPatchableObject) {
+                            return patchManager.getCurrentVersion(dbgObject);
+                        } else {
+                            return dbgObject;
+                        }
+                    })
+                    .then(function (dbgObjectToUse) {
+                        return next(dbgObjectToUse, path);
+                    })
+                })
+            }
+            return patchManager;
         }
-        PromisedDbgObject.IncludePromisedMethod("currentPatch", PromisedDbgObject);
 
         // Provide additional type info on some fields.
         DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bVisibility", "styleVisibility");
@@ -1461,27 +1491,13 @@ var MSHTML = undefined;
             },
             GetElementLookasidePointer: GetElementLookasidePointer,
 
-            _help_GetCurrentPatchVersion: {
-                description: "Gets the current patch version used by DbgObject.currentPatch().",
-                returns: "A number indicating the current version."
-            },
-            GetCurrentPatchVersion: function (version) { return patchManager.version; },
-
-            _help_SetCurrentPatchVersion: {
-                description: "Sets the current patch version used by DbgObject.currentPatch().",
-                arguments: [
-                    {name:"version", type:"Number", description:"The patch version to use. Use '0' or 'Infinity' for the render or UI threads, respectively."}
-                ]
-            },
-            SetCurrentPatchVersion: function (version) { patchManager.setVersion(version); },
-
             _help_CreatePatchVersionControl: {
                 description: "Creates a UI control that allows the user to select the patch version to use.",
                 arguments: [
                     {name:"onChange", type:"function", description:"A function that is called when the version is changed."}
                 ]
             },
-            CreatePatchVersionControl: function (onChange) { return patchManager.createUIWidget(onChange); },
+            CreatePatchVersionControl: function (onChange) { return ensurePatchManager().createUIWidget(onChange); },
 
             RegisterDispId: registerDispId,
             GetDispIdNames: function(value) {

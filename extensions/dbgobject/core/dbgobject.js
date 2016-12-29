@@ -389,60 +389,74 @@ Loader.OnLoad(function() {
         ]
     }
     DbgObject.prototype.f = function(field) {
-        if (arguments.length < 0) {
-            throw new Error("You must provide a field.");
-        } else if (this == DbgObject.NULL) {
-            return new PromisedDbgObject(DbgObject.NULL);
-        } else if (arguments.length == 1) {
-            return this._fHelper(field);
-        } else {
-            var rest = [];
-            for (var i = 1; i < arguments.length; ++i) {
-                rest.push(arguments[i]);
-            }
+        if (this == DbgObject.NULL) {
+            return Promise.as(DbgObject.NULL);
+        }
+
+        if (arguments.length > 1) {
+            var args = Array.from(arguments);
             var that = this;
-            return this._fHelper(field)
-            .then(null, function(err) {
-                return that.f.apply(that, rest);
+            return this.f(field)
+            .catch(function (err) {
+                return that.f.apply(that, args.slice(1));
             });
         }
-    }
 
-    DbgObject.prototype._fHelper = function(field) {
+        if (arguments.length == 0) {
+            throw new Error("You must provide a field.");
+        }
+
+        var firstPart = field.indexOf(".");
+        if (firstPart >= 0) {
+            // Multiple fields were specified.
+            return this.f(field.substr(0, firstPart))
+            .then(function (result) {
+                return result.f(field.substr(firstPart + 1));
+            })
+        }
+
         if (field == "") {
             return Promise.as(this);
         }
 
-        var parts = field.split(".");
-        if (parts.length > 1) {
-            // multiple fields were specified
-            var current = this;
-            for (var i = 0; i < parts.length; ++i) {
-                current = current.f(parts[i]);
+        function callHandler(index, dbgObject, path) {
+            return fHandlers[index](dbgObject, path, (index + 1 < fHandlers.length ? callHandler.bind(null, index + 1) : null));
+        }
+
+        return callHandler(0, this, field);
+    }
+
+    var fHandlers = [];
+    DbgObject.RegisterFHandler = function(handler) {
+        fHandlers.unshift(handler);
+    }
+
+    // The default f handler gets the field and dereferences it automatically.
+    DbgObject.RegisterFHandler(function (dbgObject, path, next) {
+        return dbgObject.field(path)
+        .then(function (field) {
+            // Objects that are pointers and arrays are really arrays of pointers, so don't dereference them.
+            if (field._isPointer() && !field._isArray) {
+                return field.deref();
+            } else {
+                return field;
             }
-            return current;
-        }
+        })
+    });
 
-        var arrayIndexRegex = /\[[0-9]+\]$/;
-        var indexMatches = field.match(arrayIndexRegex);
-        var index = 0;
-        if (indexMatches) {
-            index = parseInt(indexMatches[0].substr(1, indexMatches[0].length - 2));
-        }
-        field = field.replace(arrayIndexRegex, '');
-
+    DbgObject.prototype.field = function(field) {
         if (this._isPointer()) {
             throw new Error("You cannot do a field lookup on a pointer.");
         } else if (this._isArray) {
             throw new Error("You cannot get a field from an array.");
         } else if (this == DbgObject.NULL) {
-            return new PromisedDbgObject(DbgObject.NULL);
+            return Promise.as(DbgObject.NULL);
         }
 
         var that = this;
         return JsDbgPromise.LookupFieldOffset(that.module, that.typename, field)
         .then(function(result) {
-            var target = new DbgObject(
+            return new DbgObject(
                 that.module, 
                 getFieldType(that.module, that.typename, field, result.type), 
                 that.isNull() ? 0 : that._pointer.add(result.offset),
@@ -450,21 +464,7 @@ Loader.OnLoad(function() {
                 result.bitoffset, 
                 result.size
             );
-
-            if (indexMatches) {
-                // We want to do an index on top of this; this will make "target" a promised DbgObject.
-                target = target.idx(index);
-            }
-            return target;
-        })
-        .then(function(target) {
-            // Objects that are pointers and arrays are really arrays of pointers, so don't dereference them.
-            if (target._isPointer() && !target._isArray) {
-                return target.deref();
-            } else {
-                return target;
-            }
-        })
+        });
     }
 
     DbgObject.prototype._help_unembed = {
@@ -1060,6 +1060,10 @@ Loader.OnLoad(function() {
             {name: "type", type: "string", description: "The type to compare."}
         ]
     }
+
+    var isTypeCache = new Map();
+    JsDbg.RegisterOnBreakListener(function() { isTypeCache = new Map(); })
+
     DbgObject.prototype.isType = function(type) {
         type = cleanupTypeName(type);
         if (this == DbgObject.NULL) {
@@ -1067,11 +1071,17 @@ Loader.OnLoad(function() {
         } else if (this.typeDescription() == type) {
             return Promise.as(true);
         } else {
-            return this.baseTypes()
-            .then(function (baseTypes) {
-                var matchingBaseTypes = baseTypes.filter(function (baseType) { return baseType.typeDescription() == type; });
-                return (matchingBaseTypes.length > 0);
-            })
+            var key = this.module + "!" + this.typename + ":" + type;
+            var result = isTypeCache.get(key);
+            if (!result) {
+                result = this.baseTypes().then(function (baseTypes) {
+                    var matchingBaseTypes = baseTypes.filter(function (baseType) { return baseType.typeDescription() == type; });
+                    return (matchingBaseTypes.length > 0);
+                });
+
+                isTypeCache.set(key, result);
+            }
+            return result;
         }
     }
 

@@ -7,6 +7,7 @@ var PromisedDbgObject = undefined;
 Loader.OnLoad(function() {
     PromisedDbgObject = Promise.CreatePromisedType(DbgObject);
     PromisedDbgObject.IncludePromisedMethod("f", PromisedDbgObject);
+    PromisedDbgObject.IncludePromisedMethod("field", PromisedDbgObject);
     PromisedDbgObject.IncludePromisedMethod("F", PromisedDbgObject);
     PromisedDbgObject.IncludePromisedMethod("as", PromisedDbgObject); 
     PromisedDbgObject.IncludePromisedMethod("deref", PromisedDbgObject); 

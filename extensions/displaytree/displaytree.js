@@ -60,15 +60,11 @@ Loader.OnLoad(function() {
     })
 
     DisplayTree.Tree.addChildren(MSHTML.Module, "CView", function (view) {
-        return view.f("_pDispRoot").currentPatch();
+        return view.f("_pDispRoot");
     });
 
     DisplayTree.Tree.addChildren(MSHTML.Module, "CDispParentNode", function (dispParentNode) {
-        return dispParentNode.f("_pFirstChild").currentPatch()
-        .list(function (current) {
-            return current.f("_pNext").currentPatch();
-        })
-        .vcast();
+        return dispParentNode.f("_pFirstChild").list("_pNext").vcast();
     });
 
     // Add DbgObject actions for links to the display tree.

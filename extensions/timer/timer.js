@@ -7,7 +7,7 @@
 
 var Timer = (function() {
     function Timer() {
-        this.start = new Date();
+        this.start = performance.now();
     }
     Timer._help = {
         name: "Timer",
@@ -37,7 +37,7 @@ var Timer = (function() {
         returns: "A number."
     }
     Timer.prototype.Elapsed = function() {
-        var end = new Date();
+        var end = performance.now();
         var result = end - this.start;
         return Math.round(result / 10) / 100;
     }
