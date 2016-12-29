@@ -187,7 +187,7 @@ var Help = (function() {
                 return fieldDiv;
             }
 
-            var isType = typeof(object) == typeof(function() { });
+            var isType = typeof(object) == "function";
             var helpDiv = createElement(document, "div", null, {"class": "help-div"});
 
             if (object._help) {

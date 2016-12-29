@@ -71,7 +71,7 @@ Loader.OnLoad(function() {
 
     function checkJsDbgError(result) {
         if (result.error) {
-            return Promise.fail(result.error);
+            return Promise.reject(result.error);
         } else {
             return result;
         }
@@ -240,7 +240,7 @@ Loader.OnLoad(function() {
         returns: "A promise to a bool indicating if anything other than a null DbgObject was rendered."
     }
     DbgObject.render = function(object, element, dbgObjectMapping, topLevelElement) {
-        return Promise.as(object)
+        return Promise.resolve(object)
         .then(function (object) {
             if (Array.isArray(object)) {
                 element.appendChild(document.createTextNode("["));
@@ -291,9 +291,9 @@ Loader.OnLoad(function() {
 
     DbgObject.prototype._getStructSize = function() {
         if (this.structSize !== undefined) {
-            return Promise.as(this.structSize);
+            return Promise.resolve(this.structSize);
         } else if (this == DbgObject.NULL) {
-            return Promise.as(0);
+            return Promise.resolve(0);
         } else {
             return JsDbgPromise.LookupTypeSize(this.module, this.typename).then(function(result) {
                 return result.size;
@@ -390,7 +390,7 @@ Loader.OnLoad(function() {
     }
     DbgObject.prototype.f = function(field) {
         if (this == DbgObject.NULL) {
-            return Promise.as(DbgObject.NULL);
+            return Promise.resolve(DbgObject.NULL);
         }
 
         if (arguments.length > 1) {
@@ -416,7 +416,7 @@ Loader.OnLoad(function() {
         }
 
         if (field == "") {
-            return Promise.as(this);
+            return Promise.resolve(this);
         }
 
         function callHandler(index, dbgObject, path) {
@@ -450,7 +450,7 @@ Loader.OnLoad(function() {
         } else if (this._isArray) {
             throw new Error("You cannot get a field from an array.");
         } else if (this == DbgObject.NULL) {
-            return Promise.as(DbgObject.NULL);
+            return Promise.resolve(DbgObject.NULL);
         }
 
         var that = this;
@@ -512,14 +512,11 @@ Loader.OnLoad(function() {
     }
     DbgObject.prototype.idx = function(index) {
         var that = this;
-        // index might be a promise...
-        return Promise.as(index)
-
-        // Get the struct size...
-        .then(function(index) { return Promise.join([that._getStructSize(), index]); })
-
-        // And offset the struct.
-        .then(function(args) { return that._off(args[0] * args[1]); });
+        // index might be a promise, so resolve it and get the struct size.
+        return Promise.all([this._getStructSize(), index])
+        .thenAll(function (structSize, index) {
+            return that._off(structSize * index);
+        })
     }
 
     DbgObject.prototype._help_val = {
@@ -584,15 +581,15 @@ Loader.OnLoad(function() {
     DbgObject.prototype._val = function(unsigned, useBigInt, isCountSpecified, count) {
         if (this.isNull()) {
             if (isCountSpecified) {
-                return Promise.as([]);
+                return Promise.resolve([]);
             } else {
-                return Promise.as(null);
+                return Promise.resolve(null);
             }
         }
 
         if (this.typename == "void") {
             if (!isCountSpecified) {
-                return Promise.as(this._pointer);
+                return Promise.resolve(this._pointer);
             } else {
                 throw new Error("You may not retrieve multiple values from a 'void' object.");
             }
@@ -609,16 +606,14 @@ Loader.OnLoad(function() {
         var that = this;
 
         // Lookup the structure size...
-        return Promise.join([this._getStructSize(), isCountSpecified ? count : 1])
+        return Promise.all([this._getStructSize(), isCountSpecified ? count : 1])
 
         // Get the array of values.
-        .then(function(structSizeAndArrayCount) {
-            var structSize = structSizeAndArrayCount[0];
-            var arrayCount = structSizeAndArrayCount[1];
+        .thenAll(function(structSize, arrayCount) {
             if (arrayCount instanceof DbgObject) {
                 arrayCount = arrayCount.val();
             }
-            return Promise.as(arrayCount)
+            return Promise.resolve(arrayCount)
             .then(function (arrayCount) {
                 return MemoryCachePromise.ReadArray(that._pointer.value(), structSize, unsigned, that._isFloat(), arrayCount);
             })
@@ -660,7 +655,7 @@ Loader.OnLoad(function() {
         }
 
         if (this.isNull()) {
-            return Promise.as(null);
+            return Promise.resolve(null);
         }
 
         if (this.typename == "void") {
@@ -757,7 +752,7 @@ Loader.OnLoad(function() {
     
     DbgObject.prototype.isTypeWithFields = function() {
         var that = this;
-        return Promise.as(null)
+        return Promise.resolve(null)
         .then(function () {
             if (that.isScalarType()) {
                 return false;
@@ -784,7 +779,7 @@ Loader.OnLoad(function() {
     }
     DbgObject.prototype.constant = function() {
         if (this.isNull()) {
-            return Promise.as(null);
+            return Promise.resolve(null);
         }
 
         var that = this;
@@ -805,9 +800,9 @@ Loader.OnLoad(function() {
         ]
     }
     DbgObject.prototype.hasConstantFlag = function(flag) {
-        return Promise.join([this.bigval(), DbgObject.constantValue(this.module, this.typename, flag)])
-        .then(function (valueAndFlag) {
-            return valueAndFlag[0].and(valueAndFlag[1]).equals(valueAndFlag[1]);
+        return Promise.all([this.bigval(), DbgObject.constantValue(this.module, this.typename, flag)])
+        .thenAll(function (value, flag) {
+            return value.and(flag).equals(flag);
         })
     }
 
@@ -822,7 +817,7 @@ Loader.OnLoad(function() {
     }
     DbgObject.prototype.list = function(fieldOrFunction, lastNodePromise, remainingLength) {
         var firstNode = this;
-        return Promise.as(lastNodePromise)
+        return Promise.resolve(lastNodePromise)
         .then(function (lastNode) {
             var stoppingNode = lastNode ? lastNode : firstNode;
             var isFirstNode = lastNode ? false : true;
@@ -842,11 +837,11 @@ Loader.OnLoad(function() {
                 } else if (typeof(fieldOrFunction) == typeof("")) {
                     return node.f(fieldOrFunction).then(collectRemainingNodes);
                 } else if (typeof(fieldOrFunction) == typeof(collectRemainingNodes)) {
-                    return Promise.as(fieldOrFunction(node)).then(collectRemainingNodes);
+                    return Promise.resolve(fieldOrFunction(node)).then(collectRemainingNodes);
                 }
             }
 
-            return Promise.as(collectRemainingNodes(firstNode));
+            return Promise.resolve(collectRemainingNodes(firstNode));
         })
     }
 
@@ -863,7 +858,7 @@ Loader.OnLoad(function() {
             return "???";
         }
 
-        return Promise.as(length)
+        return Promise.resolve(length)
         .then(function (length) {
             if (length === undefined) {
                 // Using a null-terminated string.
@@ -964,7 +959,7 @@ Loader.OnLoad(function() {
     }
     DbgObject.prototype.vtable = function() {
         if (this.isNull()) {
-            return Promise.as(this.typename);
+            return Promise.resolve(this.typename);
         }
 
         // Read the value at the this pointer...
@@ -988,7 +983,7 @@ Loader.OnLoad(function() {
     }
     DbgObject.prototype.vcast = function() {
         if (this.isNull()) {
-            return Promise.as(this);
+            return Promise.resolve(this);
         }
 
         var that = this;
@@ -1044,7 +1039,7 @@ Loader.OnLoad(function() {
                 return result.baseTypes()
                 .then(function (baseTypes) {
                     baseTypes = baseTypes.filter(function (d) { return d.typename == type; });
-                    return baseTypes.length > 0 ? baseTypes[0] : Promise.fail();
+                    return baseTypes.length > 0 ? baseTypes[0] : Promise.reject();
                 })
             }
         })
@@ -1067,9 +1062,9 @@ Loader.OnLoad(function() {
     DbgObject.prototype.isType = function(type) {
         type = cleanupTypeName(type);
         if (this == DbgObject.NULL) {
-            return Promise.as(true);
+            return Promise.resolve(true);
         } else if (this.typeDescription() == type) {
-            return Promise.as(true);
+            return Promise.resolve(true);
         } else {
             var key = this.module + "!" + this.typename + ":" + type;
             var result = isTypeCache.get(key);
@@ -1091,7 +1086,7 @@ Loader.OnLoad(function() {
     }
     DbgObject.prototype.baseTypes = function() {
         if (this == DbgObject.NULL) {
-            return Promise.as([]);
+            return Promise.resolve([]);
         }
 
         var that = this;
@@ -1130,7 +1125,7 @@ Loader.OnLoad(function() {
         }
 
         if (this == DbgObject.NULL) {
-            return Promise.as([]);
+            return Promise.resolve([]);
         }
 
         if (includeBaseTypes === undefined) {

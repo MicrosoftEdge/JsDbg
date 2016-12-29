@@ -26,21 +26,21 @@
                 for (var i = 0; i < dbgObject.arrayLength(); ++i) {
                     innerResults.push(dbgObject.idx(i));
                 }
-                return Promise.map(Promise.join(innerResults), function(item, idx) {
+                return Promise.map(Promise.all(innerResults), function(item, idx) {
                     return getUsedBytes(item, prefix + "[" + idx + "]");
                 })
                 .then(combine);
             }
             
-            var fields = dbgObject.isPointer() ? Promise.fail() : dbgObject.fields();
+            var fields = dbgObject.isPointer() ? Promise.reject() : dbgObject.fields();
 
             return fields
             .then(function(fields) {
                 if (fields.length == 0) {
-                    return Promise.fail();
+                    return Promise.reject();
                 }
                 var innerUsedBytes = fields.map(function(field) { return getUsedBytes(field.value, prefix + "." + field.name); });
-                return Promise.join(innerUsedBytes);
+                return Promise.all(innerUsedBytes);
             })
             .then(
                 combine,
@@ -64,10 +64,8 @@
                 var type = parts[1];
 
                 var dbgObject = new DbgObject(module, type, 0);
-                Promise.join([dbgObject.size(), getUsedBytes(dbgObject, "")])
-                .then(function(sizeAndUsedBytes) {
-                    var size = sizeAndUsedBytes[0];
-                    var usedBytes = sizeAndUsedBytes[1];
+                Promise.all([dbgObject.size(), getUsedBytes(dbgObject, "")])
+                .then(function(size, usedBytes) {
                     var result = [];
                     for (var i = 0; i < size; ++i) {
                         var prefix = "0x" + i.toString(16) + " ";

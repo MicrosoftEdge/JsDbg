@@ -134,7 +134,7 @@ var FieldSelector = (function() {
                     // We may have rendered it as a base type before.  If so, remove the class.
                     this.typeListContainer.childNodes[i].classList.remove("base-type");
                 }
-                return Promise.as(false);
+                return Promise.resolve(false);
             }
         }
 
@@ -209,7 +209,7 @@ var FieldSelector = (function() {
                     var fieldToApply = fieldsToApply.shift();
                     for (var i = 0; i < baseTypes.length; ++i) {
                         if (fieldToApply.shouldBeApplied(baseTypes[i])) {
-                            return Promise.as(fieldToApply.apply(baseTypes[i], container))
+                            return Promise.resolve(fieldToApply.apply(baseTypes[i], container))
                             .then(applyRemainingFieldsAndReturnContainer);
                         }
                     }
@@ -217,7 +217,7 @@ var FieldSelector = (function() {
                     return applyRemainingFieldsAndReturnContainer();
                 }
 
-                return Promise.as(applyRemainingFieldsAndReturnContainer())
+                return Promise.resolve(applyRemainingFieldsAndReturnContainer())
             });
         } else {
             return container;
@@ -292,7 +292,7 @@ var FieldSelector = (function() {
     }
 
     function getDescs(obj) {
-        return Promise.as()
+        return Promise.resolve()
         .then(function() {
             if (obj instanceof DbgObject) {
                 if (obj.isNull()) {
@@ -323,7 +323,7 @@ var FieldSelector = (function() {
         }
 
         return function (dbgObject, element) {
-            return Promise.as(null)
+            return Promise.resolve(null)
             .then(function() {
                 var valueContainer = document.createElement("span");
                 return DbgObject.render(
@@ -417,7 +417,7 @@ var FieldSelector = (function() {
 
     FieldTreeReader.prototype._notifyControllerOfDbgObjectTypes = function(objects) {
         var that = this;
-        return Promise.join(
+        return Promise.all(
             objects.map(function (object) {
                 if (object instanceof DbgObject) {
                     return that.fieldSupportController.includeDbgObjectTypes(object);
@@ -435,10 +435,10 @@ var FieldSelector = (function() {
     FieldTreeReader.prototype.updateFields = function(treeRoot, updatedDbgObjects) {
         var dbgObject = this.getObject(treeRoot);
         var that = this;
-        return Promise.as()
+        return Promise.resolve()
         .then(function() {
             if (dbgObject instanceof DbgObject) {
-                return Promise.join(updatedDbgObjects.map(function (updatedDbgObject) { return dbgObject.isType(updatedDbgObject.typename); }));
+                return Promise.all(updatedDbgObjects.map(function (updatedDbgObject) { return dbgObject.isType(updatedDbgObject.typename); }));
             } else {
                 return [];
             }
@@ -447,7 +447,7 @@ var FieldSelector = (function() {
             var lastRepresentation = that.treeRenderer.getLastRepresentation(treeRoot);
             if (lastRepresentation != null && document.documentElement.contains(lastRepresentation)) {
                 var requiresUpdate = requiresUpdateArray.reduce(function (accumulator, currentValue) { return accumulator || currentValue; }, false);
-                return Promise.as(null)
+                return Promise.resolve(null)
                 .then(function() {
                     if (requiresUpdate) {
                         return that.createRepresentation(treeRoot)
@@ -460,7 +460,7 @@ var FieldSelector = (function() {
                     return that.treeRenderer.getChildren(treeRoot)
                 })
                 .then(function (children) {
-                    return Promise.join(children.map(function (child) { return that.updateFields(child, updatedDbgObjects); }));
+                    return Promise.all(children.map(function (child) { return that.updateFields(child, updatedDbgObjects); }));
                 });
             }
         })

@@ -8,10 +8,10 @@
 //  - getChildren -> array of backing nodes
 //  - createRepresentation -> dom element that represents the node
 
-var TallTree = (function() {
-
+var TallTree = undefined;
+Loader.OnLoad(function() {
     var enqueueWork = (function() {
-        var currentOperation = Promise.as(true);
+        var currentOperation = Promise.resolve(true);
         return function enqueueWork(work) {
             var workPromise = currentOperation.then(work);
             // currentOperation is not allowed to be in a failed state, so trivially handle the error.
@@ -124,15 +124,14 @@ var TallTree = (function() {
         })
 
         // Realize them and expand them as needed...
-        return Promise
-            .join(this.children.map(function(child) { 
+        return Promise.map(this.children, function(child) { 
                 return child._realize()
-                    .then(function() {
-                        if (recurse) {
-                            return child._expand(true);
-                        }
-                    })
-            }))
+                .then(function() {
+                    if (recurse) {
+                        return child._expand(true);
+                    }
+                })
+            })
             // And mark ourself as expanded.
             .then(function() {
                 that.isExpanded = true;
@@ -249,7 +248,7 @@ var TallTree = (function() {
         }
     }
 
-    return {
+    TallTree = {
         BuildTree: function(container, treeManager, root, expandFully) {
             return enqueueWork(function() {
                 return DrawingTreeNode._instantiate(treeManager, root)
@@ -293,7 +292,4 @@ var TallTree = (function() {
             return result.nodes > 1 ? result.text : null;
         }
     };
-
-
-
-})();
+})

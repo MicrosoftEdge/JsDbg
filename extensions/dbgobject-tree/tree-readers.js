@@ -11,7 +11,7 @@
     }
 
     ObjectTreeReader.prototype.createRoot = function (object) {
-        return Promise.as(object);
+        return Promise.resolve(object);
     }
 
     ObjectTreeReader.prototype.getObject = function (node) {
@@ -20,9 +20,9 @@
 
     ObjectTreeReader.prototype.getChildren = function (node, errors) {
         if ((typeof node.getChildren) == "function") {
-            return Promise.as(node.getChildren());
+            return Promise.resolve(node.getChildren());
         } else {
-            return Promise.as([]);
+            return Promise.resolve([]);
         }
     }
 
@@ -37,7 +37,7 @@
     }
 
     MapTreeReader.prototype._applyMapToPreviousNode = function(previousNode) {
-        return Promise.as(this.mapper(this.previousReader.getObject(previousNode)))
+        return Promise.resolve(this.mapper(this.previousReader.getObject(previousNode)))
         .then(function (mappedObject) {
             return new MappedNode(previousNode, mappedObject);
         });
@@ -63,7 +63,7 @@
     }
 
     FilterTreeReader.prototype._shouldIncludeNode = function(node) {
-        return Promise.as(this.filter(this.previousReader.getObject(node)));
+        return Promise.resolve(this.filter(this.previousReader.getObject(node)));
     }
 
     FilterTreeReader.prototype._getFilteredDescendents = function(node) {
@@ -117,16 +117,14 @@
         if (object instanceof DbgObject) {
             additionalChildren = this._getDbgObjectChildren(object, errors)
         } else {
-            additionalChildren = Promise.as([]);
+            additionalChildren = Promise.resolve([]);
         }
 
-        return Promise.join(
-            [previousChildren, additionalChildren],
-            function (previous, additional) {
-                // Filter out any null DbgObject children.
-                return previous.concat(additional.filter(function (x) { return !(x instanceof DbgObject && x.isNull()); }));
-            }
-        );
+        return Promise.all([previousChildren, additionalChildren])
+        .thenAll(function (previous, additional) {
+            // Filter out any null DbgObject children.
+            return previous.concat(additional.filter(function (x) { return !(x instanceof DbgObject && x.isNull()); }));
+        });
     }
 
     // DbgObject children methods
@@ -147,7 +145,7 @@
         .then(function (results) {
             // Evaluate each of the child expansions.
             return Promise.map(results, function (x) {
-                return Promise.as(null)
+                return Promise.resolve(null)
                 .then(function() {
                     return x.extension.getChildren(dbgObject);
                 })

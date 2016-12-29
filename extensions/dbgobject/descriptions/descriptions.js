@@ -81,9 +81,9 @@ Loader.OnLoad(function () {
 
         var natural = getTypeDescriptionFunction(module, type);
         if (natural != null) {
-            return Promise.as(natural);
+            return Promise.resolve(natural);
         } else if (type == "void") {
-            return Promise.as(null);
+            return Promise.resolve(null);
         }
 
         return new DbgObject(module, type, 0).baseTypes()
@@ -101,7 +101,7 @@ Loader.OnLoad(function () {
     
     function getDefaultTypeDescription(dbgObject, element) {
         if (dbgObject.isNull()) {
-            return Promise.as("nullptr");
+            return Promise.resolve("nullptr");
         }
 
         return getTypeDescriptionFunctionIncludingBaseTypes(dbgObject.module, dbgObject.typename)
@@ -127,7 +127,7 @@ Loader.OnLoad(function () {
                     } else if (x.isScalarType()) {
                         return x.bigval().then(function (bigint) { return bigint.toString(); }); 
                     } else if (x.isPointer()) {
-                        return Promise.as(x.deref())
+                        return Promise.resolve(x.deref())
                         .then(function (dereferenced) {
                             return dereferenced.ptr();
                         });
@@ -137,7 +137,7 @@ Loader.OnLoad(function () {
                             if (isEnum) {
                                 return x.constant();
                             } else {
-                                return Promise.fail();
+                                return Promise.reject();
                             }
                         })
                         .then(null, function () {
@@ -148,7 +148,7 @@ Loader.OnLoad(function () {
             }
 
             var description = function(obj) {
-                return Promise.as(obj)
+                return Promise.resolve(obj)
                 .then(function (obj) {
                     return customDescription(obj, element);
                 })
@@ -171,7 +171,7 @@ Loader.OnLoad(function () {
                     elements.push(dbgObject.idx(i));
                 }
 
-                return Promise.map(Promise.join(elements), description)
+                return Promise.map(Promise.all(elements), description)
                 .then(function(descriptions) {
                     return "[" + descriptions.map(function(d) { return "<div style=\"display:inline-block;\">" + d + "</div>"; }).join(", ") + "]";
                 })
@@ -210,7 +210,7 @@ Loader.OnLoad(function () {
                 if (result == null) {
                     throw new Error("There was no description \"" + name + "\" on " + that.typeDescription());
                 }
-                return Promise.as(result.extension.getter(result.dbgObject, element));
+                return Promise.resolve(result.extension.getter(result.dbgObject, element));
             })
         }
     }

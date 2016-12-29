@@ -25,7 +25,7 @@ Loader.OnLoad(function() {
 
     DbgObjectTypeExtension.prototype.getExtensionIncludingBaseTypes = function (dbgObject, name) {
         var that = this;
-        return Promise.as(null)
+        return Promise.resolve(null)
         .then(function () {
             var extension = that.getExtension(dbgObject.module, dbgObject.typename, name);
             if (extension != null) {

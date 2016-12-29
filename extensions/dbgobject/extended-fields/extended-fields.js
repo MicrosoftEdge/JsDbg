@@ -59,7 +59,7 @@ Loader.OnLoad(function () {
     };
     DbgObject.prototype.F = function(fieldNames) {
         var fields = fieldNames.split(".");
-        var current = Promise.as(this);
+        var current = Promise.resolve(this);
         fields.forEach(function (field) {
             current = current.then(function (result) { return result._FHelper(field) });
         });
@@ -74,7 +74,7 @@ Loader.OnLoad(function () {
                 throw new Error("There was no extended field \"" + fieldName + "\" on " + that.typeDescription())
             }
 
-            return Promise.as(result.extension.getter(result.dbgObject))
+            return Promise.resolve(result.extension.getter(result.dbgObject))
             .then(result.extension.ensureCompatibleResult.bind(result.extension));
         });
 

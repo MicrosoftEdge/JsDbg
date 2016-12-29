@@ -35,7 +35,7 @@ Loader.OnLoad(function() {
                     return null;
                 }
 
-                return Promise.as(action.extension(that))
+                return Promise.resolve(action.extension(that))
                 .then(
                     function (objectActions) {
                         if (objectActions == null || objectActions === undefined) {

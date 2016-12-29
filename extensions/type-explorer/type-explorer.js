@@ -340,7 +340,7 @@ Loader.OnLoad(function() {
         var dbgObject = new DbgObject(this.module, this.typename, 0);
         var fieldsPromise;
         if (dbgObject.isPointer()) {
-            fieldsPromise = Promise.as([]);
+            fieldsPromise = Promise.resolve([]);
         } else {
             fieldsPromise = dbgObject.fields(/*includeBaseTypes*/false);
         }
@@ -380,7 +380,7 @@ Loader.OnLoad(function() {
         if (parentField != null) {
             dbgObjectPromise = parentField.getNestedField(controllerDbgObject);
         } else {
-            dbgObjectPromise = Promise.as(controllerDbgObject);
+            dbgObjectPromise = Promise.resolve(controllerDbgObject);
         }
 
         var that = this;
@@ -540,13 +540,13 @@ Loader.OnLoad(function() {
                 }
             }
 
-            return Promise.as(that.getter(parentDbgObject))
+            return Promise.resolve(that.getter(parentDbgObject))
             .then(function(result) {
                 if (that.returnsArray()) {
                     if (!Array.isArray(result)) {
                         throw new Error("The array \"" + that.name + "\" did not return an array, but returned \"" + result + "\"");
                     }
-                    return Promise.map(Promise.join(result), checkType);
+                    return Promise.map(Promise.all(result), checkType);
                 } else {
                     return checkType(result);
                 }
@@ -554,21 +554,20 @@ Loader.OnLoad(function() {
         }
 
         function getFromParentResult(parentResult) {
-            if (Array.isArray(parentResult)) {
-                // Use a direct map, rather than Promise.map, to keep errors separate.
-                return parentResult.map(getFromParentResult);
-            } else if (Promise.isPromise(parentResult)) {
-                // Because of the direct map above, parentResult could either be a promise or a DbgObject.
-                // If it's a failed promise though, just let it fail.
-                return parentResult.then(getFromParentResult);
-            } else {
-                return getFromParentDbgObject(parentResult);
-            }
+            return Promise.resolve(parentResult)
+            .then(function (parentResult) {
+                if (Array.isArray(parentResult)) {
+                    // Use a direct map, rather than Promise.map, to keep errors separate.
+                    return parentResult.map(getFromParentResult);
+                } else {
+                    return getFromParentDbgObject(parentResult);
+                }
+            })
         }
 
         var parentField = this.parentType.aggregateType.parentField;
         if (parentField == null) {
-            return Promise.as(dbgObject).then(getFromParentDbgObject);
+            return Promise.resolve(dbgObject).then(getFromParentDbgObject);
         } else {
             return parentField.getNestedField(dbgObject).then(getFromParentResult);
         }
@@ -742,7 +741,7 @@ Loader.OnLoad(function() {
                 collection = obj[collection];
                 currentIndex++;
 
-                return Promise.as(collection)
+                return Promise.resolve(collection)
                 .then(function (collection) {
                     for (var i = 0; i < collection.length; ++i) {
                         if (collection[i].name == path[currentIndex]) {
@@ -805,7 +804,7 @@ Loader.OnLoad(function() {
 
     TypeExplorerController.prototype._renderType = function(type, typeContainer, changeFocus) {
         if (typeContainer == null) {
-            return Promise.as(null);
+            return Promise.resolve(null);
         }
 
         if (!typeContainer.currentType) {
@@ -841,7 +840,7 @@ Loader.OnLoad(function() {
 
         if (!type.requiresRendering()) {
             typeContainer.style.display = "none";
-            return Promise.as(null);
+            return Promise.resolve(null);
         }
 
         var that = this;
@@ -904,7 +903,7 @@ Loader.OnLoad(function() {
                         button.className = "action-button";
                         button.textContent = action.description;
                         button.addEventListener("click", function () {
-                            Promise.as(null)
+                            Promise.resolve(null)
                             .then(action.action)
                             .then(null, function () { })
                             .then(function () {
@@ -1111,7 +1110,7 @@ Loader.OnLoad(function() {
         editButton.style.display = field.isEditable() ? "" : "none";
         deleteButton.style.display = field.canBeDeleted() ? "" : "none";
 
-        var renderingPromise = Promise.as(null);
+        var renderingPromise = Promise.resolve(null);
         if (this.allowFieldRendering()) {
             rendering.innerHTML = "<span></span>";
             renderingPromise = DbgObject.render(field.getNestedField(this.dbgObject), rendering.firstChild, function (dbgObject) {

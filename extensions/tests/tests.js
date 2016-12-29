@@ -108,7 +108,7 @@ Loader.OnLoad(function() {
             status.classList.remove("failed");
 
             // Promise based test.
-            return Promise.as(false)
+            return Promise.resolve(false)
             .then(function () {
                 return testCase.test(assert);
             })
@@ -165,7 +165,7 @@ Loader.OnLoad(function() {
                 allTests.push(testCaseElements[i]);
             }
             if (canUsePromises()) {
-                var currentStatus = Promise.as(false);
+                var currentStatus = Promise.resolve(false);
                 allTests.forEach(function (container) {
                     currentStatus = currentStatus.then(function () {
                         return container.runTestCase();

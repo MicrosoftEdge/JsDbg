@@ -40,14 +40,8 @@ Loader.OnLoad(function() {
         var primaryMarkupPromise = docPromise.F("PrimaryMarkup");
         var topmostMarkupPromise = markupPromise.F("TopmostMarkup");
 
-        return Promise.join([anodePromise, markupPromise, topmostMarkupPromise, docPromise, primaryMarkupPromise])
-        .then(function (result) {
-            var anode = result[0];
-            var markup = result[1];
-            var topmostMarkup = result[2];
-            var doc = result[3];
-            var primaryMarkup = result[4];
-
+        return Promise.all([anodePromise, markupPromise, topmostMarkupPromise, docPromise, primaryMarkupPromise])
+        .thenAll(function (anode, markup, topmostMarkup, doc, primaryMarkup) {
             var rootObject;
             if (markup.isNull()) {
                 return []; // Nodes that aren't in a markup don't need a markup tree action as there is no tree to show
@@ -283,15 +277,12 @@ Loader.OnLoad(function() {
                     .vals(textData.f("textLength", "_ulTextLength"));
             } else {
                 var textDataSlice = textData.as("Tree::TextDataSlice");
-                return Promise.join([
+                return Promise.all([
                     textDataSlice.f("originalTextData.m_pT", "_spOriginalTextData.m_pT"),
                     textDataSlice.f("textLength", "_ulTextLength"),
                     textDataSlice.f("offset", "_ulOffset")
                 ])
-                .then(function (results) {
-                    var originalTextData = results[0];
-                    var sliceLength = results[1];
-                    var sliceOffset = results[2];
+                .thenAll(function (originalTextData, sliceLength, sliceOffset) {
                     return originalTextData.f("text", "_pText").idx(sliceOffset.val()).vals(sliceLength.val());
                 });
             }

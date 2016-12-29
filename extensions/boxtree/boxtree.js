@@ -35,7 +35,7 @@ Loader.OnLoad(function() {
             .then(function(boxes) {
                 var flattenedArray = boxes.reduce(function (a, b) { return a.concat(b); }, []);
                 if (flattenedArray.length == 0) {
-                    return Promise.fail();
+                    return Promise.reject();
                 } else {
                     return flattenedArray;
                 }
@@ -56,7 +56,7 @@ Loader.OnLoad(function() {
                 if (error) {
                     errorMessage = "<h4>" + error.toString() + "</h4>" + errorMessage;
                 }
-                return Promise.fail(errorMessage);
+                return Promise.reject(errorMessage);
             });
         },
         DefaultTypes: [
@@ -276,7 +276,7 @@ Loader.OnLoad(function() {
     }))
 
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::ContainerBox", "Validity", false, UserEditableFunctions.Create(function (dbgObject, e) {
-        return Promise.join([dbgObject.f("isLayoutInvalid").val(), dbgObject.f("isDisplayInvalid").val()])
+        return Promise.all([dbgObject.f("isLayoutInvalid").val(), dbgObject.f("isDisplayInvalid").val()])
         .then(function(invalidBits) {
             if (invalidBits[0]) {
                 // Layout is invalid.
@@ -319,9 +319,8 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "DisplayNode", "CDispNode", UserEditableFunctions.Create(function (containerBox) {
-        return Promise.join(
-            [containerBox.f("isDisplayNodeExtracted").val(), containerBox.f("rawDisplayNode")],
-            function (isDisplayNodeExtracted, displayNode) {
+        return Promise.all([containerBox.f("isDisplayNodeExtracted").val(), containerBox.f("rawDisplayNode")])
+        .thenAll(function (isDisplayNodeExtracted, displayNode) {
                 if (!isDisplayNodeExtracted) {
                     return displayNode;
                 } else {
@@ -337,7 +336,7 @@ Loader.OnLoad(function() {
             return layoutBox.list(["nextLayoutBox", "associatedBoxLink"]);
         })
         .then(function (layoutBoxes) {
-            return Promise.join(layoutBoxes.map(function (layoutBox) { return layoutBox.vcast(); }));
+            return Promise.all(layoutBoxes.map(function (layoutBox) { return layoutBox.vcast(); }));
         })
     }));
 
@@ -356,38 +355,26 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LineBox", "Text", false, UserEditableFunctions.Create(function (lineBox) {
-        return Promise
-        .join([
+        return Promise.all([
             lineBox.f("textBlockRunIndexAtStartOfLine").val(), 
             lineBox.f("charOffsetInTextBlockRunAtStartOfLine", "characterIndexInTextBlockRunAtStartOfLine").val(),
             lineBox.f("textBlockRunIndexAfterLine").val(),
             lineBox.f("charOffsetInTextBlockRunAfterLine", "characterIndexInTextBlockRunAfterLine").val(),
             lineBox.f("textBlock", "textBlockOrNode", "textBlock.m_pT")
         ])
-        .then(function(fields) {
-            // Unpack the fields we just retrieved.
-            var runIndexAtStartOfLine = fields[0];
-            var characterIndexInTextBlockRunAtStartOfLine = fields[1];
-            var runIndexAfterLine = fields[2];
-            var characterIndexInTextBlockRunAfterLine = fields[3];
-            var textBlock = fields[4];
-
+        .thenAll(function(runIndexAtStartOfLine, characterIndexInTextBlockRunAtStartOfLine, runIndexAfterLine, characterIndexInTextBlockRunAfterLine, textBlock) {
             // Helper function to convert a text run to an HTML fragment.
             function convertTextRunToHTML(textRun, runIndex, runArrayLength) {
                 // Get some fields from the text run...
-                return Promise
-                .join([
+                return Promise.all([
                     textRun.f("_cchOffsetInTextData", "_cchOffset").val(),
                     textRun.f("_cchRunLength").val(),
                     textRun.f("_fHasTextTransformOrPassword").val()
                 ])
                 // Get the text data...
-                .then(function(textRunFields) {
-                    var offset = textRunFields[0];
-                    var textRunLength = textRunFields[1];
+                .thenAll(function(offset, textRunLength, hasTextTransformOrPassword) {
                     var textData;
-
-                    if (textRunFields[2]) {
+                    if (hasTextTransformOrPassword) {
                         textData = new PromisedDbgObject(textRun.f("_pTextData").f("text").then(null, function () { return textRun.f("_characterSourceUnion._pchTransformedCharacters") }));
                         offset = 0; // No offset when transformed.
                     } else {

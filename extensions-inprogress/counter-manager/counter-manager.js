@@ -9,7 +9,7 @@ Loader.OnLoad(function() {
         });
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CCounterManager", null, function (object) {
-            return Promise.join([object.f("_scopeArray"), object.f("_arrayCounterTextNode")]);
+            return Promise.all([object.f("_scopeArray"), object.f("_arrayCounterTextNode")]);
         })
 
         DbgObjectTree.AddType("nodes", MSHTML.Module, "Tree::CArrayTextNodeCounter", null, function(object) {
@@ -33,9 +33,9 @@ Loader.OnLoad(function() {
         })
 
         DbgObjectTree.AddType(null, MSHTML.Module, "CCounterValue", null, null, function (object) {
-            return Promise.join([object.f("_fIsReset").val(), object.f("_lValue").val(), object.f("_lIncrement").val()])
-            .then(function (args) {
-                return (args[0] ? "reset" : "increment") + " " + args[2] + " -> " + args[1];
+            return Promise.all([object.f("_fIsReset").val(), object.f("_lValue").val(), object.f("_lIncrement").val()])
+            .thenAll(function (isReset, value, increment) {
+                return (isReset ? "reset" : "increment") + " " + increment + " -> " + value;
             });
         });
     }

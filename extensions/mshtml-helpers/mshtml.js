@@ -65,18 +65,16 @@ var MSHTML = undefined;
         }
 
         DbgObject.AddTypeDescription(moduleName, "CBase", "RefsAndVar", false, UserEditableFunctions.Create(function(base) {
-            return Promise
-            .join([
+            return Promise.all([
                 base.f("_ulRefs").val(), 
                 base.f("_ulInternalRefs").val(), 
                 base.f("_ulAllRefsAndFlags").val(), 
                 base.f("_JSBind_Var._ptr")
             ])
-            .then(function (refsAndVar) {
+            .thenAll(function (ulRefs, ulInternalRefs, ulAllRefsAndFlags, jsBindVar) {
                 var varFields = "";
-                var jsBindVar = refsAndVar[3];
-                var jsBindVarPtr = new PointerMath.Pointer(refsAndVar[3].pointerValue().and(bigInt(1).not())).toFormattedString();
-                var isVarRooted = !refsAndVar[3].pointerValue().and(1).isZero();
+                var jsBindVarPtr = new PointerMath.Pointer(jsBindVar.pointerValue().and(bigInt(1).not())).toFormattedString();
+                var isVarRooted = !jsBindVar.pointerValue().and(1).isZero();
 
                 if (!jsBindVar.isNull()) {
                     if (isVarRooted) {
@@ -87,9 +85,9 @@ var MSHTML = undefined;
                 }
 
                 var flags = "";
-                var isPassivating = refsAndVar[2] & 1;
-                var isPassivated = refsAndVar[2] & 2;
-                var isDestructing = refsAndVar[2] & 1;
+                var isPassivating = ulAllRefsAndFlags & 1;
+                var isPassivated = ulAllRefsAndFlags & 2;
+                var isDestructing = ulAllRefsAndFlags & 1;
                 if (isPassivating || isPassivated || isDestructing) {
                     flags = " <span style='color:red'>" + 
                         (isPassivating ? " passivating " : "") + 
@@ -98,7 +96,7 @@ var MSHTML = undefined;
                     "</span>";
                 }
 
-                return "strong:" + refsAndVar[0] + " weak:" + (refsAndVar[2] >> 3) + " gc:" + refsAndVar[1] + varFields + flags;
+                return "strong:" + ulRefs + " weak:" + (ulAllRefsAndFlags >> 3) + " gc:" + ulInternalRefs + varFields + flags;
             });
         }));
 
@@ -296,18 +294,18 @@ var MSHTML = undefined;
         DbgObject.AddExtendedField(moduleName, "CElement", "Markup", "CMarkup", UserEditableFunctions.Create(function (element) {
             return element.f("markup")
             .catch(function () {
-                return Promise.join([
+                return Promise.all([
                     element.f("_fHasLayoutPtr").val().catch(function() { return 0; }),
                     element.f("_fHasLayoutAry").val().catch(function() { return 0; }),
                     element.f("_fHasMarkupPtr").val()
                 ])
-                .then(function(bits) {
-                    if (bits[0] || bits[1]) {
+                .thenAll(function(hasLayoutPtr, hasLayoutAry, hasMarkupPtr) {
+                    if (hasLayoutPtr || hasLayoutAry) {
                         return element.f("_pLayoutInfo", "_pLayout", "_chain._pLayoutInfo", "_chain._pLayout")
                         .then(function (layout) {
                             return layout.as("char").idx(0 - layout.pointerValue().mod(4)).as(layout.typeDescription()).f("_pMarkup");
                         })
-                    } else if (bits[2]) {
+                    } else if (hasMarkupPtr) {
                         return element.f("_chain._pMarkup", "_pMarkup")
                         .then(function (markup) {
                             return markup.as("char").idx(0 - markup.pointerValue().mod(4)).as("CMarkup");
@@ -364,13 +362,8 @@ var MSHTML = undefined;
         }
 
         function LookupHtPvPvValue(htpvpv, key) {
-            var promise = Promise.join([htpvpv.f("_cEntMax").val(), htpvpv.f("_cStrideMask").val(), htpvpv.f("_pEnt"), key])
-            .then(function (values) {
-                var entryCount = values[0];
-                var strideMask = values[1];
-                var firstEntry = values[2];
-                var key = values[3];
-
+            var promise = Promise.all([htpvpv.f("_cEntMax").val(), htpvpv.f("_cStrideMask").val(), htpvpv.f("_pEnt"), key])
+            .thenAll(function (entryCount, strideMask, firstEntry, key) {
                 var probe = key % entryCount;
                 var stride = (strideMask & (key >> 2)) + 1
 
@@ -395,16 +388,12 @@ var MSHTML = undefined;
 
             var lookasideNumberPromise = DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE2", name);
 
-            var result = Promise.join([
+            var result = Promise.all([
                 elementPromise,
                 hasLookasidePtrPromise,
                 lookasideNumberPromise
             ])
-            .then(function (results) {
-                var element = results[0];
-                var lookasides = results[1];
-                var lookasideIndex = results[2];
-
+            .thenAll(function (element, lookasides, lookasideIndex) {
                 if (lookasides & (1 << lookasideIndex)) {
                     var hashtable = element.F("Markup.Doc").f("_HtPvPv2");
                     return MSHTML.GetObjectLookasidePointer(element, lookasideIndex, hashtable);
@@ -463,17 +452,12 @@ var MSHTML = undefined;
                 })
             });
 
-            var result = Promise.join([
+            var result = Promise.all([
                 elementPromise,
                 hasLookasidePtrPromise,
                 lookasideNumberPromise
             ])
-            .then(function (results) {
-                var element = results[0];
-                var lookasides = results[1];
-                var lookasideOffset = results[2].offset;
-                var lookasideIndex = results[2].index;
-
+            .thenAll(function (element, lookasides, lookasideOffset, lookasideIndex) {
                 if (lookasides & (1 << lookasideIndex)) {
                     var hashtable = element.F("Markup.Doc").f("_HtPvPv");
                     return MSHTML.GetObjectLookasidePointer(element, lookasideOffset + lookasideIndex, hashtable);
@@ -493,7 +477,7 @@ var MSHTML = undefined;
         }
 
         function GetThreadstateFromObject(object) {
-            var promise = Promise.as(object)
+            var promise = Promise.resolve(object)
             .then(function(object) {
                 if (object.typeDescription() == "Tree::ElementNode") {
                     return GetThreadstateFromObject(GetCTreeNodeFromTreeElement(object));
@@ -507,7 +491,7 @@ var MSHTML = undefined;
                 } else if (object.typeDescription() == "CElement") {
                     return GetThreadstateFromObject(GetMarkupFromElement(object));
                 } else if (object.typeDescription() == "CLayoutInfo") {
-                    return Promise.as(object.f("_fHasMarkupPtr").val())
+                    return Promise.resolve(object.f("_fHasMarkupPtr").val())
                     .then(function(hasMarkupPtr) {
                         if (hasMarkupPtr) {
                             return GetThreadstateFromObject(object.f("_pMarkup"));
@@ -535,7 +519,7 @@ var MSHTML = undefined;
         }
 
         DbgObject.AddExtendedField(moduleName, "CDoc", "Threadstate", "THREADSTATEUI", UserEditableFunctions.Create(function (doc) {
-            return Promise.as(GetDocsAndThreadstates())
+            return Promise.resolve(GetDocsAndThreadstates())
             .then(function(docsAndThreadstates) {
                 for (var i = 0; i < docsAndThreadstates.length; ++i) {
                     if (docsAndThreadstates[i].doc.equals(doc)) {
@@ -547,11 +531,8 @@ var MSHTML = undefined;
         }));
 
         function GetObjectFromDataCache(cache, index) {
-            var promise = Promise.join([cache, index])
-            .then(function(cacheAndIndex) {
-                var cache = cacheAndIndex[0];
-                var index = cacheAndIndex[1];
-
+            var promise = Promise.all([cache, index])
+            .thenAll(function(cache, index) {
                 var type = cache.typeDescription();
                 var templateMatches = type.match(/<.*>/);
                 var resultType = "void";
@@ -591,7 +572,7 @@ var MSHTML = undefined;
 
         PatchManager.prototype.getCurrentVersion = function (patchableObjectPromise) {
             var that = this;
-            return Promise.as(patchableObjectPromise)
+            return Promise.resolve(patchableObjectPromise)
             .then(function (patchableObject) {
                 var result = that.weakMap.get(patchableObject);
                 if (!result) {
@@ -604,7 +585,7 @@ var MSHTML = undefined;
 
         PatchManager.prototype.getCurrentVersionHelper = function (patchableObject) {
             function findMatchingPatch(patchPromise, versionToFind) {
-                return Promise.as(patchPromise)
+                return Promise.resolve(patchPromise)
                 .then(function (patch) {
                     return patch.field("_iVersion").val()
                     .then(function (version) {
@@ -620,24 +601,23 @@ var MSHTML = undefined;
                 })
             }
 
-            return Promise.join([
-                    patchableObject.field("_iVersion").val(),
-                    findMatchingPatch(patchableObject.field("_pNextPatch").deref(), this.version)
-                ],
-                function (objectVersion, matchingPatchAndVersion) {
-                    var matchingPatch = matchingPatchAndVersion.patch;
-                    var matchingVersion = matchingPatchAndVersion.version;
-                    // If there is no matching patch, or the given object was actually a patch and is a better match
-                    // than the best patch, use the original object.  This means that getCurrentVersion can be called
-                    // multiple times without effect as long as the initial object was not already an earlier patch
-                    // the current version.
-                    if (matchingPatch.isNull() || (objectVersion > matchingVersion && that.version >= objectVersion)) {
-                        return patchableObject;
-                    } else {
-                        return matchingPatch.as(patchableObject.typename)
-                    }
+            return Promise.all([
+                patchableObject.field("_iVersion").val(),
+                findMatchingPatch(patchableObject.field("_pNextPatch").deref(), this.version)
+            ])
+            .thenAll(function (objectVersion, matchingPatchAndVersion) {
+                var matchingPatch = matchingPatchAndVersion.patch;
+                var matchingVersion = matchingPatchAndVersion.version;
+                // If there is no matching patch, or the given object was actually a patch and is a better match
+                // than the best patch, use the original object.  This means that getCurrentVersion can be called
+                // multiple times without effect as long as the initial object was not already an earlier patch
+                // the current version.
+                if (matchingPatch.isNull() || (objectVersion > matchingVersion && that.version >= objectVersion)) {
+                    return patchableObject;
+                } else {
+                    return matchingPatch.as(patchableObject.typename)
                 }
-            );
+            });
         }
         PatchManager.prototype.setVersion = function (newVersion) {
             newVersion = this.parseVersion(newVersion);
@@ -778,13 +758,9 @@ var MSHTML = undefined;
                         return treeNode.vcast();
                     })
                     .then(function (element) {
-                        return Promise.join([element.f("_cstrTagName._pch").string(), element.f("_cstrNamespace._pch").string(), element.f("_cstrNamespace._pch").isNull()])
+                        return Promise.all([element.f("_cstrTagName._pch").string(), element.f("_cstrNamespace._pch").string(), element.f("_cstrNamespace._pch").isNull()])
                     })
-                    .then(function (tagAndNamespace) {
-                        var tag = tagAndNamespace[0];
-                        var namespace = tagAndNamespace[1];
-                        var namespaceIsNull = tagAndNamespace[2];
-
+                    .thenAll(function (tag, namespace, namespaceIsNull) {
                         if (namespaceIsNull) {
                             return tag;
                         } else {
@@ -821,7 +797,7 @@ var MSHTML = undefined;
 
         DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^_?(style[A-z0-9]+)$/); }, "CSS Value", true, function(enumObj) {
             var enumString = enumObj.typeDescription().replace(/^_?(style[A-z0-9]+)$/, "$1");
-            return Promise.as(enumObj.as("_" + enumString).constant())
+            return Promise.resolve(enumObj.as("_" + enumString).constant())
             .then(
                 function(k) { return k.substr(enumString.length); },
                 function(err) { 
@@ -835,7 +811,7 @@ var MSHTML = undefined;
 
         DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^(Tree|Layout).*::(.*Enum)$/); }, "Enum Value", true, function (enumObj) {
             var enumString = enumObj.typeDescription().replace(/^(Tree|Layout).*::(.*Enum)$/, "$2_");
-            return Promise.as(enumObj.constant())
+            return Promise.resolve(enumObj.constant())
                 .then(
                     function(k) { return k.indexOf(enumString) == 0 ? k.substr(enumString.length) : k; },
                     function(err) {
@@ -851,11 +827,9 @@ var MSHTML = undefined;
         var colorTypesWithAlpha = {"CT_COLORREFA": true, "CT_RGBASPEC": true, "CT_HSLASPEC": true};
 
         DbgObject.AddTypeDescription(moduleName, "CColorValue", "Color", true, function(color) {
-            return Promise.join([color.f("_ct").as("CColorValue::COLORTYPE").constant(), color.f("_crValue").val(), color.f("_flAlpha").val()])
-            .then(function(colorTypeAndRefAndAlpha) {
-                var colorType = colorTypeAndRefAndAlpha[0];
-                var inlineColorRef = colorTypeAndRefAndAlpha[1] & 0xFFFFFF;
-                var alpha = colorTypeAndRefAndAlpha[2];
+            return Promise.all([color.f("_ct").as("CColorValue::COLORTYPE").constant(), color.f("_crValue").val(), color.f("_flAlpha").val()])
+            .thenAll(function(colorType, inlineColorRef, alpha) {
+                inlineColorRef = inlineColorRef & 0xFFFFFF;
                 var hasInlineColorRef = colorType in colorTypesWithInlineColorRef;
                 var hasAlpha = colorType in colorTypesWithAlpha;
                 function cssColor(colorRef, alpha) {
@@ -883,7 +857,7 @@ var MSHTML = undefined;
                         return DbgObject.global(moduleName, "g_CssColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
                     },
                     "CT_NAMEDSYS" : function() {
-                        return Promise.as(DbgObject.global(moduleName, "g_SystemColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())
+                        return Promise.resolve(DbgObject.global(moduleName, "g_SystemColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())
                             .then(function(x) {
                                 return x & 0xFFFFFF;
                             })
@@ -904,7 +878,7 @@ var MSHTML = undefined;
                 }
 
                 // If we have a color ref, use that.
-                return Promise.as(colorRef)
+                return Promise.resolve(colorRef)
                 .then(function(colorRef) {
                     colorRef = colorRef & 0xFFFFFF;
                     var color = cssColor(colorRef, alpha);
@@ -1089,10 +1063,8 @@ var MSHTML = undefined;
             var type = unitval.f("_byteType").as("CUnitValue::UNITVALUETYPE").constant();
             var storageType = unitval.f("_storageType").as("CTypedValue::PRECISION_TYPE").constant();
 
-            return Promise.join([type, storageType])
-            .then(function(typeAndStorageType) {
-                var type = typeAndStorageType[0];
-                var storageType = typeAndStorageType[1];
+            return Promise.all([type, storageType])
+            .thenAll(function(type, storageType) {
                 var storageField = storageType == "PRECISION_FLOAT" ? "_flValue" : "_lValue";
 
                 if (type in typedUnits) {
@@ -1113,7 +1085,7 @@ var MSHTML = undefined;
         });
 
         DbgObject.AddTypeDescription(moduleName, "Tree::SComputedValue", "ComputedValue", true, function(computedValue) {
-            return Promise.as(computedValue.as("CUnitValue").desc())
+            return Promise.resolve(computedValue.as("CUnitValue").desc())
             .then(function(unitvalueDesc) {
                 if (unitvalueDesc == "_") {
                     return "auto";
@@ -1132,7 +1104,7 @@ var MSHTML = undefined;
 
         DbgObject.AddTypeDescription(moduleName, "Layout::SBoxFrame", "Frame", true, function(rect) {
             var sideNames = ["top", "right", "bottom", "left"];
-            return Promise.join(sideNames.map(function(side) { return rect.f(side).desc(); }))
+            return Promise.all(sideNames.map(function(side) { return rect.f(side).desc(); }))
             .then(function (sides) {
                 return sides.join(" ");
             });
@@ -1140,7 +1112,7 @@ var MSHTML = undefined;
 
         function describePoint(point) {
             var fieldNames = ["x", "y"];
-             return Promise.join(fieldNames.map(function(side) { return point.f(side).desc(); }))
+             return Promise.all(fieldNames.map(function(side) { return point.f(side).desc(); }))
              .then(function (values) {
                  return "(" + values[0] + ", " + values[1] + ")";
              }); 
@@ -1235,6 +1207,19 @@ var MSHTML = undefined;
             }
         );
 
+        function getCircularBufferItems(arrayStart, arrayLength, count, offset) {
+            var upperItemCount = Math.min(arrayLength - offset, count);
+            var lowerItemCount = Math.max(offset + count - arrayLength, 0);
+            return Promise.all([
+                arrayStart.idx(offset).array(upperItemCount),
+                arrayStart.idx(0).array(lowerItemCount)
+            ])
+            .thenAll(function(firstArray, secondArray) {
+                // Return the circular buffer as a single array in the correct order
+                return firstArray.concat(secondArray);
+            });
+        }
+
         DbgObject.AddArrayField(
             moduleName,
             function (type) { return type.match(/^Collections::SCircularBuffer<.*>$/) != null; },
@@ -1246,23 +1231,7 @@ var MSHTML = undefined;
                 var count = buffer.f("count").val();
                 var offset = buffer.f("offset").val();
 
-                return Promise.join([arrayStart, arrayLength, count, offset])
-                .then(function(result) {
-                    var arrayStart = result[0];
-                    var arrayLength = result[1];
-                    var count = result[2];
-                    var offset = result[3];
-
-                    var upperItemCount = Math.min(arrayLength - offset, count);
-                    var lowerItemCount = Math.max(offset + count - arrayLength, 0);
-                    return Promise.join([
-                        arrayStart.idx(offset).array(upperItemCount),
-                        arrayStart.idx(0).array(lowerItemCount)
-                    ])
-                }).then(function(result) {
-                    // Return the circular buffer as a single array in the correct order
-                    return result[0].concat(result[1]);
-                });
+                return Promise.all([arrayStart, arrayLength, count, offset]).thenAll(getCircularBufferItems);
             }
         );
 
@@ -1279,23 +1248,7 @@ var MSHTML = undefined;
                 var count = buffer.f("count").val();
                 var offset = buffer.f("offset").val();
 
-                return Promise.join([arrayStart, arrayLength, count, offset])
-                .then(function(result) {
-                    var arrayStart = result[0];
-                    var arrayLength = result[1];
-                    var count = result[2];
-                    var offset = result[3];
-
-                    var upperItemCount = Math.min(arrayLength - offset, count);
-                    var lowerItemCount = Math.max(offset + count - arrayLength, 0);
-                    return Promise.join([
-                        arrayStart.idx(offset).array(upperItemCount),
-                        arrayStart.idx(0).array(lowerItemCount)
-                    ])
-                }).then(function(result) {
-                    // Return the circular buffer as a single array in the correct order
-                    return result[0].concat(result[1]);
-                });
+                return Promise.all([arrayStart, arrayLength, count, offset]).thenAll(getCircularBufferItems);
             }
         );
 

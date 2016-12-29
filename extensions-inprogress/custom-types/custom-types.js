@@ -50,7 +50,7 @@ Loader.OnLoad(function() {
                 module: MSHTML.Module,
                 type: "Math::SRectangle",
                 code: "var fieldNames = [\"x\", \"y\", \"width\", \"height\"];\n\
-return Promise.join(fieldNames.map(function(side) { return object.f(side).desc(); }))\n\
+return Promise.all(fieldNames.map(function(side) { return object.f(side).desc(); }))\n\
 .then(function (values) {\n\
     values = values.map(function (v, i) { return \"<span style=\\\"font-size:0.8em\\\">\" + fieldNames[i] + \":</span>\" + v; });\n\
     return \"(\" + values.join(\", \") + \")\";\n\

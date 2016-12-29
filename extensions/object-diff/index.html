@@ -86,7 +86,7 @@
             .then(function (results) {
                 return Promise.map(results, function (fieldName) {
                     var field1 = object1.f(fieldName);
-                    return Promise.join([field1.htmlTypeDescription(), fieldName, field1.desc(), object2.f(fieldName).desc()]);
+                    return Promise.all([field1.htmlTypeDescription(), fieldName, field1.desc(), object2.f(fieldName).desc()]);
                 })
                 .then(function (differentObjects) {
                     var table = document.createElement("table");
@@ -113,10 +113,8 @@
                 return [field.name];
             }
 
-            return Promise.join([field.value.hasDefaultDescription(), field.value.isTypeWithFields()])
-            .then(function (conditions) {
-                var hasDefaultDescription = conditions[0];
-                var hasFields = conditions[1];
+            return Promise.all([field.value.hasDefaultDescription(), field.value.isTypeWithFields()])
+            .thenAll(function (hasDefaultDescription, hasFields) {
                 var isArray = field.value.isArray();
 
                 if (hasDefaultDescription) {
@@ -124,24 +122,26 @@
                     return [field.name]
                 } else if (isArray) {
                     // Expand the arrays.
-                    return Promise.join([
+                    return Promise.all([
                         object1.f(field.name).array(),
                         object2.f(field.name).array()
                     ])
-                    .then(function (arrays) {
+                    .thenAll(function (object1Array, object2Array) {
                         return Promise.map(
-                            arrays[0],
+                            object1Array,
                             function (item, index) {
                                 // Recursively diff each object in the array.
-                                return prependStringToPromisedArray(field.name + "[" + index + "].", ObjectDiff.GetDifferentFields(arrays[0][index], arrays[1][index], fieldExpander));
+                                return prependStringToPromisedArray(
+                                    field.name + "[" + index + "].", ObjectDiff.GetDifferentFields(object1Array[index], object2Array[index], fieldExpander)
+                                );
                             }
                         );
                     })
                 } else if (hasFields) {
                     // Recursively diff the nested objects.
-                    return Promise.join([object1.f(field.name), object2.f(field.name)])
-                    .then(function (objects) {
-                        return prependStringToPromisedArray(field.name + ".", ObjectDiff.GetDifferentFields(objects[0], objects[1], fieldExpander));
+                    return Promise.all([object1.f(field.name), object2.f(field.name)])
+                    .thenAll(function (object1Field, object2Field) {
+                        return prependStringToPromisedArray(field.name + ".", ObjectDiff.GetDifferentFields(object1Field, object2Field, fieldExpander));
                     })
                 } else {
                     return [field.name];

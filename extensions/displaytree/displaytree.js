@@ -19,7 +19,7 @@ Loader.OnLoad(function() {
             })
             .then(function(docsWithDispRoots) {
                 if (docsWithDispRoots.length == 0) {
-                    return Promise.fail();
+                    return Promise.reject();
                 }
                 return docsWithDispRoots;
             })
@@ -38,7 +38,7 @@ Loader.OnLoad(function() {
                 if (error) {
                     errorMessage = "<h4>" + error.toString() + "</h4>" + errorMessage;
                 }
-                return Promise.fail(errorMessage);
+                return Promise.reject(errorMessage);
             });
         },
         DefaultTypes: [{ module: MSHTML.Module, type: "CDispNode" }],

@@ -73,7 +73,7 @@ Loader.OnLoad(function() {
     function getClassSelectorDescription(classSelector, stylesheet) {
         return classSelector.f("_pNextClassSelector")
         .then(function (nextClassSelector) {
-            var prefix = Promise.as("");
+            var prefix = Promise.resolve("");
             if (!nextClassSelector.isNull()) {
                 prefix = getClassSelectorDescription(nextClassSelector, stylesheet);
             }
@@ -88,13 +88,13 @@ Loader.OnLoad(function() {
     }
 
     function getSelectorDescription(selector, stylesheet) {
-        return Promise.as(selector.isNull())
+        return Promise.resolve(selector.isNull())
         .then(function (isNull) {
             if (isNull) {
                 return null;
             }
 
-            return Promise.join([
+            return Promise.all([
                 getSelectorDescription(selector.f("_pNextSelector"), stylesheet),
                 selector.f("_pClassSelector"), 
                 selector.f("_lIDAtom").val(), 
@@ -106,13 +106,10 @@ Loader.OnLoad(function() {
                 selector.f("_fHover").val(),
                 selector.f("_fUniversalExplicit").val()
             ])
-            .then(function (props) {
-                var suffix = props[0];
+            .thenAll(function (suffix, classSelector, idAtom, tag, prefix, pseudoElement, combinator, selectorPart, hover, universalExplicit) {
                 suffix = (suffix == null ? "" : ", " + suffix);
-                var prefix = props[4];
 
                 if (prefix != null) {
-                    var combinator = props[6];
                     var mapping = {
                         "AncestorNavigation": " ",
                         "ChildNavigation": " > ",
@@ -129,39 +126,39 @@ Loader.OnLoad(function() {
                     prefix = "";
                 }
 
-                if (props[5] != "pelemNone") {
-                    suffix = "::" + hyphenate(props[5].substr("pelem".length)).toLowerCase() + suffix;
+                if (pseudoElement != "pelemNone") {
+                    suffix = "::" + hyphenate(pseudoElement.substr("pelem".length)).toLowerCase() + suffix;
                 }
 
-                if (props[8] == 1) {
+                if (hover == 1) {
                     suffix = ":hover" + suffix;
                 }
 
-                if (!props[7].isNull() && !(props[3] == "ETAG_GENERIC" && props[7].typeDescription() == "CNamespaceSelectorPart")) {
-                    suffix = "[" + props[7].htmlTypeDescription() + "]" + suffix;
+                if (!selectorPart.isNull() && !(tag == "ETAG_GENERIC" && selectorPart.typeDescription() == "CNamespaceSelectorPart")) {
+                    suffix = "[" + selectorPart.htmlTypeDescription() + "]" + suffix;
                 }
 
-                if (!props[1].isNull()) {
-                    return getClassSelectorDescription(props[1], stylesheet)
+                if (!classSelector.isNull()) {
+                    return getClassSelectorDescription(classSelector, stylesheet)
                     .then(function (classDescription) {
                         return prefix + classDescription + suffix;
                     })
-                } else if (props[2] >= 0) {
-                    return getAtomFromAtomTable(getDocFromStylesheet(stylesheet).f("_AtomTable"), props[2])
+                } else if (idAtom >= 0) {
+                    return getAtomFromAtomTable(getDocFromStylesheet(stylesheet).f("_AtomTable"), idAtom)
                     .then(function (idName) {
                         return prefix + "#" + idName + suffix;
                     })
-                } else if (props[3] != "ETAG_UNKNOWN") {
-                    var tagNamePromise = Promise.as(props[3].toLowerCase().substr("ETAG_".length));
-                    if (props[3] == "ETAG_GENERIC" && props[7].typeDescription() == "CNamespaceSelectorPart") {
-                        tagNamePromise = props[7].f("_cstrLocalName._pch").string()
+                } else if (tag != "ETAG_UNKNOWN") {
+                    var tagNamePromise = Promise.resolve(tag.toLowerCase().substr("ETAG_".length));
+                    if (tag == "ETAG_GENERIC" && selectorPart.typeDescription() == "CNamespaceSelectorPart") {
+                        tagNamePromise = selectorPart.f("_cstrLocalName._pch").string()
                     }
 
                     return tagNamePromise
                     .then(function (tagName) {
                         return prefix + tagName + suffix;  
                     })
-                } else if (props[9]) {
+                } else if (universalExplicit) {
                     return prefix + "*" + suffix;
                 } else if (prefix == "" && suffix == "") {
                     return "???";
@@ -263,9 +260,8 @@ Loader.OnLoad(function() {
     })
 
     StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CAttrValue", function(attrValue) {
-        return Promise.join([attrValue.desc("Name"), attrValue.desc("Value")])
-        .then(function (nameAndValue) {
-            var name = nameAndValue[0];
+        return Promise.all([attrValue.desc("Name"), attrValue.desc("Value")])
+        .thenAll(function (name, value) {
             if (name.split("/").length > 1) {
                 var prefix = "DISPID_CCSSStyleDeclaration_";
                 var formattedNames = name.split("/")
@@ -276,11 +272,11 @@ Loader.OnLoad(function() {
                     name = formattedNames[0];
                 }
             }
-            var value = nameAndValue[1];
+            
             if (value instanceof DbgObject) {
                 value = value.desc();
             }
-            return Promise.as(value)
+            return Promise.resolve(value)
             .then(function (value) {
                 return name.toLowerCase() + ":" + value;
             })

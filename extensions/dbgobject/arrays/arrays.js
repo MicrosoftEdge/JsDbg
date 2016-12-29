@@ -19,11 +19,11 @@ Loader.OnLoad(function() {
 
         var resultType = this.typeName instanceof Function ? this.typeName(parentDbgObject.typename) : this.typeName;
         if (resultType == null) {
-            return Promise.as(result);
+            return Promise.resolve(result);
         }
 
         var that = this;
-        return Promise.map(Promise.join(result), function (obj) { return obj.isType(resultType); })
+        return Promise.map(Promise.all(result), function (obj) { return obj.isType(resultType); })
         .then(function (areAllTypes) {
             var incorrectIndex = areAllTypes.indexOf(false);
             if (incorrectIndex != -1) {
@@ -76,7 +76,7 @@ Loader.OnLoad(function() {
                 if (result == null) {
                     throw new Error("There was no array \"" + name + "\" on " + that.typeDescription());
                 }
-                return Promise.as(result.extension.getter(result.dbgObject))
+                return Promise.resolve(result.extension.getter(result.dbgObject))
                 .then(function (resultArray) {
                     return result.extension.ensureCompatibleResult(resultArray, result.dbgObject);
                 })
@@ -84,7 +84,7 @@ Loader.OnLoad(function() {
         }
 
         // "count" might be a promise...
-        return Promise.as(count)
+        return Promise.resolve(count)
         .then(function (count) {
             // If we were given a DbgObject, go ahead and get the value.
             if (count !== undefined && count.val == DbgObject.prototype.val) {

@@ -32,7 +32,7 @@ var TreeInspector = (function() {
         this.getRoots = getRoots;
         this.treeDefinition = treeDefinition;
         this.dbgObjectRenderer = dbgObjectRenderer;
-        this.currentOperation = Promise.as(true);
+        this.currentOperation = Promise.resolve(true);
     }
 
     TreeInspectorUIController.prototype.setExpandTreeAutomatically = function (value) {
@@ -61,7 +61,7 @@ var TreeInspector = (function() {
             this.pointerField.value = this.pointerField.value.trim();
 
             var that = this;
-            Promise.as(this.interpretAddress(new PointerMath.Pointer(this.pointerField.value, 16)))
+            Promise.resolve(this.interpretAddress(new PointerMath.Pointer(this.pointerField.value, 16)))
             .then(function(rootObject) { 
                 that.treeReader = new FieldSelector.TreeReader(new DbgObjectTree.DbgObjectTreeRenderer(that.treeDefinition, that.dbgObjectRenderer), that.fieldSupportController);
                 return that.treeReader.createRoot(rootObject)
@@ -397,11 +397,8 @@ var TreeInspector = (function() {
 
     return {
         GetActions: function (extension, description, rootObjectPromise, emphasisObjectPromise) {
-            return Promise.join([rootObjectPromise, emphasisObjectPromise])
-            .then(function (results) {
-                var rootObject = results[0];
-                var emphasisObject = results[1];
-
+            return Promise.all([rootObjectPromise, emphasisObjectPromise])
+            .thenAll(function (rootObject, emphasisObject) {
                 if (!(rootObject instanceof DbgObject) || rootObject.isNull()) {
                     return [];
                 }

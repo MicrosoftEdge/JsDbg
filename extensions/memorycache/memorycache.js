@@ -1,6 +1,7 @@
 "use strict";
 
-var MemoryCache = (function() {
+var MemoryCache = undefined;
+Loader.OnLoad(function() {
     const PAGE_SIZE = 4096; // The cacheable unit size.
     const RETRIEVAL_SIZE = 4; // The size of the element that the page is broken down to.
     const CACHE_TRIGGER = 4; // Number of hits required on a given page before caching.  Lower is more aggressive.
@@ -238,8 +239,8 @@ var MemoryCache = (function() {
     JsDbg.RegisterOnBreakListener(clearCache);
     JsDbg.RegisterOnMemoryWriteListener(clearCache);
 
-    return {
+    MemoryCache = {
         ReadNumber: readNumber,
         ReadArray: readArray
     };
-})();
+})

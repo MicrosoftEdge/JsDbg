@@ -37,7 +37,7 @@ Loader.OnLoad(function() {
 
     UndoManager.Tree.addChildren(MSHTML.Module, "Undo::UndoManager", function (undoManager) {
         // Group user, scripted and pending children of the open parent unit with these render-only children of the UndoManager object
-        return Promise.join([
+        return Promise.all([
             {
                 toString : function() {
                     return "User Undo Units"

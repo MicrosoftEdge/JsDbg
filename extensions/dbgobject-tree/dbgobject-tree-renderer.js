@@ -57,7 +57,7 @@
     TreeRenderer.prototype.getChildren = function(node) {
         if (node.childrenPromise === undefined) {
             if (node.isDuplicate) {
-                node.childrenPromise = Promise.as([]);
+                node.childrenPromise = Promise.resolve([]);
             } else {
                 var that = this;
                 node.childrenPromise = Promise.map(
@@ -84,7 +84,9 @@
             node.lastRepresentation = container;
             if (node.isDuplicate) {
                 container.style.color = "#aaa";
-                container.insertBefore(document.createTextNode("(DUPLICATE) "), container.firstChild);
+                var duplicateElement = document.createElement("div");
+                duplicateElement.textContent = "(DUPLICATE)";
+                container.insertBefore(duplicateElement, container.firstChild);
                 container.style.cursor = "pointer";
                 container.addEventListener("click", function() {
                     that.emphasizeDbgObject(object.ptr(), node.root);

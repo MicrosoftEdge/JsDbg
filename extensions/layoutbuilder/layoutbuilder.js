@@ -43,7 +43,7 @@ Loader.OnLoad(function() {
             })
             .then(function (layoutBuilders) {
                 if (layoutBuilders.length == 0) {
-                    return Promise.fail("No LayoutBuilders were found on the call stack. Possible reasons:<ul><li>The debuggee is not broken in layout.</li><li>The debuggee is not IE 11.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a LayoutBuilder explicitly.")
+                    return Promise.reject("No LayoutBuilders were found on the call stack. Possible reasons:<ul><li>The debuggee is not broken in layout.</li><li>The debuggee is not IE 11.</li><li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li><li>Symbols aren't available.</li></ul>Refresh the page to try again, or specify a LayoutBuilder explicitly.")
                 } else {
                     return layoutBuilders;
                 }
@@ -105,14 +105,12 @@ Loader.OnLoad(function() {
     DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBox", "LayoutBuilder", function(box) {
         return box.vcast()
         .then(function (vcastedBox) {
-            return Promise.join(
-                [vcastedBox.f("builder"), vcastedBox.f("isAttachedToBuilder").val()],
-                function (builder, isAttachedToBuilder) {
-                    if (isAttachedToBuilder) {
-                        return builder.actions("LayoutBuilder");
-                    }
+            return Promise.all([vcastedBox.f("builder"), vcastedBox.f("isAttachedToBuilder").val()])
+            .thenAll(function (builder, isAttachedToBuilder) {
+                if (isAttachedToBuilder) {
+                    return builder.actions("LayoutBuilder");
                 }
-            );
+            });
         });
     });
 });

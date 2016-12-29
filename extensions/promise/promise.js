@@ -1,206 +1,278 @@
-var Promise = (function() {
-    var DEBUG_PROMISES = false;
-    var nextPromiseId = 0;
-    var allPromises = {};
+"use strict";
 
-    var queue = (function() {
-        var entry = [];
-        var exit = [];
+Loader.OnLoad(function() {
+    // In Edge and Firefox, the built-in promises are slower than the JS implementation below.
+    if (window.navigator.userAgent.indexOf("Edge") >= 0 || window.navigator.userAgent.indexOf("Firefox") >= 0 || !window.Promise) {
+        var queue = (function() {
+            var entry = [];
+            var exit = [];
 
-        return {
-            enqueue: function(item) {
-                entry.push(item);
-            },
-            dequeue: function() {
-                if (exit.length == 0) {
-                    exit = entry;
-                    exit.reverse();
-                    entry = [];
+            return {
+                enqueue: function(item) {
+                    entry.push(item);
+                },
+                dequeue: function() {
+                    if (exit.length == 0) {
+                        exit = entry;
+                        exit.reverse();
+                        entry = [];
+                    }
+
+                    if (exit.length > 0) {
+                        return exit.pop();
+                    } else {
+                        return null;
+                    }
+                },
+                length: function() {
+                    return entry.length + exit.length;
                 }
+            };
+        })();
 
-                if (exit.length > 0) {
-                    return exit.pop();
-                } else {
-                    return null;
-                }
-            },
-            length: function() {
-                return entry.length + exit.length;
-            }
-        };
-    })();
+        var fireCallbackDepth = 0;
+        function fireCallbacks(callbacks) {
+            var shouldFire = fireCallbackDepth == 0;
+            callbacks.forEach(function (f) { queue.enqueue(f); });
 
-    var fireCallbackDepth = 0;
-    function fireCallbacks(callbacks) {
-        var shouldFire = fireCallbackDepth == 0;
-        callbacks.forEach(function (f) { queue.enqueue(f); });
+            ++fireCallbackDepth;
 
-        ++fireCallbackDepth;
-
-        try {
-            while (shouldFire && queue.length() > 0) {
-                queue.dequeue()();
-            }
-        } catch (ex) {
-
-        } finally {
-            --fireCallbackDepth;
-        }
-    }
-
-    function Promise(doAsynchronousWork) {
-        var that = this;
-        this.isCompleted = false;
-        this.isError = false;
-        this.result = null;
-        this.callbacks = [];
-
-        if (DEBUG_PROMISES) {
-            this.promiseId = nextPromiseId++;
-            allPromises[this.promiseId] = this;
-
-            this.createError = null;
             try {
-                Error.stackTraceLimit = Infinity;
-                throw new Error();
-            } catch (e) {
-                this.createError = e;
-                Error.stackTraceLimit = 10;
-            }
+                while (shouldFire && queue.length() > 0) {
+                    queue.dequeue()();
+                }
+            } catch (ex) {
 
-            this.parentPromises = [];
+            } finally {
+                --fireCallbackDepth;
+            }
         }
 
-        doAsynchronousWork(
-            function workCompleted(completedResult) {
-                if (that.isError || that.isCompleted) {
-                    throw new Error("You cannot complete a promise that has already been completed.");
-                }
-                that.isCompleted = true;
-                that.result = completedResult;
-                that.getPromisedValue = function getPromisedValue() { return completedResult; }
+        window.Promise = function(doAsynchronousWork) {
+            var that = this;
+            this.isCompleted = false;
+            this.isError = false;
+            this.result = null;
+            this.callbacks = [];
 
-                fireCallbacks(that.callbacks);
-            }, function workFailed(errorResult) {
-                if (that.isError || that.isCompleted) {
-                    throw new Error("You cannot trigger an error on a promise that has already been completed.");
-                }
-                that.isError = true;
-                that.result = errorResult;
+            doAsynchronousWork(
+                function workCompleted(completedResult) {
+                    if (that.isError || that.isCompleted) {
+                        throw new Error("You cannot complete a promise that has already been completed.");
+                    }
+                    that.isCompleted = true;
+                    that.result = completedResult;
 
-                if (DEBUG_PROMISES) {
-                    console.log("Promise #" + that.promiseId + " failed: " + JSON.stringify(errorResult));
-                }
+                    fireCallbacks(that.callbacks);
+                }, function workFailed(errorResult) {
+                    if (that.isError || that.isCompleted) {
+                        throw new Error("You cannot trigger an error on a promise that has already been completed.");
+                    }
+                    that.isError = true;
+                    that.result = errorResult;
 
-                fireCallbacks(that.callbacks);
-            },
-            this
-        );
+                    fireCallbacks(that.callbacks);
+                },
+                this
+            );
+        }
+        
+        Promise.reject = function(errorMessage) {
+            return new Promise(function promiseFail(success, failure) {
+                failure(errorMessage);
+            });
+        }
+
+        Promise.all = function(promises) {
+            return new Promise(
+                function promiseJoiner(success, error) {
+                    var results = new Array(promises.length);
+                    var remaining = promises.length;
+                    var didError = false;
+
+                    if (remaining == 0) {
+                        success(results);
+                    }
+
+                    promises.forEach(function promiseJoinForEach(promise, index) {
+                        Promise.resolve(promise)
+                        .then(
+                            function storeJoinResult(value) {
+                                results[index] = value;
+                                if (!didError && --remaining == 0) {
+                                    success(results);
+                                }
+                            },
+                            function promiseJoinError(errorResult) {
+                                if (!didError) {
+                                    didError = true;
+                                    error(errorResult);
+                                }
+                            }
+                        );
+                    });
+                }
+            );
+        }
+
+        Promise.race = function(promises) {
+            return new Promise(
+                function promiseRacer(success, error) {
+                    var didComplete = false;
+                    promises.forEach(function promiseRaceForEach(promise) {
+                        promise.then(
+                            function promiseRaceSuccess(value) {
+                                if (!didComplete) {
+                                    didComplete = true;
+                                    success(value);
+                                }
+                            },
+                            function promiseRaceFailure(value) {
+                                if (!didComplete) {
+                                    didComplete = true;
+                                    error(value);
+                                }
+                            }
+                        );
+                    })
+                }
+            )
+        }
+
+        function SimplePromise(value) {
+            this.value = value;
+        }
+
+        SimplePromise.prototype.then = function (f) {
+            if (!f) {
+                return this;
+            } else {
+                try {
+                    return Promise.resolve(f(this.value));
+                } catch (ex) {
+                    return Promise.reject(ex);
+                }
+            }
+        }
+
+        SimplePromise.prototype.catch = function() {
+            // Simple promises are never in the rejected state.
+            return this;
+        }
+
+        SimplePromise.prototype.thenAll = function(f, err) {
+            return this.then(function (array) {
+                return f.apply(this, array);
+            }, err)
+        }
+
+        function isThenable(value) {
+            return value && value.then instanceof Function;
+        }
+
+        Promise.resolve = function(value) {
+            if (isThenable(value)) {
+                return value;
+            } else {
+                return new SimplePromise(value);
+            }
+        }
+
+        Promise.prototype._addCallback = function(callback) {
+            if (this.isCompleted || this.isError) {
+                fireCallbacks([callback]);
+            } else {
+                this.callbacks.push(callback);
+            }
+        }
+
+        Promise.prototype.then = function(fulfilled, error) {
+            var that = this;
+            var result = new Promise(function thenPromiseWork(newPromiseWorkFinished, newPromiseWorkErred, newPromise) {
+                that._addCallback(function thenCallback() {
+                    if (that.isCompleted) {
+                        if (fulfilled) {
+                            try {
+                                var fulfillmentResult = fulfilled(that.result);
+                            } catch (fulfillmentError) {
+                                console.log("Got exception during fulfillment: " + fulfillmentError);
+                                newPromiseWorkErred(fulfillmentError);
+                                return;
+                            }
+
+                            if (isThenable(fulfillmentResult)) {
+                                // The fulfillment method returned another promise.  Tie this promise to that one.
+                                fulfillmentResult.then(newPromiseWorkFinished, newPromiseWorkErred);
+                            } else {
+                                // The fulfillment method returned a value.  The new promise is complete.
+                                newPromiseWorkFinished(fulfillmentResult);
+                            }
+                        } else {
+                            // Forward it to the new promise instead.
+                            newPromiseWorkFinished(that.result);
+                        }
+                        
+                    } else if (that.isError) {
+                        if (error) {
+                            // Handle the error.
+                            try {
+                                var errorResult = error(that.result);
+                            } catch (errorError) {
+                                console.log("Got exception during error handling: " + errorError);
+                                newPromiseWorkErred(errorError);
+                                return;
+                            }
+                            if (isThenable(errorResult)) {
+                                errorResult.then(newPromiseWorkFinished, newPromiseWorkErred);
+                            } else {
+                                newPromiseWorkFinished(errorResult);
+                            }
+                        } else {
+                            // Forward it to the new promise instead.
+                            newPromiseWorkErred(that.result);
+                        }
+                    }
+                });
+
+            });
+
+            return result;
+        }
+
+        Promise.prototype.catch = function(onError) { return this.then(null, onError); }
     }
-    Help.Register(Promise);
-    
+
     Promise._help = {
         name: "Promise",
         description: "Represents a value or error that is retrieved asynchronously.",
-        notes: "<p>Promises are immutable, and Promises may be fulfilled immediately.</p>",
-        _help_constructor: {
-            arguments: [{name: "doAsynchronousWork", type:"function(completed: function(object), failed: function(object))", description: "A function that notifies the promise of success or failure.  The constructor will call this function exactly once."}]
-        }
+        notes: "<p>JsDbg promises are based on ES6 promises, except that promises in JsDbg may be fulfilled immediately and have some additional helper methods.</p>" +
+        "<p>For more information see <a href=\"https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise\">MDN</a>.</p>"
+    };
+
+    Help.Register(Promise);
+
+    Promise.prototype._help_thenAll = {
+        description: "Like 'then' but spreads an array result into the arguments of the callback.",
+        returns: "A Promise to the result of the given function.",
+        arguments: [
+            {name:"onsuccess", type:"function", description:"The callback, expecting an argument for each element of the array."},
+            {name:"onerror", type:"function", description:"(optional) A callback to handle the result of the promise if it fails."}
+        ],
+        notes: "<p>Using regular '.then' with Promise.all can be unwieldly when the array is a fixed size:\
+<pre>Promise.all([firstPromise, secondPromise, thirdPromise])\n\
+.then(function(results) {\n\
+    // Do something with results[0], results[1], and results[2]\n\
+});</pre>\
+Using '.thenAll' makes this a bit smoother:\
+<pre>Promise.all([firstPromise, secondPromise, thirdPromise])\n\
+.thenAll(function(firstResult, secondResult, thirdResult) {\n\
+    // Do something with these results.\n\
+});</pre>" 
     }
-
-    Promise._help_enablePromiseDebugging = {
-        description: "Enables promise debugging at a significant performance expense.",
-        notes:"Once enabled:<ul>\
-        <li>Promises are given a unique identifier, <code>this.promiseId</code>.</li>\
-        <li><code>Promise.allPromises</code> contains a reference to every promise.</li>\
-        <li><code>Promise.findUnfinishedPromises()</code> will attempt to find any promise that did not finish.</li>\
-        <li><code>this.createError.stack</code> will include the stack where a promise was created.</li>\
-        <li>Failed promises will be logged to the console.</li></ul>",
-    }
-    Promise.enablePromiseDebugging = function() {
-        if (!DEBUG_PROMISES) {
-            DEBUG_PROMISES = true;
-            Promise.allPromises = allPromises;
-            Promise.findUnfinishedPromises = function() {
-                function debugPromise(promise, seenPromises) {
-                    if (promise.isCompleted || promise.isError) {
-                        // Promise has already finished.
-                        return null;
-                    }
-
-                    if (promise.promiseId in seenPromises) {
-                        console.log("Circular promise dependency detected!");
-                        return promise;
-                    }
-
-                    seenPromises[promise.promiseId] = true;
-
-                    var problematicPromise = null;
-                    for (var i = 0; i < promise.parentPromises.length; ++i) {
-                        problematicPromise = debugPromise(promise.parentPromises[i], seenPromises);
-                        if (problematicPromise != null) {
-                            break;
-                        }
-                    }
-
-                    if (problematicPromise == null) {
-                        console.log("Found a promise whose parents are finished but is not finished!");
-                        problematicPromise = promise;
-                    }
-
-                    delete seenPromises[promise.promiseId];
-
-                    return problematicPromise;
-                }
-
-                for (var id in allPromises) {
-                    var promise = debugPromise(allPromises[id], {});
-                    if (promise != null) {
-                        return promise;
-                    }
-                }
-            }
-        }
-    }
-
-    Promise._help_isPromise = {
-        description: "Indicates if a given object is a promise.",
-        returns: "A bool.",
-        arguments: [{name:"obj", type:"any", description:"The value to test."}]
-    }
-    Promise.isPromise = function(obj) {
-        return obj && typeof(obj.then) == typeof(function() {});
-    }
-
-    Promise._help_as = {
-        description: "Creates a promise that represents the given value.",
-        returns: "A Promise.",
-        arguments: [{name:"value", type:"any", description:"The value to make a promise."}],
-        notes: "If the given value is already a promise, the value is returned as-is."
-    }
-    Promise.as = function(value) {
-        if (Promise.isPromise(value)) {
-            return value;
-        } else {
-            return { 
-                then: function simpleThen(f) {
-                    try {
-                        if (!f) {
-                            return this;
-                        }
-                        var result = f(value);
-                        return Promise.as(result);
-                    } catch (ex) {
-                        return Promise.fail(ex);
-                    }
-                },
-                catch: function() {
-                    // Simple promises are never in the failed state.
-                    return this;
-                },
-                getPromisedValue: function getPromisedValue() { return value; }
-            };
-        }
+    Promise.prototype.thenAll = function(f, err) {
+        return this.then(function (array) {
+            return f.apply(this, array);
+        }, err)
     }
 
     var promisifiedMethodsByLength = [
@@ -288,6 +360,14 @@ var Promise = (function() {
         },
     ]
 
+    Promise._help_promisify = {
+        description: "Given an object with methods expecting a callback in the last parameter, creates an object with methods that return promises.",
+        returns: "An object with promisified methods.",
+        arguments: [
+            {name:"module", type:"an object", description:"The object to promisify."}
+        ],
+        notes: "<p>Example Usage:<pre>Promise.promisify(JsDbg).GetCallStack(10)\n.then(function(callstack) {\n    // Do something with the callstack.\n})</pre>"
+    }
     Promise.promisify = function(module, check) {
         var methodNames = Object.getOwnPropertyNames(module).filter(function (propertyName) {
             return module[propertyName] instanceof Function && module[propertyName].length > 0;
@@ -305,100 +385,6 @@ var Promise = (function() {
         return promisifiedModule;
     }
 
-    Promise.realize = function(promise) {
-        if (Promise.isPromise(promise) && promise.getPromisedValue) {
-            return promise.getPromisedValue();
-        } else {
-            return promise;
-        }
-    }
-
-    Promise._help_fail = {
-        description: "Creates a failed promise with the given failure result.",
-        returns: "A Promise.",
-        arguments: [{name:"errorMessage", type:"any", description:"The failure result."}]
-    }
-    Promise.fail = function(errorMessage) {
-        return new Promise(function promiseFail(success, failure) {
-            failure(errorMessage);
-        });
-    }
-
-    Promise._help_log = {
-        description: "Logs the result of a promise or value and forwards it on.",
-        returns: "A Promise.",
-        arguments: [{name:"promise", type:"any", description:"The promise whose value should be logged."}]
-    }
-    Promise.log = function(promise) {
-        return Promise.as(promise).then(function promiseLog(value) { 
-            console.log(JSON.stringify(value));
-            return value;
-        });
-    }
-
-    Promise._help_debug = {
-        description: "Breaks into the debugger when a given promise is fulfilled.",
-        returns: "A Promise.",
-        arguments: [{name:"promise", type:"any", description:"The promise to break when fulfilled."}]
-    }
-    Promise.debug = function(promise) {
-        return Promise.as(promise).then(function promiseDebug(value) {
-            debugger;
-            return value;
-        });
-    }
-
-    Promise._help_join = {
-        description: "Waits for all promises in an array to complete.",
-        returns: "A Promise to an array of fulfilled results.",
-        arguments: [{name:"promises", type:"array of any", description:"The array of promises/values to wait for."}],
-        notes:"The given array can contain any combination of promises or values."
-    }
-    Promise.join = function(promises, spreadFn) {
-        var result = new Promise(function promiseJoiner(success, error, joinPromise) {
-            var results = new Array(promises.length);
-            var remaining = promises.length;
-            var didError = false;
-
-            if (remaining == 0) {
-                success(results);
-            }
-
-            promises = promises.map(Promise.realize);
-            promises.forEach(function promiseJoinForEach(promise, index) {
-                function storeJoinResult(value) {
-                    results[index] = value;
-                    if (!didError && --remaining == 0) {
-                        success(results);
-                    }
-                }
-                if (!Promise.isPromise(promise)) {
-                    storeJoinResult(promise);
-                } else {
-                    if (DEBUG_PROMISES) {
-                        joinPromise.parentPromises.push(promise);
-                    }
-
-                    promise.then(storeJoinResult, function promiseJoinError(errorResult) {
-                        if (!didError) {
-                            didError = true;
-                            error(errorResult);
-                        }
-                    });
-                }
-            });
-        })
-
-        if (spreadFn && (typeof spreadFn == "function")) {
-            return result
-            .then(function (joinedResults) {
-                return spreadFn.apply(this, joinedResults);
-            })
-        } else {
-            return result;
-        }
-    }
-
     Promise._help_map = {
         description: "Maps every object in an array or promised array and waits for the mapped values to be fulfilled.",
         returns: "A Promise to an array of fulfilled results.",
@@ -408,14 +394,10 @@ var Promise = (function() {
         ]
     }
     Promise.map = function(array, f) {
-        array = Promise.realize(array);
-        if (!Promise.isPromise(array)) {
-            return Promise.join(array.map(f));
-        } else {
-            return array.then(function (array) {
-                return Promise.join(array.map(f));
-            })
-        }
+        return Promise.resolve(array)
+        .then(function (resolvedArray) {
+            return Promise.all(resolvedArray.map(f));
+        })
     }
 
     Promise._help_filter = {
@@ -427,15 +409,15 @@ var Promise = (function() {
         ]
     }
     Promise.filter = function(promisedArray, f) {
-        return Promise.as(promisedArray)
-            .then(function (array) {
-                return Promise.map(array, f)
-                    .then(function promiseFilterer(bools) {
-                        return array.filter(function(_, i) {
-                            return bools[i];
-                        });
+        return Promise.resolve(promisedArray)
+        .then(function (array) {
+            return Promise.map(array, f)
+                .then(function promiseFilterer(bools) {
+                    return array.filter(function(_, i) {
+                        return bools[i];
                     });
-            });
+                });
+        });
     }
 
     Promise._help_sort = {
@@ -453,26 +435,26 @@ var Promise = (function() {
             keyComparer = function(a, b) { return a - b; };
         }
 
-        return Promise.as(promisedArray)
-            .then(function (array) {
-                return Promise.map(array, keyGenerator)
-                    // Get the array of keys.
-                    .then(function(keys) {
-                        // Create the compound array.
-                        var keysAndValues = keys.map(function(key, i) {
-                            return {
-                                key:key,
-                                value:array[i]
-                            };
-                        });
-
-                        // Sort the compound array by key.
-                        keysAndValues.sort(function(a, b) { return keyComparer(a.key, b.key); });
-
-                        // Map the compound array back to the values.
-                        return keysAndValues.map(function(keyAndValue) { return keyAndValue.value; });
+        return Promise.resolve(promisedArray)
+        .then(function (array) {
+            return Promise.map(array, keyGenerator)
+                // Get the array of keys.
+                .then(function(keys) {
+                    // Create the compound array.
+                    var keysAndValues = keys.map(function(key, i) {
+                        return {
+                            key:key,
+                            value:array[i]
+                        };
                     });
-            })
+
+                    // Sort the compound array by key.
+                    keysAndValues.sort(function(a, b) { return keyComparer(a.key, b.key); });
+
+                    // Map the compound array back to the values.
+                    return keysAndValues.map(function(keyAndValue) { return keyAndValue.value; });
+                });
+        })
     }
 
     Promise._help_CreatePromisedType = {
@@ -486,7 +468,7 @@ var Promise = (function() {
     }
     Promise.CreatePromisedType = function(constructor, sameTypeMethods, arrayMethods) {
         var promisedType = function(promise) { 
-            this.promise = Promise.as(promise);
+            this.promise = Promise.resolve(promise);
         };
         promisedType.prototype.then = function() {
             return this.promise.then.apply(this.promise, arguments);
@@ -511,7 +493,7 @@ var Promise = (function() {
         }
         promisedType.Array.prototype.forEach = function(f) {
             return this.map(function (item) {
-                return Promise.as(f(item))
+                return Promise.resolve(f(item))
                 .then(function () {
                     return item;
                 });
@@ -522,12 +504,7 @@ var Promise = (function() {
             if (resultPromisedType != null) {
                 // Wrap the original method in a method to return a promised type instead.
                 constructor.prototype[methodName] = function wrappedPromisedMethod() {
-                    var returnValue = method.apply(this, arguments);
-                    if (Promise.isPromise(returnValue)) {
-                        return new resultPromisedType(returnValue);
-                    } else {
-                        return returnValue;
-                    }
+                    return new resultPromisedType(method.apply(this, arguments));
                 };
             }
             if (typeof(method) == typeof(function() {})) {
@@ -572,94 +549,4 @@ var Promise = (function() {
         
         return promisedType;
     }
-
-    Promise.prototype._addCallback = function(callback) {
-        if (this.isCompleted || this.isError) {
-            fireCallbacks([callback]);
-        } else {
-            this.callbacks.push(callback);
-        }
-    }
-
-    Promise.prototype._help_then = {
-        description: "Provides a callback to handle the fulfilled value of a promise.",
-        returns:"A Promise to the value returned by the fulillment handler.",
-        arguments: [
-            {name:"fulfilled", type:"function(any) -> any", description:"(optional) The fulfillment callback."},
-            {name:"error", type:"function(any) -> any", description:"(optional) The error callback."},
-        ],
-        notes: "<p>This method returns a promise to the value returned by the fulfillment handler.\
-        If the fulfillment handler itself returns a promise, then the returned promise will be a promise\
-        to the value of that promise; a fulfillment handler given to <code>then</code> will never be given\
-        a promise.  If this promise has an error, the error handler will be called instead.  If no error\
-        handler is specified, the error will be forwarded to the returned promise.  Finally, if either\
-        the fulfillment or error handlers throw an exception, the returned promise will fail with the\
-        exception.</p>"
-    }
-    Promise.prototype.then = function(fulfilled, error) {
-        var that = this;
-        var result = new Promise(function thenPromiseWork(newPromiseWorkFinished, newPromiseWorkErred, newPromise) {
-            that._addCallback(function thenCallback() {
-                if (that.isCompleted) {
-                    if (fulfilled) {
-                        try {
-                            var fulfillmentResult = fulfilled(that.result);
-                        } catch (fulfillmentError) {
-                            console.log("Got exception during fulfillment: " + fulfillmentError);
-                            newPromiseWorkErred(fulfillmentError);
-                            return;
-                        }
-
-                        if (Promise.isPromise(fulfillmentResult)) {
-                            // The fulfillment method returned another promise.  Tie this promise to that one.
-                            if (DEBUG_PROMISES) {
-                                newPromise.parentPromises.push(fulfillmentResult);
-                            }
-                            fulfillmentResult.then(newPromiseWorkFinished, newPromiseWorkErred);
-                        } else {
-                            // The fulfillment method returned a value.  The new promise is complete.
-                            newPromiseWorkFinished(fulfillmentResult);
-                        }
-                    } else {
-                        // Forward it to the new promise instead.
-                        newPromiseWorkFinished(that.result);
-                    }
-                    
-                } else if (that.isError) {
-                    if (error) {
-                        // Handle the error.
-                        try {
-                            var errorResult = error(that.result);
-                        } catch (errorError) {
-                            console.log("Got exception during error handling: " + errorError);
-                            newPromiseWorkErred(errorError);
-                            return;
-                        }
-                        if (Promise.isPromise(errorResult)) {
-                            if (DEBUG_PROMISES) {
-                                newPromise.parentPromises.push(fulfillmentResult);
-                            }
-                            errorResult.then(newPromiseWorkFinished, newPromiseWorkErred);
-                        } else {
-                            newPromiseWorkFinished(errorResult);
-                        }
-                    } else {
-                        // Forward it to the new promise instead.
-                        newPromiseWorkErred(that.result);
-                    }
-                }
-            });
-
-        });
-
-        if (DEBUG_PROMISES) {
-            result.parentPromises.push(this);
-        }
-
-        return result;
-    }
-
-    Promise.prototype.catch = function(onError) { return this.then(null, onError); }
-
-    return Promise;
-})();
+})

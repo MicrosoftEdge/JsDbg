@@ -12,20 +12,20 @@ Loader.OnLoad(function () {
                 }
             }
         } else {
-            return Promise.join([currentObjectToDiff.baseTypes(), dbgObject.baseTypes()])
-            .then(function (bothBaseTypes) {
-                bothBaseTypes[0].unshift(currentObjectToDiff);
-                bothBaseTypes[1].unshift(dbgObject);
+            return Promise.all([currentObjectToDiff.baseTypes(), dbgObject.baseTypes()])
+            .thenAll(function (currentObjectBaseTypes, dbgObjectBaseTypes) {
+                currentObjectBaseTypes.unshift(currentObjectToDiff);
+                dbgObjectBaseTypes.unshift(dbgObject);
 
                 var results = [];
 
                 // Find a common type.
-                for (var i = 0; i < bothBaseTypes[0].length && results.length == 0; ++i) {
-                    for (var j = 0; j < bothBaseTypes[1].length; ++j) {
-                        if (bothBaseTypes[0][i].typeDescription() == bothBaseTypes[1][j].typeDescription() && bothBaseTypes[0][i].equals(currentObjectToDiff) && bothBaseTypes[1][j].equals(dbgObject)) {
+                for (var i = 0; i < currentObjectBaseTypes.length && results.length == 0; ++i) {
+                    for (var j = 0; j < dbgObjectBaseTypes.length; ++j) {
+                        if (currentObjectBaseTypes[i].typeDescription() == dbgObjectBaseTypes[j].typeDescription() && currentObjectBaseTypes[i].equals(currentObjectToDiff) && dbgObjectBaseTypes[j].equals(dbgObject)) {
                             results.push({
-                                description: "Diff with " + bothBaseTypes[0][i].htmlTypeDescription() + " " + currentObjectToDiff.ptr(),
-                                action: "/objectdiff/?type=" + bothBaseTypes[0][i].module + "!" + bothBaseTypes[0][i].typeDescription() + "&address1=" + bothBaseTypes[0][i].ptr() + "&address2=" + bothBaseTypes[1][j].ptr(),
+                                description: "Diff with " + currentObjectBaseTypes[i].htmlTypeDescription() + " " + currentObjectToDiff.ptr(),
+                                action: "/objectdiff/?type=" + currentObjectBaseTypes[i].module + "!" + currentObjectBaseTypes[i].typeDescription() + "&address1=" + currentObjectBaseTypes[i].ptr() + "&address2=" + dbgObjectBaseTypes[j].ptr(),
                                 target: "objectdiff-" + currentObjectToDiff.ptr()
                             });
                             break;
@@ -57,12 +57,8 @@ Loader.OnLoad(function () {
         var typeSize = object1.size();
         var fields = object1.fields();
 
-        return Promise.join([fields, object1.as("unsigned char", true).vals(typeSize), object2.as("unsigned char", true).vals(typeSize)])
-        .then(function (results) {
-            var fields = results[0];
-            var object1Bytes = results[1];
-            var object2Bytes = results[2];
-
+        return Promise.all([fields, object1.as("unsigned char", true).vals(typeSize), object2.as("unsigned char", true).vals(typeSize)])
+        .thenAll(function (fields, object1Bytes, object2Bytes) {
             // Get the bytes that are different.
             var differentBytes = {};
             for (var i = 0; i < object1Bytes.length; ++i) {
@@ -89,9 +85,9 @@ Loader.OnLoad(function () {
                     var field = fields[fieldIndex];
                     if (field.value.bitcount > 0) {
                         // For fields with bitcounts, compare the actual values.
-                        return Promise.join([object1.field(field.name).val(), object2.field(field.name).val()])
-                        .then(function (values) {
-                            return values[0] != values[1];
+                        return Promise.all([object1.field(field.name).val(), object2.field(field.name).val()])
+                        .thenAll(function (object1FieldValue, object2FieldValue) {
+                            return object1FieldValue != object2FieldValue;
                         })
                     } else {
                         return true;

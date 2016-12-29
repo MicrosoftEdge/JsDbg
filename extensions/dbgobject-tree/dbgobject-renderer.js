@@ -12,9 +12,9 @@
     Renderer.prototype.getName = function(object, parentObject) {
         if (!(object instanceof DbgObject)) {
             if (object == null) {
-                return Promise.as("(null)");
+                return Promise.resolve("(null)");
             } else {
-                return Promise.as(object.toString());   
+                return Promise.resolve(object.toString());   
             }
         }
 
