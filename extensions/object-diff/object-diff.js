@@ -25,7 +25,8 @@ Loader.OnLoad(function () {
                         if (bothBaseTypes[0][i].typeDescription() == bothBaseTypes[1][j].typeDescription() && bothBaseTypes[0][i].equals(currentObjectToDiff) && bothBaseTypes[1][j].equals(dbgObject)) {
                             results.push({
                                 description: "Diff with " + bothBaseTypes[0][i].htmlTypeDescription() + " " + currentObjectToDiff.ptr(),
-                                action: "/objectdiff/?type=" + bothBaseTypes[0][i].module + "!" + bothBaseTypes[0][i].typeDescription() + "&address1=" + bothBaseTypes[0][i].ptr() + "&address2=" + bothBaseTypes[1][j].ptr()
+                                action: "/objectdiff/?type=" + bothBaseTypes[0][i].module + "!" + bothBaseTypes[0][i].typeDescription() + "&address1=" + bothBaseTypes[0][i].ptr() + "&address2=" + bothBaseTypes[1][j].ptr(),
+                                target: "objectdiff-" + currentObjectToDiff.ptr()
                             });
                             break;
                         }
@@ -88,7 +89,7 @@ Loader.OnLoad(function () {
                     var field = fields[fieldIndex];
                     if (field.value.bitcount > 0) {
                         // For fields with bitcounts, compare the actual values.
-                        return Promise.join([object1.f(field.name).val(), object2.f(field.name).val()])
+                        return Promise.join([object1.field(field.name).val(), object2.field(field.name).val()])
                         .then(function (values) {
                             return values[0] != values[1];
                         })
