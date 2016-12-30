@@ -457,6 +457,53 @@ Using '.thenAll' makes this a bit smoother:\
         })
     }
 
+    Promise.yield = function() {
+        JsDbgLoadingIndicator.Show();
+        return new Promise(function (success) {
+            window.requestAnimationFrame(function() {
+                JsDbgLoadingIndicator.Hide();
+                success();
+            });
+        });
+    }
+
+    var MAX_INFLIGHT_OPERATIONS = 64;
+    var currentThrottledInflightOperations = 0;
+    var currentThrottleYield = null;
+    Promise.throttledMap = function(array, operation) {
+        function doNextChunk(array, index, progress) {
+            if (index >= array.length) {
+                return Promise.resolve(progress);
+            }
+
+            var chunkSize = Math.min(array.length - index, MAX_INFLIGHT_OPERATIONS - currentThrottledInflightOperations);
+            if (chunkSize == 0) {
+                if (currentThrottleYield == null) {
+                    currentThrottleYield = Promise.yield()
+                    .then(function() {
+                        currentThrottledInflightOperations = 0;
+                        currentThrottleYield = null;
+                    });
+                }
+
+                var resultAfterYield = currentThrottleYield.then(function() { return doNextChunk(array, index, progress); });
+                currentThrottleYield = resultAfterYield.catch(function () {});
+                return resultAfterYield;
+            }
+
+            currentThrottledInflightOperations += chunkSize;
+            return Promise.all(array.slice(index, index + chunkSize).map(operation))
+            .then(function(result) {
+                return doNextChunk(array, index + chunkSize, progress.concat(result));
+            })
+        }
+
+        return Promise.resolve(array)
+        .then(function(array) {
+            return doNextChunk(array, 0, []);
+        });
+    }
+
     Promise._help_CreatePromisedType = {
         description: "Creates a new type that can be treated both as a promise to a type or as an instance of that type where every method returns a promise.",
         returns: "A type constructor.",

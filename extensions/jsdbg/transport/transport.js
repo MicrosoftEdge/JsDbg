@@ -27,27 +27,8 @@ Loader.OnLoad(function() {
     // A counter of the total number of requests made to the server.
     var requestCounter = 0;
 
-    // Support for showing/hiding the progress indicator.
-    var pendingAsynchronousRequests = 0;
-
     // Out-of-band message listeners.
     var outOfBandMessageListeners = [];
-
-    function requestStarted() {
-        ++requestCounter;
-        ++pendingAsynchronousRequests;
-        if (pendingAsynchronousRequests == 1) {
-            // If we get blocked waiting for something, we'll be notified.
-            JsDbgLoadingIndicator.Show();
-        }
-    }
-
-    function requestEnded() {
-        --pendingAsynchronousRequests;
-        if (pendingAsynchronousRequests == 0) {
-            JsDbgLoadingIndicator.Hide();
-        }
-    }
 
     function handleWebSocketReply(webSocketMessage) {
         var result = null;
@@ -159,7 +140,8 @@ Loader.OnLoad(function() {
             }
         }
 
-        requestStarted();
+        ++requestCounter;
+        JsDbgLoadingIndicator.Show();
 
         function handleJsonResponse(jsonText) {
             try {
@@ -182,7 +164,7 @@ Loader.OnLoad(function() {
             }
             callback(result);
             otherCallbacks.forEach(function fireBatchedJsDbgCallback(f) { f(result); });
-            requestEnded();
+            JsDbgLoadingIndicator.Hide();
         }
 
         // Use WebSockets if the method is unspecified and there's no data payload.

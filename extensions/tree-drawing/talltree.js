@@ -45,9 +45,9 @@ Loader.OnLoad(function() {
             }
         })
         .then(function (children) {
-            that.isExpanded = children.length == 0 || shouldExpand(that);
+            that.isExpanded = shouldExpand(that) || children.length == 0;
             if (that.isExpanded) {
-                return Promise.all(children.map(function (child) { return child.buildTree(shouldExpand); }));
+                return Promise.throttledMap(children, function (child) { return child.buildTree(shouldExpand); });
             }
         });
     }
@@ -65,7 +65,7 @@ Loader.OnLoad(function() {
         return prefix + numberString;
     }
 
-    DrawingTreeNode.prototype.render = function(parentNode) {
+    DrawingTreeNode.prototype.render = function(parentNode, notify) {
         var renderedElement = document.createElement("div");
 
         // Add the node the parent immediately so that the caller has explicit control over the ordering.
@@ -84,9 +84,8 @@ Loader.OnLoad(function() {
         return this.treeReader.createRepresentation(this.innerNode)
         .then(function(innerRepresentation) {
             renderedElement.appendChild(innerRepresentation);
-        })
-        .then(function() {
-            return that.renderChildren(renderedElement, renderedElement);
+            notify(that);
+            return that.renderChildren(renderedElement, renderedElement, notify);
         });
     }
 
@@ -114,7 +113,7 @@ Loader.OnLoad(function() {
                         timer.Mark("Finished Subtree Construction");
                         timer = Timer.Start();
                         // Render the children into a document fragment so that the appearance in the DOM is atomic.
-                        return that.renderChildren(renderedElement, document.createDocumentFragment())
+                        return that.renderChildren(renderedElement, document.createDocumentFragment(), function() {})
                         .then(function(documentFragment) {
                             renderedElement.appendChild(documentFragment);
                             timer.Mark("Finished DOM Rendering");
@@ -131,17 +130,17 @@ Loader.OnLoad(function() {
 
                     return that.buildTree(function shouldExpand(node) { return false; })
                     .then(function () {
-                        return that.renderChildren(renderedElement, renderedElement);
+                        return that.renderChildren(renderedElement, renderedElement, function() {});
                     })
                 }
             });
         }
     }
 
-    DrawingTreeNode.prototype.renderChildren = function(rendering, parentNode) {
+    DrawingTreeNode.prototype.renderChildren = function(rendering, parentNode, notify) {
         if (this.isExpanded) {
             var that = this;
-            return Promise.all(this.children.map(function (child) { return child.render(parentNode); }))
+            return Promise.throttledMap(this.children, function (child) { return child.render(parentNode, notify); })
             .then(function() {
                 rendering.classList.remove("collapsed");
                 return parentNode;
@@ -219,11 +218,25 @@ Loader.OnLoad(function() {
         BuildTree: function(container, treeReader, root, expandFully) {
             return enqueueWork(function() {
                 var drawingNode = new DrawingTreeNode(treeReader, root);
+
+                container.innerHTML = "";
+                var renderedNodes = document.createTextNode("0");
+                container.appendChild(renderedNodes);
+                container.appendChild(document.createTextNode("/"));
+                var discoveredNodes = document.createTextNode("0");
+                container.appendChild(discoveredNodes);
+                container.appendChild(document.createTextNode(" nodes rendered..."));
+
                 var timer = new Timer();
-                return drawingNode.buildTree(function (node) { return expandFully; })
+                return drawingNode.buildTree(function (node) {
+                    discoveredNodes.nodeValue = parseInt(discoveredNodes.nodeValue) + 1;
+                    return expandFully;
+                })
                 .then(function() {
                     timer.Mark("Finished Tree Construction");
-                    return drawingNode.render(document.createDocumentFragment());
+                    return drawingNode.render(document.createDocumentFragment(), function() {
+                        renderedNodes.nodeValue = parseInt(renderedNodes.nodeValue) + 1;
+                    });
                 })
                 .then(function(rendering) {
                     container.innerHTML = "";

@@ -18,13 +18,21 @@ Loader.OnLoad(function () {
         loadingPanel.appendChild(progress);        
     }
 
+    var loadingReferences = 0;
+
     JsDbgLoadingIndicator = {
         Show: function () {
-            loadingIndicator.classList.remove("waiting");
-            loadingIndicator.style.display = "block";
+            ++loadingReferences;
+            if (loadingReferences == 1) {
+                loadingIndicator.classList.remove("waiting");
+                loadingIndicator.style.display = "block";
+            }
         },
         Hide: function () {
-            loadingIndicator.style.display = "none";
+            --loadingReferences;
+            if (loadingReferences == 0) {
+                loadingIndicator.style.display = "none";
+            }
         },
         SetIsWaitingForDebugger: function (value) {
             if (value) {
