@@ -435,20 +435,30 @@ var FieldSelector = (function() {
     FieldTreeReader.prototype.updateFields = function(treeRoot, updatedDbgObjects) {
         var that = this;
 
+        var isAborted = false;
         var nodesDiscovered = 0;
         var nodesUpdated = 0;
         var messageProvider = function () { return nodesUpdated + "/" + nodesDiscovered + " items updated..."; };
-        JsDbgLoadingIndicator.AddMessageProvider(messageProvider);
+        var abort = function() { isAborted = true; }
+        JsDbgLoadingIndicator.AddMessageProvider(messageProvider, abort);
 
         var timer = new Timer("Update Fields");
 
-        return this.getNodesToUpdate(treeRoot, updatedDbgObjects, function() { ++nodesDiscovered; })
+        return this.getNodesToUpdate(treeRoot, updatedDbgObjects, function() {
+            if (isAborted) {
+                throw new Error("Tree update was cancelled.");
+            }
+            ++nodesDiscovered;
+        })
         .then(function (nodesToUpdate) {
             timer.Mark("Finished finding nodes to update");
             return Promise.throttledMap(nodesToUpdate, function (node, i) {
                 var lastRepresentation = that.treeRenderer.getLastRepresentation(node);
                 return that.createRepresentation(node)
                 .then(function (newRepresentation) {
+                    if (isAborted) {
+                        throw new Error("Tree update was cancelled.");
+                    }
                     ++nodesUpdated;
                     // Don't actually replace it yet -- doing so would thrash the DOM while we're updating the rest of them.
                     // Instead, wait until they're all done and replace them en masse.

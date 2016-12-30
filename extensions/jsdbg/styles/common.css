@@ -2,3 +2,69 @@
     font-family:Segoe UI;
     font-size:10pt;
 }
+
+button.small-button::before {
+    content:"[";
+}
+
+button.small-button::after {
+    content:"]";
+}
+
+button.small-button {
+    outline:none;
+    background:transparent;
+    border:none;
+    color:gray;
+    cursor:pointer;
+    font-family: inherit;
+    font-size:8pt;
+    margin-right:0.3em;
+    padding:0;
+    text-transform: lowercase;
+}
+
+button.small-button:hover {
+    color:#03f;
+}
+
+button.small-button.light {
+    color:#bbb;
+}
+
+button.small-button.light:hover {
+    color:#9af;
+}
+
+.popup-message {
+    position:absolute;
+    z-index:9;
+    cursor:default;
+    background:#333338;
+    color:white;
+    padding:6px;
+    margin-top:4.99px;
+    margin-left:-5px;
+    white-space: normal;
+}
+
+.popup-message.error {
+    background:#f44;
+    color:white;
+    font-weight:bold;
+}
+
+.popup-message::before {
+    content:" ";
+    position:absolute;
+    margin-top:calc(-5px - 6px);
+    margin-left:calc(-6px + 5px + 4px);
+    display:block;
+    border-bottom:5px solid #333338;
+    border-left:6px solid transparent;
+    border-right:6px solid transparent;
+}
+
+.popup-message.error::before {
+    border-bottom-color:#f44;
+}

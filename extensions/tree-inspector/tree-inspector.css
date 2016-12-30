@@ -33,7 +33,7 @@
     border-top:thin solid #eee;
 }
 
-.tree-inspector-top-pane .error {
+.tree-inspector-top-pane .roots.error {
     color:red;
 }
 
@@ -65,37 +65,17 @@
 
 .popup-message-container {
     display:none;
-    position:absolute;
-    z-index:9;
-    pointer-events: none;
 }
 
 .popup-message-container.show {
-    display:inline;
+    display:inline-block;
+    vertical-align: text-bottom;
 }
 
-.popup-message {
-    pointer-events: auto;
-    background:#333338;
-    color:white;
+.popup-message-container > .popup-message {
     max-width:176px;
-    padding:6px;
-    margin-top:4.99px;
-    margin-left:-5px;
-    white-space: normal;
 }
 
-.popup-message::before {
-    content:" ";
-    position:absolute;
-    margin-top:calc(-5px - 6px);
-    margin-left:calc(-6px + 5px + 4px);
-    display:block;
-    border-bottom:5px solid #333338;
-    border-left:6px solid transparent;
-    border-right:6px solid transparent;
-}
-
-.popup-message .buttons {
-    text-align: left;
+.popup-message-container .buttons {
+    text-align: right;
 }

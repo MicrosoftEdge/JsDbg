@@ -66,6 +66,16 @@ Loader.OnLoad(function() {
         });
     }
 
+    DrawingTreeNode.prototype.removeChildrenRepresentations = function(renderedElement) {
+        // Remove all the children that are NOT the inner representation, i.e. not the first child.
+        var nodeToRemove = renderedElement.firstChild.nextSibling;
+        while (nodeToRemove != null) {
+            var next = nodeToRemove.nextSibling;
+            renderedElement.removeChild(nodeToRemove);                        
+            nodeToRemove = next;
+        }
+    }
+
     DrawingTreeNode.prototype.onclickHandler = function (renderedElement) {
         var that = this;
         return function (e) {
@@ -78,6 +88,7 @@ Loader.OnLoad(function() {
 
             enqueueWork(function() {
                 if (!that.isExpanded) {
+                    that.removeChildrenRepresentations(renderedElement);
                     return that.buildAndRenderIntoFragment(renderedElement, function shouldExpand(node) {
                         if (e.ctrlKey) {
                             return true;
@@ -87,17 +98,17 @@ Loader.OnLoad(function() {
                     })
                     .then(function (fragment) {
                         renderedElement.appendChild(fragment);
+                    }, function (error) {
+                        that.isExpanded = false;
+                        var errorMessage = document.createElement("div");
+                        errorMessage.className = "popup-message error";
+                        errorMessage.textContent = error;
+                        renderedElement.appendChild(errorMessage);
                     });
                 } else if (e.ctrlKey) {
-                    // Collapse the node.  Remove all the children that are NOT the inner representation, i.e. not the first child.
-                    var nodeToRemove = renderedElement.firstChild.nextSibling;
-                    while (nodeToRemove != null) {
-                        var next = nodeToRemove.nextSibling;
-                        renderedElement.removeChild(nodeToRemove);                        
-                        nodeToRemove = next;
-                    }
-
-                    return that.buildAndRenderIntoFragment(renderedElement, function shouldExpand(node) { return false })
+                    // Collapse the node.  
+                    that.removeChildrenRepresentations(renderedElement);
+                    return that.buildAndRenderIntoFragment(renderedElement, function shouldExpand(node) { return false; })
                     .then(function (fragment) {
                         renderedElement.appendChild(fragment);
                     });
@@ -121,23 +132,41 @@ Loader.OnLoad(function() {
     }
 
     DrawingTreeNode.prototype.buildAndRenderIntoFragment = function(existingRendering, shouldExpand) {
-        var that = this;
         var renderedNodes = 0;
         var discoveredNodes = 0;
+        var isAborted = false;
+
         var messageProvider = function() {
             return renderedNodes + "/" + discoveredNodes + " items rendered...";
         }
-        JsDbgLoadingIndicator.AddMessageProvider(messageProvider);
+
+        var notifyDiscovered = function() {
+            if (isAborted) {
+                throw new Error("Tree rendering was cancelled.");
+            }
+            ++discoveredNodes;
+        }
+
+        var notifyRendered = function() {
+            if (isAborted) {
+                throw new Error("Tree rendering was cancelled.");
+            }
+            ++renderedNodes;
+        }
+
+        JsDbgLoadingIndicator.AddMessageProvider(messageProvider, function() { isAborted = true; });
 
         // We do a two pass algorithm (build, render) so that we discover the amount work sooner and provide meaningful progress.
+        var that = this;
         var timer = new Timer("Tree Expansion");
-        return this.buildTree(shouldExpand, function() { ++discoveredNodes; })
+        return this.buildTree(shouldExpand, notifyDiscovered)
         .then(function() {
             timer.Mark("Finished tree construction");
             if (!existingRendering) {
-                return that.render(document.createDocumentFragment(), function() { ++renderedNodes; });
+                return that.render(document.createDocumentFragment(), notifyRendered);
             } else {
-                return that.renderChildren(existingRendering, document.createDocumentFragment(), function() { ++renderedNodes; })
+                notifyRendered(that);
+                return that.renderChildren(existingRendering, document.createDocumentFragment(), notifyRendered)
             }
         })
         .finally(function() {
@@ -162,12 +191,17 @@ Loader.OnLoad(function() {
             }
         })
         .then(function (children) {
-            that.isExpanded = children.length == 0 || shouldExpand(that);
+            var shouldBeExpanded = children.length == 0 || shouldExpand(that);
             notifyBuilt(that);
-            if (that.isExpanded) {
-                return Promise.throttledMap(children, function (child) { return child.buildTree(shouldExpand, notifyBuilt); });
+            if (shouldBeExpanded) {
+                return Promise.throttledMap(children, function (child) { return child.buildTree(shouldExpand, notifyBuilt); })
+                .then(function() {
+                    that.isExpanded = true;
+                })
+            } else {
+                that.isExpanded = false;
             }
-        });
+        })
     }
 
     // utility method to repeat string s repeatCount times 

@@ -4,6 +4,7 @@ var JsDbgLoadingIndicator = undefined;
 Loader.OnLoad(function () {
     var loadingIndicator = null;
     var loadingPanel = null;
+    var abortButton = null;
 
     function initializeProgressIndicator() {
         loadingIndicator = document.createElement("div")
@@ -14,6 +15,16 @@ Loader.OnLoad(function () {
 
         loadingIndicator.appendChild(loadingPanel);
 
+        abortButton = document.createElement("button");
+        abortButton.addEventListener("click", function () {
+            if (messageProviders.length > 0 && messageProviders[0].abort != null) {
+                messageProviders[0].abort();
+            }
+        });
+        abortButton.textContent = "Cancel";
+        abortButton.className = "abort small-button light";
+        loadingPanel.appendChild(abortButton);
+
         var progress = document.createElement("progress");
         progress.indeterminate = true;
         loadingPanel.appendChild(progress);    
@@ -23,16 +34,21 @@ Loader.OnLoad(function () {
 
     function updateMessage() {
         var message = "Loading...";
+        var canBeAborted = false;
+
         for (var i = 0; i < messageProviders.length; ++i) {
             try {
-                message = messageProviders[i]();
+                message = messageProviders[i].getMessage();
+                canBeAborted = !!messageProviders[i].abort;
                 window.requestAnimationFrame(updateMessage);
                 break;
             } catch (ex) {
                 continue;
             }
         }
+
         loadingPanel.setAttribute("data-loading-message", message);
+        abortButton.style.display = (canBeAborted ? "" : "none");
     }
 
     var loadingReferences = 0;
@@ -52,13 +68,13 @@ Loader.OnLoad(function () {
                 loadingIndicator.style.display = "none";
             }
         },
-        AddMessageProvider: function(f) {
+        AddMessageProvider: function(f, abort) {
             this.Show();
-            messageProviders.push(f);
+            messageProviders.push({ getMessage: f, abort: abort });
             updateMessage();
         },
         RemoveMessageProvider: function(f) {
-            var newMessageProviders = messageProviders.filter(function(x) { return x != f; });
+            var newMessageProviders = messageProviders.filter(function(x) { return x.getMessage != f; });
             for (var i = 0; i < messageProviders.length - newMessageProviders.length; ++i) {
                 this.Hide();
             }

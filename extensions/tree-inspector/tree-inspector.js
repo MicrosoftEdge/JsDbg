@@ -327,7 +327,7 @@ var TreeInspector = (function() {
             id: id("RefreshOnBreakMessage"),
             class: "popup-message-container"
         });
-        messageContainer.appendChild(document.createElement("br"));
+
         var message = createElement("div", "The debugged process has run since the tree was last updated.", {
             class: "popup-message"
         });

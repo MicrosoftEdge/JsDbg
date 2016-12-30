@@ -19,6 +19,10 @@
     color:white;
 }
 
+#jsdbg-loading-indicator .abort {
+    margin-right:5px;
+}
+
 .jsdbg-loading-panel::before {
     content:attr(data-loading-message);
     margin-right:5px;
