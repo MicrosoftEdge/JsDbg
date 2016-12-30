@@ -1,12 +1,12 @@
 .tall-node-container {
-    font-family:Consolas;
-    font-size:9pt;
     margin-top:1em;
-    float:left;
     min-width:100%;
+    float:left;
 }
 
 .tall-node-container .node {
+    font-family:Consolas;
+    font-size:9pt;
     margin-left:2em;
     position:relative;
 }

@@ -219,13 +219,18 @@ Loader.OnLoad(function() {
             return enqueueWork(function() {
                 var drawingNode = new DrawingTreeNode(treeReader, root);
 
-                container.innerHTML = "";
+                container.className = "tall-node-container";
+                var message = document.createElement("div");
+                message.className = "popup-message";
+                message.style.position = "absolute";
+                message.style.zIndex = "100";
                 var renderedNodes = document.createTextNode("0");
-                container.appendChild(renderedNodes);
-                container.appendChild(document.createTextNode("/"));
+                message.appendChild(renderedNodes);
+                message.appendChild(document.createTextNode("/"));
                 var discoveredNodes = document.createTextNode("0");
-                container.appendChild(discoveredNodes);
-                container.appendChild(document.createTextNode(" nodes rendered..."));
+                message.appendChild(discoveredNodes);
+                message.appendChild(document.createTextNode(" nodes rendered..."));
+                container.insertBefore(message, container.firstChild);
 
                 var timer = new Timer();
                 return drawingNode.buildTree(function (node) {
@@ -240,7 +245,6 @@ Loader.OnLoad(function() {
                 })
                 .then(function(rendering) {
                     container.innerHTML = "";
-                    container.className = "tall-node-container";
                     container.appendChild(rendering);
                     timer.Mark("Finished DOM Rendering");
                 });
