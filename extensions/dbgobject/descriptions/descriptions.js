@@ -137,7 +137,7 @@ Loader.OnLoad(function () {
                             if (isEnum) {
                                 return x.constant();
                             } else {
-                                return Promise.reject();
+                                return x.ptr();
                             }
                         })
                         .then(null, function () {
