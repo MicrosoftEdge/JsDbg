@@ -2,6 +2,7 @@
     position:fixed;
     bottom:0;
     right:0;
+    padding:0.5em;
     background:rgba(0, 0, 0, 0.85);
     color:white;
     display:none;
