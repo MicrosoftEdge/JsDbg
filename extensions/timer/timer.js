@@ -6,8 +6,9 @@
 // A simple wall clock timer for measuring performance.
 
 var Timer = (function() {
-    function Timer() {
+    function Timer(prefix) {
         this.start = performance.now();
+        this.prefix = prefix ? (prefix + " @ ") : "";
     }
     Timer._help = {
         name: "Timer",
@@ -28,7 +29,7 @@ var Timer = (function() {
     }
     Timer.prototype.Mark = function(msg) {
         var elapsed = this.Elapsed();
-        console.log(this.Elapsed() + "s: " + msg + " (" + JsDbgTransport.GetNumberOfRequests() + " reqs)");
+        console.log(this.prefix + elapsed + "s: " + msg + " (" + JsDbgTransport.GetNumberOfRequests() + " reqs)");
         return elapsed;
     }
 

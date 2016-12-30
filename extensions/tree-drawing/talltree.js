@@ -130,10 +130,10 @@ Loader.OnLoad(function() {
         JsDbgLoadingIndicator.AddMessageProvider(messageProvider);
 
         // We do a two pass algorithm (build, render) so that we discover the amount work sooner and provide meaningful progress.
-        var timer = new Timer();
+        var timer = new Timer("Tree Expansion");
         return this.buildTree(shouldExpand, function() { ++discoveredNodes; })
         .then(function() {
-            timer.Mark("Finished Tree Construction");
+            timer.Mark("Finished tree construction");
             if (!existingRendering) {
                 return that.render(document.createDocumentFragment(), function() { ++renderedNodes; });
             } else {
@@ -141,7 +141,7 @@ Loader.OnLoad(function() {
             }
         })
         .finally(function() {
-            timer.Mark("Finished DOM Rendering");
+            timer.Mark("Finished rendering into DOM");
             JsDbgLoadingIndicator.RemoveMessageProvider(messageProvider);
         })
     }

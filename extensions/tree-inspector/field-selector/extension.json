@@ -6,7 +6,8 @@
         "dbgobject-tree",
         "promise",
         "type-explorer",
-        "user-editable-functions"
+        "user-editable-functions",
+        "timer"
     ],
     "includes": [
         "field-selector.css",

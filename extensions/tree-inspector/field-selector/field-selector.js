@@ -433,37 +433,71 @@ var FieldSelector = (function() {
     }
 
     FieldTreeReader.prototype.updateFields = function(treeRoot, updatedDbgObjects) {
-        var dbgObject = this.getObject(treeRoot);
         var that = this;
-        return Promise.resolve()
-        .then(function() {
-            if (dbgObject instanceof DbgObject) {
-                return Promise.all(updatedDbgObjects.map(function (updatedDbgObject) { return dbgObject.isType(updatedDbgObject.typename); }));
-            } else {
-                return [];
-            }
-        })
-        .then(function (requiresUpdateArray) {
-            var lastRepresentation = that.treeRenderer.getLastRepresentation(treeRoot);
-            if (lastRepresentation != null && document.documentElement.contains(lastRepresentation)) {
-                var requiresUpdate = requiresUpdateArray.reduce(function (accumulator, currentValue) { return accumulator || currentValue; }, false);
-                return Promise.resolve(null)
-                .then(function() {
-                    if (requiresUpdate) {
-                        return that.createRepresentation(treeRoot)
-                        .then(function (newRepresentation) {
-                            lastRepresentation.parentNode.replaceChild(newRepresentation, lastRepresentation);
-                        })
+
+        var nodesDiscovered = 0;
+        var nodesUpdated = 0;
+        var messageProvider = function () { return nodesUpdated + "/" + nodesDiscovered + " items updated..."; };
+        JsDbgLoadingIndicator.AddMessageProvider(messageProvider);
+
+        var timer = new Timer("Update Fields");
+
+        return this.getNodesToUpdate(treeRoot, updatedDbgObjects, function() { ++nodesDiscovered; })
+        .then(function (nodesToUpdate) {
+            timer.Mark("Finished finding nodes to update");
+            return Promise.throttledMap(nodesToUpdate, function (node, i) {
+                var lastRepresentation = that.treeRenderer.getLastRepresentation(node);
+                return that.createRepresentation(node)
+                .then(function (newRepresentation) {
+                    ++nodesUpdated;
+                    // Don't actually replace it yet -- doing so would thrash the DOM while we're updating the rest of them.
+                    // Instead, wait until they're all done and replace them en masse.
+                    return function() {
+                        lastRepresentation.parentNode.replaceChild(newRepresentation, lastRepresentation);
                     }
                 })
-                .then(function() {
-                    return that.treeRenderer.getChildren(treeRoot)
-                })
-                .then(function (children) {
-                    return Promise.all(children.map(function (child) { return that.updateFields(child, updatedDbgObjects); }));
-                });
-            }
+            })
+            .then(function (replaceFunctions) {
+                replaceFunctions.forEach(function (f) { f(); });
+                timer.Mark("Finished updating DOM");
+            })
         })
+        .finally(function () {
+            JsDbgLoadingIndicator.RemoveMessageProvider(messageProvider);
+        })
+    }
+
+    FieldTreeReader.prototype.getNodesToUpdate = function(subtreeRoot, updatedDbgObjects, notifyNodeFound) {
+        var lastRepresentation = this.treeRenderer.getLastRepresentation(subtreeRoot);
+        if (lastRepresentation == null || !document.documentElement.contains(lastRepresentation)) {
+            return Promise.resolve([]);
+        }
+
+        var dbgObject = this.getObject(subtreeRoot);
+
+        var requiresUpdatePromise;
+        if (dbgObject instanceof DbgObject) {
+            requiresUpdatePromise = Promise.all(updatedDbgObjects.map(function (updatedDbgObject) { return dbgObject.isType(updatedDbgObject.typename); }))
+            .then(function (requiresUpdateArray) {
+                return requiresUpdateArray.reduce(function (accumulator, currentValue) { return accumulator || currentValue; }, false);
+            })
+        } else {
+            requiresUpdatePromise = Promise.resolve(false);
+        }
+
+        var that = this;
+        return requiresUpdatePromise
+        .then(function (requiresUpdate) {
+            if (requiresUpdate) {
+                notifyNodeFound(subtreeRoot);
+            }
+
+            return Promise.throttledMap(that.treeRenderer.getChildren(subtreeRoot), function (child) { return that.getNodesToUpdate(child, updatedDbgObjects, notifyNodeFound); })
+            .then(function (childNodesToUpdate) {
+                // Flatten the child arrays into a single array.
+                return childNodesToUpdate.reduce(function (accumulator, item) { return accumulator.concat(item); }, requiresUpdate ? [subtreeRoot] : []);
+            })
+        });
     }
 
     return {

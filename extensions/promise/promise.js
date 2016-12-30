@@ -509,7 +509,7 @@ Using '.thenAll' makes this a bit smoother:\
             }
 
             currentThrottledInflightOperations += chunkSize;
-            return Promise.all(array.slice(index, index + chunkSize).map(operation))
+            return Promise.all(array.slice(index, index + chunkSize).map(function (item, i) { return operation(item, index + i); }))
             .then(function(result) {
                 return doNextChunk(array, index + chunkSize, progress.concat(result));
             })
