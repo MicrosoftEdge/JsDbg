@@ -16,7 +16,7 @@ Loader.OnLoad(function() {
         });
 
         DbgObjectTree.AddAddressInterpreter(function (address) {
-            return new DbgObject(MSHTML.Module, "Tree::TextBlock", address).vcast();
+            return DbgObject.create(SHTML.Module, "Tree::TextBlock", address).vcast();
         });
     }
 

@@ -120,10 +120,10 @@ Loader.OnLoad(function() {
                 return that.bigvals(count)
                 .then(function (values) {
                     var itemTypename = that._getDereferencedTypeName();
-                    return values.map(function(x) { return new DbgObject(that.module, itemTypename, x); });
+                    return values.map(function(x) { return DbgObject.create(that.module, itemTypename, x); });
                 });
             } else {
-                return that._getStructSize()
+                return that.size()
                 .then(function (structSize) {
                     var array = [];
                     for (var i = 0; i < count; ++i) {

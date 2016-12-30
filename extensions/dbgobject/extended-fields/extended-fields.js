@@ -165,12 +165,12 @@ Loader.OnLoad(function () {
         var suite = Tests.CreateTestSuite("DbgObject-Extended-Fields", "Tests for the extended field functionality on DbgObject.");
 
         Tests.AddTest(suite, "AddExtendedField", function (assert) {
-            var resultObject = new DbgObject("test", "ResultType", 0);
+            var resultObject = DbgObject.create("test", "ResultType", 0);
             DbgObject.AddExtendedField("test", "TestType", "field", "ResultType", function (dbgObject) {
                 return resultObject;
             });
 
-            var fResult = new DbgObject("test", "TestType", 0).F("field");
+            var fResult = DbgObject.create("test", "TestType", 0).F("field");
             assert(fResult.__proto__ == PromisedDbgObject.prototype);
 
             return fResult
@@ -181,13 +181,13 @@ Loader.OnLoad(function () {
         });
 
         Tests.AddTest(suite, "AddExtendedField (type predicate)", function (assert) {
-            var resultObject = new DbgObject("test", "ResultType", 0);
+            var resultObject = DbgObject.create("test", "ResultType", 0);
             var predicate = function (t) { return t.indexOf("Test") == 0; };
             DbgObject.AddExtendedField("test", predicate, "predicateField", "ResultType", function() {
                 return resultObject;
             });
 
-            var fResult = new DbgObject("test", "TestX", 0).F("predicateField");
+            var fResult = DbgObject.create("test", "TestX", 0).F("predicateField");
             assert(fResult.__proto__ == PromisedDbgObject.prototype);
 
             var didError = false;
@@ -195,7 +195,7 @@ Loader.OnLoad(function () {
             .then(function (result) {
                 assert.equals(result, resultObject);
 
-                return new DbgObject("test", "ShouldFail", 0).F("predicateField");
+                return DbgObject.create("test", "ShouldFail", 0).F("predicateField");
             })
             .then(null, function () { didError = true })
             .then(function () {
@@ -235,7 +235,7 @@ Loader.OnLoad(function () {
             DbgObject.RemoveExtendedField("test", "TestType", "field");
 
             var didError = false;
-            return new DbgObject("test", "TestType", 0).F("field")
+            return DbgObject.create("test", "TestType", 0).F("field")
             .then(null, function (err) {
                 didError = true;
             })
@@ -248,7 +248,7 @@ Loader.OnLoad(function () {
             DbgObject.AddExtendedField("test", "TestType", "field", "ResultType", function() { return this; });
 
             var didError = false;
-            return new DbgObject("test", "TestType", 0).F("field")
+            return DbgObject.create("test", "TestType", 0).F("field")
             .then(null, function (err) {
                 didError = true;
             })

@@ -6,7 +6,7 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return new DbgObject(MSHTML.Module, "Layout::LayoutBox", address).vcast();
+            return DbgObject.create(MSHTML.Module, "Layout::LayoutBox", address).vcast();
         },
         GetRoots: function() {
             // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
@@ -324,7 +324,7 @@ Loader.OnLoad(function() {
                 if (!isDisplayNodeExtracted) {
                     return displayNode;
                 } else {
-                    return new DbgObject(MSHTML.Module, "CDispNode", 0);
+                    return DbgObject.create(MSHTML.Module, "CDispNode", 0);
                 }
             }
         );

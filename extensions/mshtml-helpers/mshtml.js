@@ -184,7 +184,7 @@ var MSHTML = undefined;
             return new PromisedDbgObject(
                 element.unembed("CTreeNode", "_fIsElementNode")
                 .then(null, function () {
-                    return new DbgObject(MSHTML.Module, "CTreeNode", 0).baseTypes()
+                    return DbgObject.create(MSHTML.Module, "CTreeNode", 0).baseTypes()
                     .then(function (baseTypes) {
                         if (baseTypes.filter(function(b) { return b.typeDescription() == "Tree::ElementNode"}).length > 0) {
                             return element.as("CTreeNode");
@@ -311,7 +311,7 @@ var MSHTML = undefined;
                             return markup.as("char").idx(0 - markup.pointerValue().mod(4)).as("CMarkup");
                         })
                     } else {
-                        return new DbgObject(moduleName, "CMarkup", 0);
+                        return DbgObject.create(moduleName, "CMarkup", 0);
                     }
                 });
             })
@@ -432,7 +432,7 @@ var MSHTML = undefined;
                 .then(function (lookasideSubordinate) {
                     // Two additional cases to try: first (in reverse chronological order), when the CElement lookasides were offset by CTreeNode::LOOKASIDE_NODE_NUMBER.
                     // We identify this case by the presence of the _dwNodeFlags1 field which was added in inetcore 1563867.
-                    return (new DbgObject("edgehtml", "CTreeNode", 0)).f("_dwNodeFlags1")
+                    return (DbgObject.create("edgehtml", "CTreeNode", 0)).f("_dwNodeFlags1")
                     .then(
                         function () {
                             return DbgObject.constantValue(MSHTML.Module, "CTreeNode", "LOOKASIDE_NODE_NUMBER")
@@ -526,7 +526,7 @@ var MSHTML = undefined;
                         return docsAndThreadstates[i].threadstate;
                     }
                 }
-                return new DbgObject(moduleName, "THREADSTATEUI", 0);
+                return DbgObject.create(moduleName, "THREADSTATEUI", 0);
             });
         }));
 
@@ -541,7 +541,7 @@ var MSHTML = undefined;
                 }
 
                 if (index < 0) {
-                    return new DbgObject(cache.module, resultType, 0);
+                    return DbgObject.create(cache.module, resultType, 0);
                 }
 
                 var bucketSize = 128;
@@ -565,25 +565,10 @@ var MSHTML = undefined;
             }
             this.version = savedVersion;
             this.updateUIWidgets = function() {};
-            this.weakMap = new WeakMap();
-            JsDbg.RegisterOnBreakListener(this.invalidateCache.bind(this));
         }
         PatchManager.prototype.sessionStorageKey = "MSHTML-PatchManager-Version";
 
-        PatchManager.prototype.getCurrentVersion = function (patchableObjectPromise) {
-            var that = this;
-            return Promise.resolve(patchableObjectPromise)
-            .then(function (patchableObject) {
-                var result = that.weakMap.get(patchableObject);
-                if (!result) {
-                    result = that.getCurrentVersionHelper(patchableObject);
-                    that.weakMap.set(patchableObject, result);
-                }
-                return result;
-            })
-        }
-
-        PatchManager.prototype.getCurrentVersionHelper = function (patchableObject) {
+        PatchManager.prototype.getCurrentVersion = function (patchableObject) {
             function findMatchingPatch(patchPromise, versionToFind) {
                 return Promise.resolve(patchPromise)
                 .then(function (patch) {
@@ -622,15 +607,8 @@ var MSHTML = undefined;
         PatchManager.prototype.setVersion = function (newVersion) {
             newVersion = this.parseVersion(newVersion);
             this.version = newVersion;
-            if (this.version != newVersion) {
-                this.invalidateCache();
-            }
             window.sessionStorage.setItem(this.sessionStorageKey, newVersion.toString());
             this.updateUIWidgets();
-        }
-
-        PatchManager.prototype.invalidateCache = function() {
-            this.weakMap = new WeakMap();
         }
 
         PatchManager.prototype.parseVersion = function (version) {
@@ -694,7 +672,6 @@ var MSHTML = undefined;
                 DbgObject.RegisterFHandler(function (dbgObject, path, next) {
                     return dbgObject.isType("CPatchableObject")
                     .then(function (isPatchableObject) {
-                        return dbgObject;
                         if (isPatchableObject) {
                             return patchManager.getCurrentVersion(dbgObject);
                         } else {

@@ -59,7 +59,7 @@ Loader.OnLoad(function() {
         }
 
         var that = this;
-        return new DbgObject(this.backingTypes[0].module, this.backingTypes[0].typename, 0)
+        return DbgObject.create(this.backingTypes[0].module, this.backingTypes[0].typename, 0)
         .baseTypes()
         .then(function (baseTypes) {
             baseTypes.forEach(function (baseType) {
@@ -337,7 +337,7 @@ Loader.OnLoad(function() {
 
     TypeExplorerSingleType.prototype._prepareForRendering = function() {
         var that = this;
-        var dbgObject = new DbgObject(this.module, this.typename, 0);
+        var dbgObject = DbgObject.create(this.module, this.typename, 0);
         var fieldsPromise;
         if (dbgObject.isPointer()) {
             fieldsPromise = Promise.resolve([]);

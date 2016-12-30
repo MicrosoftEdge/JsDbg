@@ -6,10 +6,10 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return new DbgObject(MSHTML.Module, "CBase", address).vcast()
+            return DbgObject.create(MSHTML.Module, "CBase", address).vcast()
             .then(undefined, function (err) {
                 // Virtual-table cast failed, so presume a CTreeNode.
-                return new DbgObject(MSHTML.Module, "CTreeNode", address);
+                return DbgObject.create(MSHTML.Module, "CTreeNode", address);
             });
         },
         GetRoots: function() {
@@ -86,7 +86,7 @@ Loader.OnLoad(function() {
             } else if (treePosFlags & 0x08) {
                 return treePos.as("CTreeDataPos").f("p._dwPointerAndGravityAndCling").bigval()
                 .then(function (pointerandGravityAndCling) {
-                    return new DbgObject(MSHTML.Module, "CMarkupPointer", pointerandGravityAndCling.or(3).minus(3));
+                    return DbgObject.create(MSHTML.Module, "CMarkupPointer", pointerandGravityAndCling.or(3).minus(3));
                 })
             } else {
                 return null;

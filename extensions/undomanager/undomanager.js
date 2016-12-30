@@ -6,7 +6,7 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return new DbgObject(MSHTML.Module, "CDoc", address);
+            return DbgObject.create(MSHTML.Module, "CDoc", address);
         },
         GetRoots: function() {
             // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.

@@ -14,59 +14,66 @@ Loader.OnLoad(function() {
     }
 
     // bitcount and bitoffset are optional.
-    DbgObject = function DbgObject(module, type, pointer, bitcount, bitoffset, structSize, wasDereferenced) {
-        this.module = DbgObject.NormalizeModule(module);
-        this._pointer = new PointerMath.Pointer(pointer);
-        this.bitcount = bitcount;
-        this.bitoffset = bitoffset;
-        this.structSize = structSize;
-        this.wasDereferenced = (wasDereferenced ? true : false);
-
-        // Cleanup type name:
-        //  - remove whitespace from the beginning and end
-        this.typename = cleanupTypeName(type);
-
-        // Treat "char" as unsigned.
-        this._isUnsigned = (this.typename.indexOf("unsigned ") == 0 || this.typename == "char");
-
-        // Get the array size.
-        var arrayRegex = /\[[0-9]+\]/g;
-        var matches = this.typename.match(arrayRegex);
-        if (matches) {
-            this._isArray = true;
-            // might be a multi-dimensional array
-            this._arrayLength = 1;
-            for (var i = 0; i < matches.length; ++i) {
-                this._arrayLength *= parseInt(matches[i].substr(1, matches[i].length - 2));
-            }
-            this.typename = this.typename.replace(arrayRegex, '');
-
-            if (this._arrayLength == 0 || this.structSize === undefined) {
-                this.structSize = undefined;
-            } else {
-                this.structSize = this.structSize / this._arrayLength;
-            }
-        } else {
-            this._isArray = false;
-            this._arrayLength = 0;
-        }
-    }
+    DbgObject = function DbgObject() { }
     Help.Register(DbgObject);
     DbgObject._help = {
         name: "DbgObject",
         description: "Provides convenient navigation of C++ objects in the debuggee.",
-        notes: "<p>DbgObjects are immutable.</p><p>Note that most methods return promises.  Promises to a DbgObject returned by these methods can be treated as DbgObjects where <em>every</em> method returns a promise.</p>",
-        _help_constructor: {
-            arguments: [
-                {name: "module", type:"string", description:"The module that contains the type."},
-                {name: "type", type:"string", description:"The type of the object."},
-                {name: "pointer", type:"int", description:"The address of the object in memory."},
-                {name: "bitcount", type:"int", description:"(optional) The number of bits if the object is held in a bitfield."},
-                {name: "bitoffset", type:"int", description:"(optional) The bit offset from the address."},
-                {name: "structSize", type:"int", description:"(optional) The size of the object in memory."}
-            ],
-            notes: "The last three arguments are generally only used internally by other DbgObject methods."
+        notes: "<p>DbgObjects are immutable.</p><p>Note that most methods return promises.  Promises to a DbgObject returned by these methods can be treated as DbgObjects where <em>every</em> method returns a promise.</p>"
+    }
+
+    DbgObject._help_create = {
+        description: "Manually constructs a DbgObject.",
+        arguments: [
+            {name: "module", type:"string", description:"The module that contains the type."},
+            {name: "type", type:"string", description:"The type of the object."},
+            {name: "pointer", type:"int", description:"The address of the object in memory."},
+            {name: "bitcount", type:"int", description:"(optional) The number of bits if the object is held in a bitfield."},
+            {name: "bitoffset", type:"int", description:"(optional) The bit offset from the address."},
+            {name: "structSize", type:"int", description:"(optional) The size of the object in memory."}
+        ],
+        notes: "The last three arguments are generally only used internally by other DbgObject methods."
+    };
+    DbgObject.create = function(module, type, pointer, bitcount, bitoffset, structSize, wasDereferenced) {
+        var that = new DbgObject();
+
+        that.module = DbgObject.NormalizeModule(module);
+        that._pointer = new PointerMath.Pointer(pointer);
+        that.bitcount = bitcount;
+        that.bitoffset = bitoffset;
+        that.structSize = structSize;
+        that.wasDereferenced = (wasDereferenced ? true : false);
+
+        // Cleanup type name:
+        //  - remove whitespace from the beginning and end
+        that.typename = cleanupTypeName(type);
+
+        // Treat "char" as unsigned.
+        that._isUnsigned = (that.typename.indexOf("unsigned ") == 0 || that.typename == "char");
+
+        // Get the array size.
+        var arrayRegex = /\[[0-9]+\]/g;
+        var matches = that.typename.match(arrayRegex);
+        if (matches) {
+            that._isArray = true;
+            // might be a multi-dimensional array
+            that._arrayLength = 1;
+            for (var i = 0; i < matches.length; ++i) {
+                that._arrayLength *= parseInt(matches[i].substr(1, matches[i].length - 2));
+            }
+            that.typename = that.typename.replace(arrayRegex, '');
+
+            if (that._arrayLength == 0 || that.structSize === undefined) {
+                that.structSize = undefined;
+            } else {
+                that.structSize = that.structSize / that._arrayLength;
+            }
+        } else {
+            that._isArray = false;
+            that._arrayLength = 0;
         }
+        
+        return that;
     }
 
     function checkJsDbgError(result) {
@@ -145,7 +152,7 @@ Loader.OnLoad(function() {
         return new PromisedDbgObject(
             JsDbgPromise.LookupGlobalSymbol(module, symbol)
             .then(function(result) {
-                return new DbgObject(result.module, result.type, result.pointer);
+                return DbgObject.create(result.module, result.type, result.pointer);
             })
         );
     }
@@ -189,7 +196,7 @@ Loader.OnLoad(function() {
                     return symbols
                     .reduce(function (a, b) { return a.concat(b); }, [])
                     .map(function (symbol) {
-                        return new DbgObject(symbol.module, symbol.type, symbol.address);
+                        return DbgObject.create(symbol.module, symbol.type, symbol.address);
                     })
                 })
             })
@@ -287,19 +294,7 @@ Loader.OnLoad(function() {
     }
 
     DbgObject._help_NULL = {description: "A DbgObject that represents a null value."}
-    DbgObject.NULL = new DbgObject("", "", 0, 0, 0);
-
-    DbgObject.prototype._getStructSize = function() {
-        if (this.structSize !== undefined) {
-            return Promise.resolve(this.structSize);
-        } else if (this == DbgObject.NULL) {
-            return Promise.resolve(0);
-        } else {
-            return JsDbgPromise.LookupTypeSize(this.module, this.typename).then(function(result) {
-                return result.size;
-            });
-        }
-    }
+    DbgObject.NULL = DbgObject.create("", "", 0, 0, 0);
 
     DbgObject.prototype._getDereferencedTypeName = function() {
         if (this._isPointer()) {
@@ -313,7 +308,7 @@ Loader.OnLoad(function() {
         if (this.isNull()) {
             return this;
         } else {
-            return new DbgObject(this.module, this.typename, this._pointer.add(offset), this.bitcount, this.bitoffset, this.structSize);
+            return DbgObject.create(this.module, this.typename, this._pointer.add(offset), this.bitcount, this.bitoffset, this.structSize);
         }
     }
 
@@ -330,7 +325,15 @@ Loader.OnLoad(function() {
         returns: "A promise to an integral number of bytes."
     }
     DbgObject.prototype.size = function() {
-        return this._getStructSize();
+        if (this.structSize !== undefined) {
+            return Promise.resolve(this.structSize);
+        } else if (this == DbgObject.NULL) {
+            return Promise.resolve(0);
+        } else {
+            return JsDbgPromise.LookupTypeSize(this.module, this.typename).then(function(result) {
+                return result.size;
+            });
+        }
     }
 
     DbgObject.prototype._help_deref = {
@@ -341,13 +344,13 @@ Loader.OnLoad(function() {
         if (this == DbgObject.NULL) {
             return new PromisedDbgObject(this);
         } else if (this.isNull()) {
-            return new PromisedDbgObject(new DbgObject(this.module, this._getDereferencedTypeName(), 0));
+            return new PromisedDbgObject(DbgObject.create(this.module, this._getDereferencedTypeName(), 0));
         }
 
         var that = this;
         return this.as("void*").ubigval()
         .then(function(result) {
-            return new DbgObject(
+            return DbgObject.create(
                 that.module,
                 that._getDereferencedTypeName(),
                 result,
@@ -456,7 +459,7 @@ Loader.OnLoad(function() {
         var that = this;
         return JsDbgPromise.LookupFieldOffset(that.module, that.typename, field)
         .then(function(result) {
-            return new DbgObject(
+            return DbgObject.create(
                 that.module, 
                 getFieldType(that.module, that.typename, field, result.type), 
                 that.isNull() ? 0 : that._pointer.add(result.offset),
@@ -482,7 +485,7 @@ Loader.OnLoad(function() {
         var that = this;
         return JsDbgPromise.LookupFieldOffset(that.module, type, field)
         .then(function(result) { 
-            return new DbgObject(that.module, type, that.isNull() ? 0 : that._pointer.add(-result.offset)); 
+            return DbgObject.create(that.module, type, that.isNull() ? 0 : that._pointer.add(-result.offset)); 
         });
     }
 
@@ -500,7 +503,7 @@ Loader.OnLoad(function() {
         if (this == DbgObject.NULL) {
             return this;
         } else {
-            return new DbgObject(this.module, type, this._pointer, this.bitcount, this.bitoffset, disregardSize ? undefined : this.structSize);
+            return DbgObject.create(this.module, type, this._pointer, this.bitcount, this.bitoffset, disregardSize ? undefined : this.structSize);
         }
     }
 
@@ -513,7 +516,7 @@ Loader.OnLoad(function() {
     DbgObject.prototype.idx = function(index) {
         var that = this;
         // index might be a promise, so resolve it and get the struct size.
-        return Promise.all([this._getStructSize(), index])
+        return Promise.all([this.size(), index])
         .thenAll(function (structSize, index) {
             return that._off(structSize * index);
         })
@@ -606,7 +609,7 @@ Loader.OnLoad(function() {
         var that = this;
 
         // Lookup the structure size...
-        return Promise.all([this._getStructSize(), isCountSpecified ? count : 1])
+        return Promise.all([this.size(), isCountSpecified ? count : 1])
 
         // Get the array of values.
         .thenAll(function(structSize, arrayCount) {
@@ -663,7 +666,7 @@ Loader.OnLoad(function() {
         }
 
         var that = this;
-        return this._getStructSize()
+        return this.size()
         .then(function (structSize) {
             if (that.bitcount && that.bitoffset !== undefined && !that._isFloat()) {
                 unsigned = true;
@@ -1001,7 +1004,7 @@ Loader.OnLoad(function() {
             .then(function(baseTypes) {
                 for (var i = 0; i < baseTypes.length; ++i) {
                     if (baseTypes[i].type == that.typename) {
-                        return new DbgObject(that.module, vtableType, that._pointer.add(-baseTypes[i].offset));
+                        return DbgObject.create(that.module, vtableType, that._pointer.add(-baseTypes[i].offset));
                     }
                 }
 
@@ -1010,12 +1013,12 @@ Loader.OnLoad(function() {
                 .then(function(originalBaseTypes) {
                     for (var i = 0; i < originalBaseTypes.length; ++i) {
                         if (originalBaseTypes[i].type == vtableType) {
-                            return new DbgObject(that.module, vtableType, that._pointer.add(originalBaseTypes[i].offset));
+                            return DbgObject.create(that.module, vtableType, that._pointer.add(originalBaseTypes[i].offset));
                         }
                     }
 
                     // Couldn't find a proper offset, so just cast.
-                    return new DbgObject(that.module, vtableType, that._pointer);
+                    return DbgObject.create(that.module, vtableType, that._pointer);
                 });
             });
         });
@@ -1044,7 +1047,7 @@ Loader.OnLoad(function() {
             }
         })
         .then(null, function (err) {
-            return new DbgObject(that.module, type, 0);
+            return DbgObject.create(that.module, type, 0);
         })
     }
 
@@ -1056,9 +1059,6 @@ Loader.OnLoad(function() {
         ]
     }
 
-    var isTypeCache = new Map();
-    JsDbg.RegisterOnBreakListener(function() { isTypeCache = new Map(); })
-
     DbgObject.prototype.isType = function(type) {
         type = cleanupTypeName(type);
         if (this == DbgObject.NULL) {
@@ -1066,17 +1066,11 @@ Loader.OnLoad(function() {
         } else if (this.typeDescription() == type) {
             return Promise.resolve(true);
         } else {
-            var key = this.module + "!" + this.typename + ":" + type;
-            var result = isTypeCache.get(key);
-            if (!result) {
-                result = this.baseTypes().then(function (baseTypes) {
-                    var matchingBaseTypes = baseTypes.filter(function (baseType) { return baseType.typeDescription() == type; });
-                    return (matchingBaseTypes.length > 0);
-                });
-
-                isTypeCache.set(key, result);
-            }
-            return result;
+            return this.baseTypes()
+            .then(function (baseTypes) {
+                var matchingBaseTypes = baseTypes.filter(function (baseType) { return baseType.typeDescription() == type; });
+                return (matchingBaseTypes.length > 0);
+            });
         }
     }
 
@@ -1110,7 +1104,7 @@ Loader.OnLoad(function() {
                 }
             })
             return baseTypes.map(function (typeAndOffset) {
-                return new DbgObject(that.module, typeAndOffset.type, that._pointer.add(typeAndOffset.offset));
+                return DbgObject.create(that.module, typeAndOffset.type, that._pointer.add(typeAndOffset.offset));
             });
         });
     }
@@ -1168,7 +1162,7 @@ Loader.OnLoad(function() {
                     name: field.name,
                     offset: field.offset,
                     size: field.size,
-                    value: new DbgObject(
+                    value: DbgObject.create(
                         that.module, 
                         getFieldType(that.module, that.typename, field.name, field.type), 
                         that._pointer.isNull() ? 0 : that._pointer.add(field.offset),

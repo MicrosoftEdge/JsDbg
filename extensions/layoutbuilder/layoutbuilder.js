@@ -8,7 +8,7 @@ Loader.OnLoad(function() {
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
             // vcast ensures that the LayoutBuilder is valid and will also cast to LayoutBoxBuilder if necessary.
-            return new DbgObject(MSHTML.Module, "Layout::LayoutBuilder", address).vcast();
+            return DbgObject.create(MSHTML.Module, "Layout::LayoutBuilder", address).vcast();
         },
         GetRoots: function() {
             return DbgObject.locals(MSHTML.Module, "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder").f("sp.m_pT")

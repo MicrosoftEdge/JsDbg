@@ -63,7 +63,7 @@
                 var module = parts[0];
                 var type = parts[1];
 
-                var dbgObject = new DbgObject(module, type, 0);
+                var dbgObject = DbgObject.create(module, type, 0);
                 Promise.all([dbgObject.size(), getUsedBytes(dbgObject, "")])
                 .then(function(size, usedBytes) {
                     var result = [];

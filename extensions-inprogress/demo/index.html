@@ -13,7 +13,7 @@
             var type = moduleAndType.split("!")[1];
 
             // Dump the type...
-            var dbgObject = new DbgObject(module, type, address);
+            var dbgObject = DbgObject.create(module, type, address);
             dbgObject.fields()
             .then(function(fields) {
                 Promise.map(fields, function(f) { return f.value.desc(); })

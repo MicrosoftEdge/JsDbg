@@ -26,9 +26,8 @@ Loader.OnLoad(function() {
         }
     }
 
-    Pointer.prototype = {
-        toString: function() { return "0x" + this._value.toString(16); },
-        toFormattedString: function() {
+    Pointer.prototype.toString = function() { return "0x" + this._value.toString(16); }
+    Pointer.prototype.toFormattedString = function() {
             var hexString = this._value.toString(16);
             if (hexString == "0") {
                 return "nullptr";
@@ -46,19 +45,18 @@ Loader.OnLoad(function() {
                 }
                 return "0x" + padding + hexString;
             }
-        },
-        add: function(amount) {
+    }
+    Pointer.prototype.add = function(amount) {
             return new Pointer(this._value.add(amount));
-        },
-        value: function() {
+    }
+    Pointer.prototype.value = function() {
             return this._value;
-        },
-        equals: function(other) {
+    }
+    Pointer.prototype.equals = function(other) {
             return this._value.equals(other._value);
-        },
-        isNull: function() {
+    }
+    Pointer.prototype.isNull = function() {
             return this._value.equals(0);
-        }
     }
 
     if (typeof Tests !== "undefined") {

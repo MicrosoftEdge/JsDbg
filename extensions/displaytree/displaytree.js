@@ -7,7 +7,7 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return new DbgObject(MSHTML.Module, "void", address).vcast();
+            return DbgObject.create(MSHTML.Module, "void", address).vcast();
         },
         GetRoots: function() {
             return MSHTML.GetCDocs()

@@ -28,7 +28,7 @@
         }
 
         function loadType(module, type, loader) {
-            var dummyObject = new DbgObject(module, type, 0);
+            var dummyObject = DbgObject.create(module, type, 0);
             if (dummyObject.isPointer()) {
                 loadType(module, dummyObject._getDereferencedTypeName(), loader);
             } else {

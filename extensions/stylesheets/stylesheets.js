@@ -6,9 +6,9 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return new DbgObject(MSHTML.Module, "CBase", address).vcast()
+            return DbgObject.create(MSHTML.Module, "CBase", address).vcast()
             .then(null, function (err) {
-                return new DbgObject(MSHTML.Module, "CSharedStyleSheet", address);
+                return DbgObject.create(MSHTML.Module, "CSharedStyleSheet", address);
             })
         },
         GetRoots: function() { 

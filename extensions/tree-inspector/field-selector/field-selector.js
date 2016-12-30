@@ -145,7 +145,7 @@ var FieldSelector = (function() {
         }
 
         var that = this;
-        var dbgObject = new DbgObject(module, typename, 0);
+        var dbgObject = DbgObject.create(module, typename, 0);
         var explorer = TypeExplorer.Create(dbgObject, {
             onFieldChange: this._onFieldChange.bind(this)
         });

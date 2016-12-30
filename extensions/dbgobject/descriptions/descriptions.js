@@ -86,7 +86,7 @@ Loader.OnLoad(function () {
             return Promise.resolve(null);
         }
 
-        return new DbgObject(module, type, 0).baseTypes()
+        return DbgObject.create(module, type, 0).baseTypes()
         .then(function (baseTypes) {
             for (var i = 0; i < baseTypes.length; ++i) {
                 var desc = getTypeDescriptionFunction(module, baseTypes[i].typeDescription());
