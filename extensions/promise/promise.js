@@ -275,6 +275,23 @@ Using '.thenAll' makes this a bit smoother:\
         }, err)
     }
 
+    Promise.prototype.finally = function(f) {
+        return this.then(
+            function (result) {
+                return Promise.resolve(f())
+                .then(function() {
+                    return result;
+                })
+            },
+            function (error) {
+                return Promise.resolve(f())
+                .then(function() {
+                    return Promise.reject(error);
+                })
+            }
+        );
+    }
+
     var promisifiedMethodsByLength = [
         function(method, check) {
             return new Promise(function (success, error) {

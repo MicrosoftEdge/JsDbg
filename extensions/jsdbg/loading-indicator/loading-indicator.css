@@ -19,7 +19,7 @@
 }
 
 .jsdbg-loading-panel::before {
-    content:"Loading...";
+    content:attr(data-loading-message);
     margin-right:5px;
 }
 

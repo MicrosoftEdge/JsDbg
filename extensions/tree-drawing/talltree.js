@@ -29,29 +29,6 @@ Loader.OnLoad(function() {
         this.isExpanded = false;
     }
 
-    DrawingTreeNode.prototype.buildTree = function(shouldExpand) {
-        var that = this;
-        return Promise.resolve(this.children)
-        .then(function (children) {
-            if (children == null) {
-                // We haven't yet built the children.
-                return that.treeReader.getChildren(that.innerNode)
-                .then(function (children) {
-                    that.children = children.map(function (child) { return new DrawingTreeNode(that.treeReader, child); });
-                    return that.children;
-                })
-            } else {
-                return children;
-            }
-        })
-        .then(function (children) {
-            that.isExpanded = shouldExpand(that) || children.length == 0;
-            if (that.isExpanded) {
-                return Promise.throttledMap(children, function (child) { return child.buildTree(shouldExpand); });
-            }
-        });
-    }
-
     function pad(number, digits) {
         var prefix = "";
         var numberString = number.toString();
@@ -65,7 +42,7 @@ Loader.OnLoad(function() {
         return prefix + numberString;
     }
 
-    DrawingTreeNode.prototype.render = function(parentNode, notify) {
+    DrawingTreeNode.prototype.render = function(parentNode, notifyRendered) {
         var renderedElement = document.createElement("div");
 
         // Add the node the parent immediately so that the caller has explicit control over the ordering.
@@ -84,8 +61,8 @@ Loader.OnLoad(function() {
         return this.treeReader.createRepresentation(this.innerNode)
         .then(function(innerRepresentation) {
             renderedElement.appendChild(innerRepresentation);
-            notify(that);
-            return that.renderChildren(renderedElement, renderedElement, notify);
+            notifyRendered(that);
+            return that.renderChildren(renderedElement, renderedElement, notifyRendered);
         });
     }
 
@@ -101,24 +78,16 @@ Loader.OnLoad(function() {
 
             enqueueWork(function() {
                 if (!that.isExpanded) {
-                    var timer = Timer.Start();
-                    return that.buildTree(function shouldExpand(node) {
+                    return that.buildAndRenderIntoFragment(renderedElement, function shouldExpand(node) {
                         if (e.ctrlKey) {
                             return true;
                         } else {
                             return node == that;
                         }
                     })
-                    .then(function () {
-                        timer.Mark("Finished Subtree Construction");
-                        timer = Timer.Start();
-                        // Render the children into a document fragment so that the appearance in the DOM is atomic.
-                        return that.renderChildren(renderedElement, document.createDocumentFragment(), function() {})
-                        .then(function(documentFragment) {
-                            renderedElement.appendChild(documentFragment);
-                            timer.Mark("Finished DOM Rendering");
-                        })
-                    })
+                    .then(function (fragment) {
+                        renderedElement.appendChild(fragment);
+                    });
                 } else if (e.ctrlKey) {
                     // Collapse the node.  Remove all the children that are NOT the inner representation, i.e. not the first child.
                     var nodeToRemove = renderedElement.firstChild.nextSibling;
@@ -128,10 +97,10 @@ Loader.OnLoad(function() {
                         nodeToRemove = next;
                     }
 
-                    return that.buildTree(function shouldExpand(node) { return false; })
-                    .then(function () {
-                        return that.renderChildren(renderedElement, renderedElement, function() {});
-                    })
+                    return that.buildAndRenderIntoFragment(renderedElement, function shouldExpand(node) { return false })
+                    .then(function (fragment) {
+                        renderedElement.appendChild(fragment);
+                    });
                 }
             });
         }
@@ -149,6 +118,56 @@ Loader.OnLoad(function() {
             rendering.classList.add("collapsed");
             return Promise.resolve(parentNode);
         }
+    }
+
+    DrawingTreeNode.prototype.buildAndRenderIntoFragment = function(existingRendering, shouldExpand) {
+        var that = this;
+        var renderedNodes = 0;
+        var discoveredNodes = 0;
+        var messageProvider = function() {
+            return renderedNodes + "/" + discoveredNodes + " items rendered...";
+        }
+        JsDbgLoadingIndicator.AddMessageProvider(messageProvider);
+
+        // We do a two pass algorithm (build, render) so that we discover the amount work sooner and provide meaningful progress.
+        var timer = new Timer();
+        return this.buildTree(shouldExpand, function() { ++discoveredNodes; })
+        .then(function() {
+            timer.Mark("Finished Tree Construction");
+            if (!existingRendering) {
+                return that.render(document.createDocumentFragment(), function() { ++renderedNodes; });
+            } else {
+                return that.renderChildren(existingRendering, document.createDocumentFragment(), function() { ++renderedNodes; })
+            }
+        })
+        .finally(function() {
+            timer.Mark("Finished DOM Rendering");
+            JsDbgLoadingIndicator.RemoveMessageProvider(messageProvider);
+        })
+    }
+
+    DrawingTreeNode.prototype.buildTree = function(shouldExpand, notifyBuilt) {
+        var that = this;
+        return Promise.resolve(this.children)
+        .then(function (children) {
+            if (children == null) {
+                // We haven't yet built the children.
+                return that.treeReader.getChildren(that.innerNode)
+                .then(function (children) {
+                    that.children = children.map(function (child) { return new DrawingTreeNode(that.treeReader, child); });
+                    return that.children;
+                })
+            } else {
+                return children;
+            }
+        })
+        .then(function (children) {
+            that.isExpanded = children.length == 0 || shouldExpand(that);
+            notifyBuilt(that);
+            if (that.isExpanded) {
+                return Promise.throttledMap(children, function (child) { return child.buildTree(shouldExpand, notifyBuilt); });
+            }
+        });
     }
 
     // utility method to repeat string s repeatCount times 
@@ -218,36 +237,12 @@ Loader.OnLoad(function() {
         BuildTree: function(container, treeReader, root, expandFully) {
             return enqueueWork(function() {
                 var drawingNode = new DrawingTreeNode(treeReader, root);
-
-                container.className = "tall-node-container";
-                var message = document.createElement("div");
-                message.className = "popup-message";
-                message.style.position = "absolute";
-                message.style.zIndex = "100";
-                var renderedNodes = document.createTextNode("0");
-                message.appendChild(renderedNodes);
-                message.appendChild(document.createTextNode("/"));
-                var discoveredNodes = document.createTextNode("0");
-                message.appendChild(discoveredNodes);
-                message.appendChild(document.createTextNode(" nodes rendered..."));
-                container.insertBefore(message, container.firstChild);
-
-                var timer = new Timer();
-                return drawingNode.buildTree(function (node) {
-                    discoveredNodes.nodeValue = parseInt(discoveredNodes.nodeValue) + 1;
-                    return expandFully;
-                })
-                .then(function() {
-                    timer.Mark("Finished Tree Construction");
-                    return drawingNode.render(document.createDocumentFragment(), function() {
-                        renderedNodes.nodeValue = parseInt(renderedNodes.nodeValue) + 1;
-                    });
-                })
-                .then(function(rendering) {
+                return drawingNode.buildAndRenderIntoFragment(null, function (node) { return expandFully; })
+                .then(function(fragment) {
+                    container.className = "tall-node-container";
                     container.innerHTML = "";
-                    container.appendChild(rendering);
-                    timer.Mark("Finished DOM Rendering");
-                });
+                    container.appendChild(fragment);
+                })
             });
         },
 

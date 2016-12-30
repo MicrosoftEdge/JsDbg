@@ -4,6 +4,7 @@
     "description": "A tree drawing library.",
     "headless": true,
     "dependencies": [
+        "jsdbg",
         "timer",
         "promise"
     ],
