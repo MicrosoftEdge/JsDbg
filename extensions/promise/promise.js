@@ -563,9 +563,9 @@ Using '.thenAll' makes this a bit smoother:\
                 });
             });
         }
-        promisedType.IncludePromisedMethod = function(methodName, resultPromisedType) {
+        promisedType.IncludePromisedMethod = function(methodName, resultPromisedType, methodReturnsPromise) {
             var method = constructor.prototype[methodName];
-            if (resultPromisedType != null) {
+            if (resultPromisedType != null && methodReturnsPromise) {
                 // Wrap the original method in a method to return a promised type instead.
                 constructor.prototype[methodName] = function wrappedPromisedMethod() {
                     return new resultPromisedType(method.apply(this, arguments));

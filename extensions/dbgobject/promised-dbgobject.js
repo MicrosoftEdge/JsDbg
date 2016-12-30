@@ -6,16 +6,16 @@
 var PromisedDbgObject = undefined;
 Loader.OnLoad(function() {
     PromisedDbgObject = Promise.CreatePromisedType(DbgObject);
-    PromisedDbgObject.IncludePromisedMethod("f", PromisedDbgObject);
-    PromisedDbgObject.IncludePromisedMethod("field", PromisedDbgObject);
-    PromisedDbgObject.IncludePromisedMethod("F", PromisedDbgObject);
-    PromisedDbgObject.IncludePromisedMethod("as", PromisedDbgObject); 
-    PromisedDbgObject.IncludePromisedMethod("deref", PromisedDbgObject); 
-    PromisedDbgObject.IncludePromisedMethod("idx", PromisedDbgObject); 
-    PromisedDbgObject.IncludePromisedMethod("unembed", PromisedDbgObject); 
-    PromisedDbgObject.IncludePromisedMethod("vcast", PromisedDbgObject);
-    PromisedDbgObject.IncludePromisedMethod("dcast", PromisedDbgObject);
-    PromisedDbgObject.IncludePromisedMethod("list", PromisedDbgObject.Array);
-    PromisedDbgObject.IncludePromisedMethod("array", PromisedDbgObject.Array);
-    PromisedDbgObject.IncludePromisedMethod("baseTypes", PromisedDbgObject.Array);
+    PromisedDbgObject.IncludePromisedMethod("f", PromisedDbgObject, /*methodReturnsPromise*/true);
+    PromisedDbgObject.IncludePromisedMethod("field", PromisedDbgObject, /*methodReturnsPromise*/true);
+    PromisedDbgObject.IncludePromisedMethod("F", PromisedDbgObject, /*methodReturnsPromise*/true);
+    PromisedDbgObject.IncludePromisedMethod("as", PromisedDbgObject, /*methodReturnsPromise*/false); 
+    PromisedDbgObject.IncludePromisedMethod("deref", PromisedDbgObject, /*methodReturnsPromise*/true); 
+    PromisedDbgObject.IncludePromisedMethod("idx", PromisedDbgObject, /*methodReturnsPromise*/true); 
+    PromisedDbgObject.IncludePromisedMethod("unembed", PromisedDbgObject, /*methodReturnsPromise*/true); 
+    PromisedDbgObject.IncludePromisedMethod("vcast", PromisedDbgObject, /*methodReturnsPromise*/true);
+    PromisedDbgObject.IncludePromisedMethod("dcast", PromisedDbgObject, /*methodReturnsPromise*/true);
+    PromisedDbgObject.IncludePromisedMethod("list", PromisedDbgObject.Array, /*methodReturnsPromise*/true);
+    PromisedDbgObject.IncludePromisedMethod("array", PromisedDbgObject.Array, /*methodReturnsPromise*/true);
+    PromisedDbgObject.IncludePromisedMethod("baseTypes", PromisedDbgObject.Array, /*methodReturnsPromise*/true);
 });
