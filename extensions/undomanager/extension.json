@@ -9,5 +9,8 @@
     ],
     "includes": [
         "undomanager.js"
+    ],
+    "augments": [
+        "dbgobject"
     ]
 }

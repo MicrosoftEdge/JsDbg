@@ -71,4 +71,8 @@ Loader.OnLoad(function() {
             return item.f("m_pT").vcast();
         });
     });
+
+    DbgObject.AddAction(MSHTML.Module, "CDoc", "UndoManager", function(doc) {
+        return TreeInspector.GetActions("undomanager", "Undo Manager", doc);
+    });
 });
