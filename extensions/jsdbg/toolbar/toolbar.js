@@ -21,19 +21,37 @@ Loader.OnLoad(function () {
                         document.querySelector(".jsdbg-title").textContent = e.name;
                     }
                     return false;
+                } else if (e.name == "wwwroot") {
+                    return true;
                 } else {
                     return !e.headless;
                 }
             });
-            extensions.sort(function (e1, e2) { return e1.name.localeCompare(e2.name); });
+            extensions.sort(function (e1, e2) {
+                if (e1.name == "wwwroot") {
+                    return -1;
+                } else if (e2.name == "wwwroot") {
+                    return +1;
+                } else {
+                    return e1.name.localeCompare(e2.name);
+                }
+            });
 
             extensions.forEach(function (e) {
                 var link = document.createElement("a");
-                link.setAttribute("href", "/" + e.name.toLowerCase() + "/");
+                if (e.name == "wwwroot") {
+                    link.setAttribute("href", "/");
+                } else {
+                    link.setAttribute("href", "/" + e.name.toLowerCase() + "/");
+                }
 
                 var name = document.createElement("span");
                 name.classList.add("jsdbg-extension-name");
-                name.appendChild(document.createTextNode(e.name));
+                if (e.name == "wwwroot") {
+                    name.appendChild(document.createTextNode("JsDbg"));
+                } else {
+                    name.appendChild(document.createTextNode(e.name));
+                }
                 link.appendChild(name);
 
                 if (e.description != null) {

@@ -7,6 +7,7 @@
         "jsdbg",
         "jsdbg/tests",
         "wwwroot",
+        "mshtml-dashboard",
         "extensions",
         "boxtree",
         "markuptree",

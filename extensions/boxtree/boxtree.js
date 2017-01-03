@@ -90,7 +90,7 @@ Loader.OnLoad(function() {
         })
     }
 
-    // Add actions to link LayoutBoxes, CMarkups, and CDocs to the box tree.
+    // Add actions to link LayoutBoxes, CMarkups, and CDocs to the Layout Tree.
     DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBox", "BoxTree", function(box) {
         return box.vcast().f("isAttachedToBuilder").val()
         .then(null, function () { return false; })
@@ -99,7 +99,7 @@ Loader.OnLoad(function() {
                 return box.vcast().F("TreeNode.Markup.Doc")
                 .then(null, function (err) { return box; })
                 .then(function (root) {
-                    return TreeInspector.GetActions("boxtree", "Box Tree", root, box);
+                    return TreeInspector.GetActions("boxtree", "Layout Tree", root, box);
                 })
             } else {
                 return box.vcast().f("builder").actions("BoxTree");
@@ -107,13 +107,13 @@ Loader.OnLoad(function() {
         })
     });
     DbgObject.AddAction(MSHTML.Module, "CMarkup", "BoxTree", function(markup) { 
-        return TreeInspector.GetActions("boxtree", "Box Tree", markup.F("Doc"), MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(markup.f("root").as("CTreeNode")));
+        return TreeInspector.GetActions("boxtree", "Layout Tree", markup.F("Doc"), MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(markup.f("root").as("CTreeNode")));
     })
     DbgObject.AddAction(MSHTML.Module, "CDoc", "BoxTree", function(doc) {
-        return TreeInspector.GetActions("boxtree", "Box Tree", doc);
+        return TreeInspector.GetActions("boxtree", "Layout Tree", doc);
     })
     DbgObject.AddAction(MSHTML.Module, "CView", "BoxTree", function(view) {
-        return TreeInspector.GetActions("boxtree", "Box Tree", view.unembed("CDoc", "_view"), view);
+        return TreeInspector.GetActions("boxtree", "Layout Tree", view.unembed("CDoc", "_view"), view);
     })
 
     DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBoxBuilder", "BoxTree", function(builder) {
@@ -126,7 +126,7 @@ Loader.OnLoad(function() {
                 lastBox = boxReferences.pop();
             } while (lastBox.isNull());
 
-            return TreeInspector.GetActions("boxtree", "Box Tree", lastBox, firstBox);
+            return TreeInspector.GetActions("boxtree", "Layout Tree", lastBox, firstBox);
         })
     });
 

@@ -168,7 +168,7 @@ Loader.OnLoad(function() {
     }
     DbgObject.locals = function(module, method, symbolName) {
         return new PromisedDbgObject.Array(
-            JsDbgPromise.GetCallStack(/*maxCount*/-1)
+            JsDbgPromise.GetCallStack(/*maxCount*/20)
             .then(function(stackFrames) {
                 // Filter the stack frames to only those that match the given method name.
                 return Promise.filter(stackFrames, function (frame) {

@@ -1,0 +1,45 @@
+h1 {
+    font-size:1.1em;
+}
+
+h2 {
+    font-size:1em;
+}
+
+.stack-frame .dashboard-object {
+    display:table-row;
+}
+.stack-frame .dashboard-object > * {
+    padding:0 0.5em;
+}
+
+.stack-frame .dashboard-object > :first-child {
+    text-align: right;
+    display:table-cell;
+}
+
+.registered .dashboard-container {
+    display:flex;
+    flex-wrap:wrap;
+}
+
+.registered .dashboard-object  {
+    xfont-size:1.2em;
+    padding:1em;
+    margin:2px;
+    border:thin solid #aaa;
+    box-shadow:2px 2px #eee;
+}
+
+.registered .dashboard-object > * {
+    display:block;
+}
+
+.registered .dashboard-object > :first-child {
+    font-size:1.2em;
+}
+
+.registered .dashboard-object .action-button {
+    display:inline-block;
+    margin:0.1em;
+}

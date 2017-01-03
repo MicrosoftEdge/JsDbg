@@ -177,6 +177,9 @@ Loader.OnLoad(function() {
         return TreeInspector.GetActions("stylesheets", "Stylesheets", markup);
     });
 
+    DbgObject.AddAction(MSHTML.Module, "CDoc", "StyleSheetViewer", function(doc) {
+        return doc.F("PrimaryMarkup").actions("StyleSheetViewer");
+    });
 
     StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleSheetArray", function(array) {
         return array.f("_pageStyleSheets", "_aStyleSheets").array("Items");

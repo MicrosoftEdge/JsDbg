@@ -51,13 +51,13 @@ Loader.OnLoad(function() {
                 rootObject = topmostMarkup;
             }
 
-            return TreeInspector.GetActions("markuptree", "Markup Tree", rootObject, anode);
+            return TreeInspector.GetActions("markuptree", "DOM Tree", rootObject, anode);
         });
     }
 
     // Create an action that will render the dbgObject as the root of the markup tree
     function getMarkupTreeActions(dbgObject) {
-        return TreeInspector.GetActions("markuptree", "Markup Tree", dbgObject);
+        return TreeInspector.GetActions("markuptree", "DOM Tree", dbgObject);
     }
 
     DbgObject.AddAction(MSHTML.Module, "CTreeNode", "MarkupTree", getMarkupTreeNodeActions);

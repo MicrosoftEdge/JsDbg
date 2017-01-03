@@ -1,0 +1,6 @@
+{
+    "name": "callstack",
+    "headless": true,
+    "dependencies": ["jsdbg", "dbgobject", "promise"],
+    "includes": ["callstack.js"]
+}

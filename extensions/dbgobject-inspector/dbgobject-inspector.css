@@ -4,6 +4,7 @@
 
 .dbgobject-inspector > .drop-down {
     display:inline;
+    font-size:1rem;
     font-family:Segoe UI;
     position:absolute;
     z-index:20;

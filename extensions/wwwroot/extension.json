@@ -2,5 +2,6 @@
     "name": "wwwroot",
     "headless": true,
     "description": "The JsDbg landing page.",
-    "dependencies": ["jsdbg"]
+    "dependencies": ["jsdbg", "dbgobject", "dbgobject-inspector", "callstack"],
+    "includes": ["dashboard.js", "dashboard.css"]
 }

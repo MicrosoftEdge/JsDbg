@@ -33,6 +33,10 @@ var TreeInspector = (function() {
         this.treeDefinition = treeDefinition;
         this.dbgObjectRenderer = dbgObjectRenderer;
         this.currentOperation = Promise.resolve(true);
+
+        window.addEventListener("beforeunload", function() {
+            window.name = "";
+        })
     }
 
     TreeInspectorUIController.prototype.setExpandTreeAutomatically = function (value) {

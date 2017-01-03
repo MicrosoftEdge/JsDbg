@@ -41,19 +41,23 @@ var Loader = undefined;
         xhr.send();
     }
 
-    function collectIncludes(lowerExtensionName, collectedIncludes, collectedExtensions, nameMap, augmentsMap) {
-        if (lowerExtensionName in collectedExtensions) {
+    function collectIncludes(lowerExtensionName, collectedIncludes, collectedExtensions, nameMap, augmentsMap, remainingAugments) {
+        if (collectedExtensions.has(lowerExtensionName)) {
             // Already collected includes.
+            if (remainingAugments.has(lowerExtensionName)) {
+                throw new Error("!");
+            }
             return;
         } else {
-            collectedExtensions[lowerExtensionName] = true;
+            remainingAugments.delete(lowerExtensionName);
+            collectedExtensions.add(lowerExtensionName);
         }
 
         var extension = nameMap[lowerExtensionName];
         // Load includes of any dependencies first.
         if (extension.dependencies != null) {
             extension.dependencies.forEach(function(d) {
-                collectIncludes(d.toLowerCase(), collectedIncludes, collectedExtensions, nameMap, augmentsMap);
+                collectIncludes(d.toLowerCase(), collectedIncludes, collectedExtensions, nameMap, augmentsMap, remainingAugments);
             });
         }
 
@@ -62,11 +66,13 @@ var Loader = undefined;
             extension.includes.forEach(function (include) { collectedIncludes.push(lowerExtensionName + "/" + include); });
         }
 
-        // Load any includes for any extensions that augment this one.
+        // Record any unloaded augmenters.
         if (lowerExtensionName in augmentsMap) {
-            augmentsMap[lowerExtensionName].forEach(function (lowerName) {
-                collectIncludes(lowerName, collectedIncludes, collectedExtensions, nameMap, augmentsMap);
-            });
+            augmentsMap[lowerExtensionName].forEach(function (augmenter) {
+                if (!collectedExtensions.has(augmenter)) {
+                    remainingAugments.add(augmenter);
+                }
+            })
         }
     }
 
@@ -191,8 +197,17 @@ var Loader = undefined;
         var currentExtension = Loader.GetCurrentExtension();
         if (currentExtension != null) {
             var includes = [];
-            var collectedExtensions = {};
-            collectIncludes(currentExtension, includes, collectedExtensions, nameMap, augmentsMap);
+            var collectedExtensions = new Set();
+            var remainingAugments = new Set();
+            collectIncludes(currentExtension, includes, collectedExtensions, nameMap, augmentsMap, remainingAugments);
+
+            while (remainingAugments.size > 0) {
+                var toLoad = [];
+                remainingAugments.forEach(function (ext) { toLoad.push(ext); });
+                toLoad.forEach(function (ext) {
+                    collectIncludes(ext, includes, collectedExtensions, nameMap, augmentsMap, remainingAugments);
+                })
+            }
 
             // Insert the CSS files first to avoid the flash of unstyled content as much as possible.
             var cssFiles = includes.filter(function (file) { return file.match(/\.css$/); });

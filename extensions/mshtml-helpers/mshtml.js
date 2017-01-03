@@ -32,7 +32,7 @@ var MSHTML = undefined;
                 });
             }
         )
-        .then(onComplete);
+        .finally(onComplete);
     });
 
     Loader.OnLoad(function() {
@@ -1439,5 +1439,5 @@ var MSHTML = undefined;
         };
 
         Help.Register(MSHTML);
-    })
+    });
 })();

@@ -4,37 +4,6 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <title>JsDbg</title>
     <script src="/jsdbg/loader.js" type="text/javascript"></script>
-    <style>
-        h3, h4, h5, p {
-            margin:0;
-        }
-
-        input {
-            width:30em;
-        }
-
-        p.author {
-            font-size:0.8em;
-        }
-
-        .unload {
-            font-size:8pt;
-            font-weight:normal;
-            cursor:pointer;
-            color:gray;
-        }
-        .unload::before {
-            content:"[unload]";
-        }
-
-        .unload:hover {
-            color:blue;
-        }
-
-        li {
-            margin:1em;
-        }
-    </style>
     <script type="text/javascript">
         function realizeExtension(ext) {
             if (ext.headless) {
@@ -63,31 +32,29 @@
         }
 
         Loader.OnPageReady(function() {
-            // Get any startup extensions.
-            JsDbg.GetPersistentData(null, function(data) {
-                if (typeof(data) == typeof({}) && "_CATALOG-extension-manager" in data) {
-                    var extensions = data["_CATALOG-extension-manager"];
-                    if (extensions.startup && Array.isArray(extensions.startup) && extensions.startup.length > 0) {
-                        var remainingLoads = extensions.startup.length;
-                        extensions.startup.forEach(function (path) {
-                            JsDbg.LoadExtension(path, function() {
-                                if (--remainingLoads == 0) {
-                                    reloadExtensions();
-                                }
-                            });
-                        });
-                    } else {
-                        reloadExtensions();
-                    }
-                } else {
-                    reloadExtensions();
-                }
-            });
+            // // Get any startup extensions.
+            // JsDbg.GetPersistentData(null, function(data) {
+            //     if (typeof(data) == typeof({}) && "_CATALOG-extension-manager" in data) {
+            //         var extensions = data["_CATALOG-extension-manager"];
+            //         if (extensions.startup && Array.isArray(extensions.startup) && extensions.startup.length > 0) {
+            //             var remainingLoads = extensions.startup.length;
+            //             extensions.startup.forEach(function (path) {
+            //                 JsDbg.LoadExtension(path, function() {
+            //                     if (--remainingLoads == 0) {
+            //                         reloadExtensions();
+            //                     }
+            //                 });
+            //             });
+            //         } else {
+            //             reloadExtensions();
+            //         }
+            //     } else {
+            //         reloadExtensions();
+            //     }
+            // });
         });
     </script>
 </head>
 <body>
-    <ul>
-    </ul>
 </body>
 </html>

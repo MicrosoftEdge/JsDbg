@@ -60,6 +60,14 @@ Loader.OnLoad(function() {
         return object.f("parentBuilder.m_pT").vcast();
     })
 
+    DbgObject.AddAction(MSHTML.Module, "Layout::SHoldLayoutBuilder", "LayoutBuilder", function (layoutBuilder) {
+        return TreeInspector.GetActions("layoutbuilder", "Layout Builder", layoutBuilder.f("sp.m_pT"));
+    })
+
+    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBuilder", "LayoutBuilder", function (layoutBuilder) {
+        return TreeInspector.GetActions("layoutbuilder", "Layout Builder", layoutBuilder);
+    })
+
     // Add a type description for LayoutBoxBuilder to link to the LayoutBuilder stack
     DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBoxBuilder", "LayoutBuilder", function(boxBuilder) {
         function findTopMostBuilder(builder) {

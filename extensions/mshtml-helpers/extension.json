@@ -5,5 +5,5 @@
     "headless": true,
     "dependencies": ["dbgobject", "user-editable-functions", "help"],
     "includes": ["mshtml.js", "dispids/mshtml-dispids.js"],
-    "augments": ["dbgobject"]
+    "augments": ["dbgobject", "wwwroot"]
 }
