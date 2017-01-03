@@ -17,6 +17,7 @@
     border-right:10px solid transparent;
     border-bottom:10px solid transparent;
     cursor:nwse-resize;
+    white-space: nowrap;
 }
 
 .dbgobject-inspector > .drop-down > .title {

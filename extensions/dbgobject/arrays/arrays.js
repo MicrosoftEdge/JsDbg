@@ -125,6 +125,10 @@ Loader.OnLoad(function() {
             } else {
                 return that.size()
                 .then(function (structSize) {
+                    if (count > 100000) {
+                        throw new Error("Arrays with over 100,000 elements cannot be retrieved all at once.")
+                    }
+
                     var array = [];
                     for (var i = 0; i < count; ++i) {
                         array.push(that._off(i * structSize));

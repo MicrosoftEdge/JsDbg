@@ -116,11 +116,12 @@ Loader.OnLoad(function() {
                                 }
                             );
 
-                            renderings.push(renderDbgObject(value, renderer));
+                            renderings.push(renderDbgObject(value, renderer).catch(function () { return null; }));
                         })
 
                         return Promise.all(renderings)
                         .then(function (renderings) {
+                            renderings = renderings.filter(function(e) { return e != null; });
                             if (renderings.length > 0) {
                                 var stackContainer = createObjectContainer(frame.module + "!" + frame.method + "+0x" + frame.offset.toString(16), renderings);
                                 stackContainer.classList.add("stack-frame");

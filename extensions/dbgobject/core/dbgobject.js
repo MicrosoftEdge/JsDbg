@@ -618,6 +618,10 @@ Loader.OnLoad(function() {
             }
             return Promise.resolve(arrayCount)
             .then(function (arrayCount) {
+                if (arrayCount > 1000000) {
+                    throw new Error("Cannot retrieve over 1,000,000 values all at once.");
+                }
+
                 return MemoryCachePromise.ReadArray(that._pointer.value(), structSize, unsigned, that._isFloat(), arrayCount);
             })
         })
