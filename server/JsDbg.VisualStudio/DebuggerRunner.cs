@@ -75,6 +75,7 @@ namespace JsDbg.VisualStudio {
                                 DisposableComReference.SetReference(ref this.memoryContext, memoryContext);
                                 this.isPointer64Bit = (offset == 8);
 
+                                this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Detaching);
                                 this.engine.NotifyBitnessChanged();
                                 this.engine.DiaLoader.ClearSymbols();
                                 this.debugger.ClearTypeCache();
@@ -93,6 +94,7 @@ namespace JsDbg.VisualStudio {
                 DisposableComReference.ReleaseIfNotNull(ref this.memoryContext);
                 DisposableComReference.ReleaseIfNotNull(ref this.memoryBytes);
                 DisposableComReference.ReleaseIfNotNull(ref this.dte);
+                this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Detaching);
                 this.engine.DiaLoader.ClearSymbols();
                 this.debugger.ClearTypeCache();
             } else if (riidEvent == breakInEvent) {

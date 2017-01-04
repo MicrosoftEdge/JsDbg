@@ -63,7 +63,8 @@ namespace JsDbg.Core {
     public class DebuggerChangeEventArgs {
         public enum DebuggerStatus {
             Break,
-            Waiting
+            Waiting,
+            Detaching
         }
 
         public DebuggerChangeEventArgs(DebuggerStatus status) { Status = status; }

@@ -58,6 +58,9 @@ namespace JsDbg.WinDbg {
                     if (executionStatus == DebugStatus.RestartTarget) {
                         isRestarting = true;
                     } else if (executionStatus == DebugStatus.NoDebuggee) {
+                        this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.Detaching);
+                        this.engine.DiaLoader.ClearSymbols();
+                        this.debugger.ClearTypeCache();
                         if (isRestarting) {
                             isRestarting = false;
                             Console.Out.WriteLine("Process is restarting.");

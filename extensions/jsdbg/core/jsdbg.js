@@ -61,11 +61,13 @@ Loader.OnLoad(function () {
     JsDbgTransport.OnOutOfBandMessage(function (message) {
         if (message == "break") {
             JsDbgLoadingIndicator.SetIsWaitingForDebugger(false);
-            JsDbgTransport.InvalidateCache();
+            JsDbgTransport.InvalidateTransientCache();
             fireListeners(debuggerBrokeListeners);
             fireListeners(memoryWriteListeners);
         } else if (message == "waiting") {
             JsDbgLoadingIndicator.SetIsWaitingForDebugger(true);
+        } else if (message == "detaching") {
+            JsDbgTransport.InvalidateFullCache();
         } else {
             console.error("Unexpected out of band message: " + message);
         }
@@ -249,7 +251,7 @@ Loader.OnLoad(function () {
             var originalCallback = callback;
             callback = function(result) {
                 if (!result.error) {
-                    JsDbgTransport.InvalidateCache();
+                    JsDbgTransport.InvalidateTransientCache();
                     fireListeners(memoryWriteListeners);
                 }
                 originalCallback(result);

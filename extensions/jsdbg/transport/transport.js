@@ -183,8 +183,12 @@ Loader.OnLoad(function() {
         },
 
         JsonRequest: jsonRequest,
-        InvalidateCache: function() {
+        InvalidateTransientCache: function() {
             transientCache = {};
+        },
+        InvalidateFullCache: function() {
+            transientCache = {};
+            responseCache = {};
         },
         OnOutOfBandMessage: function (listener) {
             outOfBandMessageListeners.push(listener);

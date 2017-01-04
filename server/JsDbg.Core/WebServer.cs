@@ -1324,6 +1324,8 @@ namespace JsDbg.Core {
                 message = "break";
             } else if (status == DebuggerChangeEventArgs.DebuggerStatus.Waiting) {
                 message = "waiting";
+            } else if (status == DebuggerChangeEventArgs.DebuggerStatus.Detaching) {
+                message = "detaching";
             } else {
                 return;
             }
