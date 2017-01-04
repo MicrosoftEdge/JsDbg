@@ -41,6 +41,28 @@ Loader.OnLoad(function() {
         return container;
     }
 
+    var currentPromise = Promise.resolve(null);
+    function serialize(f) {
+        var result = currentPromise.then(function () { return f(); });
+        currentPromise = result.catch(function() { });
+        return result;
+    }
+
+    if (Loader.GetCurrentExtension() == "wwwroot") {
+        Loader.OnPageReady(function() {
+            serialize(function() {
+                return Dashboard.Render(document.body);
+            })
+        });
+
+        JsDbg.RegisterOnBreakListener(function () {
+            serialize(function() {
+                document.body.innerHTML = "";
+                return Dashboard.Render(document.body);
+            });
+        })
+    }
+
     var objects = [];
     var getters = [];
     Dashboard = {
@@ -144,14 +166,3 @@ Loader.OnLoad(function() {
         }
     }
 })
-
-if (Loader.GetCurrentExtension() == "wwwroot") {
-    Loader.OnPageReady(function() {
-        Dashboard.Render(document.body);
-    });
-
-    JsDbg.RegisterOnBreakListener(function () {
-        document.body.innerHTML = "";
-        Dashboard.Render(document.body);
-    })
-}
