@@ -1,0 +1,7 @@
+{
+    "name": "object-dashboard",
+    "headless": true,
+    "description": "Provides a mechanism for rendering objects on the JsDbg dashboard.",
+    "includes": ["object-dashboard.js", "object-dashboard.css"],
+    "dependencies": ["wwwroot", "dbgobject", "dbgobject-tree", "dbgobject-inspector"]
+}

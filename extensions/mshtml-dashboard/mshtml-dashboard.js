@@ -14,7 +14,7 @@ Loader.OnLoad(function () {
         })
     })
 
-    Dashboard.AddObjectGetter(function (addObject) {
+    ObjectDashboard.AddGetter(function (addObject) {
         return Promise.sort(
             MSHTML.GetCDocs(),
             function (a) {

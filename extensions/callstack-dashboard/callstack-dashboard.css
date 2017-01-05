@@ -1,0 +1,19 @@
+.callstack-dashboard h1 {
+    font-size:1.1em;
+}
+
+.callstack-dashboard  h2 {
+    font-size:1em;
+}
+
+.callstack-dashboard .local {
+    display:table-row;
+}
+.callstack-dashboard .local > * {
+    padding:0 0.5em;
+}
+
+.callstack-dashboard .local > :first-child {
+    text-align: right;
+    display:table-cell;
+}

@@ -1,0 +1,7 @@
+{
+    "name": "callstack-dashboard",
+    "headless": true,
+    "dependencies": ["dbgobject", "dbgobject-inspector", "dbgobject-tree", "callstack"],
+    "augments": ["wwwroot"],
+    "includes": ["callstack-dashboard.js", "callstack-dashboard.css"]
+}

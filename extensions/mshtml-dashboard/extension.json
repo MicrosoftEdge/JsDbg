@@ -1,7 +1,7 @@
 {
     "name": "mshtml-dashboard",
     "headless": true,
-    "dependencies": ["mshtml-helpers", "dbgobject-tree"],
+    "dependencies": ["mshtml-helpers", "dbgobject-tree", "object-dashboard"],
     "augments": ["wwwroot"],
     "includes": ["mshtml-dashboard.js"]
 }

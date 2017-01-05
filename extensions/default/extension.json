@@ -17,6 +17,7 @@
         "object-diff",
         "documentation",
         "tests",
-        "undomanager"
+        "undomanager",
+        "callstack-dashboard"
     ]
 }
