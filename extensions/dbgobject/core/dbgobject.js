@@ -45,14 +45,16 @@ Loader.OnLoad(function() {
         that.wasDereferenced = (wasDereferenced ? true : false);
 
         // Cleanup type name:
+        //  - remove whitespace from the beginning and end
+        type = cleanupTypeName(type);
         //  - if the type was specified as TypeName(offset), subtract the offset.
         if (type[type.length - 1] == ")") {
             var additionalOffset = parseInt(type.substr(type.lastIndexOf("(") + 1));
             type = type.substr(0, type.lastIndexOf("("));
             that._pointer = that._pointer.add(-additionalOffset);
         }
-        //  - remove whitespace from the beginning and end
-        that.typename = cleanupTypeName(type);
+        
+        that.typename = type;
 
         // Treat "char" as unsigned.
         that._isUnsigned = (that.typename.indexOf("unsigned ") == 0 || that.typename == "char");
