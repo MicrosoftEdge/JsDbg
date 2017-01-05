@@ -132,14 +132,18 @@ namespace JsDbg.Dia {
             return "void";
         }
 
-        public static string GetTypeName(IDiaSymbol typeSymbol) {
+        public static string GetTypeName(IDiaSymbol typeSymbol, int pointerAdjustment = 0) {
             switch ((SymTagEnum)typeSymbol.symTag) {
                 case SymTagEnum.SymTagArrayType:
                     return GetTypeName(typeSymbol.type) + "[" + typeSymbol.count + "]";
                 case SymTagEnum.SymTagBaseType:
                     return GetBasicTypeName((BasicType)typeSymbol.baseType, typeSymbol.length);
                 case SymTagEnum.SymTagPointerType:
-                    return GetTypeName(typeSymbol.type) + "*";
+                    if (pointerAdjustment != 0) {
+                        return String.Format("{0}({2}{1})*", GetTypeName(typeSymbol.type), pointerAdjustment, pointerAdjustment > 0 ? "+" : "");
+                    } else {
+                        return GetTypeName(typeSymbol.type) + "*";
+                    }
                 case SymTagEnum.SymTagTypedef:
                 case SymTagEnum.SymTagEnum:
                 case SymTagEnum.SymTagUDT:
@@ -151,6 +155,226 @@ namespace JsDbg.Dia {
             System.Diagnostics.Debug.WriteLine("Unable to get a type name for {0} ({1})", typeSymbol.name, (SymTagEnum)typeSymbol.symTag);
             return "void";
         }
+
+#if DEBUG
+        /// <summary>
+        /// Gets all the IDiaSymbol properties
+        /// </summary>
+        /// <param name="symbol"></param>
+        /// <returns></returns>
+        public static bool GetEveryProperty(IDiaSymbol symbol) {
+            var access = symbol.access;
+            var addressOffset = symbol.addressOffset;
+            var addressSection = symbol.addressSection;
+            var addressTaken = symbol.addressTaken;
+            var age = symbol.age;
+            var arrayIndexType = symbol.arrayIndexType;
+            var arrayIndexTypeId = symbol.arrayIndexTypeId;
+            var backEndBuild = symbol.backEndBuild;
+            var backEndMajor = symbol.backEndMajor;
+            var backEndMinor = symbol.backEndMinor;
+            var backEndQFE = symbol.backEndQFE;
+            var baseDataOffset = symbol.baseDataOffset;
+            var baseDataSlot = symbol.baseDataSlot;
+            var baseSymbol = symbol.baseSymbol;
+            var baseSymbolId = symbol.baseSymbolId;
+            var baseType = symbol.baseType;
+            var bindID = symbol.bindID;
+            var bindSlot = symbol.bindSlot;
+            var bindSpace = symbol.bindSpace;
+            var bitPosition = symbol.bitPosition;
+            var builtInKind = symbol.builtInKind;
+            var callingConvention = symbol.callingConvention;
+            var characteristics = symbol.characteristics;
+            var classParent = symbol.classParent;
+            var classParentId = symbol.classParentId;
+            var code = symbol.code;
+            //var coffGroup = symbol.coffGroup;
+            var compilerGenerated = symbol.compilerGenerated;
+            var compilerName = symbol.compilerName;
+            var constantExport = symbol.constantExport;
+            var constructor = symbol.constructor;
+            var constType = symbol.constType;
+            var container = symbol.container;
+            var count = symbol.count;
+            var countLiveRanges = symbol.countLiveRanges;
+            var customCallingConvention = symbol.customCallingConvention;
+            var dataExport = symbol.dataExport;
+            var dataKind = symbol.dataKind;
+            var editAndContinueEnabled = symbol.editAndContinueEnabled;
+            var exceptionHandlerAddressOffset = symbol.exceptionHandlerAddressOffset;
+            var exceptionHandlerAddressSection = symbol.exceptionHandlerAddressSection;
+            var exceptionHandlerRelativeVirtualAddress = symbol.exceptionHandlerRelativeVirtualAddress;
+            var exceptionHandlerVirtualAddress = symbol.exceptionHandlerVirtualAddress;
+            var exportHasExplicitlyAssignedOrdinal = symbol.exportHasExplicitlyAssignedOrdinal;
+            var exportIsForwarder = symbol.exportIsForwarder;
+            var farReturn = symbol.farReturn;
+            var finalLiveStaticSize = symbol.finalLiveStaticSize;
+            var framePointerPresent = symbol.framePointerPresent;
+            var frameSize = symbol.frameSize;
+            var frontEndBuild = symbol.frontEndBuild;
+            var frontEndMajor = symbol.frontEndMajor;
+            var frontEndMinor = symbol.frontEndMinor;
+            var frontEndQFE = symbol.frontEndQFE;
+            var function = symbol.function;
+            var guid = symbol.guid;
+            var hasAlloca = symbol.hasAlloca;
+            var hasAssignmentOperator = symbol.hasAssignmentOperator;
+            var hasCastOperator = symbol.hasCastOperator;
+            var hasControlFlowCheck = symbol.hasControlFlowCheck;
+            var hasDebugInfo = symbol.hasDebugInfo;
+            var hasEH = symbol.hasEH;
+            var hasEHa = symbol.hasEHa;
+            var hasInlAsm = symbol.hasInlAsm;
+            var hasLongJump = symbol.hasLongJump;
+            var hasManagedCode = symbol.hasManagedCode;
+            var hasNestedTypes = symbol.hasNestedTypes;
+            var hasSecurityChecks = symbol.hasSecurityChecks;
+            var hasSEH = symbol.hasSEH;
+            var hasSetJump = symbol.hasSetJump;
+            //var hasValidPGOCounts = symbol.hasValidPGOCounts;
+            var hfaDouble = symbol.hfaDouble;
+            var hfaFloat = symbol.hfaFloat;
+            var indirectVirtualBaseClass = symbol.indirectVirtualBaseClass;
+            var inlSpec = symbol.inlSpec;
+            var interruptReturn = symbol.interruptReturn;
+            var intrinsic = symbol.intrinsic;
+            var intro = symbol.intro;
+            var isAggregated = symbol.isAggregated;
+            var isConstructorVirtualBase = symbol.isConstructorVirtualBase;
+            var isCTypes = symbol.isCTypes;
+            var isCVTCIL = symbol.isCVTCIL;
+            var isCxxReturnUdt = symbol.isCxxReturnUdt;
+            var isDataAligned = symbol.isDataAligned;
+            var isHLSLData = symbol.isHLSLData;
+            var isHotpatchable = symbol.isHotpatchable;
+            var isInterfaceUdt = symbol.isInterfaceUdt;
+            var isLocationControlFlowDependent = symbol.isLocationControlFlowDependent;
+            var isLTCG = symbol.isLTCG;
+            var isMatrixRowMajor = symbol.isMatrixRowMajor;
+            var isMSILNetmodule = symbol.isMSILNetmodule;
+            var isMultipleInheritance = symbol.isMultipleInheritance;
+            var isNaked = symbol.isNaked;
+            var isOptimizedAway = symbol.isOptimizedAway;
+            //var isOptimizedForSpeed = symbol.isOptimizedForSpeed;
+            //var isPGO = symbol.isPGO;
+            var isPointerBasedOnSymbolValue = symbol.isPointerBasedOnSymbolValue;
+            var isPointerToDataMember = symbol.isPointerToDataMember;
+            var isPointerToMemberFunction = symbol.isPointerToMemberFunction;
+            var isRefUdt = symbol.isRefUdt;
+            var isReturnValue = symbol.isReturnValue;
+            var isSafeBuffers = symbol.isSafeBuffers;
+            var isSdl = symbol.isSdl;
+            var isSingleInheritance = symbol.isSingleInheritance;
+            var isSplitted = symbol.isSplitted;
+            var isStatic = symbol.isStatic;
+            var isStripped = symbol.isStripped;
+            var isValueUdt = symbol.isValueUdt;
+            var isVirtualInheritance = symbol.isVirtualInheritance;
+            var isWinRTPointer = symbol.isWinRTPointer;
+            var language = symbol.language;
+            var length = symbol.length;
+            var lexicalParent = symbol.lexicalParent;
+            var lexicalParentId = symbol.lexicalParentId;
+            var libraryName = symbol.libraryName;
+            var liveRangeLength = symbol.liveRangeLength;
+            var liveRangeStartAddressOffset = symbol.liveRangeStartAddressOffset;
+            var liveRangeStartAddressSection = symbol.liveRangeStartAddressSection;
+            var liveRangeStartRelativeVirtualAddress = symbol.liveRangeStartRelativeVirtualAddress;
+            var localBasePointerRegisterId = symbol.localBasePointerRegisterId;
+            var locationType = symbol.locationType;
+            var lowerBound = symbol.lowerBound;
+            var lowerBoundId = symbol.lowerBoundId;
+            var machineType = symbol.machineType;
+            var managed = symbol.managed;
+            var memorySpaceKind = symbol.memorySpaceKind;
+            var msil = symbol.msil;
+            var name = symbol.name;
+            var nested = symbol.nested;
+            var noInline = symbol.noInline;
+            var noNameExport = symbol.noNameExport;
+            var noReturn = symbol.noReturn;
+            var noStackOrdering = symbol.noStackOrdering;
+            var notReached = symbol.notReached;
+            var numberOfColumns = symbol.numberOfColumns;
+            var numberOfModifiers = symbol.numberOfModifiers;
+            var numberOfRegisterIndices = symbol.numberOfRegisterIndices;
+            var numberOfRows = symbol.numberOfRows;
+            var objectFileName = symbol.objectFileName;
+            var objectPointerType = symbol.objectPointerType;
+            var oemId = symbol.oemId;
+            var oemSymbolId = symbol.oemSymbolId;
+            var offset = symbol.offset;
+            var offsetInUdt = symbol.offsetInUdt;
+            var optimizedCodeDebugInfo = symbol.optimizedCodeDebugInfo;
+            var ordinal = symbol.ordinal;
+            var overloadedOperator = symbol.overloadedOperator;
+            var packed = symbol.packed;
+            var paramBasePointerRegisterId = symbol.paramBasePointerRegisterId;
+            //var PGODynamicInstructionCount = symbol.PGODynamicInstructionCount;
+            //var PGOEdgeCount = symbol.PGOEdgeCount;
+            //var PGOEntryCount = symbol.PGOEntryCount;
+            var phaseName = symbol.phaseName;
+            var platform = symbol.platform;
+            var privateExport = symbol.privateExport;
+            var pure = symbol.pure;
+            var rank = symbol.rank;
+            var reference = symbol.reference;
+            var registerId = symbol.registerId;
+            var registerType = symbol.registerType;
+            var relativeVirtualAddress = symbol.relativeVirtualAddress;
+            var restrictedType = symbol.restrictedType;
+            var RValueReference = symbol.RValueReference;
+            var samplerSlot = symbol.samplerSlot;
+            var scoped = symbol.scoped;
+            var @sealed = symbol.@sealed;
+            var signature = symbol.signature;
+            var sizeInUdt = symbol.sizeInUdt;
+            var slot = symbol.slot;
+            var sourceFileName = symbol.sourceFileName;
+            var staticSize = symbol.staticSize;
+            var strictGSCheck = symbol.strictGSCheck;
+            var stride = symbol.stride;
+            var subType = symbol.subType;
+            var subTypeId = symbol.subTypeId;
+            var symbolsFileName = symbol.symbolsFileName;
+            var symIndexId = symbol.symIndexId;
+            var symTag = symbol.symTag;
+            var targetOffset = symbol.targetOffset;
+            var targetRelativeVirtualAddress = symbol.targetRelativeVirtualAddress;
+            var targetSection = symbol.targetSection;
+            var targetVirtualAddress = symbol.targetVirtualAddress;
+            var textureSlot = symbol.textureSlot;
+            var thisAdjust = symbol.thisAdjust;
+            var thunkOrdinal = symbol.thunkOrdinal;
+            var timeStamp = symbol.timeStamp;
+            var token = symbol.token;
+            var type = symbol.type;
+            var typeId = symbol.typeId;
+            var uavSlot = symbol.uavSlot;
+            var udtKind = symbol.udtKind;
+            var unalignedType = symbol.unalignedType;
+            var undecoratedName = symbol.undecoratedName;
+            var unmodifiedType = symbol.unmodifiedType;
+            var unmodifiedTypeId = symbol.unmodifiedTypeId;
+            //var unused = symbol.unused;
+            var upperBound = symbol.upperBound;
+            var upperBoundId = symbol.upperBoundId;
+            var value = symbol.value;
+            var @virtual = symbol.@virtual;
+            var virtualAddress = symbol.virtualAddress;
+            var virtualBaseClass = symbol.virtualBaseClass;
+            var virtualBaseDispIndex = symbol.virtualBaseDispIndex;
+            var virtualBaseOffset = symbol.virtualBaseOffset;
+            var virtualBasePointerOffset = symbol.virtualBasePointerOffset;
+            var virtualBaseTableType = symbol.virtualBaseTableType;
+            var virtualTableShape = symbol.virtualTableShape;
+            var virtualTableShapeId = symbol.virtualTableShapeId;
+            var volatileType = symbol.volatileType;
+            var wasInlined = symbol.wasInlined;
+            return false;
+        }
+#endif
 
 
         public enum CV_HREG_e {

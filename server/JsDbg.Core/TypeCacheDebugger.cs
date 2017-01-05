@@ -287,11 +287,16 @@ namespace JsDbg.Core {
                                 continue;
                             }
 
+                            int pointerAdjustment = 0;
+                            if (localSymbol.name == "this") {
+                                pointerAdjustment = symbol.type.thisAdjust;
+                            }
+
                             results.Add(new SNamedSymbol() {
                                 Symbol = new SSymbolResult() {
                                     Module = module.Name,
                                     Pointer = (ulong)((long)relativeAddress + localSymbol.offset),
-                                    Type = DiaHelpers.GetTypeName(localSymbol.type)
+                                    Type = DiaHelpers.GetTypeName(localSymbol.type, pointerAdjustment)
                                 },
                                 Name = localSymbol.name
                             });
