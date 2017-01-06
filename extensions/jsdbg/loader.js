@@ -154,7 +154,16 @@ var Loader = undefined;
                 }
             }
 
-            loadHandlers.push(onload);
+            loadHandlers.push(function(completed) {
+                try {
+                    onload(completed);
+                } catch (ex) {
+                    console.log("OnLoad handler threw an exception: " + ex);
+                    completed();
+                }
+            });
+
+            // If it's the only onload handler, fire it immediately.
             if (loadHandlers.length == 1) {
                 loadHandlers[0](processNextLoadHandler);
             }
@@ -168,7 +177,13 @@ var Loader = undefined;
             if (isFinishedLoading) {
                 throw new Error("You may not add a ready handler after the page has finished loading.");
             }
-            readyHandlers.push(onready);
+            readyHandlers.push(function() {
+                try {
+                    onready();
+                } catch (ex) {
+                    console.log("OnPageReady handler threw an exception: " + ex);
+                }
+            });
         }
     }
 
