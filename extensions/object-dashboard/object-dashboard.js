@@ -43,6 +43,7 @@ Loader.OnLoad(function() {
         .then(function () {
             return Promise.map(registeredObjects, function (registration) { return renderDbgObject(registration.object, registration.renderer); })
             .then(function (renderedObjects) {
+                panel.innerHTML = "";
                 renderedObjects.forEach(function(rendering) {
                     rendering.classList.add("dashboard-object");
                     rendering.classList.add("dashboard-panel");

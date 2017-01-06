@@ -114,6 +114,7 @@ Loader.OnLoad(function() {
         })
         .then(function (stackContainers) {
             var header = document.createElement("h1");
+            panel.innerHTML = "";
             header.textContent = "Local Variables";
             panel.appendChild(header);
             stackContainers.forEach(function (e) {
