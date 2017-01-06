@@ -53,10 +53,9 @@ Loader.OnLoad(function() {
         })
     }
 
+    var onPageReadyPromise = new Promise(function (onSuccess) { Loader.OnPageReady(onSuccess); });
     serialize(function () {
-        return new Promise(function (onSuccess) {
-            Loader.OnPageReady(onSuccess);
-        });
+        return onPageReadyPromise;
     })
 
     var panelPromise = serialize(renderObjects)
