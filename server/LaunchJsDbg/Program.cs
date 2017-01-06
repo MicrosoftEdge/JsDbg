@@ -5,18 +5,29 @@ using System.IO.Compression;
 namespace JsDbg.Launcher {
     class Program {
         static void Main(string[] args) {
-            // Arguments: [package.zip] [JsDbg.exe arguments]
-            if (args.Length < 1) {
+            // Arguments: /silent? [package.zip] [remote string]
+            if (args.Length < 1 || (args[0] == "/silent" && args.Length < 3)) {
                 Console.WriteLine("usage: " + System.AppDomain.CurrentDomain.FriendlyName + " [package.zip]");
                 Console.WriteLine("Press any key to exit...");
                 Console.ReadKey();
                 return;
             }
 
-            var packagePath = args[0];
-            var jsDbgArgs = string.Join(" ", args, 1, args.Length - 1);
+            string packagePath;
+            string remoteString;
+            bool launchSilently = false;
+            if (args[0] == "/silent") {
+                packagePath = args[1];
+                remoteString = args[2];
+                launchSilently = true;
+            } else {
+                packagePath = args[0];
+                remoteString = args.Length >= 2 ? args[1] : "";
+
+            }
+
             try {
-                LaunchJsDbg(packagePath, jsDbgArgs);
+                LaunchJsDbg(packagePath, remoteString, launchSilently);
             } catch (Exception ex) {
                 Console.WriteLine("Error: {0}", ex);
                 Console.WriteLine("Press any key to exit...");
@@ -24,8 +35,8 @@ namespace JsDbg.Launcher {
             }
         }
 
-        static void LaunchJsDbg(string packagePath, string jsDbgArgs) {
-            if (JsDbg.Remoting.RemotingServer.RelaunchExistingInstance(jsDbgArgs)) {
+        static void LaunchJsDbg(string packagePath, string remoteString, bool launchSilently) {
+            if (JsDbg.Remoting.RemotingServer.RelaunchExistingInstance(remoteString)) {
                 return;
             }
 
@@ -67,9 +78,10 @@ namespace JsDbg.Launcher {
             Directory.SetCurrentDirectory(localInstallationDirectory);
             var jsdbgProcess = new System.Diagnostics.Process();
             jsdbgProcess.StartInfo.WorkingDirectory = localInstallationDirectory;
-            jsdbgProcess.StartInfo.UseShellExecute = false; // Use the same window.
+            jsdbgProcess.StartInfo.UseShellExecute = false;
             jsdbgProcess.StartInfo.FileName = Path.Combine(localInstallationDirectory, "JsDbg.exe");
-            jsdbgProcess.StartInfo.Arguments = jsDbgArgs;
+            jsdbgProcess.StartInfo.Arguments = remoteString;
+            jsdbgProcess.StartInfo.CreateNoWindow = launchSilently;
             jsdbgProcess.Start();
         }
 
