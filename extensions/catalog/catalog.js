@@ -41,8 +41,10 @@ var Catalog = (function() {
 
         if (waitForOperation(function() { that.all(callback); })) {
             JsDbg.GetPersistentData(this.user, function(result) {
-                if (that.namespace in result) {
-                    callback(result[that.namespace]);
+                if (result.error) {
+                    callback(result);
+                } else if (that.namespace in result.data) {
+                    callback(result.data[that.namespace]);
                 } else {
                     callback({});
                 }
@@ -72,19 +74,23 @@ var Catalog = (function() {
         var that = this;
         if (waitForOperation(function() { that.set(key, value, callback); })) {
             JsDbg.GetPersistentData(/*user*/null, function(result) {
-                if (!(that.namespace in result)) {
-                    result[that.namespace] = {};
-                } else if (typeof(result[that.namespace]) != typeof({})) {
+                if (result.error) {
+                    callback(result);
+                    completedOperation();
+                    return;
+                } else if (!(that.namespace in result.data)) {
+                    result.data[that.namespace] = {};
+                } else if (typeof(result.data[that.namespace]) != typeof({})) {
                     callback({error: "The namespace collides with an existing value."});
                     completedOperation();
                     return;
                 }
 
                 // Update it with the new value.
-                result[that.namespace][key] = value;
+                result.data[that.namespace][key] = value;
 
                 // And save it.
-                JsDbg.SetPersistentData(result, function(result) {
+                JsDbg.SetPersistentData(result.data, function(result) {
                     callback(result);
                     completedOperation();
                 });
@@ -112,9 +118,13 @@ var Catalog = (function() {
         var that = this;
         if (waitForOperation(function() { that.setMultiple(keysAndValues, callback); })) {
             JsDbg.GetPersistentData(/*user*/null, function(result) {
-                if (!(that.namespace in result)) {
-                    result[that.namespace] = {};
-                } else if (typeof(result[that.namespace]) != typeof({})) {
+                if (result.error) {
+                    callback(result);
+                    completedOperation();
+                    return;
+                } else if (!(that.namespace in result.data)) {
+                    result.data[that.namespace] = {};
+                } else if (typeof(result.data[that.namespace]) != typeof({})) {
                     callback({error: "The namespace collides with an existing value."});
                     completedOperation();
                     return;
@@ -122,11 +132,11 @@ var Catalog = (function() {
 
                 // Update it with the new values.
                 for (var key in keysAndValues) {
-                    result[that.namespace][key] = keysAndValues[key];
+                    result.data[that.namespace][key] = keysAndValues[key];
                 }
 
                 // And save it.
-                JsDbg.SetPersistentData(result, function(result) {
+                JsDbg.SetPersistentData(result.data, function(result) {
                     callback(result);
                     completedOperation();
                 });
@@ -154,17 +164,21 @@ var Catalog = (function() {
         var that = this;
         if (waitForOperation(function() { that.delete(key, callback); })) {
             JsDbg.GetPersistentData(/*user*/null, function(result) {
-                if (!(that.namespace in result) || typeof(result[that.namespace]) != typeof({})) {
+                if (result.error) {
+                    callback(result);
+                    completedOperation();
+                    return;
+                } else if (!(that.namespace in result.data) || typeof(result.data[that.namespace]) != typeof({})) {
                     callback({error: "The namespace was not found."});
                     completedOperation();
                     return;
                 }
 
                 // Update it with the new value.
-                delete result[that.namespace][key];
+                delete result.data[that.namespace][key];
 
                 // And save it.
-                JsDbg.SetPersistentData(result, function(result) {
+                JsDbg.SetPersistentData(result.data, function(result) {
                     callback(result);
                     completedOperation();
                 });

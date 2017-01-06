@@ -1154,7 +1154,7 @@ namespace JsDbg.Core {
                 string user = context.Request.QueryString["user"];
                 string result = await this.persistentStore.Get(user);
                 if (result != null) {
-                    this.ServeUncachedString(result, context);
+                    this.ServeUncachedString(String.Format("{{ \"data\": {0} }}", result), context);
                 } else {
                     this.ServeUncachedString(this.JSONError("Unable to access the persistent store."), context);
                 }

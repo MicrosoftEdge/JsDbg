@@ -37,7 +37,9 @@ Loader.OnLoad(function() {
         if (deserializationPromise == null) {
             deserializationPromise = new Promise(function (oncomplete, onerror) {
                 persistentStore.all(function (results) {
-                    if (results) {
+                    if (results.error) {
+                        onerror(results.error);
+                    } else if (results) {
                         for (var key in results) {
                             var f = new EditableDbgObjectExtension();
                             f.deserialize(key, results[key]);
@@ -48,7 +50,9 @@ Loader.OnLoad(function() {
                 });
             });
         }
-        return deserializationPromise;
+
+        // If the persistent store fails to load, don't hold the rest of the page hostage.
+        return deserializationPromise.catch(function() { });
     }
 
     EditableDbgObjectExtension.prototype.realizeExtension = function() {
@@ -421,5 +425,5 @@ Loader.OnLoad(function() {
         IsUserExtension: isUserExtension,
     }
 
-    init();
+    Loader.OnPageReady(init);
 });
