@@ -111,4 +111,9 @@ Loader.OnLoad(function () {
 
     initializeProgressIndicator();
     document.documentElement.appendChild(loadingIndicator);
+
+    JsDbgLoadingIndicator.Show();
+    Loader.OnPageReady(function() {
+        JsDbgLoadingIndicator.Hide();
+    })
 })
