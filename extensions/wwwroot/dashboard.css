@@ -1,4 +1,6 @@
 .dashboard-panel {
     padding:1em;
     margin:2px;
+    border:thin solid #ccc;
+    box-shadow: 1px 1px #eee;
 }

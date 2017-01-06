@@ -1,7 +1,7 @@
 {
     "name": "LayoutBuilder",
     "author": "Peter Salas",
-    "description": "Inspect a LayoutBuilder/LayoutBoxBuilder stack.",
+    "description": "View the current Edge/IE layout stack.",
     "dependencies": [
         "dbgobject",
         "mshtml-helpers",

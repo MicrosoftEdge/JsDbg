@@ -9,9 +9,10 @@ Loader.OnLoad(function() {
 
         var li = document.createElement("li");
         li.className = "loadedExtension";
-        li.innerHTML = "<h3><a href='/" + ext.name.toLowerCase() + "/'>" + ext.name + "</a> </h3>" +
+        li.innerHTML = "<a href='/" + ext.name.toLowerCase() + "/'>" + ext.name + "</a>" +
             (ext.author ? "<p class='author'>" + ext.author + "</p>" : "") +
-            (ext.description ? "<p class='description'>" + ext.description + "</p>" : "");
+            (ext.description ? "<p class='description'>" + ext.description + "</p>" : "") +
+            "";
         panel.appendChild(li);
     }
 

@@ -1,7 +1,7 @@
 {
     "name": "DisplayTree",
     "author": "Peter Salas",
-    "description": "Navigate and inspect a display tree.",
+    "description": "Inspect the Edge/IE display tree.",
     "dependencies": [
         "dbgobject",
         "mshtml-helpers",

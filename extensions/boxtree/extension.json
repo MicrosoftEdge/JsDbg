@@ -1,7 +1,7 @@
 {
     "name": "BoxTree",
     "author": "Peter Salas",
-    "description": "Navigate and inspect a LayoutBox tree.",
+    "description": "Inspect the Edge/IE layout tree.",
     "dependencies": [
         "dbgobject",
         "mshtml-helpers",

@@ -1,7 +1,7 @@
 {
     "name": "MarkupTree",
     "author": "Sushanth Rajasankar, Peter Salas",
-    "description": "Navigate and inspect CTreeNodes in a markup tree.",
+    "description": "Inspect the Edge/IE DOM tree.",
     "dependencies": [
         "dbgobject",
         "mshtml-helpers",

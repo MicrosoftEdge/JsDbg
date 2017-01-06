@@ -2,20 +2,22 @@
     margin:0;
 }
 
-.extensions {
-    display:inline-block;
-}
-
 .extensions::before {
-    content:"Available Extensions";
-    font-size:1.5em;
+    content:"JsDbg Extensions";
+    font-size:1.25em;
 }
 
 .extensions .author {
     display:none;
+    font-size:0.85em;
 }
 
 .extensions li {
     display:block;
-    margin:1em;
+    margin:0.5em 0;
+}
+
+.extensions li > * {
+    display:inline;
+    margin-right:0.5em;
 }

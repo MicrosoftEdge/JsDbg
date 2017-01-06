@@ -3,6 +3,10 @@
     flex-wrap:wrap;
 }
 
+.dashboard-object-container > * {
+    flex:1 1 auto;
+}
+
 .dashboard-object > * {
     display:block;
 }
