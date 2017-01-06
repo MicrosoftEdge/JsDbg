@@ -9,23 +9,18 @@ namespace JsDbg.Core {
     public class TypeCacheDebugger : IDebugger {
         public TypeCacheDebugger(ITypeCacheDebuggerEngine debuggerEngine) {
             this.debuggerEngine = debuggerEngine;
-            this.debuggerEngine.DebuggerChange += debuggerEngine_DebuggerChange;
             this.typeCache = new TypeCache(this.debuggerEngine.IsPointer64Bit);
-            this.debuggerEngine.BitnessChanged += debuggerEngine_BitnessChanged;
+
+            this.debuggerEngine.DebuggerChange += (sender, args) => { this.DebuggerChange(this, args); };
+            this.debuggerEngine.DebuggerChange += (sender, args) => {
+                if (args.Status == DebuggerChangeEventArgs.DebuggerStatus.ChangingBitness || args.Status == DebuggerChangeEventArgs.DebuggerStatus.Detaching) {
+                    this.ClearTypeCache();
+                }
+            };
+            this.debuggerEngine.DebuggerMessage += (sender, args) => { this.DebuggerMessage(this, args); };
         }
 
-        void debuggerEngine_DebuggerChange(object sender, DebuggerChangeEventArgs e) {
-            if (this.DebuggerChange != null) {
-                this.DebuggerChange(sender, e);
-            }
-        }
-
-        void debuggerEngine_BitnessChanged(object sender, EventArgs e) {
-            Console.Out.WriteLine("Effective processor changed, so invalidating the type cache.  You may need to refresh the browser window.");
-            this.ClearTypeCache();
-        }
-
-        public void ClearTypeCache() {
+        private void ClearTypeCache() {
             this.typeCache = new TypeCache(this.debuggerEngine.IsPointer64Bit);
         }
 
@@ -44,7 +39,7 @@ namespace JsDbg.Core {
                 }
             }
 
-            Console.Out.WriteLine("Loading type information for {0}!{1}...", module, typename);
+            this.DebuggerMessage(this, String.Format("Loading type information for {0}!{1}...", module, typename));
 
             if (session != null) {
                 type = await this.LoadTypeFromDiaSession(session, module, typename, DiaHelpers.NameSearchOptions.nsCaseSensitive);
@@ -62,7 +57,7 @@ namespace JsDbg.Core {
                 }
             }
 
-            Console.Out.WriteLine("WARNING: Unable to load {0}!{1} from PDBs. Falling back to the debugger, which could be slow...", module, typename);
+            this.DebuggerMessage(this, String.Format("WARNING: Unable to load {0}!{1} from PDBs. Falling back to the debugger, which could be slow...", module, typename));
 
             type = await this.debuggerEngine.GetTypeFromDebugger(module, typename);
             if (type != null) {
@@ -155,6 +150,8 @@ namespace JsDbg.Core {
         #region IDebugger Members
 
         public event DebuggerChangeEventHandler DebuggerChange;
+
+        public event DebuggerMessageEventHandler DebuggerMessage;
 
         public void Dispose() { }
 

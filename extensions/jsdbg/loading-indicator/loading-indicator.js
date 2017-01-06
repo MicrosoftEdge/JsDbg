@@ -32,8 +32,23 @@ Loader.OnLoad(function () {
         updateMessage();
     }
 
+    var ambientMessage = "Loading...";
+
+    var ambientMessageTimeout = null;
+    function updateAmbientMessage(newMessage) {
+        ambientMessage = newMessage;
+        if (ambientMessageTimeout != null) {
+            window.clearTimeout(ambientMessageTimeout);
+        }
+
+        ambientMessageTimeout = window.setTimeout(function() {
+            ambientMessage = "Loading...";
+            ambientMessageTimeout = null;
+        }, 1000);
+    }
+
     function updateMessage() {
-        var message = "Loading...";
+        var message = ambientMessage;
         var canBeAborted = false;
 
         for (var i = 0; i < messageProviders.length; ++i) {
@@ -87,6 +102,10 @@ Loader.OnLoad(function () {
             } else {
                 loadingIndicator.classList.remove("waiting");
             }
+        },
+        ShowAmbientMessage: function (message) {
+            updateAmbientMessage(message);
+            updateMessage();
         }
     }
 

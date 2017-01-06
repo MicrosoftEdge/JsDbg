@@ -15,15 +15,7 @@ namespace JsDbg.VisualStudio {
         }
 
         internal void NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus status) {
-            if (this.DebuggerChange != null) {
-                this.DebuggerChange(this, new DebuggerChangeEventArgs(status));
-            }
-        }
-
-        internal void NotifyBitnessChanged() {
-            if (this.BitnessChanged != null) {
-                this.BitnessChanged(this, new EventArgs());
-            }
+            this.DebuggerChange(this, new DebuggerChangeEventArgs(status));
         }
 
         #region ITypeCacheDebuggerEngine Members
@@ -181,7 +173,7 @@ namespace JsDbg.VisualStudio {
 
         public event DebuggerChangeEventHandler DebuggerChange;
 
-        public event EventHandler BitnessChanged;
+        public event DebuggerMessageEventHandler DebuggerMessage;
 
         public Task<Core.Type> GetTypeFromDebugger(string module, string typename) {
             throw new DebuggerException("Cannot load types from the Visual Studio debugger directly.");

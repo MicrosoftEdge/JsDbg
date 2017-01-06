@@ -103,6 +103,10 @@ namespace JsDbg.Core {
         public WebServer(IDebugger debugger, PersistentStore persistentStore, UserFeedback userFeedback, string extensionRoot) {
             this.debugger = debugger;
             this.debugger.DebuggerChange += (sender, e) => { this.NotifyClientsOfDebuggerChange(e.Status); };
+            this.debugger.DebuggerMessage += (sender, message) => {
+                Console.Out.WriteLine(message);
+                this.SendWebSocketMessage(String.Format("message:{0}", message));
+            };
             this.persistentStore = persistentStore;
             this.userFeedback = userFeedback;
             this.extensionRoot = extensionRoot;
@@ -1319,17 +1323,18 @@ namespace JsDbg.Core {
         }
 
         public void NotifyClientsOfDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus status) {
-            string message;
             if (status == DebuggerChangeEventArgs.DebuggerStatus.Break) {
-                message = "break";
+                this.SendWebSocketMessage("break");
             } else if (status == DebuggerChangeEventArgs.DebuggerStatus.Waiting) {
-                message = "waiting";
+                this.SendWebSocketMessage("waiting");
             } else if (status == DebuggerChangeEventArgs.DebuggerStatus.Detaching) {
-                message = "detaching";
-            } else {
-                return;
+                this.SendWebSocketMessage("detaching");
+            } else if (status == DebuggerChangeEventArgs.DebuggerStatus.ChangingBitness) {
+                this.SendWebSocketMessage("bitnesschanged");
             }
+        }
 
+        private void SendWebSocketMessage(string message) {
             foreach (WebSocket socket in this.openSockets) {
                 if (socket.State == WebSocketState.Open) {
                     socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(message)), WebSocketMessageType.Text, /*endOfMessage*/true, this.cancellationSource.Token);

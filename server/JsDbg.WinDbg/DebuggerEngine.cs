@@ -21,9 +21,7 @@ namespace JsDbg.WinDbg {
         }
 
         internal void NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus status) {
-            if (this.DebuggerChange != null) {
-                this.DebuggerChange(this, new DebuggerChangeEventArgs(status));
-            }
+            this.DebuggerChange(this, new DebuggerChangeEventArgs(status));
         }
 
         #region ITypeCacheDebuggerEngine Members
@@ -37,7 +35,7 @@ namespace JsDbg.WinDbg {
             set {
                 if (value != this.isPointer64Bit) {
                     this.isPointer64Bit = value;
-                    this.BitnessChanged(this, new EventArgs());
+                    this.DebuggerChange(this, new DebuggerChangeEventArgs(DebuggerChangeEventArgs.DebuggerStatus.ChangingBitness));
                 }
             }
         }
@@ -126,8 +124,7 @@ namespace JsDbg.WinDbg {
         }
 
         public event DebuggerChangeEventHandler DebuggerChange;
-
-        public event EventHandler BitnessChanged;
+        public event DebuggerMessageEventHandler DebuggerMessage;
 
         private void PrintDotOnDebugOutput(object sender, DebugOutputEventArgs e) {
             Console.Out.Write('.');

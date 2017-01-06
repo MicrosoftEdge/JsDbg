@@ -34,7 +34,7 @@ namespace JsDbg.Core {
         Task<IEnumerable<SStackFrame>> GetCurrentCallStack(int frameCount);
 
         event DebuggerChangeEventHandler DebuggerChange;
-        event EventHandler BitnessChanged;
+        event DebuggerMessageEventHandler DebuggerMessage;
         #endregion
 
         #region Optional Fallback Implementations

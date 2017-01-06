@@ -68,6 +68,12 @@ Loader.OnLoad(function () {
             JsDbgLoadingIndicator.SetIsWaitingForDebugger(true);
         } else if (message == "detaching") {
             JsDbgTransport.InvalidateFullCache();
+        } else if (message == "bitnesschanged") {
+            JsDbgTransport.InvalidateFullCache();
+            fireListeners(debuggerBrokeListeners);
+            fireListeners(memoryWriteListeners);
+        } else if (message.indexOf("message:") == 0) {
+            JsDbgLoadingIndicator.ShowAmbientMessage(message.substr("message:".length));
         } else {
             console.error("Unexpected out of band message: " + message);
         }

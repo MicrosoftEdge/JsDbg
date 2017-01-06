@@ -60,12 +60,9 @@ namespace JsDbg.WinDbg {
                     } else if (executionStatus == DebugStatus.NoDebuggee) {
                         this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.Detaching);
                         this.engine.DiaLoader.ClearSymbols();
-                        this.debugger.ClearTypeCache();
                         if (isRestarting) {
                             isRestarting = false;
-                            Console.Out.WriteLine("Process is restarting.");
                         } else {
-                            Console.Out.WriteLine("Debugger has no target, shutting down.");
                             Task shutdownTask = this.Shutdown();
                         }
                     } else if (executionStatus == DebugStatus.Break) {

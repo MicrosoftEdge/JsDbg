@@ -76,9 +76,7 @@ namespace JsDbg.VisualStudio {
                                 this.isPointer64Bit = (offset == 8);
 
                                 this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Detaching);
-                                this.engine.NotifyBitnessChanged();
                                 this.engine.DiaLoader.ClearSymbols();
-                                this.debugger.ClearTypeCache();
                                 savedProgram = true;
                                 savedThread = true;
                             } else {
@@ -96,7 +94,6 @@ namespace JsDbg.VisualStudio {
                 DisposableComReference.ReleaseIfNotNull(ref this.dte);
                 this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Detaching);
                 this.engine.DiaLoader.ClearSymbols();
-                this.debugger.ClearTypeCache();
             } else if (riidEvent == breakInEvent) {
                 // The debugger broke in, notify the client.
                 this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Break);

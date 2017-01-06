@@ -64,7 +64,8 @@ namespace JsDbg.Core {
         public enum DebuggerStatus {
             Break,
             Waiting,
-            Detaching
+            Detaching,
+            ChangingBitness
         }
 
         public DebuggerChangeEventArgs(DebuggerStatus status) { Status = status; }
@@ -73,8 +74,12 @@ namespace JsDbg.Core {
 
     public delegate void DebuggerChangeEventHandler(object sender, DebuggerChangeEventArgs e);
 
+    public delegate void DebuggerMessageEventHandler(object sender, string message);
+
     public interface IDebugger {
         event DebuggerChangeEventHandler DebuggerChange;
+        event DebuggerMessageEventHandler DebuggerMessage;
+
         void Dispose();
         Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes);
         Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typeName);
