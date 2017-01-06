@@ -45,23 +45,31 @@ Loader.OnLoad(function() {
             .then(function (renderedObjects) {
                 renderedObjects.forEach(function(rendering) {
                     rendering.classList.add("dashboard-object");
+                    rendering.classList.add("dashboard-panel");
                     panel.appendChild(rendering);
                 })
             })
         })
     }
 
-    Loader.OnPageReady(function() {
-        serialize(renderObjects)
-        .finally(function() {
-            JsDbg.RegisterOnBreakListener(function () {
-                serialize(renderObjects);
-            });
-        })
-    });
+    serialize(function () {
+        return new Promise(function (onSuccess) {
+            Loader.OnPageReady(onSuccess);
+        });
+    })
+
+    var panelPromise = serialize(renderObjects)
+    .finally(function() {
+        JsDbg.RegisterOnBreakListener(function () {
+            serialize(renderObjects);
+        });
+    })
+    .then(function () {
+        return panel;
+    })
 
     panel.className = "dashboard-object-container";
-    Dashboard.AddPanel(panel, 0);
+    Dashboard.AddPanel(panelPromise, 0);
     
     ObjectDashboard = {
         AddGetter: function (getter) {

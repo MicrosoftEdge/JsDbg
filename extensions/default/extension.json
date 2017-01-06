@@ -18,6 +18,7 @@
         "documentation",
         "tests",
         "undomanager",
-        "callstack-dashboard"
+        "callstack-dashboard",
+        "extensions-dashboard"
     ]
 }

@@ -3,13 +3,6 @@
     flex-wrap:wrap;
 }
 
-.dashboard-object  {
-    padding:1em;
-    margin:2px;
-    border:thin solid #aaa;
-    box-shadow:2px 2px #eee;
-}
-
 .dashboard-object > * {
     display:block;
 }

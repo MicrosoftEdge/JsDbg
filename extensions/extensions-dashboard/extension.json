@@ -1,0 +1,7 @@
+{
+    "name": "extensions-dashboard",
+    "headless": true,
+    "augments": ["wwwroot"],
+    "dependencies": ["jsdbg", "wwwroot", "promise"],
+    "includes": ["extensions-dashboard.js", "extensions-dashboard.css"]
+}

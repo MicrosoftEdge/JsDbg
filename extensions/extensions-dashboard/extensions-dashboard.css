@@ -1,0 +1,21 @@
+.extensions h3, .extensions p {
+    margin:0;
+}
+
+.extensions {
+    display:inline-block;
+}
+
+.extensions::before {
+    content:"Available Extensions";
+    font-size:1.5em;
+}
+
+.extensions .author {
+    display:none;
+}
+
+.extensions li {
+    display:block;
+    margin:1em;
+}

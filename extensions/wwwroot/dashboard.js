@@ -10,8 +10,16 @@ Loader.OnLoad(function() {
                 return a.priority - b.priority;
             });
 
-            panels.forEach(function (panel) {
-                document.body.appendChild(panel.panel);
+            return Promise.all(panels.map(function (panel) {
+                return Promise.resolve(panel.panel)
+                .catch(function () { return null; });
+            }))
+            .then(function (resolvedPanels) {
+                resolvedPanels.forEach(function (panel) {
+                    if (panel != null) {
+                        document.body.appendChild(panel);
+                    }
+                })
             })
         });
     }
