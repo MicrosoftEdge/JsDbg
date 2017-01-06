@@ -87,6 +87,10 @@
       <Project>{585cec7e-c788-4e43-bc35-fab4655c96f2}</Project>
       <Name>JsDbg.Core</Name>
     </ProjectReference>
+    <ProjectReference Include="..\JsDbg.Remoting\JsDbg.Remoting.csproj">
+      <Project>{566a43bb-8d08-4af8-bc5a-95d08b38dadf}</Project>
+      <Name>JsDbg.Remoting</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup Condition="'$(Configuration)' == 'Deploy'">

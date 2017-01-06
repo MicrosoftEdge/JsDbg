@@ -25,6 +25,10 @@ namespace JsDbg.Launcher {
         }
 
         static void LaunchJsDbg(string packagePath, string jsDbgArgs) {
+            if (JsDbg.Remoting.RemotingServer.RelaunchExistingInstance(jsDbgArgs)) {
+                return;
+            }
+
             var installationDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "JsDbg", "installations");
             var packageName = Path.GetFileName(packagePath);
 

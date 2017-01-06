@@ -72,6 +72,8 @@ namespace JsDbg.WinDbg {
                         syncContext.Complete();
                     });
 
+                    JsDbg.Remoting.RemotingServer.RegisterNewInstance(remoteString, () => { BrowserLauncher.Launch(webServer.Url); });
+
                     BrowserLauncher.Launch(webServer.Url);
 
                     // Pressing ctrl-c kills the web server.
