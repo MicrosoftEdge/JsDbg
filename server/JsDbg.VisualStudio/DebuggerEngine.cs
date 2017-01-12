@@ -15,7 +15,7 @@ namespace JsDbg.VisualStudio {
         }
 
         internal void NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus status) {
-            this.DebuggerChange(this, new DebuggerChangeEventArgs(status));
+            this.DebuggerChange?.Invoke(this, new DebuggerChangeEventArgs(status));
         }
 
         #region ITypeCacheDebuggerEngine Members
@@ -172,8 +172,6 @@ namespace JsDbg.VisualStudio {
         }
 
         public event DebuggerChangeEventHandler DebuggerChange;
-
-        public event DebuggerMessageEventHandler DebuggerMessage;
 
         public Task<Core.Type> GetTypeFromDebugger(string module, string typename) {
             throw new DebuggerException("Cannot load types from the Visual Studio debugger directly.");

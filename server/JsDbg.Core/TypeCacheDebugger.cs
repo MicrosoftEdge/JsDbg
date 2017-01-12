@@ -11,13 +11,12 @@ namespace JsDbg.Core {
             this.debuggerEngine = debuggerEngine;
             this.typeCache = new TypeCache(this.debuggerEngine.IsPointer64Bit);
 
-            this.debuggerEngine.DebuggerChange += (sender, args) => { this.DebuggerChange(this, args); };
+            this.debuggerEngine.DebuggerChange += (sender, args) => { this.DebuggerChange?.Invoke(this, args); };
             this.debuggerEngine.DebuggerChange += (sender, args) => {
                 if (args.Status == DebuggerChangeEventArgs.DebuggerStatus.ChangingBitness || args.Status == DebuggerChangeEventArgs.DebuggerStatus.Detaching) {
                     this.ClearTypeCache();
                 }
             };
-            this.debuggerEngine.DebuggerMessage += (sender, args) => { this.DebuggerMessage(this, args); };
         }
 
         private void ClearTypeCache() {
@@ -39,7 +38,7 @@ namespace JsDbg.Core {
                 }
             }
 
-            this.DebuggerMessage(this, String.Format("Loading type information for {0}!{1}...", module, typename));
+            this.DebuggerMessage?.Invoke(this, String.Format("Loading type information for {0}!{1}...", module, typename));
 
             if (session != null) {
                 type = await this.LoadTypeFromDiaSession(session, module, typename, DiaHelpers.NameSearchOptions.nsCaseSensitive);
@@ -57,7 +56,7 @@ namespace JsDbg.Core {
                 }
             }
 
-            this.DebuggerMessage(this, String.Format("WARNING: Unable to load {0}!{1} from PDBs. Falling back to the debugger, which could be slow...", module, typename));
+            this.DebuggerMessage?.Invoke(this, String.Format("WARNING: Unable to load {0}!{1} from PDBs. Falling back to the debugger, which could be slow...", module, typename));
 
             type = await this.debuggerEngine.GetTypeFromDebugger(module, typename);
             if (type != null) {
