@@ -457,10 +457,10 @@ var MSHTML = undefined;
                 hasLookasidePtrPromise,
                 lookasideNumberPromise
             ])
-            .thenAll(function (element, lookasides, lookasideOffset, lookasideIndex) {
-                if (lookasides & (1 << lookasideIndex)) {
+            .thenAll(function (element, lookasides, lookasideNumber) {
+                if (lookasides & (1 << lookasideNumber.index)) {
                     var hashtable = element.F("Markup.Doc").f("_HtPvPv");
-                    return MSHTML.GetObjectLookasidePointer(element, lookasideOffset + lookasideIndex, hashtable);
+                    return MSHTML.GetObjectLookasidePointer(element, lookasideNumber.offset + lookasideNumber.index, hashtable);
                 } else {
                     return DbgObject.NULL;
                 }
