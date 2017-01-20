@@ -105,7 +105,7 @@ Loader.OnLoad(function() {
                         errorMessage.textContent = error;
                         renderedElement.appendChild(errorMessage);
                     });
-                } else if (e.ctrlKey) {
+                } else if (e.ctrlKey && renderedElement.firstChild.contains(e.target)) {
                     // Collapse the node.  
                     that.removeChildrenRepresentations(renderedElement);
                     return that.buildAndRenderIntoFragment(renderedElement, function shouldExpand(node) { return false; })
