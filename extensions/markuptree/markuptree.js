@@ -6,11 +6,18 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return DbgObject.create(MSHTML.Module, "CBase", address).vcast()
-            .then(undefined, function (err) {
-                // Virtual-table cast failed, so presume a CTreeNode.
-                return DbgObject.create(MSHTML.Module, "CTreeNode", address);
-            });
+            return DbgObject.create(MSHTML.Module, "CTreeNode", 0).isType("CBase")
+            .then(function (derivesFromCBase) {
+                if (derivesFromCBase) {
+                    return DbgObject.create(MSHTML.Module, "CBase", address).vcast()
+                } else {
+                    return DbgObject.create(MSHTML.Module, "CBase", address).vcast()
+                    .then(undefined, function (err) {
+                        // Virtual-table cast failed, so presume a CTreeNode.
+                        return DbgObject.create(MSHTML.Module, "CTreeNode", address);
+                    });
+                }
+            })
         },
         GetRoots: function() {
             // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
