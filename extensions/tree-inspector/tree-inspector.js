@@ -25,6 +25,7 @@ var TreeInspector = (function() {
         this.fieldSupportContainer = null;
         this.treeRoot = null;
         this.lastRenderedPointer = null;
+        this.lastRenderedPointerRootIndex = -1;
         this.currentRoots = [];
         this.fieldSupportController = null;
         this.treeReader = null;
@@ -67,6 +68,14 @@ var TreeInspector = (function() {
             var that = this;
             Promise.resolve(this.interpretAddress(new PointerMath.Pointer(this.pointerField.value, 16)))
             .then(function(rootObject) { 
+                // If this object is one of the roots, record the index.
+                that.lastRenderedPointerRootIndex = -1;
+                that.currentRoots.forEach(function (root, index) {
+                    if (that.lastRenderedPointerRootIndex == -1 && root.equals(rootObject)) {
+                        that.lastRenderedPointerRootIndex = index;
+                    }
+                });
+
                 that.treeReader = new FieldSelector.TreeReader(new DbgObjectTree.DbgObjectTreeRenderer(that.treeDefinition, that.dbgObjectRenderer), that.fieldSupportController);
                 return that.treeReader.createRoot(rootObject)
             })
@@ -81,7 +90,16 @@ var TreeInspector = (function() {
                     that.emphasizeNode(emphasisNodePtr, that.treeRoot, that.treeReader);
                 }
             })
-            .catch(this.showError.bind(this));
+            .catch(function(error) {
+                // If the object address failed interpretation but it was previously a root, switch to the corresponding root.
+                if (that.lastRenderedPointerRootIndex != -1 && that.currentRoots.length > 0) {
+                    var correspondingIndex = that.currentRoots.length > that.lastRenderedPointerRootIndex ? that.lastRenderedPointerRootIndex : 0;
+                    that.pointerField.value = that.currentRoots[correspondingIndex].ptr();
+                    that.saveHashAndQueueCreateAndRender();
+                } else {
+                    return that.showError(error);
+                }
+            });
         } else {
             if (emphasisNodePtr != null) {
                 this.emphasizeNode(emphasisNodePtr, this.treeRoot, this.treeReader);
@@ -152,14 +170,17 @@ var TreeInspector = (function() {
             that.currentRoots = roots;
 
             return Promise.map(that.currentRoots, function (root) {
-                return that.dbgObjectRenderer.createRepresentation(root, null, [], false);
-            })
-            .then(function (rootRepresentations) {
-                rootRepresentations.forEach(function (root, index) {
+                return that.dbgObjectRenderer.createRepresentation(root, null, [], false)
+                .then(function (representation) {
                     var link = document.createElement("a");
-                    link.setAttribute("href", "#r=root" + index);
-                    root.classList.add("tree-inspector-root-link");
-                    link.appendChild(root);
+                    link.setAttribute("href", "#r=" + root.ptr());
+                    representation.classList.add("tree-inspector-root-link");
+                    link.appendChild(representation);
+                    return link;
+                })
+            })
+            .then(function (rootLinks) {
+                rootLinks.forEach(function (link) {
                     that.rootsElement.appendChild(link);
                     that.rootsElement.appendChild(document.createTextNode(" "));
                 })
@@ -195,15 +216,8 @@ var TreeInspector = (function() {
             }
         }
 
-        if (this.currentRoots.length > 0) {
-            if (rootPtr == null) {
-                rootPtr = this.currentRoots[0].ptr();
-            } else if (rootPtr.indexOf("root") == 0) {
-                // support for r=rootN syntax where N is the Nth root in this.currentRoots
-                var rootIndex = rootPtr.substr("root".length);
-                rootIndex = Math.min(rootIndex, this.currentRoots.length - 1);
-                rootPtr = this.currentRoots[rootIndex].ptr();
-            }
+        if (this.currentRoots.length > 0 && rootPtr == null) {
+            rootPtr = this.currentRoots[0].ptr();
         }
 
         this.pointerField.value = rootPtr;
