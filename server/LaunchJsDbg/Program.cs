@@ -1,15 +1,14 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 
 namespace JsDbg.Launcher {
     class Program {
         static void Main(string[] args) {
             // Arguments: /silent? [package.zip] [remote string]
             if (args.Length < 1 || (args[0] == "/silent" && args.Length < 3)) {
-                Console.WriteLine("usage: " + System.AppDomain.CurrentDomain.FriendlyName + " [package.zip]");
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey();
+                Program.MessageBox(IntPtr.Zero, String.Format("usage: " + System.AppDomain.CurrentDomain.FriendlyName + " [package.zip]"), "Usage", 0);
                 return;
             }
 
@@ -29,11 +28,12 @@ namespace JsDbg.Launcher {
             try {
                 LaunchJsDbg(packagePath, remoteString, launchSilently);
             } catch (Exception ex) {
-                Console.WriteLine("Error: {0}", ex);
-                Console.WriteLine("Press any key to exit...");
-                Console.ReadKey();
+                Program.MessageBox(IntPtr.Zero, String.Format("Error: {0}", ex), "Error", 0);
             }
         }
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        static extern int MessageBox(IntPtr hWnd, String text, String caption, int options);
 
         static void LaunchJsDbg(string packagePath, string remoteString, bool launchSilently) {
             if (JsDbg.Remoting.RemotingServer.RelaunchExistingInstance(remoteString)) {
