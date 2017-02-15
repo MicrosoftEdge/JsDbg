@@ -1,4 +1,4 @@
-.block { as ${/v:JsDbgVersion} 2016-02-06-01.zip}
+.block { as ${/v:JsDbgVersion} 2017-02-15-02.zip}
 .block { as ${/v:JsDbgPath} \\iefs\users\psalas\jsdbg\jsdbg.exe}
 .block { as ${/v:JsDbgStrPath} "\\\\iefs\\users\\psalas\\jsdbg\\jsdbg.exe ${JsDbgVersion}"}
 
@@ -13,8 +13,8 @@ r $t2 = 1; $$ should create a remote
         .if (@$t0 & @$t1)
         {
             .catch {
-                .block {.shell -x ${JsDbgPath} ${JsDbgVersion} ${server}};
-                .printf "Connecting JsDbg to ${server}\r\n";
+                $$ Copy the launcher locally in case we're running in a post-mortem debugger, where the debugger cannot run code from a share.
+                .block {.shell -x copy /Y ${JsDbgPath} %TEMP%\jsdbg.exe && copy /Y \\iefs\users\psalas\jsdbg\JsDbg.Remoting.dll %TEMP%\JsDbg.Remoting.dll && %TEMP%\jsdbg.exe /silent \\iefs\users\psalas\jsdbg\${JsDbgVersion} ${server}};
                 .break;
             };
             .printf "\r\nUnable to launch JsDbg, perhaps because shell commands are disabled.  Run\r\n\r\n";
@@ -42,7 +42,7 @@ r $t2 = 1; $$ should create a remote
             r $t0 = 1;
         }
     }
-    
+
     .if (@$t0)
     {
         .break;
@@ -54,7 +54,6 @@ r $t2 = 1; $$ should create a remote
     }
     .elsif (@$t2)
     {
-        .printf "No debugging server found, starting a new one.\r\n";
         .block {.server npipe:pipe=jsdbg-%x}
     }
     r $t1 = 1;
