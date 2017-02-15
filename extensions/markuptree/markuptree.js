@@ -261,7 +261,7 @@ Loader.OnLoad(function() {
     }
 
     DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextData", "Text", false, UserEditableFunctions.Create(function (textData) {
-        return textData.f("text").string(textData.f("textLength").val()).then(MarkupTree.CreateFormattedText)
+        return textData.f("text", "_pText").string(textData.f("textLength", "_ulTextLength").val()).then(MarkupTree.CreateFormattedText)
     }));
 
     DbgObject.AddTypeDescription(MSHTML.Module, "Tree::ATextData", "Text", false, UserEditableFunctions.Create(function (textData) {
@@ -304,6 +304,6 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddTypeDescription(MSHTML.Module, "CTreeDataPos", "Text", false, UserEditableFunctions.Create(function (treeDataPos) {
-        return treeDataPos.f("_spTextData.m_pT").desc("Text");
+        return treeDataPos.f("_spTextData.m_pT", "_pTextData").desc("Text");
     }));
 });
