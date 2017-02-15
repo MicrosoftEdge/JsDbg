@@ -333,7 +333,10 @@ Loader.OnLoad(function() {
     DbgObject.AddArrayField(MSHTML.Module, "CTreeNode", "LayoutBoxes", "Layout::LayoutBox", UserEditableFunctions.Create(function(treeNode) {
         return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode)
         .then(function (layoutBox) {
-            return layoutBox.list(["nextLayoutBox", "associatedBoxLink"]);
+            return layoutBox.list("nextLayoutBox")
+            .catch(function () {
+                return layoutBox.list(function (lb) { return lb.vcast().f("associatedBoxLink"); })
+            })
         })
         .then(function (layoutBoxes) {
             return Promise.all(layoutBoxes.map(function (layoutBox) { return layoutBox.vcast(); }));
