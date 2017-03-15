@@ -27,7 +27,8 @@
     margin-bottom:-1.6em;
     margin-left:0.3em;
     margin-top:0.1em;
-    max-width:70%;
+    min-width:70%;
+    width:0px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
