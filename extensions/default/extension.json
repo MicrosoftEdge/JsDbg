@@ -9,16 +9,16 @@
         "wwwroot",
         "mshtml-dashboard",
         "extensions",
-        "boxtree",
         "markuptree",
+        "boxtree",
         "displaytree",
+        "layertree",
         "layoutbuilder",
         "stylesheets",
         "object-diff",
         "documentation",
         "tests",
         "undomanager",
-      "extensions-dashboard",
-      "layertree"
+        "extensions-dashboard"
     ]
 }
