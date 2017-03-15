@@ -1,3 +1,6 @@
 persistent/
 *.sublime-workspace
 *.tmp.*
+/.vs/jsdbg/v15/.suo
+/.vs/jsdbg/v15
+/.vs

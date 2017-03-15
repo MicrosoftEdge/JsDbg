@@ -1,0 +1,16 @@
+{
+    "name": "LayerTree",
+    "author": "Rick James",
+    "description": "Inspect the Edge/IE layer tree.",
+    "dependencies": [
+        "dbgobject",
+        "mshtml-helpers",
+        "tree-inspector"
+    ],
+    "includes": [
+        "layertree.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ]
+}

@@ -18,6 +18,7 @@
         "documentation",
         "tests",
         "undomanager",
-        "extensions-dashboard"
+      "extensions-dashboard",
+      "layertree"
     ]
 }
