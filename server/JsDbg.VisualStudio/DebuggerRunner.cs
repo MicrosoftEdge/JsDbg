@@ -16,29 +16,38 @@ namespace JsDbg.VisualStudio {
             this.engine = new DebuggerEngine(this);
             this.engine.DiaLoader = new Dia.DiaSessionLoader(new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this), new DiaSessionModuleSource(this, this.engine) });
             this.debugger = new Core.TypeCacheDebugger(this.engine);
+            this.EnsureDebuggerService();
+        }
 
-            IVsDebugger debugService = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsShellDebugger)) as IVsDebugger;
-            if (debugService != null) {
+        private bool EnsureDebuggerService() {
+            if (this.vsDebuggerService != null) {
+                return true;
+            }
+
+            this.vsDebuggerService = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsShellDebugger)) as IVsDebugger;
+            if (this.vsDebuggerService != null) {
                 // Register for debug events.
                 // Assumes the current class implements IVsDebuggerEvents.
-                debugService.AdviseDebugEventCallback(this);
+                this.vsDebuggerService.AdviseDebugEventCallback(this);
+                return true;
+            } else {
+                return false;
             }
         }
 
         public async Task WaitForBreakIn() {
             while (true) {
-                if (this.dte == null) {
-                    this.dte = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SDTE)) as EnvDTE80.DTE2;
-                }
-
-                if (this.dte != null &&
-                    this.dte.Debugger.CurrentMode == EnvDTE.dbgDebugMode.dbgBreakMode &&
-                    this.currentDebugProgram != null &&
-                    this.currentThread != null &&
-                    this.memoryBytes != null &&
-                    this.memoryContext != null
-                ) {
-                    return;
+                if (this.EnsureDebuggerService()) {
+                    DBGMODE[] mode = new DBGMODE[1];
+                    if (this.vsDebuggerService.GetMode(mode) == 0 &&
+                        mode[0] == DBGMODE.DBGMODE_Break &&
+                        this.currentDebugProgram != null &&
+                        this.currentThread != null &&
+                        this.memoryBytes != null &&
+                        this.memoryContext != null
+                    ) {
+                        return;
+                    }
                 }
 
                 this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Waiting);
@@ -91,7 +100,6 @@ namespace JsDbg.VisualStudio {
                 DisposableComReference.ReleaseIfNotNull(ref this.currentDebugProgram);
                 DisposableComReference.ReleaseIfNotNull(ref this.memoryContext);
                 DisposableComReference.ReleaseIfNotNull(ref this.memoryBytes);
-                DisposableComReference.ReleaseIfNotNull(ref this.dte);
                 this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Detaching);
                 this.engine.DiaLoader.ClearSymbols();
             } else if (riidEvent == breakInEvent) {
@@ -225,8 +233,8 @@ namespace JsDbg.VisualStudio {
         IDebugMemoryContext2 memoryContext;
         IDebugMemoryBytes2 memoryBytes;
         IDebugThread2 currentThread;
+        IVsDebugger vsDebuggerService;
         bool isPointer64Bit;
-        EnvDTE80.DTE2 dte;
 
         static Guid debugModule3Guid = Guid.Parse("245F9D6A-E550-404D-82F1-FDB68281607A");
         static Guid startDebugEvent = Guid.Parse("2c2b15b7-fc6d-45b3-9622-29665d964a76");
