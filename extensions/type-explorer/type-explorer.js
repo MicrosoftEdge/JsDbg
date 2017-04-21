@@ -9,7 +9,7 @@ Loader.OnLoad(function() {
         this.parentField = parentField;
         this.controller = controller;
         this.searchQuery = "";
-        this.backingTypes = [new TypeExplorerSingleType(module, typename, this)];
+        this.backingTypes = [new TypeExplorerSingleType(module, typename, /*offsetFromAggregate*/0, this)];
         this.includeBaseTypes = false;
         this.preparedForRenderingPromise = null;
         this.isTypeInvalid = false;
@@ -63,7 +63,7 @@ Loader.OnLoad(function() {
         .baseTypes()
         .then(function (baseTypes) {
             baseTypes.forEach(function (baseType) {
-                that.backingTypes.push(new TypeExplorerSingleType(baseType.module, baseType.typeDescription(), that));
+                that.backingTypes.push(new TypeExplorerSingleType(baseType.module, baseType.typeDescription(), baseType.pointerValue(), that));
             })
         }, function (err) {
             // Invalid type.
@@ -256,11 +256,12 @@ Loader.OnLoad(function() {
     }
 
     // Represents a single type, not including its base types.
-    function TypeExplorerSingleType(module, typename, aggregateType) {
+    function TypeExplorerSingleType(module, typename, offsetFromAggregate, aggregateType) {
         this.aggregateType = aggregateType;
         this.isExpanded = false;
         this.module = module;
         this.typename = typename;
+        this.offsetFromAggregate = offsetFromAggregate;
         this.autoCastFields = [];
         this.fields = [];
         this.extendedFields = [];
@@ -268,6 +269,10 @@ Loader.OnLoad(function() {
         this.arrayFields = [];
         this.allFieldArrayNames = ["autoCastFields", "fields", "extendedFields", "arrayFields", "descriptions"];
         this.preparedForRenderingPromise = null;
+    }
+
+    TypeExplorerSingleType.prototype.dbgObjectFromAggregateObject = function(dbgObject) {
+        return DbgObject.create(this.module, this.typename, dbgObject.pointerValue().add(this.offsetFromAggregate));
     }
 
     TypeExplorerSingleType.prototype.allFieldArrays = function() {
@@ -533,7 +538,7 @@ Loader.OnLoad(function() {
         }
 
         function getFromParentDbgObject(parentDbgObject) {
-            parentDbgObject = parentDbgObject.as(that.parentType.typename);
+            parentDbgObject = that.parentType.dbgObjectFromAggregateObject(parentDbgObject);
             if (that.childType == null) {
                 return function (element) {
                     return that.getter(parentDbgObject, element);
