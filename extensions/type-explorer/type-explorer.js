@@ -272,7 +272,12 @@ Loader.OnLoad(function() {
     }
 
     TypeExplorerSingleType.prototype.dbgObjectFromAggregateObject = function(dbgObject) {
-        return DbgObject.create(this.module, this.typename, dbgObject.pointerValue().add(this.offsetFromAggregate));
+        // Only offset if it's non-zero so that we don't lose any bitfield context.
+        if (this.offsetFromAggregate != 0) {
+            return DbgObject.create(this.module, this.typename, dbgObject.pointerValue().add(this.offsetFromAggregate));
+        } else {
+            return dbgObject.as(this.typename);
+        }
     }
 
     TypeExplorerSingleType.prototype.allFieldArrays = function() {
