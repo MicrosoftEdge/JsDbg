@@ -1,6 +1,7 @@
 packages/
 */obj/*
 */bin/*
+obj/*
 *.user
 *.suo
 *.opensdf
