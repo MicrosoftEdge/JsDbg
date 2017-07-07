@@ -5,10 +5,30 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.ExtensionManager;
+using System.Threading;
 
 namespace JsDbg.VisualStudio {
     static class AutoUpdater {
+        private static bool FileExists(string fileUrl) {
+            bool fileExists = false;
+            Thread workerThread = new Thread(() => {
+                fileExists = System.IO.File.Exists(fileUrl);
+            });
+            workerThread.Start();
+            if (!workerThread.Join(1000)) {
+                workerThread.Abort();
+                return false;
+            } else {
+                return fileExists;
+            }
+        }
+
         public static RestartReason CheckForUpdates(string identifier, string updateUrl) {
+            if (!FileExists(updateUrl)) {
+                // The server might be down.  Don't hang VS.
+                return RestartReason.None;
+            }
+
             IVsExtensionManager extensionManager = Package.GetGlobalService(typeof(SVsExtensionManager)) as IVsExtensionManager;
             IInstalledExtension installedExtension = extensionManager.GetInstalledExtension(identifier);
             if (installedExtension == null) {
