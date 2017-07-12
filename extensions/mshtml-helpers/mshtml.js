@@ -138,7 +138,17 @@ var MSHTML = undefined;
 
         DbgObject.AddExtendedField(moduleName, "CMarkup", "MasterElement", "CElement", UserEditableFunctions.Create(function (markup) {
             return markup.F("Root").then(function(root) {
-                return GetElementLookasidePointer2(root, "LOOKASIDE2_MASTER").as("CElement");
+                return Promise.all([root.f("isSubordinateRoot").val(), root.f("elementMaster")])
+                .thenAll(function (isSubordinateRoot, masterElement) {
+                    if (isSubordinateRoot) {
+                        return masterElement.as("CElement");
+                    } else {
+                        return DbgObject.NULL;
+                    }
+                })
+                .catch(function() {
+                    return GetElementLookasidePointer2(root, "LOOKASIDE2_MASTER").as("CElement");
+                })
             });
         }));
 
