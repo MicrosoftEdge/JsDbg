@@ -66,10 +66,10 @@ var TreeInspector = (function() {
             this.pointerField.value = this.pointerField.value.trim();
 
             var that = this;
+            this.lastRenderedPointerRootIndex = -1;
             Promise.resolve(this.interpretAddress(new PointerMath.Pointer(this.pointerField.value, 16)))
             .then(function(rootObject) { 
                 // If this object is one of the roots, record the index.
-                that.lastRenderedPointerRootIndex = -1;
                 that.currentRoots.forEach(function (root, index) {
                     if (that.lastRenderedPointerRootIndex == -1 && root.equals(rootObject)) {
                         that.lastRenderedPointerRootIndex = index;
