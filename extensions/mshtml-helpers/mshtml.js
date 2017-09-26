@@ -101,7 +101,7 @@ var MSHTML = undefined;
         }));
 
         DbgObject.AddExtendedField(moduleName, "CMarkup", "Root", "CTreeNode", UserEditableFunctions.Create(function (markup) {
-            return markup.f("root")
+            return markup.f("rootElement", "root")
             .then(function (root) {
                 // !TEXTNODEMERGE && NEWTREECONNECTION
                 return root.unembed("CTreeDataPos", "_fIsElementNode")
