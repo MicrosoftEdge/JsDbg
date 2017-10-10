@@ -1152,7 +1152,7 @@ var MSHTML = undefined;
                 if (array.isNull()) {
                     return [];
                 } else {
-                    return array.f("_data").array(array.f("_bounds.Length").val());
+                    return array.f("_data._data", "_data").array(array.f("_data._bounds.Length", "_bounds.Length").val());
                 }
             }
         );
@@ -1275,7 +1275,10 @@ var MSHTML = undefined;
                 if (growingArray.isNull()) {
                     return [];
                 } else {
-                    return growingArray.f("items.m_pT._data").array(growingArray.f("count"));
+                    return Promise.all([growingArray.f("items.m_pT").array("Items"), growingArray.f("count").val()])
+                    .thenAll(function (items, count) {
+                        return items.slice(0, count);
+                    })
                 }
             }
         );
