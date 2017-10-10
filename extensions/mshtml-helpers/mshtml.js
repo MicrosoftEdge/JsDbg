@@ -307,7 +307,7 @@ var MSHTML = undefined;
                 return Promise.all([
                     element.f("_fHasLayoutPtr").val().catch(function() { return 0; }),
                     element.f("_fHasLayoutAry").val().catch(function() { return 0; }),
-                    element.f("_fHasMarkupPtr").val()
+                    element.f("_fHasMarkupPtr").val().catch(function() { return 0; })
                 ])
                 .thenAll(function(hasLayoutPtr, hasLayoutAry, hasMarkupPtr) {
                     if (hasLayoutPtr || hasLayoutAry) {
@@ -321,7 +321,23 @@ var MSHTML = undefined;
                             return markup.as("char").idx(0 - markup.pointerValue().mod(4)).as("CMarkup");
                         })
                     } else {
-                        return DbgObject.create(moduleName, "CMarkup", 0);
+                        return element.f("rootNodeOrMarkup")
+                        .then(function(rootNodeOrMarkup) {
+                            return Promise.all([
+                                element.f("parent"),
+                                element.f("isSubordinateRoot").val()
+                            ])
+                            .thenAll(function (parent, isSubordinateRoot) {
+                                if (parent.isNull() || isSubordinateRoot) {
+                                    return rootNodeOrMarkup.as("CMarkup");
+                                } else {
+                                    return rootNodeOrMarkup.as("Tree::ANode").f("rootNodeOrMarkup").as("CMarkup");
+                                }
+                            });
+                        },
+                        function () {
+                            return DbgObject.create(moduleName, "CMarkup", 0);
+                        });
                     }
                 });
             })
