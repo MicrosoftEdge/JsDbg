@@ -276,7 +276,7 @@ Loader.OnLoad(function() {
     }))
 
     DbgObject.AddTypeDescription(MSHTML.Module, "Layout::ContainerBox", "Validity", false, UserEditableFunctions.Create(function (dbgObject, e) {
-        return Promise.all([dbgObject.f("isLayoutInvalid").val(), dbgObject.f("isDisplayInvalid").val()])
+        return Promise.all([dbgObject.f("isLayoutInvalid").val(), dbgObject.f("isRenderInvalid", "isDisplayInvalid").val()])
         .then(function(invalidBits) {
             if (invalidBits[0]) {
                 // Layout is invalid.
