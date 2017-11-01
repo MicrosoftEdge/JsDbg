@@ -116,23 +116,26 @@ var MSHTML = undefined;
         }));
 
         DbgObject.AddTypeDescription(moduleName, "CMarkup", "URL", false, UserEditableFunctions.Create(function (markup) {
-            return markup.f("_pHtmCtx")
-            .then(function (parserContext) {
-                return parserContext.vcast().catch(function () { return parserContext; });
-            })
-            .then(function (parserContext) {
-                if (!parserContext.isNull()) {
-                    return parserContext.f("_pDwnInfo._cusUri.m_LPWSTRProperty");
-                } else {
-                    return DbgObject.NULL;
-                }
-            })
-            .then(function (str) {
-                 if (!str.isNull()) {
-                    return str.string();
-                 } else {
-                    return null;
-                 }
+            return markup.f("_pMarkupLocationContext._pchUrl").string()
+            .catch(function() {
+                return markup.f("_pHtmCtx")
+                .then(function (parserContext) {
+                    return parserContext.vcast().catch(function () { return parserContext; });
+                })
+                .then(function (parserContext) {
+                    if (!parserContext.isNull()) {
+                        return parserContext.f("_pDwnInfo._cusUri.m_LPWSTRProperty");
+                    } else {
+                        return DbgObject.NULL;
+                    }
+                })
+                .then(function (str) {
+                     if (!str.isNull()) {
+                        return str.string();
+                     } else {
+                        return null;
+                     }
+                })
             })
         }));
 
