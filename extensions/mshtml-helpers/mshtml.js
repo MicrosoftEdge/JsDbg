@@ -69,9 +69,13 @@ var MSHTML = undefined;
                 base.f("_ulRefs").val(), 
                 base.f("_ulInternalRefs").val(), 
                 base.f("_ulAllRefsAndFlags").val(), 
-                base.f("_JSBind_Var._ptr")
+                base.f("_JSBind_Var._ptr"),
+                DbgObject.constantValue(MSHTML.Module, "CBase", "BRF_FLAGS_SHIFT"),
+                DbgObject.constantValue(MSHTML.Module, "CBase", "BRF_PASSIVATING"),
+                DbgObject.constantValue(MSHTML.Module, "CBase", "BRF_PASSIVATED"),
+                DbgObject.constantValue(MSHTML.Module, "CBase", "BRF_DESTRUCTING")
             ])
-            .thenAll(function (ulRefs, ulInternalRefs, ulAllRefsAndFlags, jsBindVar) {
+            .thenAll(function (ulRefs, ulInternalRefs, ulAllRefsAndFlags, jsBindVar, BRF_FLAGS_SHIFT, BRF_PASSIVATING, BRF_PASSIVATED, BRF_DESTRUCTING) {
                 var varFields = "";
                 var jsBindVarPtr = new PointerMath.Pointer(jsBindVar.pointerValue().and(bigInt(1).not())).toFormattedString();
                 var isVarRooted = !jsBindVar.pointerValue().and(1).isZero();
@@ -85,9 +89,9 @@ var MSHTML = undefined;
                 }
 
                 var flags = "";
-                var isPassivating = ulAllRefsAndFlags & 1;
-                var isPassivated = ulAllRefsAndFlags & 2;
-                var isDestructing = ulAllRefsAndFlags & 1;
+                var isPassivating = ulAllRefsAndFlags & BRF_PASSIVATING;
+                var isPassivated = ulAllRefsAndFlags & BRF_PASSIVATED;
+                var isDestructing = ulAllRefsAndFlags & BRF_DESTRUCTING;
                 if (isPassivating || isPassivated || isDestructing) {
                     flags = " <span style='color:red'>" + 
                         (isPassivating ? " passivating " : "") + 
@@ -96,7 +100,7 @@ var MSHTML = undefined;
                     "</span>";
                 }
 
-                return "strong:" + ulRefs + " weak:" + (ulAllRefsAndFlags >> 3) + " gc:" + ulInternalRefs + varFields + flags;
+                return "strong:" + ulRefs + " weak:" + (ulAllRefsAndFlags >> BRF_FLAGS_SHIFT) + " gc:" + ulInternalRefs + varFields + flags;
             });
         }));
 
