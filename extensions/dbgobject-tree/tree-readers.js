@@ -20,7 +20,11 @@
 
     ObjectTreeReader.prototype.getChildren = function (node, errors) {
         if ((typeof node.getChildren) == "function") {
-            return Promise.resolve(node.getChildren());
+            return Promise.resolve(node.getChildren())
+            .catch(function (error) { 
+                errors.push(error);
+                return [];
+            });
         } else {
             return Promise.resolve([]);
         }

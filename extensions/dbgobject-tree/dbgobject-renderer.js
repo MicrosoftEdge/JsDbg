@@ -14,24 +14,33 @@
             if (object == null) {
                 return Promise.resolve("(null)");
             } else {
-                return Promise.resolve(object.toString());   
+                return Promise.resolve(object.toString());
             }
         }
 
         return this.names.getExtensionIncludingBaseTypes(object, "")
         .then(function (result) {
-            if (result == null) {
-                var typeName = object.htmlTypeDescription();
+            if (result != null) {
+                return result.extension(object, parentObject);
+            } else {
+                return null;
+            }
+        })
+        .catch(function() {
+             return null;
+        })
+        .then(function(typeName) {
+            if (typeName == null) {
+                typeName = object.htmlTypeDescription();
                 var namespaces = typeName.split("::");
                 if (namespaces.length > 1) {
                     var namespace = namespaces.slice(0, namespaces.length - 1).join("::");
                     var type = namespaces[namespaces.length - 1];
                     typeName = "<span class=\"namespace\">" + namespace + "::</span>" + type;
                 }
-                return typeName
-            } else {
-                return result.extension(object, parentObject);
             }
+
+            return typeName;
         })
     }
 

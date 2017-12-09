@@ -9,13 +9,7 @@ Loader.OnLoad(function() {
             return DbgObject.create(MSHTML.Module, "Layout::LayoutBox", address).vcast();
         },
         GetRoots: function() {
-            // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
-            return Promise.sort(
-                MSHTML.GetCDocs(),
-                function (doc) {
-                    return doc.f("_ulRefs").val().then(function (v) { return 0 - v; });
-                }
-            )
+            return MSHTML.GetCDocs()
             .then(function (cdocs) {
                 // In addition to CDocs with viewboxes, we also want each of the non-primary boxes.
                 return Promise.map(cdocs, function (doc) {
@@ -42,7 +36,7 @@ Loader.OnLoad(function() {
             })
             .then(null, function(error) {
                 var errorMessage =
-                    "No root CTreeNodes with LayoutBoxes were found.\
+                    "No root tree nodes with LayoutBoxes were found.\
                     Possible reasons:\
                     <ul>\
                         <li>The debuggee is not IE 11 or Edge.</li>\
@@ -107,7 +101,7 @@ Loader.OnLoad(function() {
         })
     });
     DbgObject.AddAction(MSHTML.Module, "CMarkup", "BoxTree", function(markup) { 
-        return TreeInspector.GetActions("boxtree", "Layout Tree", markup.F("Doc"), MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(markup.f("root").as("CTreeNode")));
+        return TreeInspector.GetActions("boxtree", "Layout Tree", markup.F("Doc"), MSHTML.GetFirstAssociatedLayoutBoxFromTreeNode(markup.F("Root")));
     })
     DbgObject.AddAction(MSHTML.Module, "CDoc", "BoxTree", function(doc) {
         return TreeInspector.GetActions("boxtree", "Layout Tree", doc);
@@ -294,13 +288,23 @@ Loader.OnLoad(function() {
         });
     }))
 
-    DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "TreeNode", "CTreeNode", UserEditableFunctions.Create(function (containerBox) {
-        return containerBox.f("elementInternal", "element.m_pT").F("TreeNode");
-    }));
+    if (MSHTML.TreeNodeType == "CTreeNode") {
+        DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "TreeNode", "CTreeNode", UserEditableFunctions.Create(function (containerBox) {
+            return containerBox.f("elementInternal", "element.m_pT").F("TreeNode");
+        }));
 
-    DbgObject.AddExtendedField(MSHTML.Module, "Layout::SvgBox", "TreeNode", "CTreeNode", UserEditableFunctions.Create(function (containerBox) {
-        return containerBox.f("elementInternal", "element.m_pT").F("TreeNode");
-    }));
+        DbgObject.AddExtendedField(MSHTML.Module, "Layout::SvgBox", "TreeNode", "CTreeNode", UserEditableFunctions.Create(function (containerBox) {
+            return containerBox.f("elementInternal", "element.m_pT").F("TreeNode");
+        }));
+    } else {
+        DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "TreeNode", "Tree::ElementNode", UserEditableFunctions.Create(function (containerBox) {
+            return containerBox.f("elementInternal");
+        }));
+
+        DbgObject.AddExtendedField(MSHTML.Module, "Layout::SvgBox", "TreeNode", "Tree::ElementNode", UserEditableFunctions.Create(function (containerBox) {
+            return containerBox.f("elementInternal");
+        }));
+    }
 
     DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "FancyFormat", "CFancyFormat", UserEditableFunctions.Create(function (containerBox) {
         return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode.Threadstate").f("_pFancyFormatCache"), containerBox.f("sourceStyle").f("iFF", "_iFF").val());
@@ -330,8 +334,8 @@ Loader.OnLoad(function() {
         );
     }));
 
-    DbgObject.AddArrayField(MSHTML.Module, "CTreeNode", "LayoutBoxes", "Layout::LayoutBox", UserEditableFunctions.Create(function(treeNode) {
-        return MSHTML.GetFirstAssociatedLayoutBoxFromCTreeNode(treeNode)
+    DbgObject.AddArrayField(MSHTML.Module, MSHTML.TreeNodeType, "LayoutBoxes", "Layout::LayoutBox", UserEditableFunctions.Create(function(treeNode) {
+        return MSHTML.GetFirstAssociatedLayoutBoxFromTreeNode(treeNode)
         .then(function (layoutBox) {
             return layoutBox.list("nextLayoutBox")
             .catch(function () {

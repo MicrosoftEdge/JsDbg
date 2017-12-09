@@ -6,30 +6,28 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return DbgObject.create(MSHTML.Module, "CTreeNode", 0).isType("CBase")
-            .then(function (derivesFromCBase) {
-                if (derivesFromCBase) {
-                    return DbgObject.create(MSHTML.Module, "CBase", address).vcast()
-                } else {
-                    return DbgObject.create(MSHTML.Module, "CBase", address).vcast()
-                    .then(undefined, function (err) {
-                        // Virtual-table cast failed, so presume a CTreeNode.
-                        return DbgObject.create(MSHTML.Module, "CTreeNode", address);
-                    });
-                }
-            })
+            if (MSHTML.TreeNodeType == "CTreeNode") {
+                return DbgObject.create(MSHTML.Module, "CTreeNode", 0).isType("CBase")
+                .then(function (derivesFromCBase) {
+                    if (derivesFromCBase) {
+                        return DbgObject.create(MSHTML.Module, "CBase", address).vcast()
+                    } else {
+                        return DbgObject.create(MSHTML.Module, "CBase", address).vcast()
+                        .then(undefined, function (err) {
+                            // Virtual-table cast failed, so presume a CTreeNode.
+                            return DbgObject.create(MSHTML.Module, "CTreeNode", address);
+                        });
+                    }
+                })
+            } else {
+                return DbgObject.create(MSHTML.Module, "CBase", address).vcast();
+            }
         },
         GetRoots: function() {
-            // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
-            return Promise.sort(
-                MSHTML.GetCDocs(), 
-                function (doc) {
-                    return doc.f("_ulRefs").val().then(function (v) { return 0 - v; });
-                }
-            );
+            return MSHTML.GetCDocs();
         },
         DefaultTypes: [
-            { module: MSHTML.Module, type: "CTreeNode" },
+            { module: MSHTML.Module, type: MSHTML.TreeNodeType },
             { module: MSHTML.Module, type: "CBase" }
         ],
         CreateFormattedText: createFormattedText
@@ -163,7 +161,7 @@ Loader.OnLoad(function() {
         return object.f("_pWindowPrimary._pCWindow._pMarkup");
     });
 
-    MarkupTree.Tree.addChildren(MSHTML.Module, "CTreeNode", function (object) {
+    MarkupTree.Tree.addChildren(MSHTML.Module, MSHTML.TreeNodeType, function (object) {
         return getAllDirectChildren(object)
         .then(null, function () {
             // Old Tree Connection
@@ -174,7 +172,7 @@ Loader.OnLoad(function() {
         })
     });
 
-    MarkupTree.Tree.addChildren(MSHTML.Module, "CTreeNode", function (object) {
+    MarkupTree.Tree.addChildren(MSHTML.Module, MSHTML.TreeNodeType, function (object) {
         return object.F("SubordinateMarkup")
         .then(function (subordinateMarkup) {
             if (!subordinateMarkup.isNull()) {
@@ -192,7 +190,7 @@ Loader.OnLoad(function() {
     });
 
     // Add some default renderers for CTreeNodes (Tags) and CMarkups (URLs).
-    MarkupTree.Renderer.addNameRenderer(MSHTML.Module, "CTreeNode", function (treeNode) {
+    MarkupTree.Renderer.addNameRenderer(MSHTML.Module, MSHTML.TreeNodeType, function (treeNode) {
         return treeNode.desc("Tag");
     })
 

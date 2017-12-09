@@ -252,7 +252,7 @@ Loader.OnLoad(function() {
     });
 
     StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CStyleSheet", function (stylesheet) {
-        return stylesheet.f("_pSSSheet._achAbsoluteHref").string()
+        return stylesheet.f("_pSSSheet").f("_strAbsoluteHref._pch", "_achAbsoluteHref").string()
         .then(function (href) {
             return "CStyleSheet (" + href + ")";
         })

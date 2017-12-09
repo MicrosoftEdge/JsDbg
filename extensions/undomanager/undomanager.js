@@ -8,21 +8,13 @@ Loader.OnLoad(function() {
         InterpretAddress: function(address) {
             return DbgObject.create(MSHTML.Module, "CDoc", address);
         },
-        GetRoots: function() {
-            // Sort by the _ulRefs of the CDoc as a proxy for interesting-ness.
-            return Promise.sort(
-                MSHTML.GetCDocs(), 
-                function (doc) {
-                    return doc.f("_ulRefs").val().then(function (v) { return 0 - v; });
-                }
-            );
-        },
+        GetRoots: function() { return MSHTML.GetCDocs() },
         DefaultTypes: [],
     };
 
     UndoManager.Tree.addChildren(MSHTML.Module, "CDoc", function (object) {
         // Get the undo manager from the CDoc.
-        return object.f("edgeUndoManager.m_pT").vcast();
+        return object.f("edgeUndoManager._object.m_pT", "edgeUndoManager.m_pT").vcast();
     });
 
     function getChildrenForUndoManager(undoManager, memberName) {

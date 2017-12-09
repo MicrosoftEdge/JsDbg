@@ -1,7 +1,6 @@
 "use strict";
 
 Loader.OnLoad(function () {
-
     var renderer = new DbgObjectTree.DbgObjectRenderer();
     renderer.addNameRenderer(MSHTML.Module, "CDoc", function (doc) {
         return doc.F("PrimaryMarkup").desc("URL")
@@ -15,23 +14,7 @@ Loader.OnLoad(function () {
     })
 
     ObjectDashboard.AddGetter(function (addObject) {
-        return Promise.sort(
-            MSHTML.GetCDocs(),
-            function (a) {
-                return a.F("PrimaryMarkup").desc("URL");
-            },
-            function (a, b) {
-                if (a == b) {
-                    return 0;
-                } else if (a == null) {
-                    return 1;
-                } else if (b == null) {
-                    return -1;
-                } else {
-                    return a.localeCompare(b);
-                }
-            }
-        )
+        return MSHTML.GetCDocs()
         .then(function (docs) {
             docs.forEach(function (doc) {
                 addObject(doc, renderer);
