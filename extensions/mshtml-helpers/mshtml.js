@@ -39,7 +39,7 @@ var MSHTML = undefined;
     var treeNodeType = null;
 
     Loader.OnLoadAsync(function(onComplete) {
-        return new DbgObject(moduleName, "CTreeNode", 0)
+        return DbgObject.create(moduleName, "CTreeNode", 0)
         .size()
         .then(
             function() { treeNodeType = "CTreeNode"; },
