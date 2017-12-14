@@ -1207,7 +1207,7 @@ var MSHTML = undefined;
             moduleName,
             function (type) { return type.match(/^(Collections|Utilities)::SCircularBuffer<.*>$/) != null; },
             "Items",
-            function (type) { return type.match(/^(Collections|Utilities)::SCircularBuffer<(.*)>$/)[1]; },
+            function (type) { return type.match(/^(Collections|Utilities)::SCircularBuffer<(.*)>$/)[2]; },
             function (buffer) {
                 return Promise.all([
                     buffer.f("items.m_pT").array("Items"),
