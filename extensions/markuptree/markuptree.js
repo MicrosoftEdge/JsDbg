@@ -301,6 +301,10 @@ Loader.OnLoad(function() {
         return textNode.f("textData.m_pT").desc("Text");
     }));
 
+    DbgObject.AddTypeDescription(MSHTML.Module, "Tree::TextNode", "Text", false, UserEditableFunctions.Create(function (textNode) {
+        return textNode.f("textData.m_pT").desc("Text");
+    }));
+
     DbgObject.AddTypeDescription(MSHTML.Module, "CTreeDataPos", "Text", false, UserEditableFunctions.Create(function (treeDataPos) {
         return treeDataPos.f("_spTextData.m_pT", "_pTextData").desc("Text");
     }));
