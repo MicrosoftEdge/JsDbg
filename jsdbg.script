@@ -1,4 +1,4 @@
-.block { as ${/v:JsDbgVersion} 2017-04-21-02.zip}
+.block { as ${/v:JsDbgVersion} 2017-12-13-01.zip}
 .block { as ${/v:JsDbgPath} \\iefs\users\psalas\jsdbg\jsdbg.exe}
 .block { as ${/v:JsDbgStrPath} "\\\\iefs\\users\\psalas\\jsdbg\\jsdbg.exe ${JsDbgVersion}"}
 
@@ -21,7 +21,13 @@ r $t2 = 0; $$ number of clients
         .if (@$t0)
         {
             $$ this token is the remote
-            .if (@$t2 <= 1)
+            .if (@@masm($spat("${server}", "*Password=*")))
+            {
+                $$ password protected, skip it
+                r $t0 = 0;
+                .continue;
+            }
+            .elsif (@$t2 <= 1)
             {
                 $$ no more than one client connected, so it's safe to launch JsDbg on the debugging host
                 .catch {
