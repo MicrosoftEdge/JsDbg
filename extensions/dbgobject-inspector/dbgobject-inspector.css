@@ -31,6 +31,7 @@
     width:0px;
     overflow: hidden;
     text-overflow: ellipsis;
+    position:relative; /* Workaround for Chrome (http://crbug.com/796699) */
 }
 
 .dbgobject-inspector > .drop-down > .window {
