@@ -41,9 +41,13 @@ Loader.OnLoad(function() {
                         onerror(results.error);
                     } else if (results) {
                         for (var key in results) {
-                            var f = new EditableDbgObjectExtension();
-                            f.deserialize(key, results[key]);
-                            f.forceRealization();
+                            try {
+                                var f = new EditableDbgObjectExtension();
+                                f.deserialize(key, results[key]);
+                                f.forceRealization();
+                            } catch (ex) {
+                                console.log("Error deserializing DbgObjectExtension (" + ex + "): " + JSON.stringify(results[key], 2, "  "));
+                            }
                         }
                     }
                     oncomplete();
