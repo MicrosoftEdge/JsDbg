@@ -21,8 +21,8 @@
 }
 
 .dbgobject-inspector > .drop-down > .title {
+    cursor:default;
     color:white;
-    cursor:text;
     height:1.5em;
     margin-bottom:-1.6em;
     margin-left:0.3em;
@@ -32,6 +32,10 @@
     overflow: hidden;
     text-overflow: ellipsis;
     position:relative; /* Workaround for Chrome (http://crbug.com/796699) */
+}
+
+.dbgobject-inspector > .drop-down > .title > span {
+    cursor: text;
 }
 
 .dbgobject-inspector > .drop-down > .window {

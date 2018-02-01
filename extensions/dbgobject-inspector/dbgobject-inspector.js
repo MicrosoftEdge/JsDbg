@@ -117,7 +117,9 @@ Loader.OnLoad(function() {
 
         var title = document.createElement("div");
         title.classList.add("title");
-        title.textContent = dbgObject.ptr() + " " + dbgObject.typeDescription();
+        var titleWrapper = document.createElement("span");
+        titleWrapper.textContent = dbgObject.ptr() + " " + dbgObject.typeDescription();
+        title.appendChild(titleWrapper);
         dropDown.appendChild(title);
 
         var container = document.createElement("div");
@@ -223,9 +225,15 @@ Loader.OnLoad(function() {
         }
 
         dropDown.addEventListener("mousedown", function(e) {
-            if (e.target == container && e.offsetY < parseInt(getComputedStyle(container).borderTopWidth)) {
+            var offsetY = e.offsetY;
+            var target = e.target;
+            if (target == title) {
+                target = container;
+                offsetY = 0;
+            }
+            if (target == container && offsetY < parseInt(getComputedStyle(container).borderTopWidth)) {
                 return beginWindowMove(e);
-            } else if (e.target == dropDown) {
+            } else if (target == dropDown) {
                 return beginWindowResize(e);
             }
         })
