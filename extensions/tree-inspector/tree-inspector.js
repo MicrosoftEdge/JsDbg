@@ -192,7 +192,7 @@ var TreeInspector = (function() {
     }
 
     TreeInspectorUIController.prototype.unpackHash = function() {
-        var hash = window.location.hash;
+        var hash = decodeURI(window.location.hash);
         var hashParts = [];
         var rootPtr = null; // address for root of tree
         var nodePtr = null; // address within tree to emphasize
