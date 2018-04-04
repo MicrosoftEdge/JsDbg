@@ -164,6 +164,11 @@ Loader.OnLoad(function() {
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::InlineBox", function (object) {
         return collectChildrenInFlow(object.f("firstItem"));
     })
+
+    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::RubyBox", function (object) {
+        return collectChildrenInFlow(object.f("firstAnnotationItem"));
+    })
+
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::FlowBox", function (object) {
         // Collect floaters.
         return object.f("geometry").f("m_pT", "").array("Items")
