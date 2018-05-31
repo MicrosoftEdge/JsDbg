@@ -1139,9 +1139,9 @@ var MSHTML = undefined;
 
         DbgObject.AddArrayField(
             moduleName, 
-            function(type) { return type.match(/^Layout::PatchableArray<.*>$/) != null; },
+            function(type) { return type.match(/^Layout::.*PatchableArray<.*>$/) != null; },
             "Items",
-            function (type) { return type.match(/^Layout::PatchableArray<(.*)>$/)[1]; },
+            function (type) { return type.match(/^Layout::.*PatchableArray<(.*)>$/)[1]; },
             function(array) {
                 return array.f("data.Array").array("Items");
             }
