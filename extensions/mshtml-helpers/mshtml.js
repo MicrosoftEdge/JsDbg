@@ -1289,6 +1289,27 @@ var MSHTML = undefined;
             }
         )
 
+        DbgObject.AddExtendedField(
+            moduleName,
+            function(type) { return type.match(/^PointerBitReuse<(.*)>$/) != null; },
+            "Object",
+            function (type) {
+                var matches = type.match(/^PointerBitReuse<(.*)>$/);
+                return matches[1];
+            },
+            function (pointerBitReuse) {
+                return pointerBitReuse.field("_ptr").deref()
+                .then(function (deref) {
+                    var address = deref.pointerValue();
+                    address = address.minus(address.mod(4));
+                    return DbgObject.create(
+                        deref.module,
+                        deref.typeDescription(),
+                        address
+                    );
+                })
+            })
+
         var dispidNameToValue = {};
         var dispidValueToName = {};
         function registerDispId(name, value) {

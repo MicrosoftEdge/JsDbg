@@ -10,15 +10,24 @@ Loader.OnLoad(function () {
         this.getter = getter;
     }
 
-    ExtendedField.prototype.ensureCompatibleResult = function(result) {
+    ExtendedField.prototype.getExpectedType = function(parentType) {
+        if (typeof(this.typeName) == typeof("")) {
+            return this.typeName;
+        } else {
+            return this.typeName(parentType);
+        }
+    }
+
+    ExtendedField.prototype.ensureCompatibleResult = function(parentType, result) {
         var that = this;
         if (!(result instanceof DbgObject)) {
             throw new Error("The field \"" + this.name + "\" did not return a DbgObject, but returned \"" + result + "\"");
         } else {
-            return result.isType(this.typeName)
+            var expectedType = this.getExpectedType(parentType);
+            return result.isType(expectedType)
             .then(function (isType) {
                 if (!isType) {
-                    throw new Error("The field \"" + that.name + "\" was supposed to be type \"" + that.typeName + "\" but was unrelated type \"" + result.typeDescription() + "\".");
+                    throw new Error("The field \"" + that.name + "\" was supposed to be type \"" + expectedType + "\" but was unrelated type \"" + result.typeDescription() + "\".");
                 } else {
                     return result;
                 }
@@ -75,7 +84,7 @@ Loader.OnLoad(function () {
             }
 
             return Promise.resolve(result.extension.getter(result.dbgObject))
-            .then(result.extension.ensureCompatibleResult.bind(result.extension));
+            .then(result.extension.ensureCompatibleResult.bind(result.extension, that.typeDescription()));
         });
 
         return new PromisedDbgObject(result);

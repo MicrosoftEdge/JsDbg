@@ -158,15 +158,24 @@ Loader.OnLoad(function() {
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::FlowBox", function (object) {
         // Collect static flow.
-        return collectChildrenInFlow(object.f("flow"));
+        return object.f("paragraph.data.Array").array("Items").f("boxReference").F("Object").vcast()
+        .catch(function() {
+            return collectChildrenInFlow(object.f("flow"));
+        })
     });
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::InlineBox", function (object) {
-        return collectChildrenInFlow(object.f("firstItem"));
+        return collectChildrenInFlow(object.f("firstItem"))
+        .catch(function() {
+            return [];
+        });
     })
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::RubyBox", function (object) {
-        return collectChildrenInFlow(object.f("firstAnnotationItem"));
+        return collectChildrenInFlow(object.f("firstAnnotationItem"))
+        .catch(function() {
+            return [];
+        });
     })
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::FlowBox", function (object) {
@@ -267,7 +276,10 @@ Loader.OnLoad(function() {
     });
 
     BoxTree.Tree.addChildren(MSHTML.Module, "Layout::SvgTextBox", function (object) {
-        return collectChildrenInFlow(object.f("flow"));
+        return object.f("paragraph.data.Array").array("Items").f("boxReference").F("Object").vcast()
+        .catch(function() {
+            return collectChildrenInFlow(object.f("flow"));
+        })
     });
 
     DbgObject.AddExtendedField(MSHTML.Module, "Layout::LayoutBox", "AsContainerBox", "Layout::ContainerBox", UserEditableFunctions.Create(function (box) {
