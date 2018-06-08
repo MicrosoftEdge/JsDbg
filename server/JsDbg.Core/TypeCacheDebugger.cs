@@ -224,6 +224,11 @@ namespace JsDbg.Core {
                     Dia2Lib.IDiaEnumSymbols symbols;
                     session.globalScope.findChildren(Dia2Lib.SymTagEnum.SymTagNull, symbolName, (uint)DiaHelpers.NameSearchOptions.nsCaseSensitive, out symbols);
                     foreach (Dia2Lib.IDiaSymbol diaSymbol in symbols) {
+                        if (((DiaHelpers.LocationType)diaSymbol.locationType) == DiaHelpers.LocationType.LocIsTLS) {
+                            // For TLS-relative symbols, fall back to the debugger.
+                            return await this.debuggerEngine.LookupGlobalSymbol(moduleName, symbolName);
+                        }
+
                         result.Module = moduleName;
                         result.Pointer = (await this.debuggerEngine.GetModuleForName(moduleName)).BaseAddress + diaSymbol.relativeVirtualAddress;
                         result.Type = DiaHelpers.GetTypeName(diaSymbol.type);
