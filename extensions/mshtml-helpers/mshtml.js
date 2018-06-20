@@ -1289,6 +1289,24 @@ var MSHTML = undefined;
             }
         )
 
+        DbgObject.AddArrayField(
+            moduleName,
+            function (type) { return type.indexOf("CHtPvPv") == 0; },
+            "Items",
+            "HashTableEntry",
+            function (ht) {
+                return ht.f("_pEnt").array(ht.f("_cEntMax"))
+                .filter(
+                    function (entry) {
+                        return entry.f("pvKey").pointerValue()
+                        .then(function (pointerVal) {
+                            return pointerVal > 3;
+                        })
+                    }
+                );
+            }
+        );
+
         DbgObject.AddExtendedField(
             moduleName,
             function(type) { return type.match(/^PointerBitReuse<(.*)>$/) != null; },
