@@ -133,14 +133,14 @@
 
     // DbgObject children methods
 
-    DbgObjectTreeReader.prototype.addChildren = function (module, typename, getChildren) {
+    DbgObjectTreeReader.prototype.addChildren = function (type, getChildren) {
         var name = (this.nextId++).toString();
-        this.typeExtension.addExtension(module, typename, name, new ChildExpansion(name, getChildren));
+        this.typeExtension.addExtension(type, name, new ChildExpansion(name, getChildren));
         return name;
     }
 
-    DbgObjectTreeReader.prototype.removeChildren = function (module, typename, name) {
-        this.typeExtension.removeExtension(module, typename, name);
+    DbgObjectTreeReader.prototype.removeChildren = function (type, name) {
+        this.typeExtension.removeExtension(type, name);
     }
 
     DbgObjectTreeReader.prototype._getDbgObjectChildren = function(dbgObject, errors) {

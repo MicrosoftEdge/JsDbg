@@ -243,7 +243,7 @@ var TreeInspector = (function() {
 
         return Promise.map(
             defaultTypes, 
-            function (type) { return that.fieldSupportController.addType(type.module, type.type); }
+            function (type) { return that.fieldSupportController.addType(type); }
         );
     }
 

@@ -38,7 +38,7 @@ Loader.OnLoad(function() {
                             frameAddress: stackFrames[i].frameAddress,
                             locals: locals[i].reduce(
                                 function (accumulator, item) {
-                                    accumulator.set(item.name, DbgObject.create(item.module, item.type, item.address));
+                                    accumulator.set(item.name, DbgObject.create(DbgObjectType(item.module, item.type), item.address));
                                     return accumulator
                                 },
                                 new Map()

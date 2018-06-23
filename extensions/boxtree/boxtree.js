@@ -6,7 +6,7 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return DbgObject.create(MSHTML.Module, "Layout::LayoutBox", address).vcast();
+            return DbgObject.create(MSHTML.Type("Layout::LayoutBox"), address).vcast();
         },
         GetRoots: function() {
             return MSHTML.GetCDocs()
@@ -53,11 +53,7 @@ Loader.OnLoad(function() {
                 return Promise.reject(errorMessage);
             });
         },
-        DefaultTypes: [
-            { module: MSHTML.Module, type: "Layout::ContainerBox" },
-            { module: MSHTML.Module, type: "Layout::LayoutBox" },
-            { module: MSHTML.Module, type: "Layout::LineBox" },
-        ]
+        DefaultTypes: [MSHTML.Type("Layout::ContainerBox"), MSHTML.Type("Layout::LayoutBoxBox"), MSHTML.Type("Layout::LineBox")]
     };
 
     function collectChildrenInFlow(flow) {
@@ -71,9 +67,9 @@ Loader.OnLoad(function() {
         return positionedItemsList.f("firstItem.m_pT").list("next.m_pT")
         .vcast()
         .map(function (listItem) {
-            if (listItem.typeDescription() == "Layout::PositionedBoxItem") {
+            if (listItem.type.name() == "Layout::PositionedBoxItem") {
                 return listItem.f("boxItem", "flowItem").f("data.boxReference.m_pT").vcast();
-            } else if (listItem.typeDescription() == "Layout::PositionedInlineLayoutItem") {
+            } else if (listItem.type.name() == "Layout::PositionedInlineLayoutItem") {
                 return listItem.f("inlineLayoutReference.m_pT");
             } else {
                 return DbgObject.NULL;
@@ -85,7 +81,7 @@ Loader.OnLoad(function() {
     }
 
     // Add actions to link LayoutBoxes, CMarkups, and CDocs to the Layout Tree.
-    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBox", "BoxTree", function(box) {
+    DbgObject.AddAction(MSHTML.Type("Layout::LayoutBox"), "BoxTree", function(box) {
         return box.vcast().f("isAttachedToBuilder").val()
         .then(null, function () { return false; })
         .then(function (isAttachedToBuilder) {
@@ -100,17 +96,17 @@ Loader.OnLoad(function() {
             }
         })
     });
-    DbgObject.AddAction(MSHTML.Module, "CMarkup", "BoxTree", function(markup) { 
+    DbgObject.AddAction(MSHTML.Type("CMarkup"), "BoxTree", function(markup) { 
         return TreeInspector.GetActions("boxtree", "Layout Tree", markup.F("Doc"), MSHTML.GetFirstAssociatedLayoutBoxFromTreeNode(markup.F("Root")));
     })
-    DbgObject.AddAction(MSHTML.Module, "CDoc", "BoxTree", function(doc) {
+    DbgObject.AddAction(MSHTML.Type("CDoc"), "BoxTree", function(doc) {
         return TreeInspector.GetActions("boxtree", "Layout Tree", doc);
     })
-    DbgObject.AddAction(MSHTML.Module, "CView", "BoxTree", function(view) {
+    DbgObject.AddAction(MSHTML.Type("CView"), "BoxTree", function(view) {
         return TreeInspector.GetActions("boxtree", "Layout Tree", view.unembed("CDoc", "_view"), view);
     })
 
-    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBoxBuilder", "BoxTree", function(builder) {
+    DbgObject.AddAction(MSHTML.Type("Layout::LayoutBoxBuilder"), "BoxTree", function(builder) {
         return builder.list("parentBuilder.m_pT").f("boxReference.m_pT")
         .then(function (boxReferences) {
             // Use the top-most box as the root.
@@ -124,11 +120,11 @@ Loader.OnLoad(function() {
         })
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "CDoc", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("CDoc"), function (object) {
         return object.f("_view");
     })
 
-    BoxTree.Renderer.addNameRenderer(MSHTML.Module, "CDoc", function (doc) {
+    BoxTree.Renderer.addNameRenderer(MSHTML.Type("CDoc"), function (doc) {
         return doc.F("PrimaryMarkup").desc("URL")
         .then(function (url) {
             if (url != null) {
@@ -139,24 +135,24 @@ Loader.OnLoad(function() {
         })
     })
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "CView", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("CView"), function (object) {
         return object.f("_pFlow").f("data.boxReference.m_pT").vcast();
     })
     
     // Define the BoxTree linkage.
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::ContainerBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::ContainerBox"), function (object) {
         return collectChildrenInPositionedItems(object.f("PositionedItems"));
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::InlineLayout", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::InlineLayout"), function (object) {
         return collectChildrenInPositionedItems(object.f("positionedItems"));
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::InlineLayoutDisplayClient", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::InlineLayoutDisplayClient"), function (object) {
         return collectChildrenInPositionedItems(object.f("positionedItems"));
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::FlowBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::FlowBox"), function (object) {
         // Collect static flow.
         return object.f("paragraph.data.Array").array("Items").f("boxReference").F("Object").vcast()
         .catch(function() {
@@ -164,21 +160,21 @@ Loader.OnLoad(function() {
         })
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::InlineBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::InlineBox"), function (object) {
         return collectChildrenInFlow(object.f("firstItem"))
         .catch(function() {
             return [];
         });
     })
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::RubyBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::RubyBox"), function (object) {
         return collectChildrenInFlow(object.f("firstAnnotationItem"))
         .catch(function() {
             return [];
         });
     })
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::FlowBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::FlowBox"), function (object) {
         // Collect floaters.
         return object.f("geometry").f("m_pT", "").array("Items")
             .f("floaterBoxReference.m_pT")
@@ -186,19 +182,19 @@ Loader.OnLoad(function() {
             .vcast();
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::TableBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::TableBox"), function (object) {
         return collectChildrenInFlow(object.f("items", "flow"));
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::TableGridBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::TableGridBox"), function (object) {
         return collectChildrenInFlow(object.f("fragmentedCellContents"))
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::TableGridBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::TableGridBox"), function (object) {
         return collectChildrenInFlow(object.f("collapsedCells")).then(null, function() { return []; });
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::TableGridBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::TableGridBox"), function (object) {
         return object.f("firstRowLayout.m_pT")
         .list("nextRowLayout.m_pT")
             .f("Columns.m_pT")
@@ -211,30 +207,30 @@ Loader.OnLoad(function() {
         })
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::GridBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::GridBox"), function (object) {
         return object.f("Items.m_pT").array("Items").f("BoxReference.m_pT").vcast()
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::FlexBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::FlexBox"), function (object) {
         return object.f("items", "flow")
         .then(function (items) {
-            if (items.typeDescription().indexOf("FlexBoxItemArray") != -1) {
+            if (items.type.name().indexOf("FlexBoxItemArray") != -1) {
                 return items.f("m_pT").array("Items").f("BoxReference.m_pT").vcast();
-            } else if (items.typeDescription() == "Layout::BoxItem") {
+            } else if (items.type.name() == "Layout::BoxItem") {
                 return collectChildrenInFlow(items);
-            } else if (items.typeDescription() == "SArray<Layout::FlexBox::SFlexBoxItem>") {
+            } else if (items.type.name() == "SArray<Layout::FlexBox::SFlexBoxItem>") {
                 return collectChildrenInFlow(object.f("flow"));
             } else {
-                throw new Error("Unexpected FlexBox child typename: " + items.typeDescription());
+                throw new Error("Unexpected FlexBox child typename: " + items.type.name());
             }
         })
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::MultiColumnBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::MultiColumnBox"), function (object) {
         return object.f("items.m_pT").array("Items").f("BoxReference.m_pT").vcast();
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::LineBox", function(object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::LineBox"), function(object) {
         // Get the LineBox flags...
         return object.f("lineBoxFlags").val()
 
@@ -245,7 +241,7 @@ Loader.OnLoad(function() {
                 .list("next.m_pT")
                     .vcast()
                 .filter(function (run) {
-                    var type = run.typeDescription();
+                    var type = run.type.name();
                     return (
                         type == "Layout::InlineBlockLineBoxRun" || 
                         type == "Layout::InlineBlockWithBreakConditionLineBoxRun"
@@ -259,34 +255,34 @@ Loader.OnLoad(function() {
         });
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::ReplacedBoxIFrame", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::ReplacedBoxIFrame"), function (object) {
         return collectChildrenInFlow(object.f("replacedViewport", "flow"));
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::BoxContainerBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::BoxContainerBox"), function (object) {
         return collectChildrenInFlow(object.f("boxItem", "flowItem"));
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::SvgCssContainerBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::SvgCssContainerBox"), function (object) {
         return collectChildrenInFlow(object.f("firstChildItem", "firstSvgItem"));
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::SvgContainerBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::SvgContainerBox"), function (object) {
         return collectChildrenInFlow(object.f("firstChildItem", "firstSvgItem"));
     });
 
-    BoxTree.Tree.addChildren(MSHTML.Module, "Layout::SvgTextBox", function (object) {
+    BoxTree.Tree.addChildren(MSHTML.Type("Layout::SvgTextBox"), function (object) {
         return object.f("paragraph.data.Array").array("Items").f("boxReference").F("Object").vcast()
         .catch(function() {
             return collectChildrenInFlow(object.f("flow"));
         })
     });
 
-    DbgObject.AddExtendedField(MSHTML.Module, "Layout::LayoutBox", "AsContainerBox", "Layout::ContainerBox", UserEditableFunctions.Create(function (box) {
+    DbgObject.AddExtendedField(MSHTML.Type("Layout::LayoutBox"), "AsContainerBox", "Layout::ContainerBox", UserEditableFunctions.Create(function (box) {
         return box.dcast("Layout::ContainerBox");
     }))
 
-    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::ContainerBox", "Validity", false, UserEditableFunctions.Create(function (dbgObject, e) {
+    DbgObject.AddTypeDescription(MSHTML.Type("Layout::ContainerBox"), "Validity", false, UserEditableFunctions.Create(function (dbgObject, e) {
         return Promise.all([dbgObject.f("isLayoutInvalid").val(), dbgObject.f("isRenderInvalid", "isDisplayInvalid").val()])
         .then(function(invalidBits) {
             if (invalidBits[0]) {
@@ -306,52 +302,52 @@ Loader.OnLoad(function() {
     }))
 
     if (MSHTML.TreeNodeType == "CTreeNode") {
-        DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "TreeNode", "CTreeNode", UserEditableFunctions.Create(function (containerBox) {
+        DbgObject.AddExtendedField(MSHTML.Type("Layout::ContainerBox"), "TreeNode", "CTreeNode", UserEditableFunctions.Create(function (containerBox) {
             return containerBox.f("elementInternal", "element.m_pT").F("TreeNode");
         }));
 
-        DbgObject.AddExtendedField(MSHTML.Module, "Layout::SvgBox", "TreeNode", "CTreeNode", UserEditableFunctions.Create(function (containerBox) {
+        DbgObject.AddExtendedField(MSHTML.Type("Layout::SvgBox"), "TreeNode", "CTreeNode", UserEditableFunctions.Create(function (containerBox) {
             return containerBox.f("elementInternal", "element.m_pT").F("TreeNode");
         }));
     } else {
-        DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "TreeNode", "Tree::ElementNode", UserEditableFunctions.Create(function (containerBox) {
+        DbgObject.AddExtendedField(MSHTML.Type("Layout::ContainerBox"), "TreeNode", "Tree::ElementNode", UserEditableFunctions.Create(function (containerBox) {
             return containerBox.f("elementInternal");
         }));
 
-        DbgObject.AddExtendedField(MSHTML.Module, "Layout::SvgBox", "TreeNode", "Tree::ElementNode", UserEditableFunctions.Create(function (containerBox) {
+        DbgObject.AddExtendedField(MSHTML.Type("Layout::SvgBox"), "TreeNode", "Tree::ElementNode", UserEditableFunctions.Create(function (containerBox) {
             return containerBox.f("elementInternal");
         }));
     }
 
-    DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "FancyFormat", "CFancyFormat", UserEditableFunctions.Create(function (containerBox) {
+    DbgObject.AddExtendedField(MSHTML.Type("Layout::ContainerBox"), "FancyFormat", "CFancyFormat", UserEditableFunctions.Create(function (containerBox) {
         return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode.Threadstate").f("_pFancyFormatCache"), containerBox.f("sourceStyle").f("iFF", "_iFF").val());
     }));
 
-    DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "CharFormat", "CCharFormat", UserEditableFunctions.Create(function (containerBox) {
+    DbgObject.AddExtendedField(MSHTML.Type("Layout::ContainerBox"), "CharFormat", "CCharFormat", UserEditableFunctions.Create(function (containerBox) {
         return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode.Threadstate").f("_pCharFormatCache"), containerBox.f("sourceStyle").f("iCF", "_iCF").val());
     }));
 
-    DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "ParaFormat", "CParaFormat", UserEditableFunctions.Create(function (containerBox) {
+    DbgObject.AddExtendedField(MSHTML.Type("Layout::ContainerBox"), "ParaFormat", "CParaFormat", UserEditableFunctions.Create(function (containerBox) {
         return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode.Threadstate").f("_pParaFormatCache"), containerBox.f("sourceStyle").f("iPF", "_iPF").val());
     }));
 
-    DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "SvgFormat", "CSvgFormat", UserEditableFunctions.Create(function (containerBox) {
+    DbgObject.AddExtendedField(MSHTML.Type("Layout::ContainerBox"), "SvgFormat", "CSvgFormat", UserEditableFunctions.Create(function (containerBox) {
         return MSHTML.GetObjectFromDataCache(containerBox.F("TreeNode.Threadstate").f("_pSvgFormatCache"), containerBox.f("sourceStyle").f("iSF", "_iSF").val());
     }));
 
-    DbgObject.AddExtendedField(MSHTML.Module, "Layout::ContainerBox", "DisplayNode", "CDispNode", UserEditableFunctions.Create(function (containerBox) {
+    DbgObject.AddExtendedField(MSHTML.Type("Layout::ContainerBox"), "DisplayNode", "CDispNode", UserEditableFunctions.Create(function (containerBox) {
         return Promise.all([containerBox.f("isDisplayNodeExtracted").val(), containerBox.f("rawDisplayNode")])
         .thenAll(function (isDisplayNodeExtracted, displayNode) {
                 if (!isDisplayNodeExtracted) {
                     return displayNode;
                 } else {
-                    return DbgObject.create(MSHTML.Module, "CDispNode", 0);
+                    return DbgObject.create(MSHTML.Type("CDispNode"), 0);
                 }
             }
         );
     }));
 
-    DbgObject.AddArrayField(MSHTML.Module, MSHTML.TreeNodeType, "LayoutBoxes", "Layout::LayoutBox", UserEditableFunctions.Create(function(treeNode) {
+    DbgObject.AddArrayField(MSHTML.TreeNodeType, "LayoutBoxes", "Layout::LayoutBox", UserEditableFunctions.Create(function(treeNode) {
         return MSHTML.GetFirstAssociatedLayoutBoxFromTreeNode(treeNode)
         .then(function (layoutBox) {
             return layoutBox.list("nextLayoutBox")
@@ -364,21 +360,21 @@ Loader.OnLoad(function() {
         })
     }));
 
-    DbgObject.AddArrayField(MSHTML.Module, "Layout::BoxItem", "Items", "Layout::BoxItemDataMembers", UserEditableFunctions.Create(function (flowItem) {
+    DbgObject.AddArrayField(MSHTML.Type("Layout::BoxItem"), "Items", "Layout::BoxItemDataMembers", UserEditableFunctions.Create(function (flowItem) {
         return flowItem.f("data").list(function (current) {
             return current.f("next").f("data");
         })
     }));
 
-    DbgObject.AddArrayField(MSHTML.Module, "Layout::FlowBox", "FlowItems", "Layout::BoxItemDataMembers", UserEditableFunctions.Create(function (flowBox) {
+    DbgObject.AddArrayField(MSHTML.Type("Layout::FlowBox"), "FlowItems", "Layout::BoxItemDataMembers", UserEditableFunctions.Create(function (flowBox) {
         return flowBox.f("flow").array("Items");
     }));
 
-    DbgObject.AddArrayField(MSHTML.Module, "Layout::LineBox", "Runs", "Layout::LineBox::SRunBoxAndCp", UserEditableFunctions.Create(function (lineBox) {
+    DbgObject.AddArrayField(MSHTML.Type("Layout::LineBox"), "Runs", "Layout::LineBox::SRunBoxAndCp", UserEditableFunctions.Create(function (lineBox) {
         return lineBox.vcast().f("runArray").array("Items");
     }));
 
-    DbgObject.AddTypeDescription(MSHTML.Module, "Layout::LineBox", "Text", false, UserEditableFunctions.Create(function (lineBox) {
+    DbgObject.AddTypeDescription(MSHTML.Type("Layout::LineBox"), "Text", false, UserEditableFunctions.Create(function (lineBox) {
         return Promise.all([
             lineBox.f("textBlockRunIndexAtStartOfLine").val(), 
             lineBox.f("charOffsetInTextBlockRunAtStartOfLine", "characterIndexInTextBlockRunAtStartOfLine").val(),

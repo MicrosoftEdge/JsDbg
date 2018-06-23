@@ -5,12 +5,12 @@
 Loader.OnLoad(function() {
     DbgObject.Actions = new DbgObject.TypeExtension();
 
-    DbgObject.AddAction = function(module, typeNameOrFn, name, getActions) {
-        return DbgObject.Actions.addExtension(module, typeNameOrFn, name, getActions);
+    DbgObject.AddAction = function(typeNameOrFn, name, getActions) {
+        return DbgObject.Actions.addExtension(typeNameOrFn, name, getActions);
     }
 
-    DbgObject.RemoveAction = function(module, typeNameOrFn, name) {
-        return DbgObject.Actions.removeExtension(module, typeNameOrFn, name);
+    DbgObject.RemoveAction = function(typeNameOrFn, name) {
+        return DbgObject.Actions.removeExtension(typeNameOrFn, name);
     }
 
     DbgObject.prototype.actions = function(name) {
@@ -21,7 +21,7 @@ Loader.OnLoad(function() {
             var existingActions = {};
             var allActions = [];
             baseTypes.forEach(function (dbgObject) {
-                var actions = DbgObject.Actions.getAllExtensions(dbgObject.module, dbgObject.typename);
+                var actions = DbgObject.Actions.getAllExtensions(dbgObject.type);
                 actions.forEach(function (action) {
                     if (!(action.name in existingActions)) {
                         existingActions[action.name] = true;

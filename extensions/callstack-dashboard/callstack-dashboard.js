@@ -55,7 +55,7 @@ Loader.OnLoad(function() {
             // Dereference all the locals.
             return Promise.map(stackFrames, function (frame) {
                 function deref(dbgObject) {
-                    if (dbgObject.isPointer()) {
+                    if (dbgObject.type.isPointer()) {
                         return dbgObject.deref().then(deref).catch(function() { return dbgObject; })
                     } else {
                         return Promise.resolve(dbgObject);

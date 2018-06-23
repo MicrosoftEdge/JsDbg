@@ -63,7 +63,9 @@
             window.sessionStorage.setItem("struct-diff.pointer1", pointer2);
             window.sessionStorage.setItem("struct-diff.recurse", document.getElementById("recurse").checked);
 
-            if (type.indexOf("!") < 0) {
+            try {
+                type = DbgObjectType(type);
+            } catch (ex) {
                 alert("Please enter a type, prefixed by the module.");
                 return;
             }
@@ -76,17 +78,14 @@
                 return;
             }
 
-            var module = type.substr(0, type.indexOf("!"));
-            var typename = type.substr(type.indexOf("!") + 1);
-
-            var object1 = DbgObject.create(module, typename, pointer1);
-            var object2 = DbgObject.create(module, typename, pointer2);
+            var object1 = DbgObject.create(type, pointer1);
+            var object2 = DbgObject.create(type, pointer2);
 
             ObjectDiff.GetDifferentFields(object1, object2, fieldExpander)
             .then(function (results) {
                 return Promise.map(results, function (fieldName) {
                     var field1 = object1.f(fieldName);
-                    return Promise.all([field1.htmlTypeDescription(), fieldName, field1.desc(), object2.f(fieldName).desc()]);
+                    return Promise.all([field1.then(function (x) { return x.type.name() }), fieldName, field1.desc(), object2.f(fieldName).desc()]);
                 })
                 .then(function (differentObjects) {
                     var table = document.createElement("table");

@@ -3,7 +3,7 @@
 var ObjectDiff = undefined;
 Loader.OnLoad(function () {
     var currentObjectToDiff = null;
-    DbgObject.AddAction("edgehtml", function() { return true; }, "ObjectDiff", function (dbgObject) {
+    DbgObject.AddAction(function() { return true; }, "ObjectDiff", function (dbgObject) {
         if (currentObjectToDiff == null) {
             return {
                 description: "Diff...",
@@ -22,10 +22,10 @@ Loader.OnLoad(function () {
                 // Find a common type.
                 for (var i = 0; i < currentObjectBaseTypes.length && results.length == 0; ++i) {
                     for (var j = 0; j < dbgObjectBaseTypes.length; ++j) {
-                        if (currentObjectBaseTypes[i].typeDescription() == dbgObjectBaseTypes[j].typeDescription() && currentObjectBaseTypes[i].equals(currentObjectToDiff) && dbgObjectBaseTypes[j].equals(dbgObject)) {
+                        if (currentObjectBaseTypes[i].type.equals(dbgObjectBaseTypes[j].type) && currentObjectBaseTypes[i].equals(currentObjectToDiff) && dbgObjectBaseTypes[j].equals(dbgObject)) {
                             results.push({
-                                description: "Diff with " + currentObjectBaseTypes[i].htmlTypeDescription() + " " + currentObjectToDiff.ptr(),
-                                action: "/objectdiff/?type=" + currentObjectBaseTypes[i].module + "!" + currentObjectBaseTypes[i].typeDescription() + "&address1=" + currentObjectBaseTypes[i].ptr() + "&address2=" + dbgObjectBaseTypes[j].ptr(),
+                                description: "Diff with " + currentObjectBaseTypes[i].type.htmlName() + " " + currentObjectToDiff.ptr(),
+                                action: "/objectdiff/?type=" + currentObjectBaseTypes[i].type + "&address1=" + currentObjectBaseTypes[i].ptr() + "&address2=" + dbgObjectBaseTypes[j].ptr(),
                                 target: "objectdiff-" + currentObjectToDiff.ptr()
                             });
                             break;
@@ -46,7 +46,7 @@ Loader.OnLoad(function () {
     })
 
     function getDifferentFields(object1, object2, expansion) {
-        if (object1.typeDescription() != object2.typeDescription()) {
+        if (object1.type.name() != object2.type.name()) {
             throw new Error("Objects passed to GetDifferentFields must be the same type.");
         }
 

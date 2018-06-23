@@ -257,7 +257,7 @@ namespace JsDbg.WinDbg {
                         }
                     }
 
-                    SField field = new SField(parsedField.Offset, resolvedTypeSize, resolvedTypeName, parsedField.BitField.BitOffset, parsedField.BitField.BitLength);
+                    SField field = new SField(parsedField.Offset, resolvedTypeSize, module, resolvedTypeName, parsedField.BitField.BitOffset, parsedField.BitField.BitLength);
                     // A superclass can have a field with the same name as a field in the subclass.  We currently use the first one.
                     if (!fields.ContainsKey(parsedField.FieldName)) {
                         fields.Add(parsedField.FieldName, field);

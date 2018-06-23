@@ -7,7 +7,7 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return DbgObject.create(MSHTML.Module, "void", address).vcast();
+            return DbgObject.create(MSHTML.Type("void"), address).vcast();
         },
         GetRoots: function() {
             return MSHTML.GetCDocs()
@@ -44,11 +44,11 @@ Loader.OnLoad(function() {
         DefaultTypes: [],
     };
 
-    LayerTree.Tree.addChildren(MSHTML.Module, "CDoc", function (doc) {
+    LayerTree.Tree.addChildren(MSHTML.Type("CDoc"), function (doc) {
         return doc.f("_spLayerManager.m_pT").vcast();
     });
 
-    LayerTree.Renderer.addNameRenderer(MSHTML.Module, "CDoc", function (doc) {
+    LayerTree.Renderer.addNameRenderer(MSHTML.Type("CDoc"), function (doc) {
         return doc.F("PrimaryMarkup").desc("URL")
         .then(function (url) {
             if (url != null) {
@@ -59,18 +59,18 @@ Loader.OnLoad(function() {
         })
     })
 
-    LayerTree.Renderer.addNameRenderer(MSHTML.Module, function (x) { return (x.indexOf("RefCounted") == 0); }, function (refCounted) {
-        var typeString = refCounted.htmlTypeDescription();
+    LayerTree.Renderer.addNameRenderer(function (x) { return (x.name().indexOf("RefCounted") == 0); }, function (refCounted) {
+        var typeString = refCounted.type.htmlName();
         typeString = typeString.substr(typeString.indexOf("&lt;") + 4);
         typeString = typeString.substr(0, typeString.lastIndexOf(","));
         return typeString;
     })
 
-    LayerTree.Tree.addChildren(MSHTML.Module, "CWUCLayerManager", function (layerManager) {
+    LayerTree.Tree.addChildren(MSHTML.Type("CWUCLayerManager"), function (layerManager) {
         return layerManager.f("_spRootLayer.m_pT").vcast();
     })
 
-    LayerTree.Tree.addChildren(MSHTML.Module, "CWUCLayer", function (layerManager) {
+    LayerTree.Tree.addChildren(MSHTML.Type("CWUCLayer"), function (layerManager) {
         return layerManager.f("_pFirstChildLayer").list("_pNextLayer").vcast();
     })
 
@@ -90,7 +90,7 @@ Loader.OnLoad(function() {
     }
 
     // Add DbgObject actions for links to the display tree.
-    DbgObject.AddAction(MSHTML.Module, "IDispLayer", "LayerTree", function (layer) {
+    DbgObject.AddAction(MSHTML.Type("IDispLayer"), "LayerTree", function (layer) {
         return layer.vcast().f("_pLayerManager").vcast()
         .then(getDocOrLayerManager)
         .then(function (rootNode) {
@@ -98,14 +98,14 @@ Loader.OnLoad(function() {
         })
     });
 
-    DbgObject.AddAction(MSHTML.Module, "IDispLayerManager", "LayerTree", function (layerManager) {
+    DbgObject.AddAction(MSHTML.Type("IDispLayerManager"), "LayerTree", function (layerManager) {
         return getDocOrLayerManager(layerManager)
         .then(function (rootNode) {
             return TreeInspector.GetActions("layertree", "Layer Tree", rootNode, layerManager);
         })
     });
 
-    DbgObject.AddAction(MSHTML.Module, "CDoc", "LayerTree", function (doc) {
+    DbgObject.AddAction(MSHTML.Type("CDoc"), "LayerTree", function (doc) {
         return TreeInspector.GetActions("layertree", "Layer Tree", doc);
     });
 });

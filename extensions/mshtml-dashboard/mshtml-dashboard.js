@@ -2,7 +2,7 @@
 
 Loader.OnLoad(function () {
     var renderer = new DbgObjectTree.DbgObjectRenderer();
-    renderer.addNameRenderer(MSHTML.Module, "CDoc", function (doc) {
+    renderer.addNameRenderer(MSHTML.Type("CDoc"), function (doc) {
         return doc.F("PrimaryMarkup").desc("URL")
         .then(function (url) {
             if (url != null) {

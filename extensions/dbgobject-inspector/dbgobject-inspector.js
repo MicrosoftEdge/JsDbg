@@ -118,7 +118,7 @@ Loader.OnLoad(function() {
         var title = document.createElement("div");
         title.classList.add("title");
         var titleWrapper = document.createElement("span");
-        titleWrapper.textContent = dbgObject.ptr() + " " + dbgObject.typeDescription();
+        titleWrapper.textContent = dbgObject.ptr() + " " + dbgObject.type.name();
         title.appendChild(titleWrapper);
         dropDown.appendChild(title);
 

@@ -5,27 +5,18 @@
 
 var TypeExplorer = undefined;
 Loader.OnLoad(function() {
-    function TypeExplorerAggregateType(module, typename, parentField, controller, rerender) {
+    function TypeExplorerAggregateType(type, parentField, controller, rerender) {
         this.parentField = parentField;
         this.controller = controller;
         this.searchQuery = "";
-        this.backingTypes = [new TypeExplorerSingleType(module, typename, /*offsetFromAggregate*/0, this)];
+        this.backingTypes = [new TypeExplorerSingleType(type, /*offsetFromAggregate*/0, this)];
         this.includeBaseTypes = false;
         this.preparedForRenderingPromise = null;
         this.isTypeInvalid = false;
     }
 
-    TypeExplorerAggregateType.prototype.module = function() {
-        return this.backingTypes[0].module;
-    }
-
-    TypeExplorerAggregateType.prototype.typename = function () {
-        return this.backingTypes[0].typename;
-    }
-
-    TypeExplorerAggregateType.prototype.isType = function (module, typename) {
-        var primaryType = this.backingTypes[0];
-        return (primaryType.module == module && primaryType.typename == typename);
+    TypeExplorerAggregateType.prototype.type = function () {
+        return this.backingTypes[0].type;
     }
 
     TypeExplorerAggregateType.prototype.isExpanded = function() {
@@ -59,11 +50,11 @@ Loader.OnLoad(function() {
         }
 
         var that = this;
-        return DbgObject.create(this.backingTypes[0].module, this.backingTypes[0].typename, 0)
+        return DbgObject.create(this.backingTypes[0].type, 0)
         .baseTypes()
         .then(function (baseTypes) {
             baseTypes.forEach(function (baseType) {
-                that.backingTypes.push(new TypeExplorerSingleType(baseType.module, baseType.typeDescription(), baseType.pointerValue(), that));
+                that.backingTypes.push(new TypeExplorerSingleType(baseType.type, baseType.pointerValue(), that));
             })
         }, function (err) {
             // Invalid type.
@@ -256,11 +247,10 @@ Loader.OnLoad(function() {
     }
 
     // Represents a single type, not including its base types.
-    function TypeExplorerSingleType(module, typename, offsetFromAggregate, aggregateType) {
+    function TypeExplorerSingleType(type, offsetFromAggregate, aggregateType) {
         this.aggregateType = aggregateType;
         this.isExpanded = false;
-        this.module = module;
-        this.typename = typename;
+        this.type = type;
         this.offsetFromAggregate = offsetFromAggregate;
         this.autoCastFields = [];
         this.fields = [];
@@ -274,9 +264,9 @@ Loader.OnLoad(function() {
     TypeExplorerSingleType.prototype.dbgObjectFromAggregateObject = function(dbgObject) {
         // Only offset if it's non-zero so that we don't lose any bitfield context.
         if (this.offsetFromAggregate != 0) {
-            return DbgObject.create(this.module, this.typename, dbgObject.pointerValue().add(this.offsetFromAggregate));
+            return DbgObject.create(this.type, dbgObject.pointerValue().add(this.offsetFromAggregate));
         } else {
-            return dbgObject.as(this.typename);
+            return dbgObject.as(this.type);
         }
     }
 
@@ -293,7 +283,7 @@ Loader.OnLoad(function() {
                 return;
             }
 
-            var newField = new TypeExplorerField(name, extension.typeName ? extension.typeName : null, extension.getter, that, arrayName);
+            var newField = new TypeExplorerField(name, extension.type ? extension.type : null, extension.getter, that, arrayName);
             that[arrayName].push(newField);
 
             if (UserDbgObjectExtensions.GetCreationContext(extension.getter) == that.aggregateType) {
@@ -301,11 +291,11 @@ Loader.OnLoad(function() {
             }
         }
 
-        typeExtensions.getAllExtensions(this.module, this.typename).forEach(function (nameAndExtension) {
+        typeExtensions.getAllExtensions(this.type).forEach(function (nameAndExtension) {
             addTypeExtensionField(nameAndExtension.name, nameAndExtension.extension);
         });
 
-        typeExtensions.addListener(this.module, this.typename, function (module, typename, extensionName, extension, operation, argument) {
+        typeExtensions.addListener(this.type, function (type, extensionName, extension, operation, argument) {
             if (operation == "add") {
                 addTypeExtensionField(extensionName, extension);
             } else if (operation == "remove") {
@@ -347,9 +337,9 @@ Loader.OnLoad(function() {
 
     TypeExplorerSingleType.prototype._prepareForRendering = function() {
         var that = this;
-        var dbgObject = DbgObject.create(this.module, this.typename, 0);
+        var dbgObject = DbgObject.create(this.type, 0);
         var fieldsPromise;
-        if (dbgObject.isPointer()) {
+        if (dbgObject.type.isPointer()) {
             fieldsPromise = Promise.resolve([]);
         } else {
             fieldsPromise = dbgObject.fields(/*includeBaseTypes*/false);
@@ -358,9 +348,19 @@ Loader.OnLoad(function() {
         return fieldsPromise
         .then(function (fields) {
             fields.forEach(function (field) {
-                var dereferencedType = field.value.typeDescription().replace(/\*$/, "");
-                var getter = field.value.isArray() ? function (dbgObject) { return dbgObject.f(field.name).array(); } : function(dbgObject) { return dbgObject.f(field.name); };
-                that.fields.push(new TypeExplorerField(field.name, dereferencedType, getter, that, "fields"));
+                var fieldType = field.value.type;
+                if (fieldType.isPointer()) {
+                    if (fieldType.isArray())
+                    {
+                        fieldType = DbgObjectType(fieldType.module(), fieldType.dereferenced().name() + "[" + fieldType.arrayLength() + "]");
+                    }
+                    else
+                    {
+                        fieldType = fieldType.dereferenced();
+                    }
+                }
+                var getter = field.value.type.isArray() ? function (dbgObject) { return dbgObject.f(field.name).array(); } : function(dbgObject) { return dbgObject.f(field.name); };
+                that.fields.push(new TypeExplorerField(field.name, fieldType, getter, that, "fields"));
             })
 
             that.monitorTypeExtensions(DbgObject.ExtendedFields, "extendedFields");
@@ -401,9 +401,8 @@ Loader.OnLoad(function() {
                 return result.vcast()
                 .then(
                     function (castedDbgObject) {
-                        if (castedDbgObject.typename != that.typename) {
-                            var castedTypeName = castedDbgObject.typeDescription();
-                            var newField = new TypeExplorerField("[vtable cast]", castedTypeName, function() { return castedDbgObject; }, that, "autoCastFields");
+                        if (!castedDbgObject.type.equals(that.type)) {
+                            var newField = new TypeExplorerField("[vtable cast]", castedDbgObject.type, function() { return castedDbgObject; }, that, "autoCastFields");
                             that.autoCastFields.push(newField);
                         }
                     },
@@ -486,7 +485,7 @@ Loader.OnLoad(function() {
         });
     }
 
-    function TypeExplorerField(name, fieldTypeName, getter, parentType, sourceInParentType) {
+    function TypeExplorerField(name, fieldType, getter, parentType, sourceInParentType) {
         this.name = name;
         this.parentType = parentType;
         this.getter = getter;
@@ -502,10 +501,10 @@ Loader.OnLoad(function() {
         this.clientContext = {};
         this.childType = null;
 
-        if (fieldTypeName instanceof Function) {
-            fieldTypeName = fieldTypeName(this.parentType.typename);
+        if (fieldType instanceof Function) {
+            fieldType = DbgObjectType(fieldType(this.parentType.type), this.parentType.type);
         }
-        this.setChildType(fieldTypeName);
+        this.setChildType(fieldType);
     }
 
     TypeExplorerField.prototype.isUserDefinedArray = function() {
@@ -513,7 +512,7 @@ Loader.OnLoad(function() {
     }
 
     TypeExplorerField.prototype.returnsArray = function() {
-        return this.isUserDefinedArray() || (this.getChildTypeName() != null && this.getChildTypeName().match(/\[[0-9]+\]/));
+        return this.isUserDefinedArray() || (this.getChildType() != null && this.getChildType().isArray());
     }
 
     TypeExplorerField.prototype.getNestedField = function(dbgObject) {
@@ -528,14 +527,14 @@ Loader.OnLoad(function() {
                 throw new Error("The field \"" + that.name + "\" should have returned a DbgObject but instead returned " + resultString + ".");
             }
 
-            var typeName = that.childType.typename();
+            var type = that.childType.type();
             if (that.returnsArray()) {
-                typeName = typeName.replace(/\**\[.*\]/g, "");
+                type = type.nonArrayType();
             }
-            return result.isType(typeName)
+            return result.isType(type)
             .then(function (isType) {
                 if (!isType) {
-                    throw new Error("The field \"" + that.name + "\" was supposed to be type \"" + that.childType.typename() + "\" but was unrelated type \"" + result.typeDescription() + "\".");
+                    throw new Error("The field \"" + that.name + "\" was supposed to be type \"" + that.childType.type() + "\" but was unrelated type \"" + result.type.name() + "\".");
                 } else {
                     return result;
                 }
@@ -603,10 +602,6 @@ Loader.OnLoad(function() {
         }
     }
 
-    TypeExplorerField.prototype.getChildTypeName = function() {
-        return this.childType == null ? null : this.childType.typename();
-    }
-
     TypeExplorerField.prototype.disableCompletely = function() {
         this.setIsEnabled(false, null);
         if (this.childType != null) {
@@ -625,13 +620,20 @@ Loader.OnLoad(function() {
         }
     }
 
-    TypeExplorerField.prototype.setChildType = function(newTypeName) {
+    TypeExplorerField.prototype.getChildType = function() {
+        return this.childType == null ? null : this.childType.type();
+    }
+
+    TypeExplorerField.prototype.setChildType = function(newType) {
+        if (newType != null && !DbgObjectType.is(newType)) {
+            throw new Error("Invalid type.");
+        }
         if (this.childType != null) {
             this.childType.disableCompletely();
         }
 
-        if (newTypeName != null) {
-            this.childType = new TypeExplorerAggregateType(this.parentType.module, newTypeName, this, this.parentType.aggregateType.controller);
+        if (newType != null) {
+            this.childType = new TypeExplorerAggregateType(newType, this, this.parentType.aggregateType.controller);
         } else {
             this.childType = null;
         }
@@ -641,7 +643,7 @@ Loader.OnLoad(function() {
         this.container = null;
         this.dbgObject = dbgObject;
         this.options = options;
-        this.rootType = new TypeExplorerAggregateType(dbgObject.module, dbgObject.typeDescription(), null, this);
+        this.rootType = new TypeExplorerAggregateType(dbgObject.type, null, this);
     }
 
     TypeExplorerController.prototype.render = function(explorerContainer) {
@@ -728,7 +730,7 @@ Loader.OnLoad(function() {
             path.push(obj.sourceInParentType);
             return this._appendPath(obj.parentType, path);
         } else if (obj instanceof TypeExplorerSingleType) {
-            path.push(obj.typename);
+            path.push(obj.type.toString());
             return this._appendPath(obj.aggregateType, path);
         } else if (obj instanceof TypeExplorerAggregateType) {
             if (obj.parentField != null) {
@@ -763,7 +765,7 @@ Loader.OnLoad(function() {
                 return obj.prepareForRendering()
                 .then(function () {
                     for (var i = 0; i < obj.backingTypes.length; ++i) {
-                        if (obj.backingTypes[i].typename == path[currentIndex]) {
+                        if (obj.backingTypes[i].type.equals(path[currentIndex])) {
                             return that._enableRemainingPath(obj.backingTypes[i], path, currentIndex + 1, enableFieldContext);
                         }
                     }
@@ -838,7 +840,7 @@ Loader.OnLoad(function() {
             });
             typeContainer.querySelector(".extend").addEventListener("click", function() {
                 var type = typeContainer.currentType;
-                UserDbgObjectExtensions.Create(type.module(), type.typename(), type);
+                UserDbgObjectExtensions.Create(type.type(), type);
             });
         }
         typeContainer.currentType = type;
@@ -1098,20 +1100,20 @@ Loader.OnLoad(function() {
             names.push(currentField.name);
         }
         if (currentField.name in nameCollisions) {
-            names[names.length - 1] = (currentField.parentType.typename) + "::" + names[names.length - 1];
+            names[names.length - 1] = (currentField.parentType.type.name()) + "::" + names[names.length - 1];
         }
 
         fieldNameContainer.textContent = names.reverse().join(".");
         
-        var fieldTypeName = field.getChildTypeName();
-        if (fieldTypeName != null) {
+        var fieldType = field.getChildType();
+        if (fieldType != null) {
             if (areAllTypesExpanded) {
-                fieldTypeContainer.textContent = fieldTypeName + (field.isUserDefinedArray() ? "[]" : "");
+                fieldTypeContainer.textContent = fieldType.fullName() + (field.isUserDefinedArray() ? "[]" : "");
                 fieldTypeContainer.style.display = "";
             } else {
                 fieldTypeContainer.style.display = "none";
             }
-            label.title = fieldTypeName + " " + field.name;
+            label.title = fieldType.qualifiedName() + " " + field.name;
         } else {
             label.title = field.name;
             fieldTypeContainer.style.display = "none";

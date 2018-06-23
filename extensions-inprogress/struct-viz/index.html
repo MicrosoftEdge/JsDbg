@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- saved from url=(0016)http://localhost -->
 <html>
 <head>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
@@ -20,19 +19,15 @@
         }
 
         function getUsedBytes(dbgObject, prefix) {
-            if (dbgObject.isArray()) {
+            if (dbgObject.type.isArray()) {
                 // Fan out the array.
-                var innerResults = []
-                for (var i = 0; i < dbgObject.arrayLength(); ++i) {
-                    innerResults.push(dbgObject.idx(i));
-                }
-                return Promise.map(Promise.all(innerResults), function(item, idx) {
+                return Promise.map(dbgObject.array(), function(item, idx) {
                     return getUsedBytes(item, prefix + "[" + idx + "]");
                 })
                 .then(combine);
             }
             
-            var fields = dbgObject.isPointer() ? Promise.reject() : dbgObject.fields();
+            var fields = dbgObject.type.isPointer() ? Promise.reject() : dbgObject.fields();
 
             return fields
             .then(function(fields) {
@@ -50,7 +45,7 @@
                 .then(function(size) {
                     var result = {};
                     for (var i = 0; i < size; ++i) {
-                        result[dbgObject.pointerValue().add(i).toString()] = [prefix + " (" + dbgObject.typeDescription() + ")"];
+                        result[dbgObject.pointerValue().add(i).toString()] = [prefix + " (" + dbgObject.type.name() + ")"];
                     }
                     return result;
                 });
@@ -58,14 +53,14 @@
         }
 
         function init() {
-            document.querySelector("button").addEventListener("click", function() {
+            document.body.querySelector("button").addEventListener("click", function() {
                 var parts = document.getElementById("type").value.split("!");
                 var module = parts[0];
                 var type = parts[1];
 
-                var dbgObject = DbgObject.create(module, type, 0);
+                var dbgObject = DbgObject.create(DbgObjectType(module, type), 0);
                 Promise.all([dbgObject.size(), getUsedBytes(dbgObject, "")])
-                .then(function(size, usedBytes) {
+                .thenAll(function(size, usedBytes) {
                     var result = [];
                     for (var i = 0; i < size; ++i) {
                         var prefix = "0x" + i.toString(16) + " ";

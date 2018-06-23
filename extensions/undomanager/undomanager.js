@@ -6,13 +6,13 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return DbgObject.create(MSHTML.Module, "CDoc", address);
+            return DbgObject.create(MSHTML.Type("CDoc"), address);
         },
         GetRoots: function() { return MSHTML.GetCDocs() },
         DefaultTypes: [],
     };
 
-    UndoManager.Tree.addChildren(MSHTML.Module, "CDoc", function (object) {
+    UndoManager.Tree.addChildren(MSHTML.Type("CDoc"), function (object) {
         // Get the undo manager from the CDoc.
         return object.f("edgeUndoManager._object.m_pT", "edgeUndoManager.m_pT").vcast();
     });
@@ -27,7 +27,7 @@ Loader.OnLoad(function() {
         })
     }
 
-    UndoManager.Tree.addChildren(MSHTML.Module, "Undo::UndoManager", function (undoManager) {
+    UndoManager.Tree.addChildren(MSHTML.Type("Undo::UndoManager"), function (undoManager) {
         // Group user, scripted and pending children of the open parent unit with these render-only children of the UndoManager object
         return Promise.all([
             {
@@ -58,13 +58,13 @@ Loader.OnLoad(function() {
     });
 
     // Register ParentUndoUnit so its child units will be shown
-    UndoManager.Tree.addChildren(MSHTML.Module, "Undo::ParentUndoUnit", function (object) {
+    UndoManager.Tree.addChildren(MSHTML.Type("Undo::ParentUndoUnit"), function (object) {
         return object.f("childUnits").array("Items").map(function (item) {
             return item.f("m_pT").vcast();
         });
     });
 
-    DbgObject.AddAction(MSHTML.Module, "CDoc", "UndoManager", function(doc) {
+    DbgObject.AddAction(MSHTML.Type("CDoc"), "UndoManager", function(doc) {
         return TreeInspector.GetActions("undomanager", "Undo Manager", doc);
     });
 });

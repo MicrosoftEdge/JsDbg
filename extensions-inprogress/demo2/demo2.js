@@ -1,6 +1,6 @@
 
 DbgObject.AddTypeDescription(MSHTML.Module, function(type) { return type.match(/^SArray<(.*)>$/); }, function(object) {
-    var itemType = object.typeDescription().replace(/^SArray<\s*(.*?)\s*>$/, "$1");
+    var itemType = object.type.name().replace(/^SArray<\s*(.*?)\s*>$/, "$1");
     return Promise.resolve(object.f("_array"))
     .then(function (arrayObj) {
         if (arrayObj.isNull()) {
@@ -15,10 +15,10 @@ DbgObject.AddTypeDescription(MSHTML.Module, function(type) { return type.match(/
 });
 
 DbgObject.AddTypeDescription(MSHTML.Module, function(type) { return type.match(/^SP<(.*)>$/); }, function(object) {
-    var itemType = object.typeDescription().replace(/^SP<\s*(.*?)\s*>$/, "$1");
+    var itemType = object.type.name().replace(/^SP<\s*(.*?)\s*>$/, "$1");
     return Promise.resolve(object.f("m_pT"))
     .then(function (referencedObject) {
-        return object.htmlTypeDescription() + " -> " + referencedObject.ptr();
+        return object.type.htmlName() + " -> " + referencedObject.ptr();
     });
 });
 

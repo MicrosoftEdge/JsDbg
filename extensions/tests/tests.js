@@ -53,7 +53,7 @@ Loader.OnLoad(function() {
     }
 
     function canUsePromises() {
-        return typeof Promise !== "undefined" && Promise.as !== undefined;
+        return typeof Promise !== "undefined" && Promise.resolve !== undefined;
     }
 
     function runTest(testCase, container) {

@@ -5,9 +5,10 @@ using Dia2Lib;
 namespace JsDbg.Core {
     #region Helper Structs
     public struct SField {
-        public SField(uint offset, uint size, string typename, byte bitOffset, byte bitCount) {
+        public SField(uint offset, uint size, string module, string typename, byte bitOffset, byte bitCount) {
             this.Offset = offset;
             this.Size = size;
+            this.Module = module;
             this.TypeName = typename;
             this.BitOffset = bitOffset;
             this.BitCount = bitCount;
@@ -15,6 +16,7 @@ namespace JsDbg.Core {
 
         public readonly uint Offset;
         public readonly uint Size;
+        public readonly string Module;
         public readonly string TypeName;
         public readonly byte BitOffset;
         public readonly byte BitCount;
@@ -95,7 +97,7 @@ namespace JsDbg.Core {
                     // Check the base types.
                     foreach (SBaseType baseType in this.baseTypes) {
                         if (baseType.Type.GetField(name, out field)) {
-                            field = new SField((uint)(field.Offset + baseType.Offset), field.Size, field.TypeName, field.BitOffset, field.BitCount);
+                            field = new SField((uint)(field.Offset + baseType.Offset), field.Size, field.Module, field.TypeName, field.BitOffset, field.BitCount);
                             return true;
                         }
                     }
@@ -132,6 +134,7 @@ namespace JsDbg.Core {
                 if (this.baseTypes != null) {
                     foreach (SBaseType baseType in this.baseTypes) {
                         SBaseTypeResult result = new SBaseTypeResult();
+                        result.Module = baseType.Type.Module;
                         result.TypeName = baseType.Type.Name;
                         result.Offset = baseType.Offset;
                         yield return result;
@@ -164,6 +167,7 @@ namespace JsDbg.Core {
                     SField innerField = this.fields[fieldName];
                     SFieldResult field = new SFieldResult();
                     field.FieldName = fieldName;
+                    field.Module = innerField.Module;
                     field.TypeName = innerField.TypeName;
                     field.Offset = innerField.Offset;
                     field.Size = innerField.Size;

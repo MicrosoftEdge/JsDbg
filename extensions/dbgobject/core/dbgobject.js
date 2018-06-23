@@ -7,12 +7,6 @@
 // Documentation is provided via _help_ properties and can be viewed with the Documentation extension.
 var DbgObject = undefined
 Loader.OnLoad(function() {
-    function cleanupTypeName(type) {
-        return type
-            .replace(/\s+$/g, '')
-            .replace(/^\s+/g, '');
-    }
-
     // bitcount and bitoffset are optional.
     DbgObject = function DbgObject() { }
     Help.Register(DbgObject);
@@ -30,57 +24,26 @@ Loader.OnLoad(function() {
             {name: "pointer", type:"int", description:"The address of the object in memory."},
             {name: "bitcount", type:"int", description:"(optional) The number of bits if the object is held in a bitfield."},
             {name: "bitoffset", type:"int", description:"(optional) The bit offset from the address."},
-            {name: "structSize", type:"int", description:"(optional) The size of the object in memory."}
+            {name: "objectSize", type:"int", description:"(optional) The size of the object in memory."}
         ],
         notes: "The last three arguments are generally only used internally by other DbgObject methods."
     };
-    DbgObject.create = function(module, type, pointer, bitcount, bitoffset, structSize, wasDereferenced) {
+    DbgObject.create = function(type, pointer, bitcount, bitoffset, objectSize, wasDereferenced) {
         var that = new DbgObject();
 
-        that.module = DbgObject.NormalizeModule(module);
+        that.type = DbgObjectType(type);
         that._pointer = new PointerMath.Pointer(pointer);
         that.bitcount = bitcount;
         that.bitoffset = bitoffset;
-        that.structSize = structSize;
         that.wasDereferenced = (wasDereferenced ? true : false);
 
-        // Cleanup type name:
-        //  - remove whitespace from the beginning and end
-        type = cleanupTypeName(type);
-        //  - if the type was specified as TypeName(offset), subtract the offset.
-        if (type[type.length - 1] == ")") {
-            var additionalOffset = parseInt(type.substr(type.lastIndexOf("(") + 1));
-            type = type.substr(0, type.lastIndexOf("("));
-            that._pointer = that._pointer.add(-additionalOffset);
-        }
-        
-        that.typename = type;
-
-        // Treat "char" as unsigned.
-        that._isUnsigned = (that.typename.indexOf("unsigned ") == 0 || that.typename == "char");
-
-        // Get the array size.
-        var arrayRegex = /\[[0-9]+\]/g;
-        var matches = that.typename.match(arrayRegex);
-        if (matches) {
-            that._isArray = true;
-            // might be a multi-dimensional array
-            that._arrayLength = 1;
-            for (var i = 0; i < matches.length; ++i) {
-                that._arrayLength *= parseInt(matches[i].substr(1, matches[i].length - 2));
-            }
-            that.typename = that.typename.replace(arrayRegex, '');
-
-            if (that._arrayLength == 0 || that.structSize === undefined) {
-                that.structSize = undefined;
-            } else {
-                that.structSize = that.structSize / that._arrayLength;
-            }
+        if (objectSize && that.type.isArray() && that.type.arrayLength() > 0) {
+            that.typeSize = objectSize / that.type.arrayLength();
+        } else if (objectSize > 0) {
+            that.typeSize = objectSize;
         } else {
-            that._isArray = false;
-            that._arrayLength = 0;
+            that.typeSize = undefined;
         }
-        
         return that;
     }
 
@@ -99,54 +62,22 @@ Loader.OnLoad(function() {
         description: "Causes DbgObject to ignore the type provided by JsDbg for a given field in a struct.",
         notes: "This is useful for adding enum information on fields that are stored as numbers.",
         arguments: [
-            {name: "module", type:"string", description:"The module of the type."},
-            {name: "type", type:"string", description:"The class or struct type whose field's type we wish to specify."},
+            {name: "type", type:"DbgObjectType", description:"The type whose field's type we wish to specify."},
             {name: "field", type:"string", description:"The field whose type will be specified."},
-            {name: "overriddenType", type:"string", description:"The type to use."}
+            {name: "overriddenType", type:"DbgObjectType", description:"The type to use."}
         ]
     };
-    DbgObject.AddTypeOverride = function(module, type, field, overriddenType) {
-        module = DbgObject.NormalizeModule(module);
-        var key = module + "!" + type + "." + field;
-        typeOverrides[key] = overriddenType;
+    DbgObject.AddTypeOverride = function(type, field, overriddenType) {
+        typeOverrides[type.nonArrayComparisonName() + "." + field] = DbgObjectType(overriddenType, type);
     }
-    function getFieldType(module, type, field, jsDbgType) {
-        var key = module + "!" + type + "." + field;
+    function getFieldType(type, field, defaultType) {
+        var key = type.nonArrayComparisonName() + "." + field;
         if (key in typeOverrides) {
             return typeOverrides[key];
         } else {
-            return jsDbgType;
+            return defaultType;
         }
     }
-
-    DbgObject._help_AddModuleFilter = {
-        description: "Adds a transformation to be applied to module names.",
-        arguments: [
-            {name:"filter", type:"function(string) -> string", description:"The filter to apply to each module name."}
-        ]
-    }
-
-    var moduleFilters = [];
-    DbgObject.AddModuleFilter = function(filter) {
-        moduleFilters.push(filter);
-    }
-
-    DbgObject._help_NormalizeModule = {
-        description: "Normalizes a module name to its canonical name to use for comparisons.",
-        returns: "A normalized module name.",
-        arguments: [
-            {name:"module", type:"string", description:"The non-normalized module name."}
-        ]
-    }
-    DbgObject.NormalizeModule = function(module) {
-        return moduleFilters.reduce(
-            function (name, transformation) {
-                return transformation(name);
-            },
-            module
-        );
-    }
-
 
     DbgObject._help_global = {
         description: "Looks up a global symbol in the debuggee.",
@@ -160,7 +91,7 @@ Loader.OnLoad(function() {
         return new PromisedDbgObject(
             JsDbgPromise.LookupGlobalSymbol(module, symbol)
             .then(function(result) {
-                return DbgObject.create(result.module, result.type, result.pointer);
+                return DbgObject.create(DbgObjectType(result.module, result.type), result.pointer);
             })
         );
     }
@@ -183,7 +114,7 @@ Loader.OnLoad(function() {
                     return JsDbgPromise.LookupSymbolName(frame.instructionAddress)
                     .then(function (symbol) {
                         return (
-                            DbgObject.NormalizeModule(symbol.module) == DbgObject.NormalizeModule(module) &&
+                            symbol.module == module &&
                             symbol.name == method
                         );
                     })
@@ -204,7 +135,7 @@ Loader.OnLoad(function() {
                     return symbols
                     .reduce(function (a, b) { return a.concat(b); }, [])
                     .map(function (symbol) {
-                        return DbgObject.create(symbol.module, symbol.type, symbol.address);
+                        return DbgObject.create(DbgObjectType(symbol.module, symbol.type), symbol.address);
                     })
                 })
             })
@@ -222,7 +153,7 @@ Loader.OnLoad(function() {
         return JsDbgPromise.LookupSymbolName(address)
         .then(function (result) {
             if (result.displacement == 0) {
-                return result.name;
+                return result.module + "!" + result.name;
             } else {
                 throw new Error("The address 0x" + address.toString(16) + " is not a valid symbol address.");
             }
@@ -233,13 +164,12 @@ Loader.OnLoad(function() {
         description: "Evaluates a constant's name to its underlying value.",
         returns: "A promise to an integer.",
         arguments: [
-            {name:"module", type:"string", description:"The module containing the method."},
-            {name:"type", type:"string", description:"The type (e.g. enum) containing the constant."},
+            {name:"type", type:"DbgObjectType", description:"The type containing the constant."},
             {name:"constantName", type:"string", description:"The constant name."}
         ]
     }
-    DbgObject.constantValue = function(module, type, constantName) {
-        return JsDbgPromise.LookupConstantValue(module, type, constantName)
+    DbgObject.constantValue = function(type, constantName) {
+        return JsDbgPromise.LookupConstantValue(type.module(), type.name(), constantName)
         .then(function (result) {
             return result.value;
         });
@@ -302,43 +232,20 @@ Loader.OnLoad(function() {
     }
 
     DbgObject._help_NULL = {description: "A DbgObject that represents a null value."}
-    DbgObject.NULL = DbgObject.create("", "", 0, 0, 0);
-
-    DbgObject.prototype._getDereferencedTypeName = function() {
-        if (this._isPointer()) {
-            return this.typename.substring(0, this.typename.length - 1);
-        } else {
-            return "void";
-        }
-    }
-
-    DbgObject.prototype._off = function(offset) {
-        if (this.isNull()) {
-            return this;
-        } else {
-            return DbgObject.create(this.module, this.typename, this._pointer.add(offset), this.bitcount, this.bitoffset, this.structSize);
-        }
-    }
-
-    DbgObject.prototype._isPointer = function() {
-        return this.typename[this.typename.length - 1] == "*";
-    }
-
-    DbgObject.prototype._isFloat = function() {
-        return this.typename == "float" || this.typename == "double";
-    }
+    DbgObject.NULL = DbgObject.create(DbgObjectType("", "void"), 0, 0, 0);
 
     DbgObject.prototype._help_size = {
         description:"Gets the size of the DbgObject in bytes.",
         returns: "A promise to an integral number of bytes."
     }
     DbgObject.prototype.size = function() {
-        if (this.structSize !== undefined) {
-            return Promise.resolve(this.structSize);
+        if (this.typeSize !== undefined) {
+            var result = this.typeSize * (this.type.isArray() ? this.type.arrayLength() : 1);
+            return Promise.resolve(result);
         } else if (this == DbgObject.NULL) {
             return Promise.resolve(0);
         } else {
-            return JsDbgPromise.LookupTypeSize(this.module, this.typename).then(function(result) {
+            return JsDbgPromise.LookupTypeSize(this.type.module(), this.type.name()).then(function(result) {
                 return result.size;
             });
         }
@@ -352,15 +259,14 @@ Loader.OnLoad(function() {
         if (this == DbgObject.NULL) {
             return new PromisedDbgObject(this);
         } else if (this.isNull()) {
-            return new PromisedDbgObject(DbgObject.create(this.module, this._getDereferencedTypeName(), 0));
+            return new PromisedDbgObject(DbgObject.create(this.type.dereferenced(), 0));
         }
 
         var that = this;
-        return this.as("void*").ubigval()
+        return this.as("void*", true).ubigval()
         .then(function(result) {
             return DbgObject.create(
-                that.module,
-                that._getDereferencedTypeName(),
+                that.type.dereferenced(),
                 result,
                 /*bitcount*/undefined,
                 /*bitoffset*/undefined,
@@ -447,7 +353,7 @@ Loader.OnLoad(function() {
         return dbgObject.field(path)
         .then(function (field) {
             // Objects that are pointers and arrays are really arrays of pointers, so don't dereference them.
-            if (field._isPointer() && !field._isArray) {
+            if (field.type.isPointer() && !field.type.isArray()) {
                 return field.deref();
             } else {
                 return field;
@@ -456,20 +362,19 @@ Loader.OnLoad(function() {
     });
 
     DbgObject.prototype.field = function(field) {
-        if (this._isPointer()) {
+        if (this.type.isPointer()) {
             throw new Error("You cannot do a field lookup on a pointer.");
-        } else if (this._isArray) {
+        } else if (this.type.isArray()) {
             throw new Error("You cannot get a field from an array.");
         } else if (this == DbgObject.NULL) {
             return Promise.resolve(DbgObject.NULL);
         }
 
         var that = this;
-        return JsDbgPromise.LookupFieldOffset(that.module, that.typename, field)
+        return JsDbgPromise.LookupFieldOffset(that.type.module(), that.type.name(), field)
         .then(function(result) {
             return DbgObject.create(
-                that.module, 
-                getFieldType(that.module, that.typename, field, result.type), 
+                getFieldType(that.type, field, DbgObjectType(result.module, result.type)), 
                 that.isNull() ? 0 : that._pointer.add(result.offset),
                 result.bitcount, 
                 result.bitoffset, 
@@ -491,9 +396,10 @@ Loader.OnLoad(function() {
             return new PromisedDbgObject(DbgObject.NULL);
         }
         var that = this;
-        return JsDbgPromise.LookupFieldOffset(that.module, type, field)
+        var outerType = DbgObject.Create(type, that.type);
+        return JsDbgPromise.LookupFieldOffset(outerType.module(), type.name(), field)
         .then(function(result) { 
-            return DbgObject.create(that.module, type, that.isNull() ? 0 : that._pointer.add(-result.offset)); 
+            return DbgObject.create(outerType, that.isNull() ? 0 : that._pointer.add(-result.offset)); 
         });
     }
 
@@ -511,7 +417,13 @@ Loader.OnLoad(function() {
         if (this == DbgObject.NULL) {
             return this;
         } else {
-            return DbgObject.create(this.module, type, this._pointer, this.bitcount, this.bitoffset, disregardSize ? undefined : this.structSize);
+            var objectSize;
+            if (disregardSize || this.typeSize === undefined) {
+                objectSize = undefined;
+            } else {
+                objectSize = this.typeSize * (this.type.isArray() && this.type.arrayLength() > 0 ? this.type.arrayLength() : 1);
+            }
+            return DbgObject.create(DbgObjectType(type, this.type), this._pointer, this.bitcount, this.bitoffset, objectSize);
         }
     }
 
@@ -523,10 +435,21 @@ Loader.OnLoad(function() {
     }
     DbgObject.prototype.idx = function(index) {
         var that = this;
-        // index might be a promise, so resolve it and get the struct size.
-        return Promise.all([this.size(), index])
-        .thenAll(function (structSize, index) {
-            return that._off(structSize * index);
+        return Promise.resolve(index)
+        .then(function (index) {
+            if (index == 0) {
+                return DbgObject.create(that.type.nonArrayType(), that._pointer, that.bitcount, that.bitoffset, that.typeSize)
+            } else {
+                return that.size()
+                .then(function (objectSize) {
+                    var typeSize = (
+                        (that.type.isArray() && that.type.arrayLength() > 0) ?
+                        objectSize / that.type.arrayLength() :
+                        objectSize
+                    );
+                    return DbgObject.create(that.type.nonArrayType(), that._pointer.add(typeSize * index), that.bitcount, that.bitoffset, that.typeSize);
+                })
+            }
         })
     }
 
@@ -544,10 +467,10 @@ Loader.OnLoad(function() {
             <tr><td><code>ubigval</code></td><td>unsigned</td><td>bigInt</td></tr>\
         </table>"
     }
-    DbgObject.prototype.val = function() { return this._val(this._isUnsigned || this._isPointer(), false, false, 0); }
+    DbgObject.prototype.val = function() { return this._val(this.type.isUnsigned() || this.type.isPointer(), false, false, 0); }
     DbgObject.prototype.uval = function() { return this._val(true, false, false, 0); }
     DbgObject.prototype.sval = function() { return this._val(false, false, false, 0); }
-    DbgObject.prototype.bigval = function() { return this._val(this._isUnsigned || this._isPointer(), true, false, 0); }
+    DbgObject.prototype.bigval = function() { return this._val(this.type.isUnsigned() || this.type.isPointer(), true, false, 0); }
     DbgObject.prototype.ubigval = function() { return this._val(true, true, false, 0); }
     DbgObject.prototype.sbigval = function() { return this._val(false, true, false, 0); }
 
@@ -566,10 +489,10 @@ Loader.OnLoad(function() {
             <tr><td><code>ubigvals</code></td><td>unsigned</td><td>bigInt</td></tr>\
         </table>"
     }
-    DbgObject.prototype.vals = function(count) { return this._val(this._isUnsigned || this._isPointer(), false, true, count); }
+    DbgObject.prototype.vals = function(count) { return this._val(this.type.isUnsigned() || this.type.isPointer(), false, true, count); }
     DbgObject.prototype.uvals = function(count) { return this._val(true, false, true, count); }
     DbgObject.prototype.svals = function(count) { return this._val(false, false, true, count); }
-    DbgObject.prototype.bigvals = function(count) { return this._val(this._isUnsigned || this._isPointer(), true, true, count); }
+    DbgObject.prototype.bigvals = function(count) { return this._val(this.type.isUnsigned() || this.type.isPointer(), true, true, count); }
     DbgObject.prototype.ubigvals = function(count) { return this._val(true, true, true, count); }
     DbgObject.prototype.sbigvals = function(count) { return this._val(false, true, true, count); }
 
@@ -585,7 +508,7 @@ Loader.OnLoad(function() {
         </table>",
         arguments: [{name: "value", type:"number", description: "The value to set."}],
     }
-    DbgObject.prototype.setval = function(value) { return this._setval(this._isUnsigned || this._isPointer(), value); }
+    DbgObject.prototype.setval = function(value) { return this._setval(this.type.isUnsigned() || this.type.isPointer(), value); }
     DbgObject.prototype.setuval = function(value) { return this._setval(true, value); }
     DbgObject.prototype.setsval = function(value) { return this._setval(false, value); }
 
@@ -598,7 +521,7 @@ Loader.OnLoad(function() {
             }
         }
 
-        if (this.typename == "void") {
+        if (this.type.name() == "void") {
             if (!isCountSpecified) {
                 return Promise.resolve(this._pointer);
             } else {
@@ -617,10 +540,10 @@ Loader.OnLoad(function() {
         var that = this;
 
         // Lookup the structure size...
-        return Promise.all([this.size(), isCountSpecified ? count : 1])
+        return Promise.all([this.idx(0).size(), isCountSpecified ? count : 1])
 
         // Get the array of values.
-        .thenAll(function(structSize, arrayCount) {
+        .thenAll(function(valueSize, arrayCount) {
             if (arrayCount instanceof DbgObject) {
                 arrayCount = arrayCount.val();
             }
@@ -630,14 +553,14 @@ Loader.OnLoad(function() {
                     throw new Error("Cannot retrieve over 1,000,000 values all at once.");
                 }
 
-                return MemoryCachePromise.ReadArray(that._pointer.value(), structSize, unsigned, that._isFloat(), arrayCount);
+                return MemoryCachePromise.ReadArray(that._pointer.value(), valueSize, unsigned, that.type.isFloat(), arrayCount);
             })
         })
 
         // If we're a bit field, extract the bits.
         .then(function(result) {
             var array = result.array;
-            if (that._isFloat()) {
+            if (that.type.isFloat()) {
                 // The array is already good to go.
             } else if (!useBigInt) {
                 array = array.map(function (value) {
@@ -665,7 +588,7 @@ Loader.OnLoad(function() {
     }
 
     DbgObject.prototype._setval = function(unsigned, value) {
-        if (!this._isFloat()) {
+        if (!this.type.isFloat()) {
             value = bigInt(value);
         }
 
@@ -673,22 +596,22 @@ Loader.OnLoad(function() {
             return Promise.resolve(null);
         }
 
-        if (this.typename == "void") {
+        if (this.type.name() == "void") {
             throw new Error("You may not write to a void object.");
         }
 
         var that = this;
         return this.size()
         .then(function (structSize) {
-            if (that.bitcount && that.bitoffset !== undefined && !that._isFloat()) {
+            if (that.bitcount && that.bitoffset !== undefined && !that.type.isFloat()) {
                 unsigned = true;
             }
 
             // Read the current value first.  If it's not different, don't go through with the write.
-            return MemoryCachePromise.ReadNumber(that._pointer.value(), structSize, unsigned, that._isFloat())
+            return MemoryCachePromise.ReadNumber(that._pointer.value(), structSize, unsigned, that.type.isFloat())
             .then(function (currentValue) {
                 // If we're a bit field, compute the full value to write.
-                if (that.bitcount && that.bitoffset !== undefined && !that._isFloat()) {
+                if (that.bitcount && that.bitoffset !== undefined && !that.type.isFloat()) {
                     var maskedBits = currentValue.value
                     .and(bigInt.one.shiftLeft(that.bitcount).minus(1).shiftLeft(that.bitoffset).not())
                     .or(
@@ -702,7 +625,7 @@ Loader.OnLoad(function() {
                     } else {
                         return maskedBits;
                     }
-                } else if (that._isFloat()) {
+                } else if (that.type.isFloat()) {
                     if (currentValue.value == value) {
                         return null;
                     } else {
@@ -718,46 +641,13 @@ Loader.OnLoad(function() {
             })
             .then(function (valueToWrite) {
                 if (valueToWrite != null) {
-                    return JsDbgPromise.WriteNumber(that._pointer.value(), structSize, unsigned, that._isFloat(), valueToWrite);
+                    return JsDbgPromise.WriteNumber(that._pointer.value(), structSize, unsigned, that.type.isFloat(), valueToWrite);
                 }
             })
             .then(function () {
                 return undefined;
             })
         });
-    }
-
-    var scalarTypes = [
-        "bool",
-        "char",
-        "__int8",
-        "short",
-        "wchar_t",
-        "__wchar_t",
-        "__int16",
-        "int",
-        "__int32",
-        "long",
-        "float",
-        "double",
-        "long double",
-        "long long",
-        "__int64"
-    ];
-    scalarTypes = scalarTypes.reduce(function(obj, item) { 
-        obj[item] = true;
-        obj["unsigned " + item] = true;
-        obj["signed " + item] = true;
-        return obj;
-    }, {});
-
-    DbgObject.prototype._help_isScalarType = {
-        description: "Indicates if the type of the DbgObject is a scalar (i.e. boolean, character, or number).",
-        returns: "A bool."
-    };
-
-    DbgObject.prototype.isScalarType = function() {
-        return this.typename in scalarTypes;
     }
 
     DbgObject.prototype._help_isTypeWithFields = {
@@ -769,9 +659,7 @@ Loader.OnLoad(function() {
         var that = this;
         return Promise.resolve(null)
         .then(function () {
-            if (that.isScalarType()) {
-                return false;
-            } else if (that.isPointer()) {
+            if (that.type.isScalar() || that.type.isPointer()) {
                 return false;
             } else {
                 return that.isEnum().then(function (isEnum) { return !isEnum; });
@@ -784,7 +672,7 @@ Loader.OnLoad(function() {
         returns: "A promise to a bool."
     }
     DbgObject.prototype.isEnum = function() {
-        return JsDbgPromise.IsTypeEnum(this.module, this.typename)
+        return JsDbgPromise.IsTypeEnum(this.type.module(), this.type.name())
         .then(function (result) { return result.isEnum; })
     }
 
@@ -801,7 +689,7 @@ Loader.OnLoad(function() {
         return this.ubigval()
         // Lookup the constant name...
         .then(function(value) { 
-            return JsDbgPromise.LookupConstantName(that.module, that.typename, value); })
+            return JsDbgPromise.LookupConstantName(that.type.module(), that.type.name(), value); })
 
         // And return it.
         .then(function(result) { return result.name; })
@@ -815,7 +703,7 @@ Loader.OnLoad(function() {
         ]
     }
     DbgObject.prototype.hasConstantFlag = function(flag) {
-        return Promise.all([this.bigval(), DbgObject.constantValue(this.module, this.typename, flag)])
+        return Promise.all([this.bigval(), DbgObject.constantValue(this.type, flag)])
         .thenAll(function (value, flag) {
             return value.and(flag).equals(flag);
         })
@@ -938,22 +826,6 @@ Loader.OnLoad(function() {
         return this._pointer.value();
     }
 
-    DbgObject.prototype._help_typeDescription = {
-        description: "Returns the type of a DbgObject.",
-        returns: "A string."
-    }
-    DbgObject.prototype.typeDescription = function() {
-        return this.typename + (this._isArray ? "[" + this._arrayLength + "]" : "");
-    }
-
-    DbgObject.prototype._help_htmlTypeDescription = {
-        description: "Returns the HTML-escaped type of a DbgObject.",
-        returns: "A string."
-    }
-    DbgObject.prototype.htmlTypeDescription = function() {
-        return this.typeDescription().replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
     DbgObject.prototype._help_equals = {
         description: "Indicates if two DbgObjects represent the same address in memory.",
         returns: "A bool.",
@@ -968,29 +840,6 @@ Loader.OnLoad(function() {
         return this._pointer.equals(other._pointer);
     }
 
-    DbgObject.prototype._help_vtable = {
-        description: "Returns the type associated with the object's vtable.",
-        returns: "A promise to a string."
-    }
-    DbgObject.prototype.vtable = function() {
-        if (this.isNull()) {
-            return Promise.resolve(this.typename);
-        }
-
-        // Read the value at the this pointer...
-        return this.as("void*").ubigval()
-
-        // Lookup the symbol at that value...
-        .then(function(result) { 
-            return DbgObject.symbol(result);
-        })
-
-        // And strip away the vftable suffix..
-        .then(function(result) {
-            return result.substring(0, result.indexOf("::`vftable'"));
-        });
-    }
-
     DbgObject.prototype._help_vcast = {
         description: "Lookup the type to an object's vtable and attempt a multiple-inheritance-aware cast.",
         returns: "A promise to a DbgObject.",
@@ -1002,35 +851,45 @@ Loader.OnLoad(function() {
         }
 
         var that = this;
-        // Lookup the vtable type...
-        return this.vtable()
-        .then(function(vtableType) {
-            if (vtableType == that.typename) {
+        // Read the value at the this pointer...
+        return this.as("void*", true).ubigval()
+
+        // Lookup the symbol at that value...
+        .then(function(result) { 
+            return DbgObject.symbol(result);
+        })
+        .then(function(vtableSymbol) {
+            if (vtableSymbol.indexOf("::`vftable'") < 0) {
+                // No vtable.
+                return that;
+            }
+            var vtableType = DbgObjectType(vtableSymbol.substr(0, vtableSymbol.indexOf("::`vftable'")));
+            if (vtableType.equals(that.type)) {
                 return that;
             }
 
             // Lookup the base class offset...
-            return JsDbgPromise.LookupBaseTypes(that.module, vtableType)
+            return JsDbgPromise.LookupBaseTypes(vtableType.module(), vtableType.name())
 
             // And shift/cast.
             .then(function(baseTypes) {
                 for (var i = 0; i < baseTypes.length; ++i) {
-                    if (baseTypes[i].type == that.typename) {
-                        return DbgObject.create(that.module, vtableType, that._pointer.add(-baseTypes[i].offset));
+                    if (that.type.equals(baseTypes[i].module, baseTypes[i].type)) {
+                        return DbgObject.create(vtableType, that._pointer.add(-baseTypes[i].offset));
                     }
                 }
 
                 // Maybe the vtable type is a base type of the original...
-                return JsDbgPromise.LookupBaseTypes(that.module, that.typename)
+                return JsDbgPromise.LookupBaseTypes(that.type.module(), that.type.name())
                 .then(function(originalBaseTypes) {
                     for (var i = 0; i < originalBaseTypes.length; ++i) {
-                        if (originalBaseTypes[i].type == vtableType) {
-                            return DbgObject.create(that.module, vtableType, that._pointer.add(originalBaseTypes[i].offset));
+                        if (vtableType.equals(originalBaseTypes[i].module, originalBaseTypes[i].type)) {
+                            return DbgObject.create(vtableType, that._pointer.add(originalBaseTypes[i].offset));
                         }
                     }
 
                     // Couldn't find a proper offset, so just cast.
-                    return DbgObject.create(that.module, vtableType, that._pointer);
+                    return DbgObject.create(vtableType, that._pointer);
                 });
             });
         });
@@ -1045,21 +904,23 @@ Loader.OnLoad(function() {
         notes: "This is only available on types that have a vtable."
     }
     DbgObject.prototype.dcast = function(type) {
+        type = DbgObjectType(type, this.type);
+
         var that = this;
         return this.vcast()
         .then(function (result) {
-            if (result.typename == type) {
+            if (result.type.equals(type)) {
                 return result;
             } else {
                 return result.baseTypes()
                 .then(function (baseTypes) {
-                    baseTypes = baseTypes.filter(function (d) { return d.typename == type; });
+                    baseTypes = baseTypes.filter(function (d) { return d.type.equals(type); });
                     return baseTypes.length > 0 ? baseTypes[0] : Promise.reject();
                 })
             }
         })
         .then(null, function (err) {
-            return DbgObject.create(that.module, type, 0);
+            return DbgObject.create(type, 0);
         })
     }
 
@@ -1072,15 +933,14 @@ Loader.OnLoad(function() {
     }
 
     DbgObject.prototype.isType = function(type) {
-        type = cleanupTypeName(type);
         if (this == DbgObject.NULL) {
             return Promise.resolve(true);
-        } else if (this.typeDescription() == type) {
+        } else if (this.type.equals(type)) {
             return Promise.resolve(true);
         } else {
             return this.baseTypes()
             .then(function (baseTypes) {
-                var matchingBaseTypes = baseTypes.filter(function (baseType) { return baseType.typeDescription() == type; });
+                var matchingBaseTypes = baseTypes.filter(function (baseType) { return baseType.type.equals(type); });
                 return (matchingBaseTypes.length > 0);
             });
         }
@@ -1096,7 +956,7 @@ Loader.OnLoad(function() {
         }
 
         var that = this;
-        return JsDbgPromise.LookupBaseTypes(that.module, that.typename)
+        return JsDbgPromise.LookupBaseTypes(that.type.module(), that.type.name())
         .then(function (baseTypes) {
             // Put base types with greater offsets earlier so that the order proxies the order of fields.
             // So,
@@ -1116,7 +976,7 @@ Loader.OnLoad(function() {
                 }
             })
             return baseTypes.map(function (typeAndOffset) {
-                return DbgObject.create(that.module, typeAndOffset.type, that._pointer.add(typeAndOffset.offset));
+                return DbgObject.create(DbgObjectType(typeAndOffset.module, typeAndOffset.type), that._pointer.add(typeAndOffset.offset));
             });
         });
     }
@@ -1126,7 +986,7 @@ Loader.OnLoad(function() {
         returns: "A promise to an array of {name:(string), offset:(int), size:(int), value:(DbgObjects)} objects."
     }
     DbgObject.prototype.fields = function(includeBaseTypes) {
-        if (this._isPointer()) {
+        if (this.type.isPointer()) {
             throw new Error("You cannot lookup fields on a pointer.");
         }
 
@@ -1140,7 +1000,7 @@ Loader.OnLoad(function() {
 
         var that = this;
         // Lookup the fields...
-        return JsDbgPromise.LookupFields(this.module, this.typename, includeBaseTypes)
+        return JsDbgPromise.LookupFields(this.type.module(), this.type.name(), includeBaseTypes)
 
         // Sort them by offset and massage the output.
         .then(function(result) {
@@ -1175,8 +1035,7 @@ Loader.OnLoad(function() {
                     offset: field.offset,
                     size: field.size,
                     value: DbgObject.create(
-                        that.module, 
-                        getFieldType(that.module, that.typename, field.name, field.type), 
+                        getFieldType(that.type, field.name, DbgObjectType(field.module, field.type)), 
                         that._pointer.isNull() ? 0 : that._pointer.add(field.offset),
                         field.bitcount, 
                         field.bitoffset, 
@@ -1187,22 +1046,6 @@ Loader.OnLoad(function() {
         });
     }
 
-    DbgObject.prototype._help_arrayLength = {
-        description: "If the DbgObject represents an array, returns the length of the array.",
-        returns: "An integer."
-    }
-    DbgObject.prototype.arrayLength = function() {
-        return this._arrayLength;
-    }
-
-    DbgObject.prototype._help_isArray = {
-        description: "Indicates if the DbgObject represents an array.",
-        returns: "A bool."
-    }
-    DbgObject.prototype.isArray = function() {
-        return this._isArray;
-    }
-
     DbgObject.prototype._help_isNull = {
         description: "Indicates if the DbgObject is null.",
         returns: "A bool."
@@ -1210,14 +1053,4 @@ Loader.OnLoad(function() {
     DbgObject.prototype.isNull = function() {
         return this._pointer.isNull();
     }
-
-    DbgObject.prototype._help_isPointer = {
-        description: "Indicates if the DbgObject represents a pointer.",
-        returns: "A bool."
-    }
-    DbgObject.prototype.isPointer = function() {
-        return this._isPointer();
-    }
-
-    DbgObject.AddModuleFilter(function (module) { return module.toLowerCase(); });
 });

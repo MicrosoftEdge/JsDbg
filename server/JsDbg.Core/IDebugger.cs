@@ -43,6 +43,7 @@ namespace JsDbg.Core {
         public byte BitOffset;
         public byte BitCount;
         public string FieldName;
+        public string Module;
         public string TypeName;
 
         public bool IsBitField {
@@ -56,6 +57,7 @@ namespace JsDbg.Core {
     }
 
     public struct SBaseTypeResult {
+        public string Module;
         public string TypeName;
         public int Offset;
     }

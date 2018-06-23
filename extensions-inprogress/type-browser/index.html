@@ -29,7 +29,7 @@
 
         function loadType(module, type, loader) {
             var dummyObject = DbgObject.create(module, type, 0);
-            if (dummyObject.isPointer()) {
+            if (dummyObject.type.isPointer()) {
                 loadType(module, dummyObject._getDereferencedTypeName(), loader);
             } else {
                 dummyObject.fields()
@@ -37,7 +37,7 @@
                     fields = fields.map(function (f) {
                         return {
                             name: f.name,
-                            type: f.value.typeDescription()
+                            type: f.value.type.name()
                         }
                     });
                     showFields(module, type, fields, loader);

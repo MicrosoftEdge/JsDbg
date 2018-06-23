@@ -7,7 +7,7 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return DbgObject.create(MSHTML.Module, "void", address).vcast();
+            return DbgObject.create(MSHTML.Type("void"), address).vcast();
         },
         GetRoots: function() {
             return MSHTML.GetCDocs()
@@ -41,14 +41,14 @@ Loader.OnLoad(function() {
                 return Promise.reject(errorMessage);
             });
         },
-        DefaultTypes: [{ module: MSHTML.Module, type: "CDispNode" }],
+        DefaultTypes: [MSHTML.Type("CDispNode")],
     };
 
-    DisplayTree.Tree.addChildren(MSHTML.Module, "CDoc", function (doc) {
+    DisplayTree.Tree.addChildren(MSHTML.Type("CDoc"), function (doc) {
         return doc.f("_view");
     });
 
-    DisplayTree.Renderer.addNameRenderer(MSHTML.Module, "CDoc", function (doc) {
+    DisplayTree.Renderer.addNameRenderer(MSHTML.Type("CDoc"), function (doc) {
         return doc.F("PrimaryMarkup").desc("URL")
         .then(function (url) {
             if (url != null) {
@@ -59,16 +59,16 @@ Loader.OnLoad(function() {
         })
     })
 
-    DisplayTree.Tree.addChildren(MSHTML.Module, "CView", function (view) {
+    DisplayTree.Tree.addChildren(MSHTML.Type("CView"), function (view) {
         return view.f("_pDispRoot");
     });
 
-    DisplayTree.Tree.addChildren(MSHTML.Module, "CDispParentNode", function (dispParentNode) {
+    DisplayTree.Tree.addChildren(MSHTML.Type("CDispParentNode"), function (dispParentNode) {
         return dispParentNode.f("_pFirstChild").list("_pNext").vcast();
     });
 
     // Add DbgObject actions for links to the display tree.
-    DbgObject.AddAction(MSHTML.Module, "CDispNode", "DisplayTree", function (dispNode) {
+    DbgObject.AddAction(MSHTML.Type("CDispNode"), "DisplayTree", function (dispNode) {
         function getTopMostDispNode(node) {
             return node.f("_pParent")
             .then(function (parentNode) {
@@ -100,15 +100,15 @@ Loader.OnLoad(function() {
         })
     });
 
-    DbgObject.AddAction(MSHTML.Module, "CDoc", "DisplayTree", function (doc) {
+    DbgObject.AddAction(MSHTML.Type("CDoc"), "DisplayTree", function (doc) {
         return TreeInspector.GetActions("displaytree", "Display Tree", doc);
     });
 
-    DbgObject.AddAction(MSHTML.Module, "CView", "DisplayTree", function (view) {
+    DbgObject.AddAction(MSHTML.Type("CView"), "DisplayTree", function (view) {
         return TreeInspector.GetActions("displaytree", "Display Tree", view.unembed("CDoc", "_view"), view);
     });
 
-    DbgObject.AddExtendedField(MSHTML.Module, "CDispNode", "Client", "CDispClient", UserEditableFunctions.Create(function (dispNode) {
+    DbgObject.AddExtendedField(MSHTML.Type("CDispNode"), "Client", "CDispClient", UserEditableFunctions.Create(function (dispNode) {
         // Check if it has advanced display...
         return dispNode.f("_flags._fAdvanced").val()
 
@@ -127,11 +127,11 @@ Loader.OnLoad(function() {
         );
     }));
 
-    DbgObject.AddExtendedField(MSHTML.Module, "CDispClient", "AsContainerBox", "Layout::ContainerBox", UserEditableFunctions.Create(function (client) {
+    DbgObject.AddExtendedField(MSHTML.Type("CDispClient"), "AsContainerBox", "Layout::ContainerBox", UserEditableFunctions.Create(function (client) {
         return client.dcast("Layout::ContainerBox");
     }));
 
-    DbgObject.AddTypeDescription(MSHTML.Module, "CDispFlags", "AllFlags", false, UserEditableFunctions.Create(function (flags) {
+    DbgObject.AddTypeDescription(MSHTML.Type("CDispFlags"), "AllFlags", false, UserEditableFunctions.Create(function (flags) {
         return Promise
         .filter(flags.fields(), function(f) {
             if (f.name.indexOf("_fUnused") != 0 && f.value.bitcount == 1) {

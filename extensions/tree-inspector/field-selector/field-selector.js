@@ -5,8 +5,8 @@ var FieldSelector = (function() {
         this.checkedFields = {};
     }
 
-    CheckedFields.prototype.markEnabled = function (module, type, path) {
-        var key = module + "!" + type;
+    CheckedFields.prototype.markEnabled = function (type, path) {
+        var key = type.nonArrayComparisonName();
         if (!(key in this.checkedFields)) {
             this.checkedFields[key] = [path];
         } else {
@@ -17,8 +17,8 @@ var FieldSelector = (function() {
         this.serialize();
     }
 
-    CheckedFields.prototype.markDisabled = function (module, type, path) {
-        var key = module + "!" + type;
+    CheckedFields.prototype.markDisabled = function (type, path) {
+        var key = type.nonArrayComparisonName();
         if (!(key in this.checkedFields)) {
             return;
         }
@@ -26,8 +26,8 @@ var FieldSelector = (function() {
         this.serialize();
     }
 
-    CheckedFields.prototype.getEnabledPaths = function (module, type) {
-        var key = module + "!" + type;
+    CheckedFields.prototype.getEnabledPaths = function (type) {
+        var key = type.nonArrayComparisonName();
         if (!(key in this.checkedFields)) {
             return [];
         } else {
@@ -62,7 +62,7 @@ var FieldSelector = (function() {
     }
 
     ActiveField.prototype.shouldBeApplied = function (dbgObject) {
-        return dbgObject.module == this.rootDbgObject.module && dbgObject.typename == this.rootDbgObject.typename;
+        return dbgObject.type.equals(this.rootDbgObject.type);
     }
 
     ActiveField.prototype.apply = function(dbgObject, container) {
@@ -126,10 +126,10 @@ var FieldSelector = (function() {
         container.classList.add("field-selection");
     }
 
-    FieldSelectorController.prototype.addType = function (module, typename, isBaseType) {
+    FieldSelectorController.prototype.addType = function (type, isBaseType) {
         for (var i = 0; i < this.knownTypes.length; ++i) {
             var knownType = this.knownTypes[i];
-            if (knownType.module == module && knownType.typename == typename) {
+            if (knownType.type.equals(type)) {
                 if (!isBaseType) {
                     // We may have rendered it as a base type before.  If so, remove the class.
                     this.typeListContainer.childNodes[i].classList.remove("base-type");
@@ -145,20 +145,19 @@ var FieldSelector = (function() {
         }
 
         var that = this;
-        var dbgObject = DbgObject.create(module, typename, 0);
+        var dbgObject = DbgObject.create(type, 0);
         var explorer = TypeExplorer.Create(dbgObject, {
             onFieldChange: this._onFieldChange.bind(this)
         });
 
         // Put it into the list, re-sort, and mirror the position in the DOM.
         var newType = {
-            module: module, 
-            typename: typename,
+            type: type,
             explorer: explorer
         };
         this.knownTypes.push(newType);
         this.knownTypes.sort(function (a, b) {
-            return a.typename.localeCompare(b.typename);
+            return a.type.name().localeCompare(b.type.name());
         });
         var index = this.knownTypes.indexOf(newType);
         if (index < this.typeListContainer.childNodes.length) {
@@ -169,7 +168,7 @@ var FieldSelector = (function() {
         }
         
         var that = this;
-        var enabledPaths = this.checkedFields.getEnabledPaths(module, typename);
+        var enabledPaths = this.checkedFields.getEnabledPaths(type);
         return Promise.map(enabledPaths, function (path) { return explorer.enableField(path, /*context*/true); })
         .then(function () {
             return that._renderRootType(newType, newTypeContainer);
@@ -178,14 +177,14 @@ var FieldSelector = (function() {
 
     FieldSelectorController.prototype.includeDbgObjectTypes = function(dbgObject) {
         var that = this;
-        return this.addType(dbgObject.module, dbgObject.typename, /*isBaseType*/false)
+        return this.addType(dbgObject.type, /*isBaseType*/false)
         .then(function (alreadyPresent) {
             if (!alreadyPresent) {
                 // The type wasn't there before.  Add the base types as well.
                 return Promise.map(
                     dbgObject.baseTypes(),
                     function (dbgObject) {
-                        return that.addType(dbgObject.module, dbgObject.typename, /*isBaseType*/true);
+                        return that.addType(dbgObject.type, /*isBaseType*/true);
                     }
                 );
             }
@@ -232,7 +231,7 @@ var FieldSelector = (function() {
 
         var typeName = document.createElement("div");
         typeName.classList.add("type-name");
-        typeName.appendChild(document.createTextNode(rootType.typename));
+        typeName.appendChild(document.createTextNode(rootType.type.name()));
         typeName.addEventListener("click", function () {
             rootType.explorer.toggleExpansion();
             typeContainer.classList.toggle("root-collapsed");
@@ -272,7 +271,7 @@ var FieldSelector = (function() {
             field.allGetters.forEach(function (getter) {
                 UserEditableFunctions.AddListener(getter, listener);
             });
-            this.checkedFields.markEnabled(rootDbgObject.module, rootDbgObject.typeDescription(), field.path);
+            this.checkedFields.markEnabled(rootDbgObject.type, field.path);
 
             // When we're explicitly enabling a field we don't need to queue an update
             // because the request came from adding the type.
@@ -286,7 +285,7 @@ var FieldSelector = (function() {
             field.allGetters.forEach(function (getter) {
                 UserEditableFunctions.RemoveListener(getter, listener);
             });
-            this.checkedFields.markDisabled(rootDbgObject.module, rootDbgObject.typeDescription(), field.path);
+            this.checkedFields.markDisabled(rootDbgObject.type, field.path);
             this._queueUpdate(rootDbgObject);
         }
     }
@@ -330,7 +329,7 @@ var FieldSelector = (function() {
                     field.getter(dbgObject), 
                     valueContainer, 
                     function (dbgObject) {
-                        if (dbgObject.isArray()) {
+                        if (dbgObject.type.isArray()) {
                             return dbgObject.array();
                         } else {
                             return dbgObject.desc().then(function (desc) {
@@ -487,7 +486,7 @@ var FieldSelector = (function() {
 
         var requiresUpdatePromise;
         if (dbgObject instanceof DbgObject) {
-            requiresUpdatePromise = Promise.all(updatedDbgObjects.map(function (updatedDbgObject) { return dbgObject.isType(updatedDbgObject.typename); }))
+            requiresUpdatePromise = Promise.all(updatedDbgObjects.map(function (updatedDbgObject) { return dbgObject.isType(updatedDbgObject.type); }))
             .then(function (requiresUpdateArray) {
                 return requiresUpdateArray.reduce(function (accumulator, currentValue) { return accumulator || currentValue; }, false);
             })

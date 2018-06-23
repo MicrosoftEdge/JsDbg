@@ -90,9 +90,9 @@ namespace JsDbg.Core {
                         if (location == DiaHelpers.LocationType.LocIsBitField) {
                             byte bitOffset = (byte)dataSymbol.bitPosition;
                             byte bitCount = (byte)dataSymbol.length;
-                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), bitOffset, bitCount));
+                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, module, DiaHelpers.GetTypeName(dataSymbol.type), bitOffset, bitCount));
                         } else if (location == DiaHelpers.LocationType.LocIsThisRel) {
-                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, DiaHelpers.GetTypeName(dataSymbol.type), 0, 0));
+                            fields.Add(dataSymbol.name, new SField((uint)dataSymbol.offset, (uint)dataSymbol.type.length, module, DiaHelpers.GetTypeName(dataSymbol.type), 0, 0));
                         } else if (location == DiaHelpers.LocationType.LocIsConstant) {
                             try {
                                 constants.Add(dataSymbol.name, (ulong)dataSymbol.value);
@@ -201,6 +201,7 @@ namespace JsDbg.Core {
                 result.Offset += field.Offset;
                 result.BitCount = field.BitCount;
                 result.BitOffset = field.BitOffset;
+                result.Module = field.Module;
                 result.TypeName = field.TypeName;
                 result.Size = field.Size;
             } else {

@@ -8,7 +8,7 @@ Loader.OnLoad(function() {
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
             // vcast ensures that the LayoutBuilder is valid and will also cast to LayoutBoxBuilder if necessary.
-            return DbgObject.create(MSHTML.Module, "Layout::LayoutBuilder", address).vcast();
+            return DbgObject.create(MSHTML.Type("Layout::LayoutBuilder"), address).vcast();
         },
         GetRoots: function() {
             return DbgObject.locals(MSHTML.Module, "Layout::LayoutBuilderDriver::BuildPageLayout", "layoutBuilder").f("sp.m_pT")
@@ -26,7 +26,7 @@ Loader.OnLoad(function() {
                     return Promise.map(otherMethods, function (method) {
                         return DbgObject.locals(MSHTML.Module, method, "this")
                         .map(function (local) {
-                            if (local.isPointer()) {
+                            if (local.type.isPointer()) {
                                 return local.deref();
                             } else {
                                 return local;
@@ -49,27 +49,27 @@ Loader.OnLoad(function() {
                 }
             });
         },
-        DefaultTypes: [{ module: MSHTML.Module, type: "Layout::ContainerBoxBuilder" }, { module: MSHTML.Module, type: "Layout::LayoutBoxBuilder" }],
+        DefaultTypes: [MSHTML.Type("Layout::ContainerBoxBuilder"), MSHTML.Type("Layout::LayoutBoxBuilder")],
     }
 
-    LayoutBuilder.Tree.addChildren(MSHTML.Module, "Layout::LayoutBuilder", function (object) {
+    LayoutBuilder.Tree.addChildren(MSHTML.Type("Layout::LayoutBuilder"), function (object) {
         return object.f("currentBuilder.m_pT").vcast();
     });
 
-    LayoutBuilder.Tree.addChildren(MSHTML.Module, "Layout::LayoutBoxBuilder", function (object) {
+    LayoutBuilder.Tree.addChildren(MSHTML.Type("Layout::LayoutBoxBuilder"), function (object) {
         return object.f("parentBuilder.m_pT").vcast();
     })
 
-    DbgObject.AddAction(MSHTML.Module, "Layout::SHoldLayoutBuilder", "LayoutBuilder", function (layoutBuilder) {
+    DbgObject.AddAction(MSHTML.Type("Layout::SHoldLayoutBuilder"), "LayoutBuilder", function (layoutBuilder) {
         return TreeInspector.GetActions("layoutbuilder", "Layout Builder", layoutBuilder.f("sp.m_pT"));
     })
 
-    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBuilder", "LayoutBuilder", function (layoutBuilder) {
+    DbgObject.AddAction(MSHTML.Type("Layout::LayoutBuilder"), "LayoutBuilder", function (layoutBuilder) {
         return TreeInspector.GetActions("layoutbuilder", "Layout Builder", layoutBuilder);
     })
 
     // Add a type description for LayoutBoxBuilder to link to the LayoutBuilder stack
-    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBoxBuilder", "LayoutBuilder", function(boxBuilder) {
+    DbgObject.AddAction(MSHTML.Type("Layout::LayoutBoxBuilder"), "LayoutBuilder", function(boxBuilder) {
         function findTopMostBuilder(builder) {
             return builder.f("parentBuilder.m_pT")
             .then(function (parentBuilder) {
@@ -110,7 +110,7 @@ Loader.OnLoad(function() {
         })
     });
 
-    DbgObject.AddAction(MSHTML.Module, "Layout::LayoutBox", "LayoutBuilder", function(box) {
+    DbgObject.AddAction(MSHTML.Type("Layout::LayoutBox"), "LayoutBuilder", function(box) {
         return box.vcast()
         .then(function (vcastedBox) {
             return Promise.all([vcastedBox.f("builder"), vcastedBox.f("isAttachedToBuilder").val()])

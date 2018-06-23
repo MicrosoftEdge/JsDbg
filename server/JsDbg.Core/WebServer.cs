@@ -427,9 +427,9 @@ namespace JsDbg.Core {
 
                 // Construct the response.
                 if (result.IsBitField) {
-                    responseString = String.Format("{{ \"type\": \"{0}\", \"offset\": {1}, \"size\": {2}, \"bitcount\":{3}, \"bitoffset\":{4} }}", result.TypeName, result.Offset, result.Size, result.BitCount, result.BitOffset);
+                    responseString = String.Format("{{ \"module\": \"{5}\", \"type\": \"{0}\", \"offset\": {1}, \"size\": {2}, \"bitcount\":{3}, \"bitoffset\":{4} }}", result.TypeName, result.Offset, result.Size, result.BitCount, result.BitOffset, result.Module);
                 } else {
-                    responseString = String.Format("{{ \"type\": \"{0}\", \"offset\": {1}, \"size\": {2} }}", result.TypeName, result.Offset, result.Size);
+                    responseString = String.Format("{{ \"module\": \"{3}\", \"type\": \"{0}\", \"offset\": {1}, \"size\": {2} }}", result.TypeName, result.Offset, result.Size, result.Module);
                 }
             } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
@@ -454,7 +454,7 @@ namespace JsDbg.Core {
 
                 List<string> jsonFragments = new List<string>();
                 foreach (SBaseTypeResult baseType in baseTypes) {
-                    jsonFragments.Add(String.Format("{{ \"type\": \"{0}\", \"offset\": {1} }}", baseType.TypeName, baseType.Offset));
+                    jsonFragments.Add(String.Format("{{ \"module\": \"{2}\", \"type\": \"{0}\", \"offset\": {1} }}", baseType.TypeName, baseType.Offset, baseType.Module));
                 }
                 responseString = "[" + String.Join(",", jsonFragments) + "]";
             } catch (DebuggerException ex) {
@@ -914,6 +914,7 @@ namespace JsDbg.Core {
                     builder.AppendFormat("\"name\": \"{0}\",", field.FieldName);
                     builder.AppendFormat("\"offset\": {0},", field.Offset);
                     builder.AppendFormat("\"size\": {0},", field.Size);
+                    builder.AppendFormat("\"module\": \"{0}\",", field.Module);
                     builder.AppendFormat("\"type\": \"{0}\"", field.TypeName);
                     if (field.IsBitField) {
                         builder.AppendFormat(",\"bitcount\": {0},", field.BitCount);

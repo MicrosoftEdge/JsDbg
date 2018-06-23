@@ -6,18 +6,18 @@ Loader.OnLoad(function() {
     var registeredArrayTypes = new DbgObject.TypeExtension();
     DbgObject.ArrayFields = registeredArrayTypes;
 
-    function ArrayField(name, typeName, getter) {
+    function ArrayField(name, type, getter) {
         this.name = name;
-        this.typeName = typeName;
+        this.type = type;
         this.getter = getter;
     }
 
     ArrayField.prototype.ensureCompatibleResult = function(result, parentDbgObject) {
         if (!Array.isArray(result)) {
-            throw new Error("The \"" + this.name + "\" array on " + parentDbgObject.typeDescription() + " did not return an array.");
+            throw new Error("The \"" + this.name + "\" array on " + parentDbgObject.type.name() + " did not return an array.");
         }
 
-        var resultType = this.typeName instanceof Function ? this.typeName(parentDbgObject.typename) : this.typeName;
+        var resultType = this.type instanceof Function ? DbgObjectType(this.type(parentDbgObject.type), parentDbgObject.type) : this.type;
         if (resultType == null) {
             return Promise.resolve(result);
         }
@@ -27,38 +27,49 @@ Loader.OnLoad(function() {
         .then(function (areAllTypes) {
             var incorrectIndex = areAllTypes.indexOf(false);
             if (incorrectIndex != -1) {
-                throw new Error("The \"" + that.name + "\" array on " + parentDbgObject.typeDescription() + " was supposed to return an array of " + resultType + " but there was an unrelated " + result[incorrectIndex].typeDescription() + ".")
+                throw new Error("The \"" + that.name + "\" array on " + parentDbgObject.type.name() + " was supposed to return an array of " + resultType + " but there was an unrelated " + result[incorrectIndex].type.name() + ".")
             }
 
             return result;
         });
     }
 
+    function normalizeFieldType(fieldType, type) {
+        if (!DbgObjectType.is(fieldType) && !(fieldType instanceof Function)) {
+            if (!DbgObjectType.is(type)) {
+                throw new Error("Invalid field type.");
+            }
+            fieldType = DbgObjectType(fieldType, type);
+        }
+
+        return fieldType;
+    }
+
     DbgObject._help_AddArrayField = {
         description: "Registers an array that can be retrived from DbgObjects of a given type.",
         arguments: [
-            {name:"module", type:"string", description: "The module of the type to extend."},
-            {name:"typeNameOrFn", type:"string/function(string) -> bool", description: "The type to extend (or a predicate that matches the type to extend)."},
+            {name:"typeOrFn", type:"DbgObjectType/function(DbgObjectType) -> bool", description: "The type to extend (or a predicate that matches the type to extend)."},
             {name:"name", type:"string", description:"The name of the array."},
-            {name:"resultingTypeNameOrFn", type:"string/function(string) -> string", description: "The type of the items in the resulting array."},
+            {name:"resultingTypeOrFn", type:"DbgObjectType/function(DbgObjectType) -> string", description: "The type of the items in the resulting array."},
             {name:"getter", type:"function(DbgObject) -> (promised) array of DbgObjects", description: "A function that retrieves the array."}
         ]
     }
 
-    DbgObject.AddArrayField = function(module, typeNameOrFn, name, resultingTypeNameOrFn, getter) {
-        return registeredArrayTypes.addExtension(module, typeNameOrFn, name, new ArrayField(name, resultingTypeNameOrFn, getter));
+    DbgObject.AddArrayField = function(typeOrFn, name, resultingTypeOrFn, getter) {
+        var arrayField = new ArrayField(name, normalizeFieldType(resultingTypeOrFn, typeOrFn), getter);
+        return registeredArrayTypes.addExtension(typeOrFn, name, arrayField);
     }
 
-    DbgObject.RemoveArrayField = function(module, typeNameOrFn, name) {
-        return registeredArrayTypes.removeExtension(module, typeNameOrFn, name);
+    DbgObject.RemoveArrayField = function(typeOrFn, name) {
+        return registeredArrayTypes.removeExtension(typeOrFn, name);
     }
 
-    DbgObject.UpdateArrayField = function(module, typeNameOrFn, oldName, newName, newResultingTypeNameOrFn) {
-        registeredArrayTypes.renameExtension(module, typeNameOrFn, oldName, newName);
-        var extension = registeredArrayTypes.getExtension(module, typeNameOrFn, newName);
-        if (extension.typeName != newResultingTypeNameOrFn) {
-            extension.typeName = newResultingTypeNameOrFn;
-            registeredArrayTypes.notifyListeners(module, typeNameOrFn, newName, extension, "typechange", newResultingTypeNameOrFn);
+    DbgObject.UpdateArrayField = function(typeOrFn, oldName, newName, newResultingTypeOrFn) {
+        registeredArrayTypes.renameExtension(typeOrFn, oldName, newName);
+        var extension = registeredArrayTypes.getExtension(typeOrFn, newName);
+        if (extension.type != newResultingTypeOrFn) {
+            extension.type = normalizeFieldType(newResultingTypeOrFn, typeOrFn);
+            registeredArrayTypes.notifyListeners(typeOrFn, newName, extension, "typechange", newResultingTypeOrFn);
         }
     }
 
@@ -74,7 +85,7 @@ Loader.OnLoad(function() {
             return registeredArrayTypes.getExtensionIncludingBaseTypes(this, name)
             .then(function (result) {
                 if (result == null) {
-                    throw new Error("There was no array \"" + name + "\" on " + that.typeDescription());
+                    throw new Error("There was no array \"" + name + "\" on " + that.type.name());
                 }
                 return Promise.resolve(result.extension.getter(result.dbgObject))
                 .then(function (resultArray) {
@@ -87,7 +98,7 @@ Loader.OnLoad(function() {
         return Promise.resolve(count)
         .then(function (count) {
             // If we were given a DbgObject, go ahead and get the value.
-            if (count !== undefined && count.val == DbgObject.prototype.val) {
+            if (count !== undefined && count instanceof DbgObject) {
                 if (count.isNull()) {
                     return 0;
                 } else {
@@ -102,39 +113,34 @@ Loader.OnLoad(function() {
         .then(function(arrayOrCount) {
             if (Array.isArray(arrayOrCount)) {
                 return arrayOrCount;
-            } else {
-                var count = arrayOrCount;
             }
-
-            if (count === undefined && that._isArray) {
-                count = that._arrayLength;
+            var count = arrayOrCount;
+            if (count === undefined && that.type.isArray()) {
+                count = that.type.arrayLength();
             } else if (count === undefined) {
-                throw new Error("Unknown array type: " + that.typename);
+                throw new Error("Unknown array type: " + that.type);
             }
 
             if (count == 0 || that.isNull()) {
                 return [];
             }
 
-            if (that.isPointer()) {
+            if (that.type.isPointer()) {
                 return that.bigvals(count)
                 .then(function (values) {
-                    var itemTypename = that._getDereferencedTypeName();
-                    return values.map(function(x) { return DbgObject.create(that.module, itemTypename, x); });
+                    var dereferencedType = that.type.dereferenced();
+                    return values.map(function(x) { return DbgObject.create(dereferencedType, x); });
                 });
             } else {
-                return that.size()
-                .then(function (structSize) {
-                    if (count > 100000) {
-                        throw new Error("Arrays with over 100,000 elements cannot be retrieved all at once.")
-                    }
+                if (count > 100000) {
+                    throw new Error("Arrays with over 100,000 elements cannot be retrieved all at once.")
+                }
 
-                    var array = [];
-                    for (var i = 0; i < count; ++i) {
-                        array.push(that._off(i * structSize));
-                    }
-                    return array;
-                })
+                var array = [];
+                for (var i = 0; i < count; ++i) {
+                    array.push(that.idx(i));
+                }
+                return Promise.all(array);
             }
         });
     }

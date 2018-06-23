@@ -6,9 +6,9 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            return DbgObject.create(MSHTML.Module, "CBase", address).vcast()
+            return DbgObject.create(MSHTML.Type("CBase"), address).vcast()
             .then(null, function (err) {
-                return DbgObject.create(MSHTML.Module, "CSharedStyleSheet", address);
+                return DbgObject.create(MSHTML.Type("CSharedStyleSheet"), address);
             })
         },
         GetRoots: function() { 
@@ -134,8 +134,8 @@ Loader.OnLoad(function() {
                     suffix = ":hover" + suffix;
                 }
 
-                if (!selectorPart.isNull() && !(tag == "ETAG_GENERIC" && selectorPart.typeDescription() == "CNamespaceSelectorPart")) {
-                    suffix = "[" + selectorPart.htmlTypeDescription() + "]" + suffix;
+                if (!selectorPart.isNull() && !(tag == "ETAG_GENERIC" && selectorPart.type.name() == "CNamespaceSelectorPart")) {
+                    suffix = "[" + selectorPart.type.htmlName() + "]" + suffix;
                 }
 
                 if (!classSelector.isNull()) {
@@ -150,7 +150,7 @@ Loader.OnLoad(function() {
                     })
                 } else if (tag != "ETAG_UNKNOWN") {
                     var tagNamePromise = Promise.resolve(tag.toLowerCase().substr("ETAG_".length));
-                    if (tag == "ETAG_GENERIC" && selectorPart.typeDescription() == "CNamespaceSelectorPart") {
+                    if (tag == "ETAG_GENERIC" && selectorPart.type.name() == "CNamespaceSelectorPart") {
                         tagNamePromise = selectorPart.f("_cstrLocalName._pch").string()
                     }
 
@@ -169,47 +169,47 @@ Loader.OnLoad(function() {
         })
     }
 
-    DbgObject.AddAction(MSHTML.Module, "CStyleSheet", "StyleSheetViewer", function(stylesheet) {
+    DbgObject.AddAction(MSHTML.Type("CStyleSheet"), "StyleSheetViewer", function(stylesheet) {
         return TreeInspector.GetActions("stylesheets", "Stylesheets", stylesheet);
     });
 
-    DbgObject.AddAction(MSHTML.Module, "CMarkup", "StyleSheetViewer", function(markup) {
+    DbgObject.AddAction(MSHTML.Type("CMarkup"), "StyleSheetViewer", function(markup) {
         return TreeInspector.GetActions("stylesheets", "Stylesheets", markup);
     });
 
-    DbgObject.AddAction(MSHTML.Module, "CDoc", "StyleSheetViewer", function(doc) {
+    DbgObject.AddAction(MSHTML.Type("CDoc"), "StyleSheetViewer", function(doc) {
         return doc.F("PrimaryMarkup").actions("StyleSheetViewer");
     });
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleSheetArray", function(array) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CStyleSheetArray"), function(array) {
         return array.f("_pageStyleSheets", "_aStyleSheets").array("Items");
     })
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleSheetArray", function(array) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CStyleSheetArray"), function(array) {
         return array.f("_extensionStyleSheets").array("Items");
     })
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CMarkup", function(markup) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CMarkup"), function(markup) {
         return markup.f("_pStyleSheetArray");
     })
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleSheet", function(stylesheet) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CStyleSheet"), function(stylesheet) {
         return stylesheet.f("_pSSSheet");
     })
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
         return stylesheet.f("_apMediaLists").array("Items");
     })        
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CMediaList", function(stylesheet) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CMediaList"), function(stylesheet) {
         return stylesheet.f("_apMediaQueries").array("Items");
     })
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CMediaQuery", function(stylesheet) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CMediaQuery"), function(stylesheet) {
         return stylesheet.f("_pAA").array("Items");
     })
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleSheet", function(stylesheet) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CStyleSheet"), function(stylesheet) {
         return stylesheet.f("_pImportedStyleSheets")
         .then(function (imports) {
             if (imports.isNull()) {
@@ -220,49 +220,49 @@ Loader.OnLoad(function() {
         })
     })        
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
         return stylesheet.f("_apFontBlocks").array("Items");
     })
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
         return stylesheet.f("_apPageBlocks").array("Items");
     })
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
         return stylesheet.f("_apViewportBlocks").array("Items");
     })
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
         return stylesheet.f("_apImportBlocks").array("Items");
     })
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CSharedStyleSheet", function(stylesheet) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
         return stylesheet.f("_apRulesList").array("Items");
     })
 
-    StyleSheets.Tree.addChildren(MSHTML.Module, "CStyleRule", function(styleRule) {
+    StyleSheets.Tree.addChildren(MSHTML.Type("CStyleRule"), function(styleRule) {
         return styleRule.f("_spSpecifiedStyle.m_pT.attrArray.m_pT", "_paaStyleProperties").array("Items");
     })
 
-    StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CMarkup", function (markup) {
+    StyleSheets.Renderer.addNameRenderer(MSHTML.Type("CMarkup"), function (markup) {
         return markup.desc("URL")
         .then(function (url) {
             return "CMarkup (" + url + ")";
         })
     });
 
-    StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CStyleSheet", function (stylesheet) {
+    StyleSheets.Renderer.addNameRenderer(MSHTML.Type("CStyleSheet"), function (stylesheet) {
         return stylesheet.f("_pSSSheet").f("_strAbsoluteHref._pch", "_achAbsoluteHref").string()
         .then(function (href) {
             return "CStyleSheet (" + href + ")";
         })
     });
 
-    StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CStyleRule", function (rule, sharedStyleSheet) {
+    StyleSheets.Renderer.addNameRenderer(MSHTML.Type("CStyleRule"), function (rule, sharedStyleSheet) {
         return getSelectorDescription(rule.f("_pFirstSelector"), sharedStyleSheet);
     })
 
-    StyleSheets.Renderer.addNameRenderer(MSHTML.Module, "CAttrValue", function(attrValue) {
+    StyleSheets.Renderer.addNameRenderer(MSHTML.Type("CAttrValue"), function(attrValue) {
         return Promise.all([attrValue.desc("Name"), attrValue.desc("Value")])
         .thenAll(function (name, value) {
             if (name.split("/").length > 1) {

@@ -5,8 +5,8 @@
         this.names = new DbgObject.TypeExtension();
     }
 
-    Renderer.prototype.addNameRenderer = function(module, typename, renderer) {
-        this.names.addExtension(module, typename, "", renderer);
+    Renderer.prototype.addNameRenderer = function(type, renderer) {
+        this.names.addExtension(type, "", renderer);
     }
 
     Renderer.prototype.getName = function(object, parentObject) {
@@ -31,7 +31,7 @@
         })
         .then(function(typeName) {
             if (typeName == null) {
-                typeName = object.htmlTypeDescription();
+                typeName = object.type.htmlName();
                 var namespaces = typeName.split("::");
                 if (namespaces.length > 1) {
                     var namespace = namespaces.slice(0, namespaces.length - 1).join("::");

@@ -15,37 +15,30 @@ var MSHTML = undefined;
         .then(
             function() {
                 moduleName = "edgehtml";
-                DbgObject.AddModuleFilter(function (module) {
-                    if (module == "mshtml") {
-                        return "edgehtml";
-                    }
-                    return module;
-                });
             },
             function() {
                 moduleName = "mshtml";
-                DbgObject.AddModuleFilter(function (module) {
-                    if (module == "edgehtml") {
-                        return "mshtml";
-                    }
-                    return module;
-                });
             }
         )
         .finally(onComplete);
     });
 
+    mshtmlType = function(type) {
+        return DbgObjectType(moduleName, type);
+    }
+
     // Figure out whether CTreeNode exists
     var treeNodeType = null;
 
     Loader.OnLoadAsync(function(onComplete) {
-        return DbgObject.create(moduleName, "CTreeNode", 0)
-        .size()
-        .then(
-            function() { treeNodeType = "CTreeNode"; },
-            function() { treeNodeType = "Tree::ElementNode"; }
-        )
-        .finally(onComplete);
+        JsDbg.LookupTypeSize(moduleName, "CTreeNode", function (result) {
+            if (result.error) {
+                treeNodeType = mshtmlType("Tree::ElementNode");
+            } else {
+                treeNodeType = mshtmlType("CTreeNode");
+            }
+            onComplete();
+        });
     })
 
     Loader.OnLoad(function() {
@@ -83,16 +76,16 @@ var MSHTML = undefined;
             );
         }
 
-        DbgObject.AddTypeDescription(moduleName, "CBase", "RefsAndVar", false, UserEditableFunctions.Create(function(base) {
+        DbgObject.AddTypeDescription(mshtmlType("CBase"), "RefsAndVar", false, UserEditableFunctions.Create(function(base) {
             return Promise.all([
                 base.f("_ulRefs").val(), 
                 base.f("_ulInternalRefs").val(), 
                 base.f("_ulAllRefsAndFlags").val(), 
                 base.f("_JSBind_Var._ptr"),
-                DbgObject.constantValue(MSHTML.Module, "CBase", "BRF_FLAGS_SHIFT"),
-                DbgObject.constantValue(MSHTML.Module, "CBase", "BRF_PASSIVATING"),
-                DbgObject.constantValue(MSHTML.Module, "CBase", "BRF_PASSIVATED"),
-                DbgObject.constantValue(MSHTML.Module, "CBase", "BRF_DESTRUCTING")
+                DbgObject.constantValue(mshtmlType("CBase"), "BRF_FLAGS_SHIFT"),
+                DbgObject.constantValue(mshtmlType("CBase"), "BRF_PASSIVATING"),
+                DbgObject.constantValue(mshtmlType("CBase"), "BRF_PASSIVATED"),
+                DbgObject.constantValue(mshtmlType("CBase"), "BRF_DESTRUCTING")
             ])
             .thenAll(function (ulRefs, ulInternalRefs, ulAllRefsAndFlags, jsBindVar, BRF_FLAGS_SHIFT, BRF_PASSIVATING, BRF_PASSIVATED, BRF_DESTRUCTING) {
                 var varFields = "";
@@ -123,8 +116,8 @@ var MSHTML = undefined;
             });
         }));
 
-        if (treeNodeType == "CTreeNode") {
-            DbgObject.AddExtendedField(moduleName, "CMarkup", "Root", "CTreeNode", UserEditableFunctions.Create(function (markup) {
+        if (treeNodeType.equals("CTreeNode")) {
+            DbgObject.AddExtendedField(mshtmlType("CMarkup"), "Root", "CTreeNode", UserEditableFunctions.Create(function (markup) {
                 return markup.f("rootElement", "root")
                 .then(function (root) {
                     // !TEXTNODEMERGE && NEWTREECONNECTION
@@ -139,14 +132,14 @@ var MSHTML = undefined;
                 })
             }));
 
-            DbgObject.AddExtendedField(moduleName, "Tree::ElementNode", "TreeNode", "CTreeNode", function (element) {
+            DbgObject.AddExtendedField(mshtmlType("Tree::ElementNode"), "TreeNode", "CTreeNode", function (element) {
                 return element.unembed("CTreeNode", "_fIsElementNode")
                 .then(null, function () {
-                    return DbgObject.create(MSHTML.Module, "CTreeNode", 0).baseTypes()
+                    return DbgObject.create(treeNodeType, 0).baseTypes()
                     .then(function (baseTypes) {
-                        if (baseTypes.filter(function(b) { return b.typeDescription() == "Tree::ElementNode"}).length > 0) {
+                        if (baseTypes.filter(function(b) { return b.type.name() == "Tree::ElementNode"}).length > 0) {
                             return element.as("CTreeNode");
-                        } else if (baseTypes.filter(function(b) { return b.typeDescription() == "CBase"; }).length > 0) {
+                        } else if (baseTypes.filter(function(b) { return b.type.name() == "CBase"; }).length > 0) {
                             // CBase is in the ancestry.
                             return element.as("CTreePos").unembed("CTreeNode", "_tpBegin");
                         } else {
@@ -162,12 +155,12 @@ var MSHTML = undefined;
                 });
             });
         } else {
-            DbgObject.AddExtendedField(moduleName, "CMarkup", "Root", "Tree::ElementNode", UserEditableFunctions.Create(function (markup) {
+            DbgObject.AddExtendedField(mshtmlType("CMarkup"), "Root", "Tree::ElementNode", UserEditableFunctions.Create(function (markup) {
                 return markup.f("root");
             }));
         }
 
-        DbgObject.AddTypeDescription(moduleName, "CMarkup", "URL", false, UserEditableFunctions.Create(function (markup) {
+        DbgObject.AddTypeDescription(mshtmlType("CMarkup"), "URL", false, UserEditableFunctions.Create(function (markup) {
             return markup.f("_pMarkupLocationContext._pchUrl").string()
             .catch(function() {
                 return markup.f("_pHtmCtx")
@@ -191,7 +184,7 @@ var MSHTML = undefined;
             })
         }));
 
-        DbgObject.AddExtendedField(moduleName, "CMarkup", "MasterElement", "CElement", UserEditableFunctions.Create(function (markup) {
+        DbgObject.AddExtendedField(mshtmlType("CMarkup"), "MasterElement", "CElement", UserEditableFunctions.Create(function (markup) {
             return markup.F("Root").then(function(root) {
                 return Promise.all([root.f("isSubordinateRoot").val(), root.f("elementMaster")])
                 .thenAll(function (isSubordinateRoot, masterElement) {
@@ -207,7 +200,7 @@ var MSHTML = undefined;
             });
         }));
 
-        DbgObject.AddExtendedField(moduleName, "CMarkup", "TopmostMarkup", "CMarkup", UserEditableFunctions.Create(function (markup) {
+        DbgObject.AddExtendedField(mshtmlType("CMarkup"), "TopmostMarkup", "CMarkup", UserEditableFunctions.Create(function (markup) {
             var currentMarkup = markup;
             return markup.F("MasterElement")
             .then(function(masterElement) {
@@ -226,7 +219,7 @@ var MSHTML = undefined;
             });
         }));
 
-        DbgObject.AddExtendedField(moduleName, "CDoc", "PrimaryMarkup", "CMarkup", UserEditableFunctions.Create(function (doc) {
+        DbgObject.AddExtendedField(mshtmlType("CDoc"), "PrimaryMarkup", "CMarkup", UserEditableFunctions.Create(function (doc) {
             return doc.f("_pWindowPrimary._pCWindow._pMarkup");
         }));
 
@@ -237,31 +230,51 @@ var MSHTML = undefined;
             });
         }
 
-        DbgObject.AddExtendedField(moduleName, treeNodeType, "ComputedBlock", "Tree::ComputedBlock", UserEditableFunctions.Create(function (treeNode) {
+        var canCastTreeNodeTypeToCElement = new Promise(function (resolve) {
+            JsDbg.LookupFieldOffset(moduleName, treeNodeType.name(), "_pElement", function (result) {
+                if (result.error) {
+                    resolve(true);
+                } else {
+                    resolve(false);
+                }
+            })
+        });
+
+        DbgObject.AddExtendedField(treeNodeType, "CElement", "CElement", UserEditableFunctions.Create(function (treeNode) {
+            return canCastTreeNodeTypeToCElement.then(function (canCast) {
+                if (canCast) {
+                    return treeNode.as("CElement");
+                } else {
+                    return treeNode.f("_pElement");
+                }
+            });
+        }));
+
+        DbgObject.AddExtendedField(treeNodeType, "ComputedBlock", "Tree::ComputedBlock", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetLayoutAssociationFromTreeNode(treeNode, 0x1).vcast();
         }));
 
-        DbgObject.AddExtendedField(moduleName, treeNodeType, "Threadstate", "THREADSTATEUI", UserEditableFunctions.Create(function (treeNode) {
+        DbgObject.AddExtendedField(treeNodeType, "Threadstate", "THREADSTATEUI", UserEditableFunctions.Create(function (treeNode) {
             return treeNode.F("Markup.Doc.Threadstate");
         }))
 
-        DbgObject.AddExtendedField(moduleName, treeNodeType, "FancyFormat", "CFancyFormat", UserEditableFunctions.Create(function (treeNode) {
+        DbgObject.AddExtendedField(treeNodeType, "FancyFormat", "CFancyFormat", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetObjectFromDataCache(treeNode.F("Threadstate").f("_pFancyFormatCache"), treeNode.f("_iFF").val());
         }));
 
-        DbgObject.AddExtendedField(moduleName, treeNodeType, "CharFormat", "CCharFormat", UserEditableFunctions.Create(function (treeNode) {
+        DbgObject.AddExtendedField(treeNodeType, "CharFormat", "CCharFormat", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetObjectFromDataCache(treeNode.F("Threadstate").f("_pCharFormatCache"), treeNode.f("_iCF").val());
         }));
 
-        DbgObject.AddExtendedField(moduleName, treeNodeType, "ParaFormat", "CParaFormat", UserEditableFunctions.Create(function (treeNode) {
+        DbgObject.AddExtendedField(treeNodeType, "ParaFormat", "CParaFormat", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetObjectFromDataCache(treeNode.F("Threadstate").f("_pParaFormatCache"), treeNode.f("_iPF").val());
         }));
 
-        DbgObject.AddExtendedField(moduleName, treeNodeType, "SvgFormat", "CSvgFormat", UserEditableFunctions.Create(function (treeNode) {
+        DbgObject.AddExtendedField(treeNodeType, "SvgFormat", "CSvgFormat", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetObjectFromDataCache(treeNode.F("Threadstate").f("_pSvgFormatCache"), treeNode.f("_iSF").val());
         }));
 
-        DbgObject.AddExtendedField(moduleName, treeNodeType, "SubordinateMarkup", "CMarkup", UserEditableFunctions.Create(function (treeNode) {
+        DbgObject.AddExtendedField(treeNodeType, "SubordinateMarkup", "CMarkup", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetElementLookasidePointer(treeNode, "LOOKASIDE_SUBORDINATE")
             .then(function (result) {
                 if (!result.isNull()) {
@@ -272,7 +285,7 @@ var MSHTML = undefined;
             })
         }));
 
-        DbgObject.AddExtendedField(moduleName, treeNodeType, "AccessibleObject", "Aria::AccessibleObject", UserEditableFunctions.Create(function (treeNode) {
+        DbgObject.AddExtendedField(treeNodeType, "AccessibleObject", "Aria::AccessibleObject", UserEditableFunctions.Create(function (treeNode) {
             return MSHTML.GetElementLookasidePointer(treeNode, "LOOKASIDE_ARIAOBJECT").as("Aria::AccessibleObject").vcast();
         }));
 
@@ -319,17 +332,29 @@ var MSHTML = undefined;
             return GetLayoutAssociationFromTreeNode(treeNode, 0x8);
         }
 
-        function GetMarkupFromElement(element) {
-            return element.F("Markup");
-        }
-
-        DbgObject.AddExtendedField(moduleName, treeNodeType, "Markup", "CMarkup", UserEditableFunctions.Create(function (element) {
-            return element.f("_pElement", "").as("CElement").F("Markup");
+        DbgObject.AddExtendedField(treeNodeType, "Markup", "CMarkup", UserEditableFunctions.Create(function (element) {
+            return element.F("CElement.Markup");
         }));
 
-        DbgObject.AddExtendedField(moduleName, "CElement", "Markup", "CMarkup", UserEditableFunctions.Create(function (element) {
-            return element.f("markup")
+        DbgObject.AddExtendedField(mshtmlType("CElement"), "Markup", "CMarkup", UserEditableFunctions.Create(function (element) {
+            return element.f("rootNodeOrMarkup")
+            .then(function(rootNodeOrMarkup) {
+                return Promise.all([
+                    element.f("parent"),
+                    element.f("isSubordinateRoot").val()
+                ])
+                .thenAll(function (parent, isSubordinateRoot) {
+                    if (parent.isNull() || isSubordinateRoot) {
+                        return rootNodeOrMarkup.as("CMarkup");
+                    } else {
+                        return rootNodeOrMarkup.as("Tree::ANode").f("rootNodeOrMarkup").as("CMarkup");
+                    }
+                });
+            })
             .catch(function () {
+                return element.f("markup");
+            })
+            .catch(function() {
                 return Promise.all([
                     element.f("_fHasLayoutPtr").val().catch(function() { return 0; }),
                     element.f("_fHasLayoutAry").val().catch(function() { return 0; }),
@@ -339,7 +364,7 @@ var MSHTML = undefined;
                     if (hasLayoutPtr || hasLayoutAry) {
                         return element.f("_pLayoutInfo", "_pLayout", "_chain._pLayoutInfo", "_chain._pLayout")
                         .then(function (layout) {
-                            return layout.as("char").idx(0 - layout.pointerValue().mod(4)).as(layout.typeDescription()).f("_pMarkup");
+                            return layout.as("char").idx(0 - layout.pointerValue().mod(4)).as(layout.type.name()).f("_pMarkup");
                         })
                     } else if (hasMarkupPtr) {
                         return element.f("_chain._pMarkup", "_pMarkup")
@@ -347,38 +372,29 @@ var MSHTML = undefined;
                             return markup.as("char").idx(0 - markup.pointerValue().mod(4)).as("CMarkup");
                         })
                     } else {
-                        return element.f("rootNodeOrMarkup")
-                        .then(function(rootNodeOrMarkup) {
-                            return Promise.all([
-                                element.f("parent"),
-                                element.f("isSubordinateRoot").val()
-                            ])
-                            .thenAll(function (parent, isSubordinateRoot) {
-                                if (parent.isNull() || isSubordinateRoot) {
-                                    return rootNodeOrMarkup.as("CMarkup");
-                                } else {
-                                    return rootNodeOrMarkup.as("Tree::ANode").f("rootNodeOrMarkup").as("CMarkup");
-                                }
-                            });
-                        },
-                        function () {
-                            return DbgObject.create(moduleName, "CMarkup", 0);
-                        });
+                        throw new Error();
                     }
                 });
             })
+            .catch(function () {
+                return DbgObject.create(mshtmlType("CMarkup"), 0);
+            });
         }));
 
-        DbgObject.AddExtendedField(moduleName, "CDOMTextNode", "Markup", "CMarkup", UserEditableFunctions.Create(function (domTextNode) {
+        DbgObject.AddExtendedField(mshtmlType("CDOMTextNode"), "Markup", "CMarkup", UserEditableFunctions.Create(function (domTextNode) {
             // TODO: older versions of the tree will require fetching the markup from the CDOMTextNode's CMarkupPointer
             return domTextNode.f("markup");
         }));
 
-        DbgObject.AddExtendedField(moduleName, "CMarkup", "Doc", "CDoc", UserEditableFunctions.Create(function (markup) {
-            return markup.f("_pSecCtx", "_spSecCtx.m_pT").f("_pDoc");
+        DbgObject.AddExtendedField(mshtmlType("Tree::TextNode"), "Markup", "CMarkup", UserEditableFunctions.Create(function (textNode) {
+            return textNode.f("rootNodeOrMarkup").as("Tree::ANode").f("rootNodeOrMarkup").as("CMarkup");
         }));
 
-        DbgObject.AddExtendedField(moduleName, "CStyleSheet", "Markup", "CMarkup", UserEditableFunctions.Create(function (stylesheet) {
+        DbgObject.AddExtendedField(mshtmlType("CMarkup"), "Doc", "CDoc", UserEditableFunctions.Create(function (markup) {
+            return markup.f("_spSecCtx.m_pT", "_pSecCtx").f("_pDoc");
+        }));
+
+        DbgObject.AddExtendedField(mshtmlType("CStyleSheet"), "Markup", "CMarkup", UserEditableFunctions.Create(function (stylesheet) {
             return stylesheet.f("_pParentElement")
             .then(function (parentElement) {
                 if (parentElement.isNull()) {
@@ -422,19 +438,14 @@ var MSHTML = undefined;
 
         function GetElementLookasidePointer2(treeNode, name)
         {
-            // Get the element from the treenode for older versions of the tree.
-            var elementPromise = treeNode.f("_pElement")
-            .then(null, function () {
-                // The _pElement pointer was removed in RS1.  The object can now be directly cast as an element.
-                return treeNode.as("CElement");
-            });
+            var elementPromise = treeNode.F("CElement");
 
             var hasLookasidePtrPromise = elementPromise
             .then(function (element) {
                 return element.f("_fHasLookasidePtr2").val();
             });
 
-            var lookasideNumberPromise = DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE2", name);
+            var lookasideNumberPromise = DbgObject.constantValue(mshtmlType("CElement::LOOKASIDE2"), name);
 
             var result = Promise.all([
                 elementPromise,
@@ -455,12 +466,7 @@ var MSHTML = undefined;
 
         function GetElementLookasidePointer(treeNode, name)
         {
-            // Get the element from the treenode for older versions of the tree.
-            var elementPromise = treeNode.f("_pElement")
-            .then(null, function () {
-                // The _pElement pointer was removed in RS1.  The object can now be directly cast as an element.
-                return treeNode.as("CElement");
-            });
+            var elementPromise = treeNode.F("CElement")
 
             var hasLookasidePtrPromise = elementPromise
             .then(function (element) {
@@ -468,7 +474,7 @@ var MSHTML = undefined;
             });
 
             // During the CTreeNode/CElement merger some lookaside enum values moved around.  Currently, they're on the CTreeNode type.
-            var lookasideNumberPromise = DbgObject.constantValue(MSHTML.Module, treeNodeType, name)
+            var lookasideNumberPromise = DbgObject.constantValue(treeNodeType, name)
             .then(function (index) {
                 return {
                     offset:0,
@@ -476,14 +482,14 @@ var MSHTML = undefined;
                 };
             }, function() {
                 // The index is not on the CTreeNode, so it must be on the CElement.
-                return DbgObject.constantValue(MSHTML.Module, "CElement::LOOKASIDE", name)
+                return DbgObject.constantValue(mshtmlType("CElement::LOOKASIDE"), name)
                 .then(function (lookasideSubordinate) {
                     // Two additional cases to try: first (in reverse chronological order), when the CElement lookasides were offset by CTreeNode::LOOKASIDE_NODE_NUMBER.
                     // We identify this case by the presence of the _dwNodeFlags1 field which was added in inetcore 1563867.
-                    return (DbgObject.create("edgehtml", treeNodeType, 0)).f("_dwNodeFlags1")
+                    return (DbgObject.create(DbgObjectType("edgehtml", treeNodeType), 0)).f("_dwNodeFlags1")
                     .then(
                         function () {
-                            return DbgObject.constantValue(MSHTML.Module, treeNodeType, "LOOKASIDE_NODE_NUMBER")
+                            return DbgObject.constantValue(treeNodeType, "LOOKASIDE_NODE_NUMBER")
                             .then(function(lookasideNodeNumber) {
                                 return {
                                     offset: lookasideNodeNumber,
@@ -524,11 +530,11 @@ var MSHTML = undefined;
             });
         }
 
-        DbgObject.AddExtendedField(moduleName, "CMarkup", "Threadstate", "THREADSTATEUI", UserEditableFunctions.Create(function (markup) {
+        DbgObject.AddExtendedField(mshtmlType("CMarkup"), "Threadstate", "THREADSTATEUI", UserEditableFunctions.Create(function (markup) {
             return markup.F("Doc.Threadstate");
         }));
 
-        DbgObject.AddExtendedField(moduleName, "CDoc", "Threadstate", "THREADSTATEUI", UserEditableFunctions.Create(function (doc) {
+        DbgObject.AddExtendedField(mshtmlType("CDoc"), "Threadstate", "THREADSTATEUI", UserEditableFunctions.Create(function (doc) {
             return Promise.resolve(GetDocsAndThreadstates())
             .then(function(docsAndThreadstates) {
                 for (var i = 0; i < docsAndThreadstates.length; ++i) {
@@ -536,22 +542,21 @@ var MSHTML = undefined;
                         return docsAndThreadstates[i].threadstate;
                     }
                 }
-                return DbgObject.create(moduleName, "THREADSTATEUI", 0);
+                return DbgObject.create(mshtmlType("THREADSTATEUI"), 0);
             });
         }));
 
         function GetObjectFromDataCache(cache, index) {
             var promise = Promise.all([cache, index])
             .thenAll(function(cache, index) {
-                var type = cache.typeDescription();
-                var templateMatches = type.match(/<.*>/);
+                var templateMatches = cache.type.name().match(/<.*>/);
                 var resultType = "void";
                 if (templateMatches) {
                     resultType = templateMatches[0].substr(1, templateMatches[0].length - 2);
                 }
 
                 if (index < 0) {
-                    return DbgObject.create(cache.module, resultType, 0);
+                    return DbgObject.create(mshtmlType(resultType), 0);
                 }
 
                 var bucketSize = 128;
@@ -606,7 +611,7 @@ var MSHTML = undefined;
                 if (matchingPatch.isNull() || (objectVersion > matchingVersion && that.version >= objectVersion)) {
                     return patchableObject;
                 } else {
-                    return matchingPatch.as(patchableObject.typename)
+                    return matchingPatch.as(patchableObject.type)
                 }
             });
         }
@@ -693,53 +698,49 @@ var MSHTML = undefined;
         }
 
         // Provide additional type info on some fields.
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bVisibility", "styleVisibility");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bDisplay", "styleDisplay");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bStyleFloat", "styleStyleFloat");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bPositionType", "stylePosition");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bOverflowX", "styleOverflow");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bOverflowY", "styleOverflow");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bPageBreakBefore", "stylePageBreak");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bPageBreakAfter", "stylePageBreak");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_uTextOverflow", "styleTextOverflow");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_fImageInterpolation", "styleInterpolation");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_uTransformStyle)", "styleTransformStyle");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_uBackfaceVisibility)", "styleBackfaceVisibility");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bMsTouchAction", "styleMsTouchAction");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bMsScrollTranslation", "styleMsTouchAction");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bMsTextCombineHorizontal", "styleMsTextCombineHorizontal");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bWrapFlow", "styleWrapFlow");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bWrapThrough", "styleWrapThrough");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_layoutPlacement", "Tree::LayoutPlacementEnum");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_layoutType", "Tree::LayoutTypeEnum");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedPositionType", "Tree::CssPositionEnum");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedStyleFloat", "Tree::CssFloatEnum");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedOverflowX", "Tree::CssOverflowEnum");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedOverflowY", "Tree::CssOverflowEnum");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedBreakBefore", "Tree::CssBreakEnum");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedBreakAfter", "Tree::CssBreakEnum");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedBreakInside", "Tree::CssBreakInsideEnum");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedVisibility", "Tree::CssVisibilityEnum");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedFlowDirection", "Tree::CssWritingModeEnum");
-        DbgObject.AddTypeOverride(moduleName, "CFancyFormat", "_bNormalizedContentZooming", "Tree::CssContentZoomingEnum");
-        DbgObject.AddTypeOverride(moduleName, treeNodeType, "_etag", "ELEMENT_TAG");
-        DbgObject.AddTypeOverride(moduleName, "CBorderDefinition", "_bBorderStyles", "Tree::CssBorderStyleEnum[4]");
-        DbgObject.AddTypeOverride(moduleName, "CBorderInfo", "abStyles", "Tree::CssBorderStyleEnum[4]");
-        DbgObject.AddTypeOverride(moduleName, "CInput", "_type", "htmlInput");
-        DbgObject.AddTypeOverride(moduleName, "Tree::RenderSafeTextBlockRun", "_runType", "Tree::TextBlockRunTypeEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bVisibility", "styleVisibility");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bDisplay", "styleDisplay");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bStyleFloat", "styleStyleFloat");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bPositionType", "stylePosition");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bOverflowX", "styleOverflow");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bOverflowY", "styleOverflow");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bPageBreakBefore", "stylePageBreak");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bPageBreakAfter", "stylePageBreak");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_uTextOverflow", "styleTextOverflow");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_fImageInterpolation", "styleInterpolation");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_uTransformStyle)", "styleTransformStyle");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_uBackfaceVisibility)", "styleBackfaceVisibility");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bMsTouchAction", "styleMsTouchAction");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bMsScrollTranslation", "styleMsTouchAction");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bMsTextCombineHorizontal", "styleMsTextCombineHorizontal");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bWrapFlow", "styleWrapFlow");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bWrapThrough", "styleWrapThrough");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_layoutPlacement", "Tree::LayoutPlacementEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_layoutType", "Tree::LayoutTypeEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bNormalizedPositionType", "Tree::CssPositionEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bNormalizedStyleFloat", "Tree::CssFloatEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bNormalizedOverflowX", "Tree::CssOverflowEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bNormalizedOverflowY", "Tree::CssOverflowEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bNormalizedBreakBefore", "Tree::CssBreakEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bNormalizedBreakAfter", "Tree::CssBreakEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bNormalizedBreakInside", "Tree::CssBreakInsideEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bNormalizedVisibility", "Tree::CssVisibilityEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bNormalizedFlowDirection", "Tree::CssWritingModeEnum");
+        DbgObject.AddTypeOverride(mshtmlType("CFancyFormat"), "_bNormalizedContentZooming", "Tree::CssContentZoomingEnum");
+        DbgObject.AddTypeOverride(treeNodeType, "_etag", "ELEMENT_TAG");
+        DbgObject.AddTypeOverride(mshtmlType("CBorderDefinition"), "_bBorderStyles", "Tree::CssBorderStyleEnum[4]");
+        DbgObject.AddTypeOverride(mshtmlType("CBorderInfo"), "abStyles", "Tree::CssBorderStyleEnum[4]");
+        DbgObject.AddTypeOverride(mshtmlType("CInput"), "_type", "htmlInput");
+        DbgObject.AddTypeOverride(mshtmlType("Tree::RenderSafeTextBlockRun"), "_runType", "Tree::TextBlockRunTypeEnum");
 
         // Provide some type descriptions.
-        DbgObject.AddTypeDescription(moduleName, treeNodeType, "Tag", false, UserEditableFunctions.Create(function (treeNode) {
+        DbgObject.AddTypeDescription(treeNodeType, "Tag", false, UserEditableFunctions.Create(function (treeNode) {
             // Get the tag representation.
             return treeNode.f("_etag").constant()
             .then(function (etagValue) {
                 if (etagValue == "ETAG_GENERIC") {
                     // For generic elements, get the tag name/namespace.
-                    return treeNode.f("_pElement").vcast()
-                    .then(null, function () {
-                        // The _pElement pointer was removed in RS1.  The treeNode can now be directly cast as an element.
-                        return treeNode.vcast();
-                    })
+                    return treeNode.F("CElement").vcast()
                     .then(function (element) {
                         return Promise.all([element.f("_cstrTagName._pch").string(), element.f("_cstrNamespace._pch").string(), element.f("_cstrNamespace._pch").isNull()])
                     })
@@ -771,15 +772,15 @@ var MSHTML = undefined;
             })
         }));
 
-        DbgObject.AddTypeDescription(moduleName, treeNodeType, "Default", true, function (treeNode) {
+        DbgObject.AddTypeDescription(treeNodeType, "Default", true, function (treeNode) {
             return treeNode.desc("Tag")
             .then(function (tag) {
                 return treeNode.ptr() + " (" + tag + ")";
             })
         })
 
-        DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^_?(style[A-z0-9]+)$/); }, "CSS Value", true, function(enumObj) {
-            var enumString = enumObj.typeDescription().replace(/^_?(style[A-z0-9]+)$/, "$1");
+        DbgObject.AddTypeDescription(function (type) { return type.module() == moduleName && type.name().match(/^_?(style[A-z0-9]+)$/); }, "CSS Value", true, function(enumObj) {
+            var enumString = enumObj.type.name().replace(/^_?(style[A-z0-9]+)$/, "$1");
             return Promise.resolve(enumObj.as("_" + enumString).constant())
             .then(
                 function(k) { return k.substr(enumString.length); },
@@ -792,8 +793,8 @@ var MSHTML = undefined;
             )
         });
 
-        DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^(Tree|Layout).*::(.*Enum)$/); }, "Enum Value", true, function (enumObj) {
-            var enumString = enumObj.typeDescription().replace(/^(Tree|Layout).*::(.*Enum)$/, "$2_");
+        DbgObject.AddTypeDescription(function (type) { return type.module() == moduleName && type.name().match(/^(Tree|Layout).*::(.*Enum)$/); }, "Enum Value", true, function (enumObj) {
+            var enumString = enumObj.type.name().replace(/^(Tree|Layout).*::(.*Enum)$/, "$2_");
             return Promise.resolve(enumObj.constant())
                 .then(
                     function(k) { return k.indexOf(enumString) == 0 ? k.substr(enumString.length) : k; },
@@ -809,7 +810,7 @@ var MSHTML = undefined;
         var colorTypesWithInlineColorRef = {"CT_COLORREF":true, "CT_COLORREFA":true, "CT_POUND1":true, "CT_POUND2":true, "CT_POUND3":true, "CT_POUND4":true, "CT_POUND5":true, "CT_POUND6":true, "CT_RGBSPEC":true, "CT_RGBASPEC":true, "CT_HSLSPEC":true, "CT_HSLASPEC":true};
         var colorTypesWithAlpha = {"CT_COLORREFA": true, "CT_RGBASPEC": true, "CT_HSLASPEC": true};
 
-        DbgObject.AddTypeDescription(moduleName, "CColorValue", "Color", true, function(color) {
+        DbgObject.AddTypeDescription(mshtmlType("CColorValue"), "Color", true, function(color) {
             return Promise.all([color.f("_ct").as("CColorValue::COLORTYPE").constant(), color.f("_crValue").val(), color.f("_flAlpha").val()])
             .thenAll(function(colorType, inlineColorRef, alpha) {
                 inlineColorRef = inlineColorRef & 0xFFFFFF;
@@ -834,13 +835,13 @@ var MSHTML = undefined;
 
                 var indirectColorRefs = {
                     "CT_NAMEDHTML" : function() {
-                        return DbgObject.global(moduleName, "g_HtmlColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
+                        return DbgObject.global(mshtmlType("g_HtmlColorTable")).f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
                     },
                     "CT_NAMEDCSS" : function() {
-                        return DbgObject.global(moduleName, "g_CssColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
+                        return DbgObject.global(mshtmlType("g_CssColorTable")).f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val();
                     },
                     "CT_NAMEDSYS" : function() {
-                        return Promise.resolve(DbgObject.global(moduleName, "g_SystemColorTable").f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())
+                        return Promise.resolve(DbgObject.global(mshtmlType("g_SystemColorTable")).f("_prgColors").idx(color.f("_iColor").val()).f("dwValue").val())
                             .then(function(x) {
                                 return x & 0xFFFFFF;
                             })
@@ -872,7 +873,7 @@ var MSHTML = undefined;
             });
         });
 
-        DbgObject.AddTypeDescription(moduleName, "CAttrValue", "Name", false, UserEditableFunctions.Create(function (attrVal) {
+        DbgObject.AddTypeDescription(mshtmlType("CAttrValue"), "Name", false, UserEditableFunctions.Create(function (attrVal) {
             return attrVal.f("_wFlags.fAA_Extra_HasDispId").val()
             .then(function (hasDispId) {
                 if (hasDispId) {
@@ -895,10 +896,10 @@ var MSHTML = undefined;
             })
         }));
 
-        DbgObject.AddTypeOverride(moduleName, "CAttrValue::AttrFlags", "_aaType", "CAttrValue::AATYPE");
-        DbgObject.AddTypeOverride(moduleName, "CAttrValue::AttrFlags", "_aaVTType", "VARENUM");
+        DbgObject.AddTypeOverride(mshtmlType("CAttrValue::AttrFlags"), "_aaType", "CAttrValue::AATYPE");
+        DbgObject.AddTypeOverride(mshtmlType("CAttrValue::AttrFlags"), "_aaVTType", "VARENUM");
 
-        DbgObject.AddTypeDescription(moduleName, "CAttrValue", "Value", false, UserEditableFunctions.Create(function (attrVal) {
+        DbgObject.AddTypeDescription(mshtmlType("CAttrValue"), "Value", false, UserEditableFunctions.Create(function (attrVal) {
             return attrVal.f("_wFlags.fAA_Extra_HasDispId").val()
             .then(function (hasDispId) {
                 if (hasDispId) {
@@ -906,7 +907,8 @@ var MSHTML = undefined;
                 } else {
                     return attrVal.f("_pPropertyDesc.pfnHandleProperty").pointerValue()
                     .then(DbgObject.symbol)
-                    .then(function (handleProperty) {
+                    .then(function (symbol) {
+                        var handleProperty = symbol.split("!")[1];
                         if (handleProperty == "PROPERTYDESC::HandleColorProperty") {
                             return attrVal.f("uVal._llVal").as("CColorValue");
                         } else if (handleProperty == "PROPERTYDESC::HandleEnumProperty") {
@@ -970,7 +972,7 @@ var MSHTML = undefined;
             })
         }));
 
-        DbgObject.AddExtendedField(moduleName, "PROPERTYDESC", "EnumDesc", "ENUMDESC", UserEditableFunctions.Create(function (propDesc) {
+        DbgObject.AddExtendedField(mshtmlType("PROPERTYDESC"), "EnumDesc", "ENUMDESC", UserEditableFunctions.Create(function (propDesc) {
             return propDesc.as("PROPERTYDESC_BASIC").f("b.dwPPFlags").as("PROPPARAM_FLAGS")
             .then(function (flags) {
                 return flags.hasConstantFlag("PROPPARAM_ENUM")
@@ -991,11 +993,11 @@ var MSHTML = undefined;
             });
         }));
 
-        DbgObject.AddArrayField(moduleName, "ENUMDESC", "Values", "ENUMDESC::ENUMPAIR", UserEditableFunctions.Create(function (enumDesc) {
+        DbgObject.AddArrayField(mshtmlType("ENUMDESC"), "Values", "ENUMDESC::ENUMPAIR", UserEditableFunctions.Create(function (enumDesc) {
             return enumDesc.f("aenumpairs").array(enumDesc.f("cEnums").val());
         }));
 
-        DbgObject.AddTypeDescription(moduleName, "CUnitValue", "UnitValue", true, function(unitval) {
+        DbgObject.AddTypeDescription(mshtmlType("CUnitValue"), "UnitValue", true, function(unitval) {
             var SCALEMULT_NULLVALUE        = 0;
             var SCALEMULT_POINT            = 1000;
             var SCALEMULT_PICA             = 100;
@@ -1067,7 +1069,7 @@ var MSHTML = undefined;
             });
         });
 
-        DbgObject.AddTypeDescription(moduleName, "Tree::SComputedValue", "ComputedValue", true, function(computedValue) {
+        DbgObject.AddTypeDescription(mshtmlType("Tree::SComputedValue"), "ComputedValue", true, function(computedValue) {
             return Promise.resolve(computedValue.as("CUnitValue").desc())
             .then(function(unitvalueDesc) {
                 if (unitvalueDesc == "_") {
@@ -1082,10 +1084,10 @@ var MSHTML = undefined;
             return layoutMeasure.val().then(function(val) { return val / 100 + "px"; });
         }
 
-        DbgObject.AddTypeDescription(moduleName, "Math::SLayoutMeasure", "Length", true, describeLayoutMeasure);
-        DbgObject.AddTypeDescription(moduleName, "Utilities::SLayoutMeasure", "Length", true, describeLayoutMeasure);
+        DbgObject.AddTypeDescription(mshtmlType("Math::SLayoutMeasure"), "Length", true, describeLayoutMeasure);
+        DbgObject.AddTypeDescription(mshtmlType("Utilities::SLayoutMeasure"), "Length", true, describeLayoutMeasure);
 
-        DbgObject.AddTypeDescription(moduleName, "Layout::SBoxFrame", "Frame", true, function(rect) {
+        DbgObject.AddTypeDescription(mshtmlType("Layout::SBoxFrame"), "Frame", true, function(rect) {
             var sideNames = ["top", "right", "bottom", "left"];
             return Promise.all(sideNames.map(function(side) { return rect.f(side).desc(); }))
             .then(function (sides) {
@@ -1101,22 +1103,21 @@ var MSHTML = undefined;
              }); 
         }
 
-        DbgObject.AddTypeDescription(moduleName, "Math::SPoint", "Point", true, describePoint);
-        DbgObject.AddTypeDescription(moduleName, "Utilities::SPoint", "Point", true, describePoint);
+        DbgObject.AddTypeDescription(mshtmlType("Math::SPoint"), "Point", true, describePoint);
+        DbgObject.AddTypeDescription(mshtmlType("Utilities::SPoint"), "Point", true, describePoint);
 
-        DbgObject.AddTypeDescription(moduleName, "Microsoft::CFlat::ReferenceCount", "RefCount", true, function (refCount) {
+        DbgObject.AddTypeDescription(mshtmlType("Microsoft::CFlat::ReferenceCount"), "RefCount", true, function (refCount) {
             return refCount.f("_refCount").val();
         });
 
-        DbgObject.AddTypeDescription(moduleName, function (type) { return type.match(/^TSmartPointer<.*>$/) != null; }, "Pointer", true, function (smartPointer) {
+        DbgObject.AddTypeDescription(function (type) { return type.module() == moduleName && type.name().match(/^TSmartPointer<.*>$/) != null; }, "Pointer", true, function (smartPointer) {
             return smartPointer.f("m_pT").desc();
         })
 
         DbgObject.AddArrayField(
-            moduleName,
-            function (type) { return type.match(/^SArray<.*>$/) != null; },
+            function (type) { return type.module() == moduleName && type.name().match(/^SArray<.*>$/) != null; },
             "Items",
-            function (type) { return type.match(/^SArray<(.*)>$/)[1]; },
+            function (type) { return type.name().match(/^SArray<(.*)>$/)[1]; },
             function (array) {
                 var arrayStart = array.f("_array");
                 return arrayStart.array(arrayStart.as("SArrayHeader").idx(-1).f("Length"));
@@ -1124,10 +1125,9 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            moduleName,
-            function (type) { return type.match(/^Microsoft::CFlat::Array<.*,1>$/) != null; },
+            function (type) { return type.module() == moduleName && type.name().match(/^Microsoft::CFlat::Array<.*,1>$/) != null; },
             "Items",
-            function (type) { return type.match(/^Microsoft::CFlat::Array<(.*),1>$/)[1]; },
+            function (type) { return type.name().match(/^Microsoft::CFlat::Array<(.*),1>$/)[1]; },
             function (array) {
                 if (array.isNull()) {
                     return [];
@@ -1138,30 +1138,27 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            moduleName, 
-            function(type) { return type.match(/^Layout::.*PatchableArray<.*>$/) != null; },
+            function(type) { return type.module() == moduleName && type.name().match(/^Layout::.*PatchableArray<.*>$/) != null; },
             "Items",
-            function (type) { return type.match(/^Layout::.*PatchableArray<(.*)>$/)[1]; },
+            function (type) { return type.name().match(/^Layout::.*PatchableArray<(.*)>$/)[1]; },
             function(array) {
                 return array.f("data.Array").array("Items");
             }
         );
 
         DbgObject.AddArrayField(
-            moduleName, 
-            function(type) { return type.match(/^(Collections|CFlatRuntime)::SRawArray<.*>$/) != null; },
+            function(type) { return type.module() == moduleName && type.name().match(/^(Collections|CFlatRuntime)::SRawArray<.*>$/) != null; },
             "Items",
-            function(type) { return type.match(/^(Collections|CFlatRuntime)::SRawArray<(.*)>$/)[2]; },
+            function(type) { return type.name().match(/^(Collections|CFlatRuntime)::SRawArray<(.*)>$/)[2]; },
             function(array) {
                 return array.f("data").f("ptr", "").array(array.f("length"));
             }
         );
 
         DbgObject.AddArrayField(
-            moduleName,
-            function (type) { return type.match(/^Microsoft::CFlat::TrailingArrayField<.*>$/) != null; },
+            function (type) { return type.module() == moduleName && type.name().match(/^Microsoft::CFlat::TrailingArrayField<.*>$/) != null; },
             "Items",
-            function (type) { return type.match(/^Microsoft::CFlat::TrailingArrayField<(.*)>$/)[1]; },
+            function (type) { return type.name().match(/^Microsoft::CFlat::TrailingArrayField<(.*)>$/)[1]; },
             function (array) {
                 if (array.isNull()) {
                     return [];
@@ -1172,11 +1169,10 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            moduleName, 
-            function(type) { return type.match(/^(CDataAry|CPtrAry)<.*>$/) != null; },
+            function(type) { return type.module() == moduleName && type.name().match(/^(CDataAry|CPtrAry)<.*>$/) != null; },
             "Items",
             function(type) {
-                var matches = type.match(/^(CDataAry|CPtrAry)<(.*)>$/);
+                var matches = type.name().match(/^(CDataAry|CPtrAry)<(.*)>$/);
                 if (matches[2].match(/\*$/) != null) {
                     return matches[2].substr(0, matches[2].length - 1).trim();
                 } else {
@@ -1184,7 +1180,7 @@ var MSHTML = undefined;
                 }
             },
             function (array) {
-                var innerType = array.typeDescription().match(/^(CDataAry|CPtrAry)<(.*)>$/)[2];
+                var innerType = array.type.name().match(/^(CDataAry|CPtrAry)<(.*)>$/)[2];
                 var result = array.f("_pv").as(innerType).array(array.f("_c"));
                 return result;
             }
@@ -1204,10 +1200,9 @@ var MSHTML = undefined;
         }
 
         DbgObject.AddArrayField(
-            moduleName,
-            function (type) { return type.match(/^(Collections|Utilities)::SCircularBuffer<.*>$/) != null; },
+            function (type) { return type.module() == moduleName && type.name().match(/^(Collections|Utilities)::SCircularBuffer<.*>$/) != null; },
             "Items",
-            function (type) { return type.match(/^(Collections|Utilities)::SCircularBuffer<(.*)>$/)[2]; },
+            function (type) { return type.module() == moduleName && type.name().match(/^(Collections|Utilities)::SCircularBuffer<(.*)>$/)[2]; },
             function (buffer) {
                 return Promise.all([
                     buffer.f("items.m_pT").array("Items"),
@@ -1223,20 +1218,18 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            moduleName,
-            function (type) { return type.match(/^Collections::SGrowingArray<.*>$/) != null; },
+            function (type) { return type.module() == moduleName && type.name().match(/^Collections::SGrowingArray<.*>$/) != null; },
             "Items",
-            function (type) { return type.match(/^Collections::SGrowingArray<(.*)>$/)[1]; },
+            function (type) { return type.name().match(/^Collections::SGrowingArray<(.*)>$/)[1]; },
             function (growingArray) {
                 return growingArray.f("items._array").array(growingArray.f("count"));
             }
         );
 
         DbgObject.AddArrayField(
-            moduleName,
-            function (type) { return type.match(/^Utilities::SGrowingArray<.*>$/) != null; },
+            function (type) { return type.module() == moduleName && type.name().match(/^Utilities::SGrowingArray<.*>$/) != null; },
             "Items",
-            function (type) { return type.match(/^Utilities::SGrowingArray<(.*)>$/)[1]; },
+            function (type) { return type.name().match(/^Utilities::SGrowingArray<(.*)>$/)[1]; },
             function (growingArray) {
 
                 if (growingArray.isNull()) {
@@ -1270,30 +1263,28 @@ var MSHTML = undefined;
         }
 
         DbgObject.AddArrayField(
-            moduleName, 
-            function(type) { return type.match(/^(CModernArray)<.*>$/) != null; },
+            function(type) { return type.module() == moduleName && type.name().match(/^(CModernArray)<.*>$/) != null; },
             "Items",
             function(type) {
-                var matches = type.match(/^(CModernArray)<(.*)>$/);
+                var matches = type.name().match(/^(CModernArray)<(.*)>$/);
                 var innerType = separateTemplateArguments(matches[2])[0];
-                if (innerType.match(/\*$/) != null) {
+                if (innerType.name().match(/\*$/) != null) {
                     return innerType.substr(0, innerType.length - 1).trim();
                 } else {
                     return innerType;
                 }
             },
             function (array) {
-                var innerType = separateTemplateArguments(array.typeDescription().match(/^(CModernArray)<(.*)>$/)[2])[0];
+                var innerType = separateTemplateArguments(array.type.name().match(/^(CModernArray)<(.*)>$/)[2])[0];
                 var result = array.f("_aT").as(innerType).array(array.f("_nSize"));
                 return result;
             }
         )
 
         DbgObject.AddArrayField(
-            moduleName,
-            function (type) { return type.indexOf("CHtPvPv") == 0; },
+            function (type) { return type.module() == moduleName && type.name().indexOf("CHtPvPv") == 0; },
             "Items",
-            "HashTableEntry",
+            mshtmlType("HashTableEntry"),
             function (ht) {
                 return ht.f("_pEnt").array(ht.f("_cEntMax"))
                 .filter(
@@ -1308,11 +1299,10 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddExtendedField(
-            moduleName,
-            function(type) { return type.match(/^PointerBitReuse<(.*)>$/) != null; },
+            function(type) { return type.module() == moduleName && type.name().match(/^PointerBitReuse<(.*)>$/) != null; },
             "Object",
             function (type) {
-                var matches = type.match(/^PointerBitReuse<(.*)>$/);
+                var matches = type.name().match(/^PointerBitReuse<(.*)>$/);
                 return matches[1];
             },
             function (pointerBitReuse) {
@@ -1320,11 +1310,7 @@ var MSHTML = undefined;
                 .then(function (deref) {
                     var address = deref.pointerValue();
                     address = address.minus(address.mod(4));
-                    return DbgObject.create(
-                        deref.module,
-                        deref.typeDescription(),
-                        address
-                    );
+                    return DbgObject.create(deref.type, address);
                 })
             })
 
@@ -1387,8 +1373,14 @@ var MSHTML = undefined;
             },
             Module: moduleName,
 
+            _help_Type: {
+                description: "Gets a DbgObjectType in the Web Platform module.",
+                arguments: [{name:"typeName", type:"string", description: "The type name."}],
+            },
+            Type: mshtmlType,
+
             _help_TreeNodeType: {
-                description: "The name of the tree node type (either \"CTreeNode\" or \"Tree::ElementNode\")."
+                description: "The tree node type (either \"CTreeNode\" or \"Tree::ElementNode\")."
             },
             TreeNodeType: treeNodeType,
 
