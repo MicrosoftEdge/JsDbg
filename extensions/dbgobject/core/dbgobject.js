@@ -245,8 +245,10 @@ Loader.OnLoad(function() {
         } else if (this == DbgObject.NULL) {
             return Promise.resolve(0);
         } else {
+            var that = this;
             return JsDbgPromise.LookupTypeSize(this.type.module(), this.type.name()).then(function(result) {
-                return result.size;
+                that.typeSize = result.size;
+                return that.typeSize * (that.type.isArray() ? that.type.arrayLength() : 1);
             });
         }
     }
@@ -442,12 +444,7 @@ Loader.OnLoad(function() {
             } else {
                 return that.size()
                 .then(function (objectSize) {
-                    var typeSize = (
-                        (that.type.isArray() && that.type.arrayLength() > 0) ?
-                        objectSize / that.type.arrayLength() :
-                        objectSize
-                    );
-                    return DbgObject.create(that.type.nonArrayType(), that._pointer.add(typeSize * index), that.bitcount, that.bitoffset, that.typeSize);
+                    return DbgObject.create(that.type.nonArrayType(), that._pointer.add(that.typeSize * index), that.bitcount, that.bitoffset, that.typeSize);
                 })
             }
         })
