@@ -411,11 +411,13 @@ Loader.OnLoad(function() {
             return new PromisedDbgObject(DbgObject.NULL);
         }
         var that = this;
-        var outerType = DbgObject.Create(type, that.type);
-        return JsDbgPromise.LookupFieldOffset(outerType.module(), type.name(), field)
-        .then(function(result) { 
-            return DbgObject.create(outerType, that.isNull() ? 0 : that._pointer.add(-result.offset)); 
-        });
+        var outerType = DbgObjectType(type, that.type);
+        return new PromisedDbgObject(
+            JsDbgPromise.LookupFieldOffset(outerType.module(), outerType.name(), field)
+            .then(function(result) { 
+                return DbgObject.create(outerType, that.isNull() ? 0 : that._pointer.add(-result.offset)); 
+            })
+        );
     }
 
     DbgObject.prototype._help_as = {
