@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BrowserLauncher.cs" />
+    <Compile Include="ConstantCache.cs" />
     <Compile Include="DiaHelpers.cs" />
     <Compile Include="DiaSessionLoader.cs" />
     <Compile Include="FileCache.cs" />

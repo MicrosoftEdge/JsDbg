@@ -340,7 +340,7 @@ Loader.OnLoad(function () {
             ]
         },
         LookupConstantName: function(module, type, constant, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg-server/constantname?module=" + esc(module) + "&type=" + esc(type) + "&constant=" + esc(constant), callback, JsDbgTransport.CacheType.Cached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/constantname?module=" + esc(module) + (type != null ? "&type=" + esc(type) : "") + "&constant=" + esc(constant), callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_LookupConstantValue: {
@@ -353,7 +353,7 @@ Loader.OnLoad(function () {
             ]
         },
         LookupConstantValue: function(module, type, constantName, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg-server/constantvalue?module=" + esc(module) + "&type=" + esc(type) + "&name=" + esc(constantName), callback, JsDbgTransport.CacheType.Cached);
+            JsDbgTransport.JsonRequest("/jsdbg-server/constantvalue?module=" + esc(module) + (type != null ? "&type=" + esc(type) : "") + "&name=" + esc(constantName), callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_LookupGlobalSymbol: {

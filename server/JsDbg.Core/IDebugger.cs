@@ -87,7 +87,7 @@ namespace JsDbg.Core {
         Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typeName);
         bool IsPointer64Bit { get; }
         Task<bool> IsTypeEnum(string module, string type);
-        Task<SConstantResult> LookupConstant(string module, string type, ulong constantValue);
+        Task<IEnumerable<SConstantResult>> LookupConstants(string module, string type, ulong constantValue);
         Task<SConstantResult> LookupConstant(string module, string type, string constantName);
         Task<SFieldResult> LookupField(string module, string typename, string fieldName);
         Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol);

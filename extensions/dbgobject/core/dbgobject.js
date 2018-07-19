@@ -175,6 +175,20 @@ Loader.OnLoad(function() {
         });
     }
 
+    DbgObject.globalConstantValue = function(module, constantName) {
+        return JsDbgPromise.LookupConstantValue(module, null, constantName)
+        .then(function (result) {
+            return result.value;
+        });
+    }
+
+    DbgObject.globalConstantNames = function(module, constantValue) {
+        return JsDbgPromise.LookupConstantName(module, null, constantValue)
+        .then(function (result) {
+            return result.map(function (x) { return x.name; });
+        });
+    }
+
     DbgObject._help_render = {
         description: "Renders an object or an array of objects, some of which may be DbgObjects.",
         arguments: [
@@ -689,7 +703,7 @@ Loader.OnLoad(function() {
             return JsDbgPromise.LookupConstantName(that.type.module(), that.type.name(), value); })
 
         // And return it.
-        .then(function(result) { return result.name; })
+        .then(function(result) { return result[0].name; })
     }
 
     DbgObject.prototype._help_hasConstantFlag = {

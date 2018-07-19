@@ -10,6 +10,7 @@ namespace JsDbg.Core {
         public TypeCacheDebugger(ITypeCacheDebuggerEngine debuggerEngine) {
             this.debuggerEngine = debuggerEngine;
             this.typeCache = new TypeCache(this.debuggerEngine.IsPointer64Bit);
+            this.constantCaches = new Dictionary<string, ConstantCache>();
 
             this.debuggerEngine.DebuggerChange += (sender, args) => { this.DebuggerChange?.Invoke(this, args); };
             this.debuggerEngine.DebuggerChange += (sender, args) => {
@@ -21,6 +22,21 @@ namespace JsDbg.Core {
 
         private void ClearTypeCache() {
             this.typeCache = new TypeCache(this.debuggerEngine.IsPointer64Bit);
+            this.constantCaches = new Dictionary<string, ConstantCache>();
+        }
+
+        private async Task<ConstantCache> LoadConstants(string module) {
+            if (this.constantCaches.ContainsKey(module)) {
+                return this.constantCaches[module];
+            }
+
+            IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(module);
+            if (session != null) {
+                this.constantCaches[module] = this.LoadGlobalConstantsFromDiaSession(session);
+                return this.constantCaches[module];
+            } else {
+                return null;
+            }
         }
 
         private async Task<Type> LoadType(string module, string typename) {
@@ -66,6 +82,20 @@ namespace JsDbg.Core {
                 this.typeCache.AddInvalidType(module, typename);
                 throw new DebuggerException(String.Format("Unable to load type: {0}!{1}", module, typename));
             }
+        }
+
+        private ConstantCache LoadGlobalConstantsFromDiaSession(IDiaSession diaSession) {
+            List<SConstantResult> constants = new List<SConstantResult>();
+
+            diaSession.findChildren(diaSession.globalScope, SymTagEnum.SymTagData, null, 0, out IDiaEnumSymbols symbols);
+            foreach (IDiaSymbol symbol in symbols) {
+                SymTagEnum symTag = (SymTagEnum)symbol.symTag;
+                if (symbol.locationType == (uint)DiaHelpers.LocationType.LocIsConstant) {
+                    constants.Add(new SConstantResult() { ConstantName = symbol.name, Value = (ulong)symbol.value });
+                }
+            }
+
+            return new ConstantCache(constants);
         }
 
         private async Task<Type> LoadTypeFromDiaSession(IDiaSession diaSession, string module, string typename, DiaHelpers.NameSearchOptions options) {
@@ -171,24 +201,38 @@ namespace JsDbg.Core {
             return type.IsEnum;
         }
 
-        public async Task<SConstantResult> LookupConstant(string module, string typename, ulong constantValue) {
-            var type = await this.LoadType(module, typename);
-            foreach (SConstantResult constantResult in type.Constants) {
-                if (constantResult.Value == constantValue) {
-                    return constantResult;
+        public async Task<IEnumerable<SConstantResult>> LookupConstants(string module, string typename, ulong constantValue) {
+            if (typename == null) {
+                var constants = await this.LoadConstants(module);
+                IEnumerable<string> names;
+                if (constants != null && constants.TryGetNames(constantValue, out names)) {
+                    return names.Select((x) => new SConstantResult() { ConstantName = x, Value = constantValue });
+                } else {
+                    throw new DebuggerException(String.Format("Unknown global constant value: {0}", constantValue));
                 }
+            } else {
+                var type = await this.LoadType(module, typename);
+                return type.Constants.Where((x) => x.Value == constantValue);
             }
-
-            throw new DebuggerException(String.Format("Unknown constant value: {0} in type: {1}", constantValue, typename));
         }
 
         public async Task<SConstantResult> LookupConstant(string module, string typename, string constantName) {
-            var type = await this.LoadType(module, typename);
-            ulong constantValue;
-            if (type.GetConstantValue(constantName, out constantValue)) {
-                return new SConstantResult() { ConstantName = constantName, Value = constantValue };
+            if (typename == null) {
+                var constants = await this.LoadConstants(module);
+                ulong constantValue;
+                if (constants != null && constants.TryGetValue(constantName, out constantValue)) {
+                    return new SConstantResult() { ConstantName = constantName, Value = constantValue };
+                } else {
+                    throw new DebuggerException(String.Format("Unknown global constant name: {0}", constantName));
+                }
             } else {
-                throw new DebuggerException(String.Format("Unknown constant name: {0} in type: {1}", constantName, typename));
+                var type = await this.LoadType(module, typename);
+                ulong constantValue;
+                if (type.GetConstantValue(constantName, out constantValue)) {
+                    return new SConstantResult() { ConstantName = constantName, Value = constantValue };
+                } else {
+                    throw new DebuggerException(String.Format("Unknown constant name: {0} in type: {1}", constantName, typename));
+                }
             }
         }
 
@@ -367,5 +411,6 @@ namespace JsDbg.Core {
 
         private ITypeCacheDebuggerEngine debuggerEngine;
         private TypeCache typeCache;
+        private Dictionary<string, ConstantCache> constantCaches;
     }
 }

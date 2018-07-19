@@ -845,7 +845,7 @@ namespace JsDbg.Core {
             string type = query["type"];
             string constantString = query["constant"];
             ulong constant;
-            if (module == null || type == null) {
+            if (module == null) {
                 fail();
                 return;
             }
@@ -860,8 +860,12 @@ namespace JsDbg.Core {
 
             string responseString;
             try {
-                SConstantResult constantResult = await this.debugger.LookupConstant(module, type, constant);
-                responseString = String.Format("{{ \"name\": \"{0}\" }}", constantResult.ConstantName);
+                IEnumerable<SConstantResult> constantResults = await this.debugger.LookupConstants(module, type, constant);
+                List<string> jsonFragments = new List<string>();
+                foreach (SConstantResult result in constantResults) {
+                    jsonFragments.Add(String.Format("{{ \"name\": \"{0}\" }}", result.ConstantName));
+                }
+                responseString = "[" + String.Join(",", jsonFragments) + "]";
             } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
             }
@@ -873,7 +877,7 @@ namespace JsDbg.Core {
             string module = query["module"];
             string type = query["type"];
             string constantName = query["name"];
-            if (module == null || type == null || constantName == null) {
+            if (module == null || constantName == null) {
                 fail();
                 return;
             }
