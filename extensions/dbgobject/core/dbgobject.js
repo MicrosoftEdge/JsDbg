@@ -19,7 +19,6 @@ Loader.OnLoad(function() {
     DbgObject._help_create = {
         description: "Manually constructs a DbgObject.",
         arguments: [
-            {name: "module", type:"string", description:"The module that contains the type."},
             {name: "type", type:"string", description:"The type of the object."},
             {name: "pointer", type:"int", description:"The address of the object in memory."},
             {name: "bitcount", type:"int", description:"(optional) The number of bits if the object is held in a bitfield."},

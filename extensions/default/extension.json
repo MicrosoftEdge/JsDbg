@@ -19,6 +19,7 @@
         "documentation",
         "tests",
         "undomanager",
+        "var-inspector",
         "extensions-dashboard"
     ]
 }

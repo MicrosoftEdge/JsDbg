@@ -76,30 +76,70 @@ var MSHTML = undefined;
             );
         }
 
-        DbgObject.AddTypeDescription(mshtmlType("CBase"), "RefsAndVar", false, UserEditableFunctions.Create(function(base) {
+        function IsCBaseGCNative(base) {
+            return Promise.all([base.f("_ulAllRefsAndFlags").val(), DbgObject.constantValue(mshtmlType("CBase"), "BRF_GCNATIVE")])
+            .thenAll((ulAllRefsAndFlags, BRF_GCNATIVE) => {
+                var isGCNative = ulAllRefsAndFlags & BRF_GCNATIVE;
+                return isGCNative;
+            });
+        }
+
+        function GetJSTypeIdMap() {
+            if (!this.javascriptTypeIdMap) {
+                return Promise.all([DbgObject.globalConstantValue("edgehtml", "JSIntegration::JSTypeID_ReservedRangeStart"), DbgObject.globalConstantValue("edgehtml", "JSIntegration::JSTypeID_ReservedRangeEnd")])
+                .thenAll((reservedRangeStart, reservedRangeEnd) => {
+                    this.javascriptTypeIdMap = {};
+                    return FillJSTypeIdMap(/*currentTypeId*/reservedRangeStart, /*lastTypeId*/reservedRangeEnd, this.javascriptTypeIdMap);
+                });
+            } else {
+                return Promise.resolve(this.javascriptTypeIdMap);
+            }
+        }
+
+        function FillJSTypeIdMap(currentTypeId, lastTypeId, typeIdMap) {
+            if (currentTypeId == lastTypeId) {
+                return Promise.resolve(typeIdMap);
+            } else {
+                return DbgObject.globalConstantNames("edgehtml", currentTypeId)
+                .then((names) => {
+                    typeIdMap[currentTypeId] = names.find((str) => {
+                        return str.includes("JSIntegration::JSTypeID") && !IsReservedTypeIdName(str);
+                    });
+                    return FillJSTypeIdMap(currentTypeId + 1, lastTypeId, typeIdMap);
+                });
+            }
+        }
+
+        function IsReservedTypeIdName(typeIdName) {
+            return (typeIdName == "JSIntegration::JSTypeID_Unspecified")
+                || (typeIdName == "JSIntegration::JSTypeID_SafeCBaseCastStart")
+                || (typeIdName == "JSIntegration::JSTypeID_SafeCBaseCastEnd")
+                || (typeIdName == "JSIntegration::JSTypeID_ReservedRangeStart")
+                || (typeIdName == "JSIntegration::JSTypeID_ReservedRangeEnd")
+                || (typeIdName == "JSIntegration::JSTypeID_ReservedRangeCodeGenStart")
+                || (typeIdName == "JSIntegration::JSTypeID_ReservedRangeCodeGenEnd")
+                || (typeIdName == "JSIntegration::JSTypeID_NotCBaseBegin")
+                || (typeIdName == "JSIntegration::JSTypeID_NotCBaseEnd")
+        }
+
+        function IsCBaseOrSimilarType(typeId) {
+            return Promise.all([DbgObject.globalConstantValue("edgehtml", "JSIntegration::JSTypeID_SafeCBaseCastStart"), DbgObject.globalConstantValue("edgehtml", "JSIntegration::JSTypeID_SafeCBaseCastEnd")])
+            .thenAll((safecbasecaststart, safecbasecastend) => {
+                return safecbasecaststart <= typeId && typeId < safecbasecastend;
+            });
+        }
+
+        DbgObject.AddTypeDescription(mshtmlType("CBase"), "Refs", false, UserEditableFunctions.Create(function(base) {
             return Promise.all([
                 base.f("_ulRefs").val(), 
                 base.f("_ulInternalRefs").val(), 
-                base.f("_ulAllRefsAndFlags").val(), 
-                base.f("_JSBind_Var._ptr"),
+                base.f("_ulAllRefsAndFlags").val(),
                 DbgObject.constantValue(mshtmlType("CBase"), "BRF_FLAGS_SHIFT"),
                 DbgObject.constantValue(mshtmlType("CBase"), "BRF_PASSIVATING"),
                 DbgObject.constantValue(mshtmlType("CBase"), "BRF_PASSIVATED"),
                 DbgObject.constantValue(mshtmlType("CBase"), "BRF_DESTRUCTING")
             ])
-            .thenAll(function (ulRefs, ulInternalRefs, ulAllRefsAndFlags, jsBindVar, BRF_FLAGS_SHIFT, BRF_PASSIVATING, BRF_PASSIVATED, BRF_DESTRUCTING) {
-                var varFields = "";
-                var jsBindVarPtr = new PointerMath.Pointer(jsBindVar.pointerValue().and(bigInt(1).not())).toFormattedString();
-                var isVarRooted = !jsBindVar.pointerValue().and(1).isZero();
-
-                if (!jsBindVar.isNull()) {
-                    if (isVarRooted) {
-                        varFields = " (var:" + jsBindVarPtr + " <span style='color:rgb(240,120,0)'>rooted</span>)";
-                    } else {
-                        varFields = " var:" + jsBindVarPtr;
-                    }
-                }
-
+            .thenAll(function (ulRefs, ulInternalRefs, ulAllRefsAndFlags, BRF_FLAGS_SHIFT, BRF_PASSIVATING, BRF_PASSIVATED, BRF_DESTRUCTING) {
                 var flags = "";
                 var isPassivating = ulAllRefsAndFlags & BRF_PASSIVATING;
                 var isPassivated = ulAllRefsAndFlags & BRF_PASSIVATED;
@@ -112,7 +152,27 @@ var MSHTML = undefined;
                     "</span>";
                 }
 
-                return "strong:" + ulRefs + " weak:" + (ulAllRefsAndFlags >> BRF_FLAGS_SHIFT) + " gc:" + ulInternalRefs + varFields + flags;
+                return "strong:" + ulRefs + " weak:" + (ulAllRefsAndFlags >> BRF_FLAGS_SHIFT) + " gc:" + ulInternalRefs + flags;
+            });
+        }));
+
+
+        DbgObject.AddTypeDescription(mshtmlType("CBase"), "RefsAndVar", false, UserEditableFunctions.Create(function(base) {
+            return Promise.all([base.desc("Refs"), base.f("_JSBind_Var._ptr")])
+            .thenAll(function(refsDesc, jsBindVar) {
+                var varDesc = "";
+                var jsBindVarPtr = new PointerMath.Pointer(jsBindVar.pointerValue().and(bigInt(1).not())).toFormattedString();
+                var isVarRooted = !jsBindVar.pointerValue().and(1).isZero();
+
+                if (!jsBindVar.isNull()) {
+                    varDesc += "(var: " + "<span style='color:#aaa'>" + jsBindVarPtr + "</span>";
+                    if (isVarRooted) {
+                        varDesc += " <span style='color:rgb(240,120,0)'>rooted</span>";
+                    }
+                    varDesc += ")";
+                }
+
+                return refsDesc + " " + varDesc;
             });
         }));
 
@@ -1324,11 +1384,332 @@ var MSHTML = undefined;
             dispidNameToValue[name] = value;
         }
 
+        DbgObject.AddExtendedField(DbgObjectType("edgehtml!void"), "Var", DbgObjectType("chakra!Js::RecyclableObject"), (voidObject) => {
+            return voidObject.dcast("chakra!Js::RecyclableObject");
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("chakra!Js::RecyclableObject"), "Custom External Object", DbgObjectType("chakra!Js::CustomExternalObject"), (recycableObject) => {
+            return recycableObject.dcast("chakra!Js::CustomExternalObject");
+        });
+
+        DbgObject.AddTypeDescription(DbgObjectType("chakra!Js::RecyclableObject"), "Var description", false, (recycableObject) => {
+            return Promise.all([recycableObject.f("type").f("typeId").val(), recycableObject.f("type").desc("Type name")])
+            .thenAll((typeId, typeName) => {
+                return IsCBaseOrSimilarType(typeId)
+                .then((isCBaseOrSimilarType) => {
+                    if (isCBaseOrSimilarType) {
+                        return Promise.all([recycableObject.F("Custom External Object").F("VarExtensionBase").F("Base"), recycableObject.F("Custom External Object").F("VarExtensionBase").F("Base").vcast()])
+                        .thenAll((cbase, vcasted) => {
+                            var description = "<span style='color:blue'>" + typeName + "</span> Var";
+                            if (!cbase.isNull()) {
+                                description += ", CBase: <span style='color:#aaa'>" + cbase.ptr() + "</span> (" + vcasted.type.name() + ")";
+                            }
+                            return description;
+                        });
+                    } else {
+                        var description;
+                        if (typeName === "Unspecified") {
+                            description = "<span style='color:red'>";
+                        } else {
+                            description = "<span style='color:blue'>";
+                        }
+                        description += typeName + "</span> Var";
+                        return description;
+                    }
+                });
+            });
+        });
+
+        DbgObject.AddTypeDescription(DbgObjectType("chakra!Js::TypeId"), "Name", true, (typeId) => {
+            return Promise.all([typeId.val(), MSHTML.GetJSTypeIdMap(), DbgObject.globalConstantValue("edgehtml", "JSIntegration::JSTypeID_ReservedRangeStart"), DbgObject.globalConstantValue("edgehtml", "JSIntegration::JSTypeID_ReservedRangeEnd")])
+            .thenAll((typeIdVal, typeIdMap, reservedRangeStart, reservedRangeEnd) => {
+                var typeIdName = typeIdMap[typeIdVal];
+                if (typeIdName) {
+                    return typeIdName;
+                } else if (typeIdVal < reservedRangeStart) {
+                    return typeId.constant();
+                } else {
+                    console.assert(typeIdVal > reservedRangeEnd);
+                    return "Unspecified";
+                }
+            });
+        });
+
+        DbgObject.AddTypeDescription(DbgObjectType("chakra!Js::Type"), "Type name", false, (type) => {
+            return type.f("typeId").desc("Name")
+            .then((typeIdName) => {
+                return typeIdName.replace("JSIntegration::JSTypeID_", "").replace("TypeIds_", "");
+            });
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("chakra!Js::CustomExternalObject"), "VarExtensionBase", DbgObjectType("edgehtml!VarExtensionBase"), (customExternalObject) => {
+            return customExternalObject.f("type").f("typeId").val()
+            .then((typeId) => {
+                return IsCBaseOrSimilarType(typeId)
+                .then((isCBaseOrSimilarType) => {
+                    if (isCBaseOrSimilarType) {
+                        return customExternalObject.idx(1).as("edgehtml!VarExtensionBase", true);
+                    } else {
+                        return DbgObject.NULL;
+                    }
+                });
+            });
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("chakra!Js::CustomExternalObject"), "DispatchMethodInfo", DbgObjectType("edgehtml!DispatchMethodInfo"), (customExternalObject) => {
+            return customExternalObject.f("type").f("typeId").desc("Name")
+            .then((typeIdName) => {
+                if ((typeIdName == "JSIntegration::JSTypeID_DispatchMethod") || (typeIdName == "JSIntegration::JSTypeID_ExternalMethod")) {
+                    return customExternalObject.idx(1).as("edgehtml!DispatchMethodInfo", true);
+                } else {
+                    return DbgObject.NULL;
+                }
+            });
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("chakra!Js::CustomExternalObject"), "CustomVar", DbgObjectType("edgehtml!VarArray"), (customExternalObject) => {
+            return customExternalObject.f("type").f("typeId").desc("Name")
+            .then((typeIdName) => {
+                if (typeIdName == "JSIntegration::JSTypeID_CustomVar") {
+                    return customExternalObject.idx(1).as("edgehtml!VarArray", true);
+                } else {
+                    return DbgObject.NULL;
+                }
+            });
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("chakra!Js::CustomExternalObject"), "FunctionWrapper", DbgObjectType("chakra!Js::RecyclableObject"), (customExternalObject) => {
+            return customExternalObject.f("type").f("typeId").desc("Name")
+            .then((typeIdName) => {
+                if (typeIdName == "JSIntegration::JSTypeID_FunctionWrapper") {
+                    return customExternalObject.idx(1).as("chakra!Js::RecyclableObject", true);
+                } else {
+                    return DbgObject.NULL;
+                }
+            });
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("chakra!Js::CustomExternalObject"), "MirrorContext", DbgObjectType("chakra!Js::RecyclableObject"), (customExternalObject) => {
+            return customExternalObject.f("type").f("typeId").desc("Name")
+            .then((typeIdName) => {
+                if (typeIdName == "JSIntegration::JSTypeID_MirrorContext") {
+                    return customExternalObject.idx(1).as("chakra!Js::RecyclableObject", true);
+                } else {
+                    return DbgObject.NULL;
+                }
+            });
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("chakra!Js::CustomExternalObject"), "MirrorFunction", DbgObjectType("chakra!Js::RecyclableObject"), (customExternalObject) => {
+            return customExternalObject.f("type").f("typeId").desc("Name")
+            .then((typeIdName) => {
+                if (typeIdName == "JSIntegration::JSTypeID_MirrorFunction") {
+                    return customExternalObject.idx(1).as("chakra!Js::RecyclableObject", true);
+                } else {
+                    return DbgObject.NULL;
+                }
+            });
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("edgehtml!VarExtensionBase"), "VarExtension", DbgObjectType("edgehtml!VarExtension"), (varExtensionBase) => {
+            return varExtensionBase.F("Base")
+            .then((cbase) => {
+                if (!cbase.isNull()) {
+                    return IsCBaseGCNative(cbase)
+                    .then((isCBaseGCNative) => {
+                        if (isCBaseGCNative) {
+                            return DbgObject.NULL;
+                        } else {
+                            return varExtensionBase.as("edgehtml!VarExtension", true);
+                        }
+                    });
+                } else {
+                    return varExtensionBase.as("edgehtml!VarExtension", true);
+                }
+            });
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("edgehtml!VarExtensionBase"), "GCVarExtension", DbgObjectType("edgehtml!GCVarExtension"), (varExtensionBase) => {
+            return varExtensionBase.F("Base")
+            .then((cbase) => {
+                if (!cbase.isNull()) {
+                    return IsCBaseGCNative(cbase)
+                    .then((isCBaseGCNative) => {
+                        if (isCBaseGCNative) {
+                            return varExtensionBase.as("edgehtml!GCVarExtension", true);
+                        } else {
+                            return DbgObject.NULL;
+                        }
+                    });
+                } else {
+                    return DbgObject.NULL;
+                }
+            });
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("edgehtml!VarExtensionBase"), "Base", DbgObjectType("edgehtml!CBase"), (varExtensionBase) => {
+            return varExtensionBase.f("_this").F("Object");
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("edgehtml!CBase"), "Var", DbgObjectType("chakra!Js::CustomExternalObject"), (base) => {
+            return base.f("_JSBind_Var").F("Object").F("Var").F("Custom External Object");
+        });
+
+        DbgObject.AddArrayField(DbgObjectType("edgehtml!VarExtension"), "Subobjects", DbgObjectType("chakra!Js::CustomExternalObject"), (varExtension) => {
+            return varExtension.f("_subobjects").as("chakra!Js::CustomExternalObject", true).list((subObject) => {
+                return subObject.F("VarExtensionBase").F("VarExtension")
+                .then((subObjectVarExtension) => {
+                    return subObjectVarExtension.f("_next").as("chakra!Js::CustomExternalObject", true);
+                })
+            });
+        });
+
+        DbgObject.AddArrayField(DbgObjectType("edgehtml!VarExtension"), "References", DbgObjectType("chakra!Js::RecyclableObject"), (varExtension) => {
+            return varExtension.f("_reference")
+            .then((reference) => {
+                var hasNoReferences = reference.isNull();
+                if (hasNoReferences) {
+                    return [];
+                } else {
+                    return varExtension.f("_this").deref()
+                    .then((pointerbitreuse) => {
+                        var hasSingleReference = new PointerMath.Pointer(pointerbitreuse.pointerValue().and(bigInt(1))).isNull();
+                        if (hasSingleReference) {
+                            return [reference.as("chakra!Js::RecyclableObject")];
+                        } else {
+                            // reference is array of multiple references
+                            return reference.F("Var").F("Custom External Object")
+                            .then((customExternalObject) => {
+                                return customExternalObject.idx(1).as("edgehtml!VarArray", true).array("Vars");
+                            })
+                        }
+                    })
+                }
+            });
+        });
+
+        DbgObject.AddExtendedField(DbgObjectType("edgehtml!VarExtension"), "Subobject Parent", DbgObjectType("chakra!Js::CustomExternalObject"), (varExtension) => {
+            return getSubobjectParentFromVarExtension(varExtension);
+        });
+
+        function getSubobjectParentFromVarExtension(varExtension) {
+            return varExtension.f("_prev")
+            .then((previousVarAsVoid) => {
+                if (!previousVarAsVoid.isNull()) {
+                    return Promise.all([previousVarAsVoid.F("Var").F("Custom External Object"), previousVarAsVoid.F("Var").F("Custom External Object").F("VarExtensionBase").F("VarExtension")])
+                    .thenAll((previousCustomExternalObject, previousVarExtension) => {
+                        return previousVarExtension.f("_subObjects")
+                        .then((firstSubobjectOfPreviousVar) => {
+                            if (!firstSubobjectOfPreviousVar.isNull() && firstSubobjectOfPreviousVar.F("Var").F("Custom External Object").F("VarExtensionBase").F("VarExtension").equals(varExtension)) {
+                                // parent found
+                                return varExtension.f("_prev").F("Var").F("Custom External Object");
+                            } else {
+                                return getSubobjectParentFromVarExtension(previousVarExtension);
+                            }
+                        });
+                    });
+                } else {
+                    return DbgObject.NULL;
+                }
+            });
+        }
+
+        DbgObject.AddArrayField(DbgObjectType("edgehtml!VarExtension"), "Private slots", DbgObjectType("chakra!Js::RecyclableObject"), (varExtension) => {
+            return getInstanceSlotsFromVarExtension(varExtension);
+        });
+
+        DbgObject.AddArrayField(DbgObjectType("edgehtml!GCVarExtension"), "Instance slots", DbgObjectType("chakra!Js::RecycableObject"), (gcVarExtension) => {
+            return getInstanceSlotsFromVarExtension(gcVarExtension);
+        });
+
+        function getInstanceSlotsFromVarExtension(varExtension) {
+            return varExtension.F("Base").F("Var").then((customExternalObject) => {
+                return Promise.all([DbgObject.globalConstantValue("edgehtml", "JSIntegration::JSTypeID_ReservedRangeStart"), customExternalObject.f("type").f("typeId").val()])
+                .thenAll((reservedRangeStart, typeId) => {
+                    return DbgObject.global("edgehtml", "CJScript9Holder::m_StaticTypeDescriptors").idx(typeId - reservedRangeStart).f("VarExtensionPointerCount").val()
+                    .then((varExtensionPointerCount) => {
+                        return getFirstInstanceSlotFromVarExtensionBase(varExtension)
+                        .then((firstInstanceSlot) => {
+                            return firstInstanceSlot.deref()
+                            .then((firstInstanceSlotValue) => {
+                                if (!firstInstanceSlotValue.isNull()) {
+                                    return varExtension.as("edgehtml!void*", true).size()
+                                    .then((voidptrSize) => {
+                                        var varExtensionFieldsSize = parseInt(firstInstanceSlot.ptr().replace("`", "")) - parseInt(varExtension.ptr().replace("`", ""));
+                                        var varExtensionFieldsCount = (varExtensionFieldsSize / voidptrSize);
+                                        var numInstanceSlots = varExtensionPointerCount - varExtensionFieldsCount;
+                                        return firstInstanceSlot.array(numInstanceSlots)
+                                        .map((varAsVoid) => {
+                                            return varAsVoid.F("Var");
+                                        });
+                                    });
+                                } else {
+                                    return [];
+                                }
+                            });
+                        });
+                    });
+                });
+            });
+        }
+    
+        function getFirstInstanceSlotFromVarExtensionBase(varExtensionBase) {
+            return varExtensionBase.as("edgehtml!VarExtensionBase", true).F("Base")
+            .then((cbase) => {
+                if (!cbase.isNull()) {
+                    return IsCBaseGCNative(cbase)
+                    .then((isCBaseGCNative) => {
+                        if (isCBaseGCNative) {
+                            return varExtensionBase.as("edgehtml!GCVarExtension", true).f("_instanceSlots");
+                        } else {
+                            return varExtensionBase.as("edgehtml!VarExtension", true).f("_privateSlots");
+                        }
+                    });
+                } else {
+                    return varExtensionBase.as("edgehtml!VarExtension", true).f("_privateSlots");
+                }
+            });
+        }
+
+        DbgObject.AddArrayField(DbgObjectType("edgehtml!VarArray"), "Vars", DbgObjectType("chakra!Js::RecyclableObject"), (varArray) => {
+            return varArray.f("_size").val()
+            .then((size) => {
+                return varArray.f("_vars").array(size)
+                .map((varAsVoid) => {
+                    return varAsVoid.F("Var");
+                });
+            });
+        });
+
         MSHTML = {
             _help : {
                 name: "MSHTML",
                 description: "mshtml.dll/edgehtml.dll-specific functionality."
             },
+
+            _help_IsCBaseGCNative: {
+                description:"Checks if the given CBase is GC-native.",
+                arguments: [
+                    {name: "base", type:"DbgObject", description: "DbgObject representing the base to test."},
+                ],
+                returns: "(A promise to) a bool: true if the given base is GC-native, false otherwise."
+            },
+            IsCBaseGCNative: IsCBaseGCNative,
+
+            _help_GetJSTypeIdMap: {
+                description:"Retrieves map of all Javascript Type Ids.",
+                returns: "(A promise to) a dictionary of type ids to type id names."
+            },
+            GetJSTypeIdMap: GetJSTypeIdMap,
+
+            _help_IsCBaseOrSimilarType: {
+                description:"Checks if the given type id is associated with a CBase or similar (mirror, script engine sentinel, root list) type.",
+                arguments: [
+                    {name: "base", type:"DbgObject", description: "DbgObject representing the base to test."},
+                ],
+                returns: "(A promise to) a bool: true if the given type id is associated with a CBase or similar type, false otherwise."
+            },
+            IsCBaseOrSimilarType: IsCBaseOrSimilarType,
 
             _help_GetCDocs: {
                 description:"Gets all of the CDocs loaded in the process from the threadstate.",

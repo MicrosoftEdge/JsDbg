@@ -1,0 +1,17 @@
+{
+    "name": "VarInspector",
+    "author": "Sanket Joshi",
+    "description": "Inspect Chakra Vars and their Edgehtml extensions",
+    "dependencies": [
+        "dbgobject",
+        "mshtml-helpers",
+        "tree-inspector"
+    ],
+    "includes": [
+        "var-inspector.js"
+    ],
+    "augments": [
+        "dbgobject",
+        "mshtml-helpers"
+    ]
+}
