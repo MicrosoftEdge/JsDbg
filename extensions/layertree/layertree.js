@@ -70,7 +70,15 @@ Loader.OnLoad(function() {
         return layerManager.f("_spRootLayer.m_pT").vcast();
     })
 
+    LayerTree.Tree.addChildren(MSHTML.Type("CDCompLayerManager"), function (layerManager) {
+        return layerManager.f("_spRootLayer.m_pT").vcast();
+    })
+
     LayerTree.Tree.addChildren(MSHTML.Type("CWUCLayer"), function (layerManager) {
+        return layerManager.f("_pFirstChildLayer").list("_pNextLayer").vcast();
+    })
+
+    LayerTree.Tree.addChildren(MSHTML.Type("CDCompLayer"), function (layerManager) {
         return layerManager.f("_pFirstChildLayer").list("_pNextLayer").vcast();
     })
 
