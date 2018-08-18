@@ -116,7 +116,7 @@ Loader.OnLoad(function() {
                 module: this.type.module(),
                 typeName: this.type.fullName(),
                 name: this.name,
-                resultingTypeName: this.resultingType.qualifiedName(),
+                resultingTypeName: this.resultingType == null ? null : this.resultingType.qualifiedName(),
                 isArray: this.isArray,
                 editableFunction: UserEditableFunctions.Serialize(this.editableFunction)
             };
