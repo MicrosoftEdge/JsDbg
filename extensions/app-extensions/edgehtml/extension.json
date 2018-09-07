@@ -1,0 +1,17 @@
+{
+    "name": "edgehtml",
+    "author": "Sanket Joshi",
+    "description": "Default extensions for Edge/IE devs.",
+    "headless": true,
+    "dependencies": [
+        "app-extensions\\edgehtml\\boxtree",
+        "app-extensions\\edgehtml\\displaytree",
+        "app-extensions\\edgehtml\\layertree",
+        "app-extensions\\edgehtml\\layoutbuilder",
+        "app-extensions\\edgehtml\\markuptree",
+        "app-extensions\\edgehtml\\mshtml-dashboard",
+        "app-extensions\\edgehtml\\stylesheets",
+        "app-extensions\\edgehtml\\undomanager",
+        "app-extensions\\edgehtml\\var-inspector"
+    ]
+}
