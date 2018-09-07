@@ -4,22 +4,14 @@
     "description": "Default extensions for IE devs.",
     "headless": true,
     "dependencies": [
+        "app-extensions",
         "jsdbg",
         "jsdbg/tests",
         "wwwroot",
-        "mshtml-dashboard",
         "extensions",
-        "markuptree",
-        "boxtree",
-        "displaytree",
-        "layertree",
-        "layoutbuilder",
-        "stylesheets",
         "object-diff",
         "documentation",
         "tests",
-        "undomanager",
-        "var-inspector",
         "extensions-dashboard"
     ]
 }

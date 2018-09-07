@@ -2,5 +2,8 @@
     "name": "app-extensions",
     "author": "Sanket Joshi",
     "description": "Load application specific extensions.",
-    "headless": true
+    "headless": true,
+    "dependencies": [
+        "app-extensions\\edgehtml"
+    ]
 }
