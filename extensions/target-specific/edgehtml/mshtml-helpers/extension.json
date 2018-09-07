@@ -1,7 +1,7 @@
 {
     "name": "mshtml-helpers",
     "author": "Peter Salas",
-    "description": "Helper functions for mshtml.dll",
+    "description": "Helper functions for mshtml.dll, edgehtml.dll and chakra.dll",
     "headless": true,
     "dependencies": ["dbgobject", "user-editable-functions", "help"],
     "includes": ["mshtml.js", "dispids/mshtml-dispids.js"],

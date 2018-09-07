@@ -1,14 +1,14 @@
 {
-    "name": "LayoutBuilder",
+    "name": "DisplayTree",
     "author": "Peter Salas",
-    "description": "View the current Edge/IE layout stack.",
+    "description": "Inspect the Edge/IE display tree.",
     "dependencies": [
         "dbgobject",
-        "mshtml-helpers",
+        "target-specific/edgehtml/mshtml-helpers",
         "tree-inspector"
     ],
     "includes": [
-        "layoutbuilder.js"
+        "displaytree.js"
     ],
     "augments": [
         "dbgobject"

@@ -1,25 +1,17 @@
 {
     "name": "default",
     "author": "Peter Salas",
-    "description": "Default extensions for IE devs.",
+    "description": "Default extensions for all applications.",
     "headless": true,
     "dependencies": [
+        "target-specific",
         "jsdbg",
         "jsdbg/tests",
         "wwwroot",
-        "mshtml-dashboard",
         "extensions",
-        "markuptree",
-        "boxtree",
-        "displaytree",
-        "layertree",
-        "layoutbuilder",
-        "stylesheets",
         "object-diff",
         "documentation",
         "tests",
-        "undomanager",
-        "var-inspector",
         "extensions-dashboard"
     ]
 }

@@ -4,7 +4,7 @@
     "description": "Inspect Chakra Vars and their Edgehtml extensions",
     "dependencies": [
         "dbgobject",
-        "mshtml-helpers",
+        "target-specific/edgehtml/mshtml-helpers",
         "tree-inspector"
     ],
     "includes": [

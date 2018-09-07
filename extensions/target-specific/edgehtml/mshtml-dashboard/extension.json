@@ -1,0 +1,11 @@
+{
+    "name": "mshtml-dashboard",
+    "headless": true,
+    "dependencies": [
+        "target-specific/edgehtml/mshtml-helpers",
+        "dbgobject-tree",
+        "object-dashboard"
+    ],
+    "augments": ["wwwroot"],
+    "includes": ["mshtml-dashboard.js"]
+}
