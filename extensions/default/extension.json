@@ -1,7 +1,7 @@
 {
     "name": "default",
     "author": "Peter Salas",
-    "description": "Default extensions for IE devs.",
+    "description": "Default extensions for all applications.",
     "headless": true,
     "dependencies": [
         "app-extensions",
