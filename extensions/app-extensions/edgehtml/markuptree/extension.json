@@ -4,7 +4,7 @@
     "description": "Inspect the Edge/IE DOM tree.",
     "dependencies": [
         "dbgobject",
-        "mshtml-helpers",
+        "app-extensions\\edgehtml\\mshtml-helpers",
         "tree-inspector"
     ],
     "includes": [
