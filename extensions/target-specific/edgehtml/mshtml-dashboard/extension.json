@@ -2,7 +2,7 @@
     "name": "mshtml-dashboard",
     "headless": true,
     "dependencies": [
-        "app-extensions\\edgehtml\\mshtml-helpers",
+        "target-specific/edgehtml/mshtml-helpers",
         "dbgobject-tree",
         "object-dashboard"
     ],

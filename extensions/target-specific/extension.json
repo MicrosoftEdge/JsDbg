@@ -1,0 +1,9 @@
+{
+    "name": "target-specific",
+    "author": "Sanket Joshi",
+    "description": "Load extensions for specific debugging targets (ex. edgehtml).",
+    "headless": true,
+    "dependencies": [
+        "target-specific/edgehtml"
+    ]
+}

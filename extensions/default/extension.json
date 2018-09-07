@@ -4,7 +4,7 @@
     "description": "Default extensions for all applications.",
     "headless": true,
     "dependencies": [
-        "app-extensions",
+        "target-specific",
         "jsdbg",
         "jsdbg/tests",
         "wwwroot",

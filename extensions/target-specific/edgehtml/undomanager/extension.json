@@ -4,7 +4,7 @@
     "description": "Inspect the Edge/IE undo manager.",
     "dependencies": [
         "dbgobject",
-        "app-extensions\\edgehtml\\mshtml-helpers",
+        "target-specific/edgehtml/mshtml-helpers",
         "tree-inspector"
     ],
     "includes": [
