@@ -10,5 +10,11 @@
     "includes": [
         "boxtree.js"
     ],
-    "augments": ["dbgobject"]
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": [
+        "edgehtml",
+        "mshtml"
+    ]
 }

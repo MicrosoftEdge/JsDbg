@@ -5,13 +5,12 @@
 
 var JsDbgToolbar = undefined;
 Loader.OnLoad(function () {
+    var currentExtensionNames = [];
     function updateExtensionList() {
         var content = document.querySelector(".jsdbg-extensions-pane-content");
         if (content == null) {
             return;
         }
-
-        content.innerHTML = "";
 
         JsDbg.GetExtensions(function (extensions) {
             var currentExtension = Loader.GetCurrentExtension();
@@ -37,36 +36,43 @@ Loader.OnLoad(function () {
                 }
             });
 
-            extensions.forEach(function (e) {
-                var link = document.createElement("a");
-                if (e.name == "wwwroot") {
-                    link.setAttribute("href", "/");
-                } else {
-                    link.setAttribute("href", "/" + e.name.toLowerCase() + "/");
-                }
+            var extensionNames = extensions.map((ext) => ext.name).sort();
+            if (JSON.stringify(extensionNames) !== JSON.stringify(currentExtensionNames)) {
+                // Only update the toolbar if the set of extensions has changed.
+                currentExtensionNames = extensionNames;
 
-                var name = document.createElement("span");
-                name.classList.add("jsdbg-extension-name");
-                if (e.name == "wwwroot") {
-                    name.appendChild(document.createTextNode("JsDbg"));
-                } else {
-                    name.appendChild(document.createTextNode(e.name));
-                }
-                link.appendChild(name);
-
-                if (e.description != null) {
-                    var description = document.createElement("span");
-                    description.classList.add("jsdbg-extension-description");
-                    description.appendChild(document.createTextNode(" " + e.description));
-                    link.appendChild(description);
-                }
-                content.appendChild(link);
-                content.appendChild(document.createTextNode(" "));
-            });
-
-            // Configure the drop-down pane so that it has the proper height.
-            document.querySelector(".jsdbg-toolbar").style.display = "";
-            content.parentNode.style.height = content.offsetHeight + "px";
+                content.innerHTML = "";
+                extensions.forEach(function (e) {
+                    var link = document.createElement("a");
+                    if (e.name == "wwwroot") {
+                        link.setAttribute("href", "/");
+                    } else {
+                        link.setAttribute("href", "/" + e.name.toLowerCase() + "/");
+                    }
+    
+                    var name = document.createElement("span");
+                    name.classList.add("jsdbg-extension-name");
+                    if (e.name == "wwwroot") {
+                        name.appendChild(document.createTextNode("JsDbg"));
+                    } else {
+                        name.appendChild(document.createTextNode(e.name));
+                    }
+                    link.appendChild(name);
+    
+                    if (e.description != null) {
+                        var description = document.createElement("span");
+                        description.classList.add("jsdbg-extension-description");
+                        description.appendChild(document.createTextNode(" " + e.description));
+                        link.appendChild(description);
+                    }
+                    content.appendChild(link);
+                    content.appendChild(document.createTextNode(" "));
+                });
+    
+                // Configure the drop-down pane so that it has the proper height.
+                document.querySelector(".jsdbg-toolbar").style.display = "";
+                content.parentNode.style.height = content.offsetHeight + "px";
+            }
         });
     }
 
@@ -163,4 +169,8 @@ Loader.OnLoad(function () {
     };
 
     buildToolbar();
+
+    JsDbg.RegisterOnBreakListener(function () {
+        updateExtensionList();
+    });
 })

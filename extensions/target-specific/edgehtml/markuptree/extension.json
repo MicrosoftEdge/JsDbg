@@ -9,9 +9,13 @@
     ],
     "includes": [
         "markuptree.js",
-        "markuptree.css",
+        "markuptree.css"
     ],
     "augments": [
         "dbgobject"
+    ],
+    "targetModules": [
+        "edgehtml",
+        "mshtml"
     ]
 }

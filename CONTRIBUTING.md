@@ -64,7 +64,8 @@ Name | Type | Description
 `headless` | bool | Indicates if the extension should not be listed on the launch page when loaded.  Used for extensions do not present UI of their own but are consumed by other extensions.
 `includes` | array of strings | An array of JS or CSS filenames in this extension's directory that should be included whenever this extension is used.  If other extensions take a dependency on this extension, these files will be included in the page automatically.
 `dependencies` | array of strings | An array of paths to other extensions that this extension depends on.  Paths are relative to the default extension directory.  These extensions will be automatically loaded when the extension is loaded.
-`augments` | array of strings | An array extension names that this extension augments.  Specifying an extension name here means that whenever that extension is loaded by the browser, this extension will be loaded as well.
+`augments` | array of strings | An array of extension names that this extension augments.  Specifying an extension name here means that whenever that extension is loaded by the browser, this extension will be loaded as well.
+`targetModules` | array of strings | An array of module names that this extension targets. This extension will only be served if one or more of its target modules are loaded in the debugger.
 
 ### DbgObject
 

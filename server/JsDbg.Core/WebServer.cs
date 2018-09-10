@@ -40,6 +40,12 @@ namespace JsDbg.Core {
             set { this._dependencies = value; }
         }
 
+        [DataMember(IsRequired = false)]
+        public string[] targetModules {
+            get { return this._targetModules; }
+            set { this._targetModules = value; }
+        }
+
         [DataMember(IsRequired=false)]
         public bool headless {
             get { return this._headless; }
@@ -86,6 +92,7 @@ namespace JsDbg.Core {
         private string[] _dependencies;
         private string[] _includes;
         private string[] _augments;
+        private string[] _targetModules;
         private string _path;
         private string _originalPath;
         private bool _headless;
@@ -1130,12 +1137,35 @@ namespace JsDbg.Core {
             }
         }
 
-        private void ServeExtensions(NameValueCollection query, Action<string> respond, Action fail) {
+        private async void ServeExtensions(NameValueCollection query, Action<string> respond, Action fail) {
             List<string> jsonExtensions = new List<string>();
             foreach (JsDbgExtension extension in this.loadedExtensions) {
-                using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
-                    ExtensionSerializer.WriteObject(memoryStream, extension);
-                    jsonExtensions.Add(Encoding.Default.GetString(memoryStream.ToArray()));
+                // Check if the extension is target specific and only serve the extension if one or more of the target modules are loaded.
+                bool serveExtension;
+                if (extension.targetModules != null) {
+                    serveExtension = false;
+                    foreach (string moduleName in extension.targetModules) {
+                        bool isModuleLoaded;
+                        try {
+                            await this.debugger.GetModuleForName(moduleName);
+                            isModuleLoaded = true;
+                        } catch (Exception) {
+                            isModuleLoaded = false;
+                        }
+                        if (isModuleLoaded) {
+                            serveExtension = true;
+                            break;
+                        }
+                    }
+                } else {
+                    serveExtension = true;
+                }
+
+                if (serveExtension) {
+                    using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                        ExtensionSerializer.WriteObject(memoryStream, extension);
+                        jsonExtensions.Add(Encoding.Default.GetString(memoryStream.ToArray()));
+                    }
                 }
             }
 

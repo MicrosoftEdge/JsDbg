@@ -6,6 +6,14 @@
         "dbgobject-tree",
         "object-dashboard"
     ],
-    "augments": ["wwwroot"],
-    "includes": ["mshtml-dashboard.js"]
+    "augments": [
+        "wwwroot"
+    ],
+    "includes": [
+        "mshtml-dashboard.js"
+    ],
+    "targetModules": [
+        "edgehtml",
+        "mshtml"
+    ]
 }

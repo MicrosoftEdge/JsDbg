@@ -91,6 +91,7 @@ namespace JsDbg.Core {
         Task<SConstantResult> LookupConstant(string module, string type, string constantName);
         Task<SFieldResult> LookupField(string module, string typename, string fieldName);
         Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol);
+        Task<SModule> GetModuleForName(string module);
         Task<IEnumerable<SStackFrame>> GetCallStack(int frameCount);
         Task<IEnumerable<SNamedSymbol>> GetSymbolsInStackFrame(ulong instructionAddress, ulong stackAddress, ulong frameAddress);
         Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer);

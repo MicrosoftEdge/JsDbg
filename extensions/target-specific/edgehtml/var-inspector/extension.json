@@ -13,5 +13,9 @@
     "augments": [
         "dbgobject",
         "mshtml-helpers"
+    ],
+    "targetModules": [
+        "chakra",
+        "edgehtml"
     ]
 }

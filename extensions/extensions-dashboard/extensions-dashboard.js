@@ -2,6 +2,7 @@
 
 Loader.OnLoad(function() {
     var panel = document.createElement("ul");
+    var currentExtensionNames = [];
     function realizeExtension(ext) {
         if (ext.headless) {
             return;
@@ -17,18 +18,25 @@ Loader.OnLoad(function() {
     }
 
     function reloadExtensions(oncomplete) {
-        var loadedExtensions = document.querySelectorAll("li.loadedExtension");
-        for (var i = 0; i < loadedExtensions.length; ++i) {
-        }
-
         JsDbg.GetExtensions(function(result) {
             result.extensions.sort(function(a, b) { return a.name.localeCompare(b.name); });
-            result.extensions.forEach(realizeExtension);
+            var extensionNames = result.extensions.map((ext) => ext.name);
+            if (JSON.stringify(extensionNames) !== JSON.stringify(currentExtensionNames)) {
+                // Only update the dashboard if the set of extensions has changed.
+                currentExtensionNames = extensionNames;
+
+                panel.innerHTML = "";
+                result.extensions.forEach(realizeExtension);
+            }
             if (oncomplete) {
                 oncomplete();
-            }            
+            }
         });
     }
+
+    JsDbg.RegisterOnBreakListener(function () {
+        reloadExtensions();
+    });
 
     var panelPromise = new Promise(function (onsuccess) {
         Loader.OnPageReady(function() {

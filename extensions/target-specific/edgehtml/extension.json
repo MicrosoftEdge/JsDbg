@@ -13,5 +13,10 @@
         "target-specific/edgehtml/stylesheets",
         "target-specific/edgehtml/undomanager",
         "target-specific/edgehtml/var-inspector"
+    ],
+    "targetModules": [
+        "chakra",
+        "edgehtml",
+        "mshtml"
     ]
 }

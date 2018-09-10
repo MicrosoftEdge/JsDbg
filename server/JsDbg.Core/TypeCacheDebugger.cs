@@ -286,6 +286,10 @@ namespace JsDbg.Core {
             }
         }
 
+        public Task<SModule> GetModuleForName(string module) {
+            return this.debuggerEngine.GetModuleForName(module);
+        }
+
         public Task<IEnumerable<SStackFrame>> GetCallStack(int frameCount) {
             return this.debuggerEngine.GetCurrentCallStack(frameCount);
         }

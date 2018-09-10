@@ -12,5 +12,9 @@
     ],
     "augments": [
         "dbgobject"
+    ],
+    "targetModules": [
+        "edgehtml",
+        "mshtml"
     ]
 }
