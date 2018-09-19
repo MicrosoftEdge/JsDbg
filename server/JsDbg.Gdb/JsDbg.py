@@ -128,3 +128,7 @@ def GetSymbolsInStackFrame(instructionAddress, stackAddress, frameAddress):
             block = block.superblock
         
         return [SNamedSymbol(s, frame) for s in syms]
+
+def LookupTypeSize(module, typename):
+    t = gdb.lookup_type(typename)
+    return t.sizeof

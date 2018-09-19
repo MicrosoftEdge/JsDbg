@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace JsDbg.Core {
+namespace JsDbg.Core.Xplat {
     class ConstantCache {
         public ConstantCache(List<SConstantResult> constants) {
             foreach (var constant in constants) {

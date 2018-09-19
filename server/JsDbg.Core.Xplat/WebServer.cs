@@ -12,7 +12,7 @@ using System.Collections.Specialized;
 using System.Threading;
 using System.IO;
 
-namespace JsDbg.Core {
+namespace JsDbg.Core.Xplat {
     
     [DataContract]
     public class JsDbgExtension {
@@ -146,14 +146,14 @@ namespace JsDbg.Core {
                     if (ex.ErrorCode == 5 && !didTryNetsh) {
                         // Access denied, add the url acl and retry.
                         didTryNetsh = true;
-                        Console.Out.WriteLine("Access denied, trying to add URL ACL for {0}.  This may fire an admin prompt.", this.Url);
+                        Console.Error.WriteLine("Access denied, trying to add URL ACL for {0}.  This may fire an admin prompt.", this.Url);
 
                         try {
                             ProcessStartInfo netsh = new ProcessStartInfo("netsh", String.Format(@"http add urlacl url={0} user={1}\{2}", this.Url, Environment.UserDomainName, Environment.UserName));
                             netsh.Verb = "runas";
                             Process.Start(netsh).WaitForExit();
                         } catch (Exception innerEx) {
-                            Console.Out.WriteLine(innerEx.Message);
+                            Console.Error.WriteLine(innerEx.Message);
                             throw innerEx;
                         }
 
@@ -163,11 +163,11 @@ namespace JsDbg.Core {
                         ++this.port;
                         continue;
                     } else {
-                        Console.Out.WriteLine("HttpListenerException with error code {0}: {1}", ex.ErrorCode, ex.Message);
+                        Console.Error.WriteLine("HttpListenerException with error code {0}: {1}", ex.ErrorCode, ex.Message);
                         throw;
                     }
                 } catch (Exception ex) {
-                    Console.Out.WriteLine("HttpListener.Start() threw an exception: {0}", ex.Message);
+                    Console.Error.WriteLine("HttpListener.Start() threw an exception: {0}", ex.Message);
                     throw;
                 }
 
@@ -216,11 +216,11 @@ namespace JsDbg.Core {
                             continue;
                         }
                     } catch (HttpListenerException listenerException) {
-                        Console.Out.WriteLine("HttpListenerException during request handling: {0}", listenerException.Message);
+                        Console.Error.WriteLine("HttpListenerException during request handling: {0}", listenerException.Message);
                     }
                 }
             } catch (Exception ex) {
-                Console.Out.WriteLine("Unhandled exception during request handling: {0}", ex.Message);
+                Console.Error.WriteLine("Unhandled exception during request handling: {0}", ex.Message);
             }
         }
 
@@ -229,7 +229,7 @@ namespace JsDbg.Core {
                 context.Response.StatusCode = 400;
                 context.Response.OutputStream.Close();
             } catch (Exception exception) {
-                Console.Out.WriteLine("Network Exception: {0}", exception.Message);
+                Console.Error.WriteLine("Network Exception: {0}", exception.Message);
             }
         }
 
@@ -246,14 +246,14 @@ namespace JsDbg.Core {
                 context.Response.OutputStream.Write(buffer, 0, buffer.Length);
                 context.Response.OutputStream.Close();
             } catch (Exception exception) {
-                Console.Out.WriteLine("Network Exception: {0}", exception.Message);
+                Console.Error.WriteLine("Network Exception: {0}", exception.Message);
             }
         }
 
         private void NoteRequest(Uri url) {
             ++this.requestCounter;
 #if DEBUG
-            Console.Out.WriteLineAsync(url.PathAndQuery);
+            Console.Error.WriteLineAsync(url.PathAndQuery);
 #endif
         }
 
@@ -973,14 +973,14 @@ namespace JsDbg.Core {
             }
 
             if (extensionToReload != null) {
-                Console.WriteLine("Reloading extension {0} due to a filesystem change.", extensionToReload.name, extensionToReload.OriginalPath);
+                Console.Error.WriteLine("Reloading extension {0} due to a filesystem change.", extensionToReload.name, extensionToReload.OriginalPath);
                 this.UnloadExtension(extensionToReload.name);
                 List<string> failedExtensions = new List<string>();
                 string extensionName;
                 if (this.LoadExtensionAndDependencies(extensionToReload.OriginalPath, failedExtensions, out extensionName)) {
-                    Console.WriteLine("Successfully loaded {0}", extensionName);
+                    Console.Error.WriteLine("Successfully loaded {0}", extensionName);
                 } else {
-                    Console.WriteLine("Failed to load extensions: {0}.  Please fix the extension.json file and reload the extension manually.", String.Join(" -> ", failedExtensions));
+                    Console.Error.WriteLine("Failed to load extensions: {0}.  Please fix the extension.json file and reload the extension manually.", String.Join(" -> ", failedExtensions));
                 }
             }
         }
@@ -1173,7 +1173,7 @@ namespace JsDbg.Core {
                 data = reader.ReadToEnd();
                 return data;
             } catch (Exception exception) {
-                Console.Out.WriteLine("Network Exception: {0}", exception.Message);
+                Console.Error.WriteLine("Network Exception: {0}", exception.Message);
                 return null;
             }
         }
@@ -1214,7 +1214,7 @@ namespace JsDbg.Core {
                     this.userFeedback.RecordUserFeedback(data);
                     this.ServeUncachedString("{ \"success\": true }", context);
                 } catch (Exception ex) {
-                    Console.WriteLine("Saving feedback failed due to an exception: {0}", ex);
+                    Console.Error.WriteLine("Saving feedback failed due to an exception: {0}", ex);
                     this.ServeUncachedString("{ \"error\": \"Unable to record your feedback request due to an internal error.\" }", context);
                 }
             } else {
@@ -1343,7 +1343,7 @@ namespace JsDbg.Core {
                     await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Normal", System.Threading.CancellationToken.None);
                 } catch (WebSocketException socketException) {
                     if (this.httpListener.IsListening) {
-                        Console.Out.WriteLine("Closing WebSocket due to WebSocketException: {0}", socketException.Message);
+                        Console.Error.WriteLine("Closing WebSocket due to WebSocketException: {0}", socketException.Message);
                     }
                 } finally {
                     this.openSockets.Remove(socket);

@@ -2,13 +2,23 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using JsDbg.Core;
+using JsDbg.Core.Xplat;
 
 namespace JsDbg.Gdb {
     class GdbDebugger : IDebugger {
 
         public GdbDebugger(Process gdbProc) {
             this.gdbProc = gdbProc;
+
+            this.gdbProc.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
+            {
+                if (e.Data?.Length > 0 && e.Data[0] == '~') {
+                    string content = e.Data.Substring(2,e.Data.Length -3);
+                    // TODO: unescape these strings
+                    this.DebuggerMessage?.Invoke(this, content);
+                }
+                
+            });
         }
 
 
@@ -17,6 +27,15 @@ namespace JsDbg.Gdb {
 
         public void Dispose() {
 
+        }
+
+        public async Task Initialize() {
+            // Have to load the python scripts I guess?
+            this.gdbProc.StandardInput.WriteLine(String.Format("python\nimport sys\nsys.path.append(\"{0}\")\nfrom JsDbg import *\nend","/mnt/e/projects/chakra/jsdbg/server/JsDbg.Gdb/"));
+        }
+
+        public async Task DebuggerUserInput(string input) {
+            await this.QueryDebugger(String.Format("-interpreter-exec console \"{0}\"", input.Replace("\"","\\\"")));
         }
 
         public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
@@ -302,7 +321,7 @@ namespace JsDbg.Gdb {
             int firstLess = response.IndexOf('<');
             int lastPlus = response.LastIndexOf('+');
             int lastGreater = response.LastIndexOf('>');
-            Debug.Assert(firstLess > 0 && lastGreater > 0); // TODO: no
+            Debug.Assert(firstLess > 0 && lastGreater > 0); // TODO: not guaranteed to work if this address doesn't have a symbol
             Debug.Assert(firstLess < lastGreater);
 
             if (lastPlus >= 0) {
@@ -317,23 +336,61 @@ namespace JsDbg.Gdb {
                 result.Displacement = 0;
             }
 
+            this.QueryDebugger(String.Format("-var-delete {0}", varName));
+
             return result;
         }
         
         public async Task<uint> LookupTypeSize(string module, string typename) {
+            string pythonResponse = await this.QueryDebuggerPython(String.Format("LookupTypeSize(\"{0}\",\"{1}\")", module, typename));
 
+            return UInt32.Parse(pythonResponse.Substring(1,pythonResponse.Length-2));
         }
         
-        public async Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct {
+        public async Task<T[]> ReadArray<T>(ulong pointer, ulong count) where T : struct {
+            int size = (int)(count * (uint)System.Runtime.InteropServices.Marshal.SizeOf(typeof(T)));
 
+            string response = await this.QueryDebugger(String.Format("-data-read-memory-bytes {0} {1}", pointer, size));
+            // ^done,memory=[{begin="0x00000000004004f0",offset="0x0000000000000000",end="0x00000000004004fa",contents="554889e58b04252c1060"}]
+
+            string[] properties = response.Split(",");
+            Debug.Assert(properties.Length == 5); // TODO: Not always true.
+            int startIndex = properties[4].IndexOf('"') + 1;
+            int endIndex = properties[4].LastIndexOf('"');
+            string hexString = properties[4].Substring(startIndex, endIndex-startIndex);
+
+            Debug.Assert(hexString.Length == 2 * size); // TODO: This isn't always true if there are unreadable chunks mapped in here
+
+            byte[] bytes = new byte[size];
+            for (int i = 0; i < size; ++i) {
+                bytes[i] = Convert.ToByte(hexString.Substring(i*2,2), 16);
+            }
+
+            T[] result = new T[count];
+
+            Buffer.BlockCopy(bytes, 0, result, 0, size);
+
+            return result;
         }
         
         public async Task<T> ReadMemory<T>(ulong pointer) where T : struct {
-
+            T[] result = await this.ReadArray<T>(pointer, 1);
+            return result[0];
         }
         
         public async Task WriteMemory<T>(ulong pointer, T value) where T : struct {
+            int size = System.Runtime.InteropServices.Marshal.SizeOf(typeof(T));
+            byte[] bytes = new byte[size];
+            T[] from = new T[1];
+            from[0] = value;
+            Buffer.BlockCopy(from, 0, bytes, 0, size);
 
+            // bytes is now a buffer of bytes we wish to write
+            string hexString = BitConverter.ToString(bytes).Replace("-", string.Empty);
+
+            string response = await this.QueryDebugger(String.Format("-data-write-memory-bytes {0} \"{1}\"", pointer, hexString));
+            // ^done
+            Debug.Assert(response == "^done");
         }
 
         private async Task<string> QueryDebugger(string query) {
@@ -364,12 +421,12 @@ namespace JsDbg.Gdb {
 
             TaskCompletionSource<string> responseCompletionSource = new TaskCompletionSource<string>();
             DataReceivedEventHandler outputHandler = new DataReceivedEventHandler((sender, e) => {
-                if (e.Data.StartsWith(tagString)) {
+                if (e.Data != null && e.Data.StartsWith(tagString)) {
                     responseCompletionSource.TrySetResult("\"" + e.Data.Substring(tagString.Length));
                 }
             });
             this.gdbProc.OutputDataReceived += outputHandler;
-            this.gdbProc.StandardInput.WriteLine("pi exec('print(\'{0}~\' + str({1})')", tag, query);
+            this.gdbProc.StandardInput.WriteLine("pi exec('print(\\'{0}~\\' + str({1}))')", tag, query);
 
             string response = await responseCompletionSource.Task;
             this.gdbProc.OutputDataReceived -= outputHandler;

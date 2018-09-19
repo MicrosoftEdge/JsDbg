@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 
-namespace JsDbg.Core {
+namespace JsDbg.Core.Xplat {
     internal class FileCache {
         internal FileCache() {
             this.cachedFiles = new Dictionary<string, string>();

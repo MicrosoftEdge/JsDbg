@@ -2,7 +2,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using JsDbg.Core;
+using JsDbg.Core.Xplat;
 using JsDbg.Utilities;
 
 namespace JsDbg.Gdb
@@ -11,13 +11,11 @@ namespace JsDbg.Gdb
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
-
             GdbRunner runner = new GdbRunner();
             PersistentStore persistentStore = new PersistentStore("~/.jsdbg");
             UserFeedback userFeedback = new UserFeedback(Path.Combine("~/.jsdbg", "feedback"));
 
-            using (WebServer webServer = new WebServer(runner.debugger, persistentStore, userFeedback, "todo")) {
+            using (WebServer webServer = new WebServer(runner.debugger, persistentStore, userFeedback, "/mnt/e/projects/chakra/jsdbg/extensions")) {
                 webServer.LoadExtension("default");
 
                 SynchronizationContext previousContext = SynchronizationContext.Current;
@@ -37,10 +35,8 @@ namespace JsDbg.Gdb
                         syncContext.Complete();
                     });
 
-                    Console.WriteLine(webServer.Url);
-
                     // Pressing ctrl-c kills the web server.
-                    Task.Run(() => ReadKeysUntilAbort(webServer.Url)).ContinueWith((Task result) => {
+                    Task.Run(() => ReadInputUntilAbort(webServer.Url, runner.debugger)).ContinueWith((Task result) => {
                         Console.WriteLine("Shutting down...");
                         webServer.Abort();
                     });
@@ -55,17 +51,15 @@ namespace JsDbg.Gdb
             }
         }
 
-        private static void ReadKeysUntilAbort(string url) {
-            System.Console.TreatControlCAsInput = true;
-            Console.WriteLine("Press enter to launch a browser or ctrl-c to shutdown.");
+        private static void ReadInputUntilAbort(string url, GdbDebugger debugger) {
             do {
-                ConsoleKeyInfo key = Console.ReadKey(/*intercept*/true);
-                if (key.Key == ConsoleKey.Enter) {
-                    Console.WriteLine(url);
-                } else if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control && key.Key == ConsoleKey.C) {
+                string input = Console.ReadLine();
+                if (input == null) { 
                     return;
                 }
-                // Otherwise keep going.
+
+                debugger.DebuggerUserInput(input);
+                
             } while (true);
         }
     }

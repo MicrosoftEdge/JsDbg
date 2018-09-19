@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace JsDbg.Core {
+namespace JsDbg.Core.Xplat {
     public class DebuggerException : Exception {
         public DebuggerException(string message)
             : base(message) {

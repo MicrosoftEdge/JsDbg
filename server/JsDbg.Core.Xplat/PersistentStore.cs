@@ -3,7 +3,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace JsDbg.Core {
+namespace JsDbg.Core.Xplat {
     public class PersistentStore {
         private static Encoding Encoding {
             get { return Encoding.UTF8; }
