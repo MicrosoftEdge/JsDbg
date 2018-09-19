@@ -1,0 +1,72 @@
+﻿using System;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using JsDbg.Core;
+using JsDbg.Utilities;
+
+namespace JsDbg.Gdb
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Hello World!");
+
+            GdbRunner runner = new GdbRunner();
+            PersistentStore persistentStore = new PersistentStore("~/.jsdbg");
+            UserFeedback userFeedback = new UserFeedback(Path.Combine("~/.jsdbg", "feedback"));
+
+            using (WebServer webServer = new WebServer(runner.debugger, persistentStore, userFeedback, "todo")) {
+                webServer.LoadExtension("default");
+
+                SynchronizationContext previousContext = SynchronizationContext.Current;
+                try {
+                    SingleThreadSynchronizationContext syncContext = new SingleThreadSynchronizationContext();
+                    SynchronizationContext.SetSynchronizationContext(syncContext);
+
+                    // Run the debugger.  If the debugger ends, kill the web server.
+                    runner.Run().ContinueWith((Task result) => {
+                        webServer.Abort();
+                    });
+
+                    // The web server ending kills the debugger and completes our SynchronizationContext which allows us to exit.
+                    webServer.Listen().ContinueWith(async (Task result) => {
+                        await runner.Shutdown();
+                        await Task.Delay(500);
+                        syncContext.Complete();
+                    });
+
+                    Console.WriteLine(webServer.Url);
+
+                    // Pressing ctrl-c kills the web server.
+                    Task.Run(() => ReadKeysUntilAbort(webServer.Url)).ContinueWith((Task result) => {
+                        Console.WriteLine("Shutting down...");
+                        webServer.Abort();
+                    });
+
+                    // Process requests until the web server is taken down.
+                    syncContext.RunOnCurrentThread();
+                } catch (Exception ex) {
+                    Console.WriteLine("Shutting down due to exception: {0}", ex.Message);
+                } finally {
+                    SynchronizationContext.SetSynchronizationContext(previousContext);
+                }
+            }
+        }
+
+        private static void ReadKeysUntilAbort(string url) {
+            System.Console.TreatControlCAsInput = true;
+            Console.WriteLine("Press enter to launch a browser or ctrl-c to shutdown.");
+            do {
+                ConsoleKeyInfo key = Console.ReadKey(/*intercept*/true);
+                if (key.Key == ConsoleKey.Enter) {
+                    Console.WriteLine(url);
+                } else if ((key.Modifiers & ConsoleModifiers.Control) == ConsoleModifiers.Control && key.Key == ConsoleKey.C) {
+                    return;
+                }
+                // Otherwise keep going.
+            } while (true);
+        }
+    }
+}
