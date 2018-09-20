@@ -19,7 +19,15 @@ class SFieldResult:
         self.bitCount = field.bitsize
         self.size = field.type.sizeof
         self.fieldName = field.name
-        self.typeName = field.type.name
+        if (field.type.code == gdb.TYPE_CODE_PTR or field.type.code == gdb.TYPE_CODE_ARRAY):
+            pointer_depth = 0
+            t = field.type
+            while t.code == gdb.TYPE_CODE_PTR or field.type.code == gdb.TYPE_CODE_ARRAY:
+                pointer_depth = pointer_depth + 1
+                t = t.target()
+            self.typeName = t.name + "*" * pointer_depth
+        else:
+            self.typeName = field.type.name
     
     def __repr__(self):
         return '{%d#%d#%d#%d#%s#%s}' % (self.offset, self.size, self.bitOffset, self.bitCount, self.fieldName, self.typeName)
@@ -147,5 +155,9 @@ def GetSymbolsInStackFrame(instructionAddress, stackAddress, frameAddress):
         return [SNamedSymbol(s, frame) for s in syms]
 
 def LookupTypeSize(module, typename):
+    typename = typename.strip()
+    if (typename.endswith("*")):
+        t = gdb.lookup_type("void")
+        return t.reference().sizeof
     t = gdb.lookup_type(typename)
     return t.sizeof

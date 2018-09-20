@@ -117,6 +117,8 @@ namespace JsDbg.Gdb {
                 field.TypeName = properties[1];
                 field.Offset = Int32.Parse(properties[2]);
 
+                result.Add(field);
+
                 index = fieldEndIndex + 1;
                 if (pythonResult[index] == ',') {
                     ++index;
@@ -336,27 +338,37 @@ namespace JsDbg.Gdb {
 
             response = await this.QueryDebugger(String.Format("-var-set-format {0} natural",varName));
             // ^done,format="natural",value="0x4004f1 <GBar<int>::f()+1>"
+            // or
+            // 10^done,format="natural",value="0xc54b3f0 <vtable for Js::ScriptFunction+16>"
             // Symbol should be between the first '<' and the last '+', and the displacement is between the last '+' and the last '>'
 
             SSymbolNameAndDisplacement result = new SSymbolNameAndDisplacement();
             result.Module = "N/A";
 
-            int firstLess = response.IndexOf('<');
+            int firstLess = response.IndexOf('<')+1;
             int lastPlus = response.LastIndexOf('+');
             int lastGreater = response.LastIndexOf('>');
-            Debug.Assert(firstLess > 0 && lastGreater > 0); // TODO: not guaranteed to work if this address doesn't have a symbol
+            if (firstLess < 0 || lastGreater < 0) {
+                throw new DebuggerException(String.Format("Address {0} is not a symbol", pointer));
+            }
             Debug.Assert(firstLess < lastGreater);
 
             if (lastPlus >= 0) {
                 Debug.Assert(firstLess < lastPlus && lastPlus < lastGreater);
                 string symName = response.Substring(firstLess, lastPlus - firstLess);
                 result.Name = symName;
-                string displacement = response.Substring(lastPlus, lastGreater - lastPlus);
+                string displacement = response.Substring(lastPlus+1, lastGreater - (lastPlus+1));
                 result.Displacement = UInt64.Parse(displacement);
             } else {
                 string symName = response.Substring(firstLess, lastGreater - firstLess);
                 result.Name = symName;
                 result.Displacement = 0;
+            }
+
+
+            if (result.Name.StartsWith("vtable for ")) {
+                result.Name = result.Name.Substring("vtable for ".Length) + "::`vftable'";
+                // TODO: If displacement = 2 pointers, assume RTTI and set displacement to 0?
             }
 
             this.QueryDebugger(String.Format("-var-delete {0}", varName));
