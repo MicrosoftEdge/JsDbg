@@ -1,4 +1,16 @@
 import gdb
+import sys
+
+def DebuggerQuery(tag, command):
+    # pi exec('print(\\'{0}~\\' + str({1}))')
+    try:
+        result = eval(command)
+        print("%d~%s" % (tag, str(result)))
+    except:
+        err = sys.exc_info()
+        print("%d!%s" % (tag, str(err[1])))
+
+
 
 class SFieldResult:
     def __init__(self, field):
@@ -78,7 +90,12 @@ def GetAllFields(module, type, includeBaseTypes):
 
 def GetBaseTypes(module, type):
     t = gdb.lookup_type(type)
-    fields = t.fields()
+    try:
+        fields = t.fields()
+    except:
+        # Type is a base type?
+        return [SBaseTypeResult(module, type, 0)]
+
     resultFields = []
     for field in fields:
         if not field.is_base_class:
@@ -95,7 +112,7 @@ def LookupField(module, type, field):
     t = gdb.lookup_type(type)
     fields = t.fields()
     while fields:
-        match = filter(lambda x: x.name == field, fields)
+        match = list(filter(lambda x: x.name == field, fields))
         if match:
             return SFieldResult(match[0])
         match = filter(lambda x: x.is_base_class, fields)

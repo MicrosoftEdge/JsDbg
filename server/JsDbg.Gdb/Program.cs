@@ -44,7 +44,7 @@ namespace JsDbg.Gdb
                     // Process requests until the web server is taken down.
                     syncContext.RunOnCurrentThread();
                 } catch (Exception ex) {
-                    Console.WriteLine("Shutting down due to exception: {0}", ex.Message);
+                    Console.WriteLine("Shutting down due to exception: {0}\n{1}", ex.Message, ex.StackTrace);
                 } finally {
                     SynchronizationContext.SetSynchronizationContext(previousContext);
                 }
