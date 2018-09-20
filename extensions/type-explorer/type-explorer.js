@@ -167,6 +167,15 @@ Loader.OnLoad(function() {
         return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getDescriptionsToRender(); }));
     }
 
+    TypeExplorerAggregateType.prototype.getArrayItemFieldsToRender = function() {
+        console.assert(this.isPreparedForRendering);
+        return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getArrayItemFieldsToRender(); }));
+    }
+
+    TypeExplorerAggregateType.prototype.hasArrayItemField = function() {
+        return this.backingTypes.reduce((foundArrayItemField, backingType) => (foundArrayItemField || backingType.hasArrayItemField()), false);
+    }
+
     function fuzzyMatch(body, term, context) {
         if (term.length == 0) {
             return true;
@@ -257,7 +266,8 @@ Loader.OnLoad(function() {
         this.extendedFields = [];
         this.descriptions = [];
         this.arrayFields = [];
-        this.allFieldArrayNames = ["autoCastFields", "fields", "extendedFields", "arrayFields", "descriptions"];
+        this.arrayItemFields = [];
+        this.allFieldArrayNames = ["autoCastFields", "fields", "extendedFields", "arrayFields", "descriptions", "arrayItemFields"];
         this.preparedForRenderingPromise = null;
     }
 
@@ -475,6 +485,14 @@ Loader.OnLoad(function() {
         return this.selectFieldsToRender(this.descriptions);
     }
 
+    TypeExplorerSingleType.prototype.getArrayItemFieldsToRender = function() {
+        return this.selectFieldsToRender(this.arrayItemFields);
+    }
+
+    TypeExplorerSingleType.prototype.hasArrayItemField = function() {
+        return this.arrayItemFields.length > 0;
+    }
+
     TypeExplorerSingleType.prototype.disableCompletely = function() {
         // Disable all the fields and trash the arrays.
         this.forEachField(function (f) {
@@ -505,6 +523,7 @@ Loader.OnLoad(function() {
             fieldType = DbgObjectType(fieldType(this.parentType.type), this.parentType.type);
         }
         this.setChildType(fieldType);
+        this.cachedResults = new WeakMap();
     }
 
     TypeExplorerField.prototype.isUserDefinedArray = function() {
@@ -516,6 +535,7 @@ Loader.OnLoad(function() {
     }
 
     TypeExplorerField.prototype.getNestedField = function(dbgObject) {
+        console.assert(!dbgObject.isNull());
         var that = this;
         function checkType(result) {
             // Check that the field returned the proper type.
@@ -564,21 +584,33 @@ Loader.OnLoad(function() {
 
         function getFromParentResult(parentResult) {
             return Promise.resolve(parentResult)
-            .then(function (parentResult) {
+            .then((parentResult) => {
                 if (Array.isArray(parentResult)) {
-                    // Use a direct map, rather than Promise.map, to keep errors separate.
-                    return parentResult.map(getFromParentResult);
+                    if (that.sourceInParentType == "arrayItemFields") {
+                        var index = parseInt(that.name.substring(1, that.name.length - 1));
+                        return getFromParentDbgObject(parentResult[index]);
+                    } else {
+                        // Use a direct map, rather than Promise.map, to keep errors separate.
+                        return parentResult.map((entry) => getFromParentResult(entry));
+                    }
                 } else {
                     return getFromParentDbgObject(parentResult);
                 }
-            })
+            });
         }
 
-        var parentField = this.parentType.aggregateType.parentField;
-        if (parentField == null) {
-            return Promise.resolve(dbgObject).then(getFromParentDbgObject);
+        if (that.cachedResults.has(dbgObject)) {
+            return Promise.resolve(that.cachedResults.get(dbgObject));
         } else {
-            return parentField.getNestedField(dbgObject).then(getFromParentResult);
+            var parentField = that.parentType.aggregateType.parentField;
+            return ((parentField == null) ? Promise.resolve(dbgObject) : parentField.getNestedField(dbgObject))
+            .then((parentResult) => {
+                return getFromParentResult(parentResult);
+            })
+            .then((result) => {
+                that.cachedResults.set(dbgObject, result);
+                return result;
+            });
         }
     }
 
@@ -878,7 +910,22 @@ Loader.OnLoad(function() {
                 }
             }
 
-            return that._renderActions(type, actionContainer);
+            if ((type.parentField != null) && type.parentField.returnsArray() && that.allowFieldRendering()) {
+                return type.parentField.getNestedField(that.dbgObject)
+                .then(function (arrayToRender) {
+                    // Only add array item fields if they haven't already been added.
+                    if (!type.backingTypes[0].hasArrayItemField()) {
+                        if (arrayToRender.length > 0) {
+                            arrayToRender.forEach(function (entry, index) {
+                                var arrayItemField = new TypeExplorerField("[" + index + "]", type.backingTypes[0].type, function() { return entry; }, type.backingTypes[0], "arrayItemFields");
+                                type.backingTypes[0].arrayItemFields.push(arrayItemField);
+                            });
+                        }
+                    }
+                });
+            } else {
+                return that._renderActions(type, actionContainer);
+            }
         })
         .then(function () {
             return that._renderFieldList(type, fieldListContainer);
@@ -964,17 +1011,6 @@ Loader.OnLoad(function() {
     TypeExplorerController.prototype._renderFieldList = function(type, fieldsContainer) {
         var that = this;
 
-        var autoCastFields = type.getAutoCastFieldsToRender();
-        var fields = type.getFieldsToRender();
-        var extendedFields = type.getExtendedFieldsToRender();
-        var arrayFields = type.getArrayFieldsToRender();
-        var descriptions = type.getDescriptionsToRender()
-        extendedFields = autoCastFields.concat(extendedFields).concat(arrayFields).concat(descriptions);
-
-        // Find any collisions in the fields.
-        var fieldCollisions = findFieldNameCollisions(fields, type);
-        var extendedFieldCollisions = findFieldNameCollisions(extendedFields, type);
-        
         var existingFields = Array.prototype.slice.call(fieldsContainer.childNodes).filter(function (x) { return x.tagName == "DIV"; });
         var existingFieldIndex = 0;
         function getNextFieldContainer() {
@@ -989,38 +1025,67 @@ Loader.OnLoad(function() {
             return fieldContainer;
         }
 
-        return Promise.map(extendedFields, function (extendedField) {
-            return that._renderField(extendedField, type, getNextFieldContainer(), extendedFieldCollisions);
-        })
-        .then(function() {
-            var hr = Array.prototype.slice.call(fieldsContainer.childNodes).filter(function (x) { return x.tagName == "HR"; }).pop();
-            if (!hr) {
-                hr = document.createElement("hr");
-                fieldsContainer.appendChild(hr);
-            }
-
-            if (extendedFields.length > 0 && type.isExpanded()) {
-                if (existingFieldIndex < existingFields.length) {
-                    fieldsContainer.insertBefore(hr, existingFields[existingFieldIndex]);
-                } else {
-                    fieldsContainer.appendChild(hr);
-                }
-                hr.style.display = "";
-            } else {
-                hr.style.display = "none";
-            }
-
-            return Promise.map(fields, function (field) {
-                return that._renderField(field, type, getNextFieldContainer(), fieldCollisions);
-            })
-        })
-        .then(function () {
+        function hideExistingFields(existingFields, existingFieldIndex) {
             while (existingFieldIndex < existingFields.length) {
                 var container = existingFields[existingFieldIndex];
                 container.style.display = "none";
                 ++existingFieldIndex;
             }
-        })
+        }
+
+        if (type.hasArrayItemField()) {
+            var arrayItemFields = type.getArrayItemFieldsToRender();
+
+            // Find any collisions in the fields.
+            var arrayItemFieldCollisions = findFieldNameCollisions(arrayItemFields, type);
+
+            return Promise.map(arrayItemFields, function (arrayItemField) {
+                return that._renderField(arrayItemField, type, getNextFieldContainer(), arrayItemFieldCollisions);
+            })
+            .then(function () {
+                hideExistingFields(existingFields, existingFieldIndex);
+            })
+        } else {
+            var autoCastFields = type.getAutoCastFieldsToRender();
+            var fields = type.getFieldsToRender();
+            var extendedFields = type.getExtendedFieldsToRender();
+            var arrayFields = type.getArrayFieldsToRender();
+            var descriptions = type.getDescriptionsToRender();
+            extendedFields = autoCastFields.concat(extendedFields).concat(arrayFields).concat(descriptions);
+
+            // Find any collisions in the fields.
+            var fieldCollisions = findFieldNameCollisions(fields, type);
+            var extendedFieldCollisions = findFieldNameCollisions(extendedFields, type);
+    
+            return Promise.map(extendedFields, function (extendedField) {
+                return that._renderField(extendedField, type, getNextFieldContainer(), extendedFieldCollisions);
+            })
+            .then(function() {
+                var hr = Array.prototype.slice.call(fieldsContainer.childNodes).filter(function (x) { return x.tagName == "HR"; }).pop();
+                if (!hr) {
+                    hr = document.createElement("hr");
+                    fieldsContainer.appendChild(hr);
+                }
+    
+                if (extendedFields.length > 0 && type.isExpanded()) {
+                    if (existingFieldIndex < existingFields.length) {
+                        fieldsContainer.insertBefore(hr, existingFields[existingFieldIndex]);
+                    } else {
+                        fieldsContainer.appendChild(hr);
+                    }
+                    hr.style.display = "";
+                } else {
+                    hr.style.display = "none";
+                }
+    
+                return Promise.map(fields, function (field) {
+                    return that._renderField(field, type, getNextFieldContainer(), fieldCollisions);
+                })
+            })
+            .then(function () {
+                hideExistingFields(existingFields, existingFieldIndex);
+            })
+        }
     }
 
     TypeExplorerController.prototype._renderField = function (field, renderingType, fieldContainer, nameCollisions) {
@@ -1057,7 +1122,7 @@ Loader.OnLoad(function() {
                     subFieldsContainer.classList.toggle("collapsed");
                     field.parentType.aggregateType.controller._renderType(field.childType, subFieldsContainer, /*changeFocus*/true);
                 }
-            })
+            });
             fieldContainer.querySelector(".edit-button").addEventListener("click", function(e) {
                 fieldContainer.currentField.beginEditing();
                 e.stopPropagation();
