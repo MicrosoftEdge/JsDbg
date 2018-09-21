@@ -137,6 +137,31 @@ Loader.OnLoad(function () {
         return this.isArray() ? new dbgObjectType(this.module(), this.name()) : this;
     }
 
+    dbgObjectType.prototype.templateParameters = function() {
+        var templatedTypeName = this.name();
+        var parameterString = templatedTypeName.substring(templatedTypeName.indexOf('<') + 1, templatedTypeName.lastIndexOf('>'));
+        var parameters = [];
+
+        var currentParameterStartIndex = 0;
+        var openAngleBracketCount = 0;
+        for (var index = 0; index < parameterString.length; index++) {
+            var ch = parameterString.charAt(index);
+            if (ch == '<') {
+                openAngleBracketCount++;
+            } else if (ch == '>') {
+                openAngleBracketCount--;
+            } else if (ch == ',') {
+                if (openAngleBracketCount == 0) {
+                    parameters.push(parameterString.substring(currentParameterStartIndex, index));
+                    currentParameterStartIndex = index + 1;
+                }
+            }
+        }
+        console.assert(openAngleBracketCount == 0, "Bad templated type.");
+        parameters.push(parameterString.substring(currentParameterStartIndex));
+        return parameters;
+    }
+
     DbgObjectType = function(arg1, arg2) {
         if (arg1 instanceof dbgObjectType) {
             // dbgObjectType is immutable.

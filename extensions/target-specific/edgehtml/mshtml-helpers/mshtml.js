@@ -1362,8 +1362,7 @@ var MSHTML = undefined;
             function(type) { return type.module() == moduleName && type.name().match(/^PointerBitReuse<(.*)>$/) != null; },
             "Object",
             function (type) {
-                var matches = type.name().match(/^PointerBitReuse<(.*)>$/);
-                return matches[1];
+                return type.templateParameters()[0];
             },
             function (pointerBitReuse) {
                 return pointerBitReuse.field("_ptr").deref()
@@ -1635,7 +1634,7 @@ var MSHTML = undefined;
                                 if (!firstInstanceSlotValue.isNull()) {
                                     return varExtension.as("edgehtml!void*", true).size()
                                     .then((voidptrSize) => {
-                                        var varExtensionFieldsSize = parseInt(firstInstanceSlot.ptr().replace("`", "")) - parseInt(varExtension.ptr().replace("`", ""));
+                                        var varExtensionFieldsSize = firstInstanceSlot.pointerValue().minus(varExtension.pointerValue());
                                         var varExtensionFieldsCount = (varExtensionFieldsSize / voidptrSize);
                                         var numInstanceSlots = varExtensionPointerCount - varExtensionFieldsCount;
                                         return firstInstanceSlot.array(numInstanceSlots)

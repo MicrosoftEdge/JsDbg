@@ -1,0 +1,8 @@
+{
+    "name": "stl-helpers",
+    "author": "Sanket Joshi",
+    "description": "Helper functions for debugging STL types",
+    "includes": ["stl-helpers.js"],
+    "augments": ["dbgobject"],
+    "headless": true
+}
