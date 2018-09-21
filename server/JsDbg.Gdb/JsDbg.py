@@ -19,15 +19,17 @@ class SFieldResult:
         self.bitCount = field.bitsize
         self.size = field.type.sizeof
         self.fieldName = field.name
-        if (field.type.code == gdb.TYPE_CODE_PTR or field.type.code == gdb.TYPE_CODE_ARRAY):
-            pointer_depth = 0
-            t = field.type
-            while t.code == gdb.TYPE_CODE_PTR or field.type.code == gdb.TYPE_CODE_ARRAY:
-                pointer_depth = pointer_depth + 1
-                t = t.target()
-            self.typeName = t.name + "*" * pointer_depth
+        pointer_depth = 0
+        t = field.type
+        while t.code == gdb.TYPE_CODE_PTR or field.type.code == gdb.TYPE_CODE_ARRAY:
+            pointer_depth = pointer_depth + 1
+            t = t.target()
+
+        if (t.code == gdb.TYPE_CODE_FUNC):
+            # No good way to interop a function pointer back to python; lie and say it's a void*
+            self.typeName = "void *"
         else:
-            self.typeName = field.type.name
+            self.typeName = t.name + "*" * pointer_depth
     
     def __repr__(self):
         return '{%d#%d#%d#%d#%s#%s}' % (self.offset, self.size, self.bitOffset, self.bitCount, self.fieldName, self.typeName)
@@ -97,8 +99,8 @@ def GetAllFields(module, type, includeBaseTypes):
     return resultFields
 
 def GetBaseTypes(module, type):
-    t = gdb.lookup_type(type)
     try:
+        t = gdb.lookup_type(type)
         fields = t.fields()
     except:
         # Type is a base type?
@@ -124,7 +126,7 @@ def LookupField(module, type, field):
         if match:
             return SFieldResult(match[0])
         match = filter(lambda x: x.is_base_class, fields)
-        fields = [f for f in m.type.fields() for m in match]
+        fields = [f for m in match for f in m.type.fields()]
 
 def LookupGlobalSymbol(module, symbol):
     sym = gdb.lookup_global_symbol(symbol)
