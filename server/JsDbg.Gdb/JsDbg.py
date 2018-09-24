@@ -1,14 +1,101 @@
 import gdb
 import sys
+import subprocess
+import threading
+
+
+jsdbg = None
+
+def EnsureJsDbg():
+    global jsdbg
+    if not jsdbg:
+        jsdbg = JsDbg()
+    return jsdbg
+
+
+
+class InitJsDbg (gdb.Command):
+    """Initialize JsDbg."""
+
+    def __init__(self):
+        super (InitJsDbg, self).__init__ ("jsdbg", gdb.COMMAND_USER)
+    
+    def invoke(self, arg, from_tty):
+        EnsureJsDbg()
+InitJsDbg()
+            
+class JsDbg:
+    class JsDbgGdbRequest:
+        def __init__(self, request, responseStream, verbose):
+            self.request = request
+            self.responseStream = responseStream
+            self.verbose = verbose
+
+            if verbose:
+                print("Creating event")
+        
+        def __call__(self):
+            # do things involving gdb
+            # TODO: For some reason these are never called!
+
+            # TODO: wait until at a breakpoint?
+            # Need to look at GDB events in python, track "stop" and "cont" evens
+            if self.verbose:
+                print("<gdb " + self.request.decodE("utf-8"))
+            result = eval(self.request.decode("utf-8")) + "\n"
+            if self.verbose:
+                print(">gdb " + result)
+            responseStream.write((result.encode("utf-8")))
+
+    def __init__(self):
+        self.showStderr = False
+        self.verbose = False
+        # TODO: assume that jsdbg is installed in "~/.jsdbg/" or some other known location?
+        execPath = "/mnt/e/projects/chakra/jsdbg/server/JsDbg.Gdb/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb"
+        self.proc = subprocess.Popen([execPath], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        def stderrThreadProc():
+            # Echo stderr from the subprocess, if showStderr is set
+            while(self.proc.poll() == None):
+                val = self.proc.stderr.readline()
+                if val and self.verbose:
+                    print("JsDbg>> " + val.decode("utf-8"))
+                if val and self.showStderr:
+                    print("JsDbg> " + val.decode("utf-8"))
+
+        def mainThreadProc():
+            # Handle the main interaction loop between jsdbg and python
+            while(self.proc.poll() == None):
+                request = self.proc.stdout.readline()
+                if request and self.verbose:
+                    print("JsDbg>> " + request.decode("utf-8"))
+                # gdb does not allow multithreaded requests
+                # Anything going to gdb from another thread must go through gdb.post_event
+                if request:
+                    if self.verbose:
+                        print("Posting")
+                    gdb.post_event(self.JsDbgGdbRequest(request, self.proc.stdin, self.verbose))
+                # The response will asynchronously be sent back on the response stream
+        
+        # TODO: These threads don't get cleaned gracefully at exit, need to 
+        # work out what the correct way of handling that is. 
+        self.stderrThread = threading.Thread(target=stderrThreadProc)
+        self.mainThread = threading.Thread(target=mainThreadProc)
+        self.stderrThread.start()
+        self.mainThread.start()
+
 
 def DebuggerQuery(tag, command):
     # pi exec('print(\\'{0}~\\' + str({1}))')
     try:
+        print("Evaling " + command)
         result = eval(command)
-        print("%d~%s" % (tag, str(result)))
+        return "%d~%s" % (tag, str(result))
     except:
+        print("Failed with command " + command)
         err = sys.exc_info()
-        print("%d!%s" % (tag, str(err[1])))
+        print(str(err[1]))
+        return "%d!%s" % (tag, str(err[1]))
 
 
 
@@ -163,3 +250,29 @@ def LookupTypeSize(module, typename):
         return t.reference().sizeof
     t = gdb.lookup_type(typename)
     return t.sizeof
+
+def LookupConstant(module, typename, constantName):
+    if typename:
+        val = gdb.parse_and_eval("%s::%s" %(typename, constantName))
+    else:
+        val = gdb.parse_and_eval("%s" % constantName)
+    # If it is an enum, we could go via type->fields->enumval
+    # seems more consistent to just cast to a sufficiently big integral value
+
+    integral_val = val.reinterpret_cast(gdb.lookup_type("unsigned long long"))
+    return str(integral_val)
+
+def LookupSymbolName(pointer):
+    val = gdb.parse_and_eval("(void*)%d" % pointer)
+    return str(val)
+
+def ReadMemoryBytes(pointer, size):
+    inferior = gdb.selected_inferior()
+    # Note: will throw an error if this includes unmapped/ unreadable memory
+    return inferior.read_memory(pointer, size).hex()
+
+def WriteMemoryBytes(pointer, hexString):
+    inferior = gdb.selected_inferior()
+    byteString = bytes.fromhex(hexString)
+    inferior.write_memory(pointer, byteString)
+    

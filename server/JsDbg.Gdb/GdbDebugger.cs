@@ -7,54 +7,30 @@ using JsDbg.Core.Xplat;
 namespace JsDbg.Gdb {
     class GdbDebugger : IDebugger {
 
-        public GdbDebugger(Process gdbProc) {
-            this.gdbProc = gdbProc;
-
-            this.gdbProc.OutputDataReceived += new DataReceivedEventHandler((sender, e) =>
-            {
-                if (e.Data?.Length > 0 && e.Data[0] == '~') {
-                    string content = e.Data.Substring(2,e.Data.Length -3);
-                    // TODO: unescape these strings
-                    this.DebuggerMessage?.Invoke(this, content);
-                }
-                
-            });
+        public GdbDebugger() {
         }
 
 
         public event DebuggerChangeEventHandler DebuggerChange;
         public event DebuggerMessageEventHandler DebuggerMessage;
 
+
         public void Dispose() {
 
         }
 
-        public async Task Initialize() {
-            // Have to load the python scripts I guess?
-            string pythonScriptFolder = "/mnt/e/projects/chakra/jsdbg/server/JsDbg.Gdb/"; // TODO: make this work elsewhere
-            this.gdbProc.StandardInput.WriteLine(String.Format("python\nimport sys\nsys.path.append(\"{0}\")\nfrom JsDbg import *\nend", pythonScriptFolder));
+        public async Task Run() {
+            while(true) {
+                // Pump messages from python back to any waiting handlers
+                string response = await Console.In.ReadLineAsync();
+                if (response == null) {
+                    return;
+                }
+                this.OutputDataReceived?.Invoke(this, response);
+            }
         }
 
-        public async Task DebuggerUserInput(string input) {
-            string trimmed = input.Trim();
-            if (!this.pythonMode && trimmed == "pi" ) {
-                // dropping into pi mode 
-                Console.WriteLine("Unable to use interactive python interpreter within jsdbg.");
-            } else if (!this.pythonMode) {
-                if (trimmed == "python") {
-                    this.pythonMode = true;
-                    this.gdbProc.StandardInput.WriteLine("-interpreter-exec console \"python\"");
-                } else {
-                    await this.QueryDebugger(String.Format("-interpreter-exec console \"{0}\"", trimmed.Replace("\"","\\\"")));
-                }
-            } else {
-                // python mode
-                this.gdbProc.StandardInput.WriteLine(input);
-                if (trimmed == "end") {
-                    this.pythonMode = false;
-                    this.PythonModeEvent?.Invoke(this, this);
-                }
-            }
+        public async Task Initialize() {
         }
 
         public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
@@ -62,7 +38,7 @@ namespace JsDbg.Gdb {
 
             List<SFieldResult> result = new List<SFieldResult>();
 
-            int index = 1; // Skip initial '"' character
+            int index = 0;
             Debug.Assert(pythonResult[index] == '[');
             ++index;
             while(pythonResult[index] != ']') {
@@ -100,7 +76,7 @@ namespace JsDbg.Gdb {
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetBaseTypes(\"{0}\",\"{1}\")", module, typeName));
 
             List<SBaseTypeResult> result = new List<SBaseTypeResult>();
-            int index = 1;
+            int index = 0;
             Debug.Assert(pythonResult[index] == '[');
             ++index;
             while(pythonResult[index] != ']') {
@@ -129,7 +105,8 @@ namespace JsDbg.Gdb {
 
             return result;
         }
-        
+
+        // TODO: Determine whether the process is 64 bit or 32 bit        
         public bool IsPointer64Bit { 
             get {
                 return this.isPointer64Bit;
@@ -143,7 +120,7 @@ namespace JsDbg.Gdb {
         public async Task<bool> IsTypeEnum(string module, string type) {
             string pythonResult = await this.QueryDebuggerPython(String.Format("IsTypeEnum(\"{0}\",\"{1}\")", module, type));
             // Check for "True" or "False"
-            return pythonResult[1] == 'T';
+            return pythonResult[0] == 'T';
         }
         
         public async Task<IEnumerable<SConstantResult>> LookupConstants(string module, string type, ulong constantValue) {
@@ -155,30 +132,11 @@ namespace JsDbg.Gdb {
         }
         
         public async Task<SConstantResult> LookupConstant(string module, string type, string constantName) {
+            string response = await this.QueryDebuggerPython(String.Format("LookupConstant(\"{0}\",\"{1}\",\"{2}\")", module, type == null ? "None" : type , constantName));
+
             SConstantResult result = new SConstantResult();
             result.ConstantName = constantName;
-
-            string qualifiedName = constantName;
-            if (type != null) {
-                qualifiedName = String.Format("{0}::{1}", type, constantName);
-            }
-
-            string varName = String.Format("V{0}",this.varTag++);
-            string response = await this.QueryDebugger(String.Format("-var-create {0} * {1}", varName, qualifiedName));
-            // ^done,name="var2",numchild="0",value="enum2::ENUM_2",type="enum2",has_more="0"
-            Debug.Assert(response.StartsWith("^done"));
-            
-            response = await this.QueryDebugger(String.Format("-var-set-format {0} decimal",varName));
-            // ^done,format="decimal",value="0"
-            Debug.Assert(response.StartsWith("^done"));
-            string[] sections = response.Split(",");
-            Debug.Assert(sections.Length == 3);
-            Debug.Assert(sections[2].StartsWith("value=\""));
-            string valueString = sections[2].Substring(7,sections[2].Length - 8);
-            result.Value = UInt64.Parse(valueString);
-            
-            this.QueryDebugger(String.Format("-var-delete {0}", varName));
-
+            result.Value = UInt64.Parse(response);
             return result;
         }
         
@@ -331,15 +289,13 @@ namespace JsDbg.Gdb {
 
             // None of these options are great, but -var-create seems to be the simplest to parse
 
-            string varName = String.Format("V{0}",this.varTag++);
-            string response = await this.QueryDebugger(String.Format("-var-create {0} * \"(void*){1}\"", varName, pointer));
-            // ^done,name="v",numchild="0",value="0x601038 <gbar+8>",type="void *",has_more="0"
-            Debug.Assert(response.StartsWith("^done"));
+            // When switching to python:
+            // v = gdb.parse_and_eval("(void*) 0x..."); str(v) produces something like
+            // '0x4004f1 <twiddle<int []>(int)+17>'
+            // which has the same informationas -var-create
 
-            response = await this.QueryDebugger(String.Format("-var-set-format {0} natural",varName));
-            // ^done,format="natural",value="0x4004f1 <GBar<int>::f()+1>"
-            // or
-            // 10^done,format="natural",value="0xc54b3f0 <vtable for Js::ScriptFunction+16>"
+            string response = await this.QueryDebuggerPython(String.Format("LookupSymbolName({0})",pointer));
+            // '0x4004f1 <twiddle<int []>(int)+17>'
             // Symbol should be between the first '<' and the last '+', and the displacement is between the last '+' and the last '>'
 
             SSymbolNameAndDisplacement result = new SSymbolNameAndDisplacement();
@@ -371,8 +327,6 @@ namespace JsDbg.Gdb {
                 // TODO: If displacement = 2 pointers, assume RTTI and set displacement to 0?
             }
 
-            this.QueryDebugger(String.Format("-var-delete {0}", varName));
-
             return result;
         }
         
@@ -385,22 +339,16 @@ namespace JsDbg.Gdb {
         public async Task<T[]> ReadArray<T>(ulong pointer, ulong count) where T : struct {
             int size = (int)(count * (uint)System.Runtime.InteropServices.Marshal.SizeOf(typeof(T)));
 
-            string response = await this.QueryDebugger(String.Format("-data-read-memory-bytes {0} {1}", pointer, size));
-            // ^done,memory=[{begin="0x00000000004004f0",offset="0x0000000000000000",end="0x00000000004004fa",contents="554889e58b04252c1060"}]
+            string response = await this.QueryDebuggerPython(String.Format("ReadMemoryBytes({0},{1})", pointer, size));
+            // Response will be hex encoding of the memory
 
-            string[] properties = response.Split(",");
-            Debug.Assert(properties.Length == 5); // TODO: Not always true.
-            int startIndex = properties[4].IndexOf('"') + 1;
-            int endIndex = properties[4].LastIndexOf('"');
-            string hexString = properties[4].Substring(startIndex, endIndex-startIndex);
-
-            if (hexString.Length != 2* size) {
-                throw new DebuggerException(String.Format("Unable to read memory; expected {0} but got {1} bytes", size, hexString.Length/2));
+            if (response.Length != 2* size) {
+                throw new DebuggerException(String.Format("Unable to read memory; expected {0} but got {1} bytes", size, response.Length/2));
             }
 
             byte[] bytes = new byte[size];
             for (int i = 0; i < size; ++i) {
-                bytes[i] = Convert.ToByte(hexString.Substring(i*2,2), 16);
+                bytes[i] = Convert.ToByte(response.Substring(i*2,2), 16);
             }
 
             T[] result = new T[count];
@@ -425,81 +373,41 @@ namespace JsDbg.Gdb {
             // bytes is now a buffer of bytes we wish to write
             string hexString = BitConverter.ToString(bytes).Replace("-", string.Empty);
 
-            string response = await this.QueryDebugger(String.Format("-data-write-memory-bytes {0} \"{1}\"", pointer, hexString));
-            // ^done
-            Debug.Assert(response == "^done");
+            string response = await this.QueryDebuggerPython(String.Format("WriteMemoryBytes({0},\"{1}\")", pointer, hexString));
         }
-
-        private async Task<string> QueryDebugger(string query) {
-            while (this.pythonMode) {
-                await this.WaitForExitPython();
-            }
-            uint tag = this.queryTag++;
-            string tagString = tag.ToString();
-
-            TaskCompletionSource<string> responseCompletionSource = new TaskCompletionSource<string>();
-            DataReceivedEventHandler outputHandler = new DataReceivedEventHandler((sender, e) => {
-                if (e.Data != null && e.Data.StartsWith(tagString)) {
-                    responseCompletionSource.TrySetResult(e.Data.Substring(tagString.Length));
-                }
-            });
-            this.gdbProc.OutputDataReceived += outputHandler;
-            this.gdbProc.StandardInput.WriteLine("{0}{1}", tag, query);
-
-            string response = await responseCompletionSource.Task;
-            this.gdbProc.OutputDataReceived -= outputHandler;
-            return response;
-        }
-
 
         // Return a string which can be interpreted as the output of a python script
         // e.g. the string might be the literal characters
         // "[1, 2, 3]\n"
         private async Task<string> QueryDebuggerPython(string query) {
-            while (this.pythonMode) {
-                await this.WaitForExitPython();
-            }
             uint tag = this.queryTag++;
-            string tagString = "~\"" + tag.ToString() + "~";
-            string errString = "~\"" + tag.ToString() + "!";
+            string tagString = tag.ToString() + "~";
+            string errString = tag.ToString() + "!";
 
             TaskCompletionSource<string> responseCompletionSource = new TaskCompletionSource<string>();
-            DataReceivedEventHandler outputHandler = null;
-            outputHandler = new DataReceivedEventHandler((sender, e) => {
-                if (e.Data != null && e.Data.StartsWith(tagString)) {
-                    responseCompletionSource.TrySetResult("\"" + e.Data.Substring(tagString.Length));
-                    this.gdbProc.OutputDataReceived -= outputHandler;
-                } else if (e.Data != null && e.Data.StartsWith(errString)) {
-                    responseCompletionSource.TrySetException(new DebuggerException(e.Data.Substring(errString.Length)));
-                    this.gdbProc.OutputDataReceived -= outputHandler;
+            PythonResponseEventHandler outputHandler = null;
+            outputHandler = new PythonResponseEventHandler((sender, e) => {
+                if (e != null && e.StartsWith(tagString)) {
+                    responseCompletionSource.TrySetResult(e.Substring(tagString.Length).Trim());
+                    this.OutputDataReceived -= outputHandler;
+                } else if (e != null && e.StartsWith(errString)) {
+                    responseCompletionSource.TrySetException(new DebuggerException(e.Substring(errString.Length)));
+                    this.OutputDataReceived -= outputHandler;
                 }
 
             });
-            this.gdbProc.OutputDataReceived += outputHandler;
-            this.gdbProc.StandardInput.WriteLine("pi DebuggerQuery({0},'{1}')", tag, query);
+            this.OutputDataReceived += outputHandler;
+            Console.Out.WriteLine("DebuggerQuery({0},'{1}')", tag, query);
 
             string response = await responseCompletionSource.Task;
-            return response.Replace("\\n","");
+            return response;
         }
 
-        private async Task WaitForExitPython() {
-            while (this.pythonMode) {
-                TaskCompletionSource<byte> tcs = new TaskCompletionSource<byte>();
-                this.PythonModeEvent += (s, e) => {
-                    tcs.TrySetResult(0);
-                };
-                await tcs.Task;
-            }
-        }
-
-        private Process gdbProc;
         private bool isPointer64Bit;
         private uint queryTag = 1;
         private uint varTag = 1;
-        private bool pythonMode = false;
 
-
-        private delegate void PythonModeEventHandler(object sender, object e);
-        private event PythonModeEventHandler PythonModeEvent;
+        private delegate void PythonResponseEventHandler(object sender, string e);
+        private event PythonResponseEventHandler OutputDataReceived;
     }
 }

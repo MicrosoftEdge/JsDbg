@@ -111,7 +111,7 @@ namespace JsDbg.Core.Xplat {
             this.debugger = debugger;
             this.debugger.DebuggerChange += (sender, e) => { this.NotifyClientsOfDebuggerChange(e.Status); };
             this.debugger.DebuggerMessage += (sender, message) => {
-                Console.Out.WriteLine(message);
+                Console.Error.WriteLine(message);
                 this.SendWebSocketMessage(String.Format("message:{0}", message));
             };
             this.persistentStore = persistentStore;
@@ -174,7 +174,7 @@ namespace JsDbg.Core.Xplat {
                 break;
             }
 
-            Console.Out.WriteLine("Listening on {0}...", this.Url);
+            Console.Error.WriteLine("Listening on {0}...", this.Url);
 
             try {
                 while (true) {
