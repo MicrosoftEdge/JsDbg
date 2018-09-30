@@ -61,6 +61,12 @@ Loader.OnLoad(function() {
         return this.treeReader.createRepresentation(this.innerNode)
         .then(function(innerRepresentation) {
             renderedElement.appendChild(innerRepresentation);
+            if (innerRepresentation.customStyles) {
+                renderedElement.customStyles = innerRepresentation.customStyles;
+                renderedElement.customStyles.forEach((className) => {
+                    renderedElement.classList.add(className);
+                });
+            }
             notifyRendered(that);
             return that.renderChildren(renderedElement, renderedElement, notifyRendered);
         });
@@ -71,9 +77,12 @@ Loader.OnLoad(function() {
         var nodeToRemove = renderedElement.firstChild.nextSibling;
         while (nodeToRemove != null) {
             var next = nodeToRemove.nextSibling;
-            renderedElement.removeChild(nodeToRemove);                        
+            renderedElement.removeChild(nodeToRemove);
             nodeToRemove = next;
         }
+        renderedElement.customStyles.forEach((className) => {
+            renderedElement.classList.remove(className);
+        });
     }
 
     DrawingTreeNode.prototype.onclickHandler = function (renderedElement) {

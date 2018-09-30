@@ -54,6 +54,9 @@
 
             if (!(object instanceof DbgObject)) {
                 // For non-DbgObjects, return a representation which is just the basic description.
+                if (object.customStyles) {
+                    result.customStyles = object.customStyles();
+                }
                 return;
             }
 

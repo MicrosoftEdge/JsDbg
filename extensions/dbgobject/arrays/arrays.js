@@ -17,20 +17,22 @@ Loader.OnLoad(function() {
             throw new Error("The \"" + this.name + "\" array on " + parentDbgObject.type.name() + " did not return an array.");
         }
 
-        var resultType = this.type instanceof Function ? DbgObjectType(this.type(parentDbgObject.type), parentDbgObject.type) : this.type;
-        if (resultType == null) {
-            return Promise.resolve(result);
-        }
-
         var that = this;
-        return Promise.map(Promise.all(result), function (obj) { return obj.isType(resultType); })
-        .then(function (areAllTypes) {
-            var incorrectIndex = areAllTypes.indexOf(false);
-            if (incorrectIndex != -1) {
-                throw new Error("The \"" + that.name + "\" array on " + parentDbgObject.type.name() + " was supposed to return an array of " + resultType + " but there was an unrelated " + result[incorrectIndex].type.name() + ".")
+        return Promise.resolve((this.type instanceof Function) ? this.type(parentDbgObject.type) : this.type)
+        .then((resultType) => {
+            if (resultType == null) {
+                return Promise.resolve(result);
             }
 
-            return result;
+            return Promise.map(Promise.all(result), function (obj) { return obj.isType(resultType); })
+            .then(function (areAllTypes) {
+                var incorrectIndex = areAllTypes.indexOf(false);
+                if (incorrectIndex != -1) {
+                    throw new Error("The \"" + that.name + "\" array on " + parentDbgObject.type.name() + " was supposed to return an array of " + resultType + " but there was an unrelated " + result[incorrectIndex].type.name() + ".")
+                }
+
+                return result;
+            });
         });
     }
 

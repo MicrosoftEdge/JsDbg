@@ -1,0 +1,21 @@
+{
+    "name": "wtf-helpers",
+    "author": "Sanket Joshi",
+    "description": "Helper functions for debugging WTF types",
+    "headless": true,
+    "dependencies": [
+        "dbgobject",
+        "target-specific/blink/module-resolver",
+        "whitespace-formatter"
+    ],
+    "includes": [
+        "wtf-helpers.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": [
+        "blink_core",
+        "chrome_child"
+    ]
+}

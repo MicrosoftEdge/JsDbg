@@ -12,9 +12,12 @@ Loader.OnLoad(function () {
 
     ExtendedField.prototype.getExpectedType = function(parentType) {
         if (DbgObjectType.is(this.type)) {
-            return this.type;
+            return Promise.resolve(this.type);
         } else {
-            return DbgObjectType(this.type(parentType), parentType);
+            return Promise.resolve(this.type(parentType))
+            .then((resolvedType) => {
+                return DbgObjectType(resolvedType, parentType);
+            });
         }
     }
 
@@ -23,14 +26,16 @@ Loader.OnLoad(function () {
         if (!(result instanceof DbgObject)) {
             throw new Error("The field \"" + this.name + "\" did not return a DbgObject, but returned \"" + result + "\"");
         } else {
-            var expectedType = this.getExpectedType(parentType);
-            return result.isType(expectedType)
-            .then(function (isType) {
-                if (!isType) {
-                    throw new Error("The field \"" + that.name + "\" was supposed to be type \"" + expectedType + "\" but was unrelated type \"" + result.type + "\".");
-                } else {
-                    return result;
-                }
+            return this.getExpectedType(parentType)
+            .then((expectedType) => {
+                return result.isType(expectedType)
+                .then(function (isType) {
+                    if (!isType) {
+                        throw new Error("The field \"" + that.name + "\" was supposed to be type \"" + expectedType + "\" but was unrelated type \"" + result.type + "\".");
+                    } else {
+                        return result;
+                    }
+                });
             });
         }
     }

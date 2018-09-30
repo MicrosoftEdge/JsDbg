@@ -1,0 +1,23 @@
+{
+    "name": "DOMTree",
+    "author": "Sanket Joshi",
+    "description": "Inspect the Blink DOM tree.",
+    "dependencies": [
+        "dbgobject",
+        "tree-inspector",
+        "target-specific/blink/blink-helpers",
+        "target-specific/blink/module-resolver",
+        "target-specific/blink/wtf-helpers",
+        "target-specific/stl-helpers"
+    ],
+    "includes": [
+        "dom-tree.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": [
+        "blink_core",
+        "chrome_child"
+    ]
+}

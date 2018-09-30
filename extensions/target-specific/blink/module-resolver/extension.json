@@ -1,0 +1,16 @@
+{
+    "name": "module-resolver",
+    "author": "Sanket Joshi",
+    "description": "Resolve names for Blink modules",
+    "headless": true,
+    "dependencies": [
+        "dbgobject"
+    ],
+    "includes": [
+        "module-resolver.js"
+    ],
+    "targetModules": [
+        "blink_core",
+        "chrome_child"
+    ]
+}
