@@ -77,7 +77,7 @@ Loader.OnLoad(function() {
 
     DbgObject.prototype._help_array = {
         description: "Given a DbgObject that represents an array, retrieves an array of corresponding DbgObjects.",
-        returns: "A promise to an array of DbgObjects.  If the array is an array of pointers, the pointers will be dereferenced.",
+        returns: "A promise to an array of DbgObjects.",
         arguments: [{name:"count/name (optional)", type:"int/string", description:"The number of items to retrieve, or the name of the array.  Optional if the object represents an inline array."}]
     }
     DbgObject.prototype.array = function(count) {
@@ -127,23 +127,15 @@ Loader.OnLoad(function() {
                 return [];
             }
 
-            if (that.type.isPointer()) {
-                return that.bigvals(count)
-                .then(function (values) {
-                    var dereferencedType = that.type.dereferenced();
-                    return values.map(function(x) { return DbgObject.create(dereferencedType, x); });
-                });
-            } else {
-                if (count > 100000) {
-                    throw new Error("Arrays with over 100,000 elements cannot be retrieved all at once.")
-                }
-
-                var array = [];
-                for (var i = 0; i < count; ++i) {
-                    array.push(that.idx(i));
-                }
-                return Promise.all(array);
+            if (count > 100000) {
+                throw new Error("Arrays with over 100,000 elements cannot be retrieved all at once.")
             }
+
+            var array = [];
+            for (var i = 0; i < count; ++i) {
+                array.push(that.idx(i));
+            }
+            return Promise.all(array);
         });
     }
 });
