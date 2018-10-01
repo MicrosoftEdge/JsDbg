@@ -13,7 +13,7 @@ Loader.OnLoad(function () {
             this._offset = 0;
         }
 
-        this._module = module;
+        this._module = module.toLowerCase();
 
         // Normalize type name.
         this._name = name.trim();  // strip outer whitespace
