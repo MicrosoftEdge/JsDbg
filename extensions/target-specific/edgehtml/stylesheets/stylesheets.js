@@ -261,7 +261,7 @@ Loader.OnLoad(function() {
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CStyleRule"), function(styleRule) {
-        return styleRule.f("_spSpecifiedStyle.m_pT.attrArray.m_pT", "_paaStyleProperties").array("Items");
+        return styleRule.f("_spSpecifiedStyle.m_pT.attrArray.m_pT", "_paaStyleProperties", "_pStyleRuleData._paaStyleProperties").array("Items");
     })
 
     StyleSheets.Renderer.addNameRenderer(MSHTML.Type("CMarkup"), function (markup) {
