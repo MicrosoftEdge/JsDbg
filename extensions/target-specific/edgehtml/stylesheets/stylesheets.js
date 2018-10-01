@@ -221,23 +221,43 @@ Loader.OnLoad(function() {
     })        
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
-        return stylesheet.f("_apFontBlocks").array("Items");
+        return stylesheet.f("_apFontBlocks").array("Elements").f("m_pT")
+        .catch(function () {
+            // Fallback for when the field was not a std::vector.
+            return stylesheet.f("_apFontBlocks").array("Items");
+        })
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
-        return stylesheet.f("_apPageBlocks").array("Items");
+        return stylesheet.f("_apPageBlocks").array("Elements").f("m_pT")
+        .catch(function () {
+            // Fallback for when the field was not a std::vector.
+            return stylesheet.f("_apPageBlocks").array("Items");
+        })
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
-        return stylesheet.f("_apViewportBlocks").array("Items");
+        return stylesheet.f("_apViewportBlocks").array("Elements").f("m_pT")
+        .catch(function () {
+            // Fallback for when the field was not a std::vector.
+            return stylesheet.f("_apViewportBlocks").array("Items");
+        })
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
-        return stylesheet.f("_apImportBlocks").array("Items");
+        return stylesheet.f("_apImportBlocks").array("Elements").f("m_pT")
+        .catch(function () {
+            // Fallback for when the field was not a std::vector.
+            return stylesheet.f("_apImportBlocks").array("Items");
+        })
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
-        return stylesheet.f("_apRulesList").array("Items");
+        return stylesheet.f("_apRulesList").array("Elements").f("m_pT")
+        .catch(function () {
+            // Fallback for when the field was not a std::vector.
+            return stylesheet.f("_apRulesList").array("Items");
+        })
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CStyleRule"), function(styleRule) {
