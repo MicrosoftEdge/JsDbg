@@ -80,9 +80,12 @@ Loader.OnLoad(function() {
             renderedElement.removeChild(nodeToRemove);
             nodeToRemove = next;
         }
-        renderedElement.customStyles.forEach((className) => {
-            renderedElement.classList.remove(className);
-        });
+
+        if (renderedElement.customStyles) {
+            renderedElement.customStyles.forEach((className) => {
+                renderedElement.classList.remove(className);
+            });
+        }
     }
 
     DrawingTreeNode.prototype.onclickHandler = function (renderedElement) {
