@@ -1,32 +1,15 @@
 var Blink = null;
 (function() {
     // Figure out which module to use.
-    var chromeChildLoaded = false;
+    var isContentModuleLoaded = false;
 
     Loader.OnLoadAsync(function(onComplete) {
-        DbgObject.global("chrome_child", "g_frame_map")
-        .then(
-            function() {
-                chromeChildLoaded = true;
-            },
-            function() {
-                chromeChildLoaded = false;
-            }
-        )
+        DbgObject.global("content", "g_frame_map")
+        .then(() => {
+            isContentModuleLoaded = true;
+        })
         .finally(onComplete);
     });
-
-    childProcessModuleName = function(moduleName) {
-        if (chromeChildLoaded) {
-            return "chrome_child";
-        } else {
-            return moduleName;
-        }
-    }
-
-    childProcessType = function(moduleName, typeName) {
-        return DbgObjectType(childProcessModuleName(moduleName), typeName);
-    }
 
     Loader.OnLoad(function() {
         Blink = {
@@ -41,7 +24,7 @@ var Blink = null;
                     {name:"moduleName", type:"string", description: "The module name."},
                 ]
             },
-            ChildProcessModuleName: childProcessModuleName,
+            ChildProcessModuleName: (moduleName) => isContentModuleLoaded ? moduleName : "chrome_child",
 
             _help_ChildProcessType: {
                 description: "Gets a DbgObjectType in the Chromium child process.",
@@ -50,7 +33,24 @@ var Blink = null;
                     {name:"typeName", type:"string", description: "The type name."}
                 ]
             },
-            ChildProcessType: childProcessType,
+            ChildProcessType: (moduleName, typeName) => DbgObjectType(Blink.ChildProcessModuleName(moduleName), typeName),
+
+            _help_BrowserProcessModuleName: {
+                description: "Gets the module name in the Chromium browser process.",
+                arguments: [
+                    {name:"moduleName", type:"string", description: "The module name."},
+                ]
+            },
+            BrowserProcessModuleName: (moduleName) => isContentModuleLoaded ? moduleName : "chrome",
+
+            _help_BrowserProcessType: {
+                description: "Gets a DbgObjectType in the Chromium browser process.",
+                arguments: [
+                    {name:"moduleName", type:"string", description: "The module name."},
+                    {name:"typeName", type:"string", description: "The type name."}
+                ]
+            },
+            BrowserProcessType: (moduleName, typeName) => DbgObjectType(Blink.BrowserProcessModuleName(moduleName), typeName),
         };
 
         Help.Register(Blink);
