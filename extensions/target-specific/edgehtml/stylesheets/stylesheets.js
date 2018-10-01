@@ -13,7 +13,7 @@ Loader.OnLoad(function() {
         },
         GetRoots: function() { 
             return Promise.sort(Promise.filter(MSHTML.GetCDocs().F("PrimaryMarkup"), function (m) { return !m.isNull(); }), function(markup) {
-                return markup.f("_pStyleSheetArray").f("_pageStyleSheets", "_aStyleSheets").array("Items")
+                return markup.f("_pStyleSheetArray").f("_pageStyleSheets", "_aStyleSheets").array("Items").deref()
                 .then(function (stylesheetArray) {
                     return 0 - stylesheetArray.length;
                 });
@@ -182,11 +182,11 @@ Loader.OnLoad(function() {
     });
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CStyleSheetArray"), function(array) {
-        return array.f("_pageStyleSheets", "_aStyleSheets").array("Items");
+        return array.f("_pageStyleSheets", "_aStyleSheets").array("Items").deref();
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CStyleSheetArray"), function(array) {
-        return array.f("_extensionStyleSheets").array("Items");
+        return array.f("_extensionStyleSheets").array("Items").deref();
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CMarkup"), function(markup) {
