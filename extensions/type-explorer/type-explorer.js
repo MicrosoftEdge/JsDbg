@@ -285,15 +285,25 @@ Loader.OnLoad(function() {
         return this.allFieldArrayNames.map(function (n) { return that[n]; })
     }
 
+    function getExtensionType(extension, baseType) {
+        var type = extension.type; 
+        if (type) {
+            return Promise.resolve(type instanceof Function ? type(baseType) : type, baseType)
+            .then((typeName) => DbgObjectType(typeName, baseType));
+        } else {
+            return Promise.resolve(null);
+        }
+    }
+
     TypeExplorerSingleType.prototype.monitorTypeExtensions = function(typeExtensions, arrayName) {
         var that = this;
-        function addTypeExtensionField(name, extension) {
+        function addTypeExtensionField(name, extension, extensionType) {
             // For descriptions, ignore the primary descriptions.
             if (extension.isPrimary) {
                 return;
             }
 
-            var newField = new TypeExplorerField(name, extension.type ? extension.type : null, extension.getter, that, arrayName);
+            var newField = new TypeExplorerField(name, extensionType, extension.getter, that, arrayName);
             that[arrayName].push(newField);
 
             if (UserDbgObjectExtensions.GetCreationContext(extension.getter) == that.aggregateType) {
@@ -301,41 +311,44 @@ Loader.OnLoad(function() {
             }
         }
 
-        typeExtensions.getAllExtensions(this.type).forEach(function (nameAndExtension) {
-            addTypeExtensionField(nameAndExtension.name, nameAndExtension.extension);
-        });
+        var allExtensions = typeExtensions.getAllExtensions(this.type);
+        // The extension types might be functions that return promises
+        return Promise.map(allExtensions, (nameAndExtension) => getExtensionType(nameAndExtension.extension, that.type))
+        .then((extensionTypes) => {
+            allExtensions.forEach((nameAndExtension, i) => addTypeExtensionField(nameAndExtension.name, nameAndExtension.extension, extensionTypes[i]))
 
-        typeExtensions.addListener(this.type, function (type, extensionName, extension, operation, argument) {
-            if (operation == "add") {
-                addTypeExtensionField(extensionName, extension);
-            } else if (operation == "remove") {
-                that[arrayName] = that[arrayName].filter(function (field) {
-                    if (field.name == extensionName) {
-                        field.disableCompletely();
-                        return false;
-                    } else {
-                        return true;
-                    }
-                });
-            } else if (operation == "rename") {
-                that[arrayName].forEach(function (field) {
-                    if (field.name == extensionName) {
-                        var wasEnabled = field.isEnabled;
-                        field.setIsEnabled(false);
-                        field.name = argument;
-                        field.setIsEnabled(wasEnabled);
-                    }
-                })
-            } else if (operation == "typechange") {
-                that[arrayName].forEach(function (field) {
-                    if (field.name == extensionName) {
-                        field.setChildType(argument);
-                    }
-                });
-            }
+            typeExtensions.addListener(this.type, function (type, extensionName, extension, operation, argument) {
+                if (operation == "add") {
+                    getExtensionType(extension, that.type).then((extensionType) => addTypeExtensionField(extensionName, extension, extensionType));
+                } else if (operation == "remove") {
+                    that[arrayName] = that[arrayName].filter(function (field) {
+                        if (field.name == extensionName) {
+                            field.disableCompletely();
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    });
+                } else if (operation == "rename") {
+                    that[arrayName].forEach(function (field) {
+                        if (field.name == extensionName) {
+                            var wasEnabled = field.isEnabled;
+                            field.setIsEnabled(false);
+                            field.name = argument;
+                            field.setIsEnabled(wasEnabled);
+                        }
+                    })
+                } else if (operation == "typechange") {
+                    that[arrayName].forEach(function (field) {
+                        if (field.name == extensionName) {
+                            field.setChildType(argument);
+                        }
+                    });
+                }
 
-            that.aggregateType.controller.requestRerender(/*changeFocus*/false);
-        });
+                that.aggregateType.controller.requestRerender(/*changeFocus*/false);
+            });
+        })
     }
 
     TypeExplorerSingleType.prototype.prepareForRendering = function() {
@@ -373,12 +386,13 @@ Loader.OnLoad(function() {
                 that.fields.push(new TypeExplorerField(field.name, fieldType, getter, that, "fields"));
             })
 
-            that.monitorTypeExtensions(DbgObject.ExtendedFields, "extendedFields");
-            that.monitorTypeExtensions(DbgObject.TypeDescriptions, "descriptions");
-            that.monitorTypeExtensions(DbgObject.ArrayFields, "arrayFields");
 
-            // Check for autocast fields?
-            return that.prepareAutoCastFields();
+            return Promise.all([
+                that.monitorTypeExtensions(DbgObject.ExtendedFields, "extendedFields"),
+                that.monitorTypeExtensions(DbgObject.TypeDescriptions, "descriptions"),
+                that.monitorTypeExtensions(DbgObject.ArrayFields, "arrayFields"),
+                that.prepareAutoCastFields(),
+            ])
         }, function () {
             // The type doesn't exist.
         });
@@ -519,9 +533,6 @@ Loader.OnLoad(function() {
         this.clientContext = {};
         this.childType = null;
 
-        if (fieldType instanceof Function) {
-            fieldType = DbgObjectType(fieldType(this.parentType.type), this.parentType.type);
-        }
         this.setChildType(fieldType);
         this.cachedResults = new WeakMap();
     }
