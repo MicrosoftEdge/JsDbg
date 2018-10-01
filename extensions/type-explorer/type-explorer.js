@@ -142,9 +142,9 @@ Loader.OnLoad(function() {
         return fields;
     }
 
-    TypeExplorerAggregateType.prototype.getAutoCastFieldsToRender = function() {
+    TypeExplorerAggregateType.prototype.getPerInstanceFieldsToRender = function() {
         console.assert(this.isPreparedForRendering);
-        return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getAutoCastFieldsToRender(); }));
+        return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getPerInstanceFieldsToRender(); }));
     }
 
     TypeExplorerAggregateType.prototype.getFieldsToRender = function() {
@@ -261,13 +261,13 @@ Loader.OnLoad(function() {
         this.isExpanded = false;
         this.type = type;
         this.offsetFromAggregate = offsetFromAggregate;
-        this.autoCastFields = [];
+        this.perInstanceFields = [];
         this.fields = [];
         this.extendedFields = [];
         this.descriptions = [];
         this.arrayFields = [];
         this.arrayItemFields = [];
-        this.allFieldArrayNames = ["autoCastFields", "fields", "extendedFields", "arrayFields", "descriptions", "arrayItemFields"];
+        this.allFieldArrayNames = ["perInstanceFields", "fields", "extendedFields", "arrayFields", "descriptions", "arrayItemFields"];
         this.preparedForRenderingPromise = null;
     }
 
@@ -386,21 +386,21 @@ Loader.OnLoad(function() {
                 that.fields.push(new TypeExplorerField(field.name, fieldType, getter, that, "fields"));
             })
 
-
             return Promise.all([
                 that.monitorTypeExtensions(DbgObject.ExtendedFields, "extendedFields"),
                 that.monitorTypeExtensions(DbgObject.TypeDescriptions, "descriptions"),
                 that.monitorTypeExtensions(DbgObject.ArrayFields, "arrayFields"),
-                that.prepareAutoCastFields(),
+                that.preparePerInstanceFields(),
             ])
         }, function () {
             // The type doesn't exist.
         });
     }
 
-    TypeExplorerSingleType.prototype.prepareAutoCastFields = function() {
+    // When we're operating on a single instance, there are automatic "fields" that can be rendered.
+    TypeExplorerSingleType.prototype.preparePerInstanceFields = function() {
         if (this.aggregateType.backingTypes[0] != this) {
-            // Only the primary type has autocast fields.
+            // Only the primary type has per-instance fields.
             return;
         }
 
@@ -420,21 +420,25 @@ Loader.OnLoad(function() {
         var that = this;
         return dbgObjectPromise
         .then(function (result) {
-            // We only support auto-casting on DbgObjects (not arrays of DbgObjects).
+            // We only support per-instance fields on DbgObjects (not arrays of DbgObjects).
             if (result instanceof DbgObject) {
-                return result.vcast()
-                .then(
-                    function (castedDbgObject) {
-                        if (!castedDbgObject.type.equals(that.type)) {
-                            var newField = new TypeExplorerField("[vtable cast]", castedDbgObject.type, function() { return castedDbgObject; }, that, "autoCastFields");
-                            that.autoCastFields.push(newField);
+                if (result.type.isPointer()) {
+                    var newField = new TypeExplorerField("[dereferenced]", result.type.dereferenced(), function() { return result.deref() }, that, "perInstanceFields");
+                    that.perInstanceFields.push(newField);
+                } else {
+                    return result.vcast()
+                    .then(
+                        function (castedDbgObject) {
+                            if (!castedDbgObject.type.equals(that.type)) {
+                                var newField = new TypeExplorerField("[vtable cast]", castedDbgObject.type, function() { return castedDbgObject; }, that, "perInstanceFields");
+                                that.perInstanceFields.push(newField);
+                            }
                         }
-                    },
-                    // The vcast might fail, in which case we simply don't add an autocast field.
-                    function (err) { }
-                )
+                    );
+                }
             }
         })
+        .catch((err) => true); // The vtable cast might fail, which is fine.
     }
 
     TypeExplorerSingleType.prototype.forEachField = function (f) {
@@ -479,8 +483,8 @@ Loader.OnLoad(function() {
         }
     }
 
-    TypeExplorerSingleType.prototype.getAutoCastFieldsToRender = function () {
-        return this.selectFieldsToRender(this.autoCastFields);
+    TypeExplorerSingleType.prototype.getPerInstanceFieldsToRender = function () {
+        return this.selectFieldsToRender(this.perInstanceFields);
     }
 
     TypeExplorerSingleType.prototype.getFieldsToRender = function () {
@@ -1057,12 +1061,12 @@ Loader.OnLoad(function() {
                 hideExistingFields(existingFields, existingFieldIndex);
             })
         } else {
-            var autoCastFields = type.getAutoCastFieldsToRender();
+            var perInstanceFields = type.getPerInstanceFieldsToRender();
             var fields = type.getFieldsToRender();
             var extendedFields = type.getExtendedFieldsToRender();
             var arrayFields = type.getArrayFieldsToRender();
             var descriptions = type.getDescriptionsToRender();
-            extendedFields = autoCastFields.concat(extendedFields).concat(arrayFields).concat(descriptions);
+            extendedFields = perInstanceFields.concat(extendedFields).concat(arrayFields).concat(descriptions);
 
             // Find any collisions in the fields.
             var fieldCollisions = findFieldNameCollisions(fields, type);
