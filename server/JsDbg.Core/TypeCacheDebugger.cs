@@ -159,7 +159,13 @@ namespace JsDbg.Core {
                     symbol.findChildren(SymTagEnum.SymTagBaseClass, null, 0, out baseClassSymbols);
                     foreach (IDiaSymbol baseClassSymbol in baseClassSymbols) {
                         string baseTypename = DiaHelpers.GetTypeName(baseClassSymbol.type);
-                        Type baseType = await this.LoadType(module, baseTypename);
+                        Type baseType;
+                        try {
+                            baseType = await this.LoadType(module, baseTypename);
+                        } catch (DebuggerException) {
+                            // Sometimes types will refer to a base type that doesn't resolve; just ignore that type.
+                            baseType = null;
+                        }
                         if (baseType != null) {
                             baseTypes.Add(new SBaseType(baseType, baseClassSymbol.offset));
                         } else {
