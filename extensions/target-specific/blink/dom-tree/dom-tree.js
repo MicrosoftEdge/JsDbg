@@ -9,13 +9,7 @@ Loader.OnLoad(function() {
             var voidObject = DbgObject.create(Blink.ChildProcessType("blink_core", "void"), address);
             if (!voidObject.isNull()) {
                 return voidObject.dcast(Blink.ChildProcessType("blink_core", "blink::ContainerNode"))
-                .then((containerNode) => {
-                    if (!containerNode.isNull()) {
-                        return containerNode.vcast();
-                    } else {
-                        return voidObject.vcast();
-                    }
-                });
+                .then((containerNode) => (!containerNode.isNull() ? containerNode.vcast() : voidObject.vcast()));
             } else {
                 return DbgObject.NULL;
             }
@@ -30,17 +24,11 @@ Loader.OnLoad(function() {
                 // Put the main frame (frame with a null parent) at the front of the array.
                 return Promise.sort(webFrames, (webFrame) => {
                     return webFrame.f("parent_")
-                    .then((parentFrame) => {
-                        return !parentFrame.isNull();
-                    });
+                    .then((parentFrame) => !parentFrame.isNull());
                 });
             })
-            .then((sortedWebFrames) => {
-                return Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_.raw_").f("dom_window_.raw_").F("document"));
-            })
-            .then((sortedDocuments) => {
-                return Promise.filter(sortedDocuments, (document) => !document.isNull());
-            });
+            .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_.raw_").f("dom_window_.raw_").F("document")))
+            .then((sortedDocuments) => Promise.filter(sortedDocuments, (document) => !document.isNull()));
         },
         DefaultTypes: [Blink.ChildProcessType("blink_core", "blink::ContainerNode")]
     };

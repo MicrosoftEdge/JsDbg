@@ -10,21 +10,23 @@ Loader.OnLoad(function() {
     });
 
     DbgObject.AddTypeDescription(Blink.ChildProcessType("blink_core", "blink::Element"), "id", false, (element) => {
-        return element.f("element_data_.raw_").then((elementData) => !elementData.isNull() ? elementData.f("id_for_style_resolution_").desc("Text") : "");
+        return element.f("element_data_.raw_")
+        .then((elementData) => (!elementData.isNull() ? elementData.f("id_for_style_resolution_").desc("Text") : ""));
     });
 
     DbgObject.AddTypeDescription(Blink.ChildProcessType("blink_core", "blink::Document"), "URL", false, (document) => {
         return document.f("base_url_").f("string_").desc("Text");
     });
 
+    DbgObject.AddExtendedField(Blink.ChildProcessType("blink_core", "blink::Node"), "ownerDocument", Blink.ChildProcessType("blink_core", "blink::Document"), (node) => {
+        return node.f("tree_scope_.raw_").f("document_.raw_")
+        .then((document) => (!node.equals(document) ? document : DbgObject.NULL));
+    });
+
     DbgObject.AddArrayField(Blink.ChildProcessType("blink_core", "blink::ContainerNode"), "Child Nodes", Blink.ChildProcessType("blink_core", "blink::Node"), (containerNode) => {
         return containerNode.f("first_child_.raw_")
-        .list((containerNode) => {
-            return containerNode.f("next_.raw_")
-        })
-        .map((child) => {
-            return child.vcast();
-        });
+        .list((containerNode) => containerNode.f("next_.raw_"))
+        .map((child) => child.vcast());
     });
 
     DbgObject.AddExtendedField(Blink.ChildProcessType("blink_core", "blink::Element"), "shadowRoot", Blink.ChildProcessType("blink_core", "blink::ShadowRoot"), (element) => {
@@ -46,11 +48,43 @@ Loader.OnLoad(function() {
             } else {
                 return DbgObject.NULL;
             }
-        })
+        });
+    });
+
+    DbgObject.AddTypeDescription(Blink.ChildProcessType("blink_core", "blink::Element"), "tagName", false, (element) => {
+        return Promise.all([element.f("tag_name_"), element.dcast(Blink.ChildProcessType("blink_core", "blink::HTMLElement")), element.F("ownerDocument").f("document_classes_").val()])
+        .thenAll((tagQualifiedName, htmlElement, documentClass) => {
+            return tagQualifiedName.desc("ToString")
+            .then((lowerCaseTagName) => ((!htmlElement.isNull() && (documentClass == /*HTMLDocument*/1)) ? lowerCaseTagName.toUpperCase() : lowerCaseTagName));
+        });
+    });
+
+    DbgObject.AddTypeDescription(Blink.ChildProcessType("blink_core", "blink::QualifiedName"), "Prefix", false, (qualifiedName) => {
+        return qualifiedName.f("impl_").f("ptr_").f("prefix_").desc("Text");
+    });
+
+    DbgObject.AddTypeDescription(Blink.ChildProcessType("blink_core", "blink::QualifiedName"), "LocalName", false, (qualifiedName) => {
+        return qualifiedName.f("impl_").f("ptr_").f("local_name_").desc("Text");
+    });
+
+    DbgObject.AddTypeDescription(Blink.ChildProcessType("blink_core", "blink::QualifiedName"), "NamespaceURI", false, (qualifiedName) => {
+        return qualifiedName.f("impl_").f("ptr_").f("namespace_").desc("Text");
+    });
+
+    DbgObject.AddTypeDescription(Blink.ChildProcessType("blink_core", "blink::QualifiedName"), "ToString", true, (qualifiedName) => {
+        return Promise.all([qualifiedName.desc("Prefix"), qualifiedName.desc("LocalName")])
+        .thenAll((prefix, localName) => {
+            var name = "";
+            if (prefix.length > 0) {
+                name += prefix + ":";
+            }
+            name += localName;
+            return name;
+        });
     });
 
     DbgObject.AddExtendedField(Blink.ChildProcessType("blink_core", "blink::HTMLFrameOwnerElement"), "contentWindow", Blink.ChildProcessType("blink_core", "blink::DOMWindow"), (frameOwnerElement) => {
-        return frameOwnerElement.f("content_frame_.raw_").then((contentFrame) => (!contentFrame.isNull() ? contentFrame.f("dom_window_.raw_") : DbgObject.NULL));
+        return frameOwnerElement.f("content_frame_.raw_").f("dom_window_.raw_");
     });
 
     DbgObject.AddExtendedField(Blink.ChildProcessType("blink_core", "blink::HTMLFrameOwnerElement"), "contentDocument", Blink.ChildProcessType("blink_core", "blink::Document"), (frameOwnerElement) => {
@@ -58,10 +92,7 @@ Loader.OnLoad(function() {
     });
 
     DbgObject.AddExtendedField(Blink.ChildProcessType("blink_core", "blink::DOMWindow"), "document", Blink.ChildProcessType("blink_core", "blink::Document"), (domWindow) => {
-        return domWindow.dcast(Blink.ChildProcessType("blink_core", "blink::LocalDOMWindow"))
-        .then((localDomWindow) => {
-            return !localDomWindow.isNull() ? localDomWindow.f("document_.raw_") : DbgObject.NULL;
-        });
+        return domWindow.dcast(Blink.ChildProcessType("blink_core", "blink::LocalDOMWindow")).f("document_.raw_");
     });
 
     DbgObject.AddExtendedField(Blink.ChildProcessType("blink_core", "blink::HTMLTemplateElement"), "content", Blink.ChildProcessType("blink_core", "blink::TemplateContentDocumentFragment"), (templateElement) => {
