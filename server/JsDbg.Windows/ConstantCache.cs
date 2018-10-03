@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using JsDbg.Core;
 
-namespace JsDbg.Core {
-    public class ConstantCache {
+namespace JsDbg.Windows.Dia {
+    internal class ConstantCache {
         public ConstantCache(List<SConstantResult> constants) {
             foreach (var constant in constants) {
                 this.Values[constant.ConstantName] = constant.Value;

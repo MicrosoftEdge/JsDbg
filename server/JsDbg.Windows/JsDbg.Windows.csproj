@@ -37,13 +37,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BrowserLauncher.cs" />
+    <Compile Include="ConstantCache.cs" />
     <Compile Include="DiaHelpers.cs" />
     <Compile Include="DiaSessionLoader.cs" />
     <Compile Include="IDiaSessionSource.cs" />
-    <Compile Include="ITypeCacheDebuggerEngine.cs" />
+    <Compile Include="IDiaDebuggerEngine.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TypeCache.cs" />
-    <Compile Include="TypeCacheDebugger.cs" />
+    <Compile Include="DiaTypeCache.cs" />
+    <Compile Include="DiaDebugger.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="$(SolutionDir)references\msdia140.dll">

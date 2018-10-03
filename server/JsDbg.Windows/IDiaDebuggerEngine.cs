@@ -6,13 +6,13 @@ using System.Threading.Tasks;
 using JsDbg.Core;
 using JsDbg.Windows.Dia;
 
-namespace JsDbg.Windows {
+namespace JsDbg.Windows.Dia {
     public struct SStackFrameWithContext {
         public SStackFrame StackFrame;
         public object Context;
     }
 
-    public interface ITypeCacheDebuggerEngine {
+    public interface IDiaDebuggerEngine {
 
         #region Debugger Primitives
         

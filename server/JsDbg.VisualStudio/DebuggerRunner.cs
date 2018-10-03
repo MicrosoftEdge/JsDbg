@@ -17,7 +17,7 @@ namespace JsDbg.VisualStudio {
         internal DebuggerRunner() {
             this.engine = new DebuggerEngine(this);
             this.engine.DiaLoader = new DiaSessionLoader(new IDiaSessionSource[] { new DiaSessionPathSource(this), new DiaSessionModuleSource(this, this.engine) });
-            this.debugger = new TypeCacheDebugger(this.engine);
+            this.debugger = new DiaDebugger(this.engine);
             this.EnsureDebuggerService();
         }
 
@@ -229,7 +229,7 @@ namespace JsDbg.VisualStudio {
 
         #endregion
 
-        JsDbg.Windows.TypeCacheDebugger debugger;
+        JsDbg.Windows.Dia.DiaDebugger debugger;
         DebuggerEngine engine;
         IDebugProgram2 currentDebugProgram;
         IDebugMemoryContext2 memoryContext;

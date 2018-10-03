@@ -4,11 +4,10 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.Debugger.Interop;
 using JsDbg.Core;
 using JsDbg.Utilities;
-using JsDbg.Windows;
 using JsDbg.Windows.Dia;
 
 namespace JsDbg.VisualStudio {
-    class DebuggerEngine : ITypeCacheDebuggerEngine {
+    class DebuggerEngine : IDiaDebuggerEngine {
         private const int S_OK = 0;
 
         internal DebuggerEngine(DebuggerRunner runner) {
@@ -175,7 +174,7 @@ namespace JsDbg.VisualStudio {
 
         public event DebuggerChangeEventHandler DebuggerChange;
 
-        public Task<JsDbg.Windows.Type> GetTypeFromDebugger(string module, string typename) {
+        public Task<JsDbg.Windows.Dia.Type> GetTypeFromDebugger(string module, string typename) {
             throw new DebuggerException("Cannot load types from the Visual Studio debugger directly.");
         }
 

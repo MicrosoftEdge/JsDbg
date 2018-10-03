@@ -22,7 +22,7 @@ namespace JsDbg.WinDbg {
             this.isShuttingDown = false;
             this.didShutdown = true;
             this.engine = new DebuggerEngine(this, this.client, this.control, this.diaLoader);
-            this.debugger = new TypeCacheDebugger(this.engine);
+            this.debugger = new DiaDebugger(this.engine);
         }
 
         public void Dispose() {
@@ -111,7 +111,7 @@ namespace JsDbg.WinDbg {
         private Microsoft.Debuggers.DbgEng.DebugControl control;
         private Microsoft.Debuggers.DbgEng.DebugDataSpaces dataSpaces;
         private DebuggerEngine engine;
-        private TypeCacheDebugger debugger;
+        private DiaDebugger debugger;
         private SymbolCache symbolCache;
         private DiaSessionLoader diaLoader;
         private bool isShuttingDown;
