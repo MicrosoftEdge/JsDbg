@@ -74,7 +74,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConstantCache.cs" />
     <Compile Include="FileCache.cs" />
     <Compile Include="IDebugger.cs" />
     <Compile Include="PersistentStore.cs" />
