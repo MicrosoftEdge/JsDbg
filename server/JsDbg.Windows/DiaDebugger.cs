@@ -12,11 +12,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Dia2Lib;
 using JsDbg.Core;
-using JsDbg.Windows.Dia;
 
-namespace JsDbg.Windows {
-    public class TypeCacheDebugger : IDebugger {
-        public TypeCacheDebugger(ITypeCacheDebuggerEngine debuggerEngine) {
+namespace JsDbg.Windows.Dia {
+    public class DiaDebugger : IDebugger {
+        public DiaDebugger(IDiaDebuggerEngine debuggerEngine) {
             this.debuggerEngine = debuggerEngine;
             this.typeCache = new TypeCache(this.debuggerEngine.IsPointer64Bit);
             this.constantCaches = new Dictionary<string, ConstantCache>();
@@ -465,7 +464,7 @@ namespace JsDbg.Windows {
 
         #endregion
 
-        private ITypeCacheDebuggerEngine debuggerEngine;
+        private IDiaDebuggerEngine debuggerEngine;
         private TypeCache typeCache;
         private Dictionary<string, ConstantCache> constantCaches;
     }

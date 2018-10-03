@@ -33,7 +33,7 @@ namespace JsDbg.WinDbg {
             this.isShuttingDown = false;
             this.didShutdown = true;
             this.engine = new DebuggerEngine(this, this.client, this.control, this.diaLoader);
-            this.debugger = new TypeCacheDebugger(this.engine);
+            this.debugger = new DiaDebugger(this.engine);
             Debug.Assert(!this.IsDebuggerBusy);
             this.TargetProcessSystemId = this.systemObjects.CurrentProcessSystemId;
         }
@@ -223,7 +223,7 @@ namespace JsDbg.WinDbg {
         private Microsoft.Debuggers.DbgEng.DebugDataSpaces dataSpaces;
         private Microsoft.Debuggers.DbgEng.DebugSystemObjects systemObjects;
         private DebuggerEngine engine;
-        private TypeCacheDebugger debugger;
+        private DiaDebugger debugger;
         private SymbolCache symbolCache;
         private DiaSessionLoader diaLoader;
         private uint targetProcessSystemId;  // process being actively debugged
