@@ -9,7 +9,6 @@
         "target-specific/blink/wtf-helpers"
     ],
     "targetModules": [
-        "blink_core",
-        "chrome_child"
+        "chrome"
     ]
 }

@@ -5,6 +5,7 @@
     "headless": true,
     "dependencies": [
         "target-specific/blink",
+        "target-specific/chromium",
         "target-specific/edgehtml",
         "target-specific/stl-helpers"
     ]

@@ -5,7 +5,7 @@
     "headless": true,
     "dependencies": [
         "dbgobject",
-        "target-specific/blink/module-resolver",
+        "target-specific/chromium/chromium-helpers",
         "whitespace-formatter"
     ],
     "includes": [
@@ -15,7 +15,6 @@
         "dbgobject"
     ],
     "targetModules": [
-        "blink_core",
-        "chrome_child"
+        "chrome"
     ]
 }

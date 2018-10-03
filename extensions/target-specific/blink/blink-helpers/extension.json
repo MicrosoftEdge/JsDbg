@@ -5,7 +5,7 @@
     "headless": true,
     "dependencies": [
         "dbgobject",
-        "target-specific/blink/module-resolver",
+        "target-specific/chromium/chromium-helpers",
         "target-specific/blink/wtf-helpers",
         "target-specific/stl-helpers"
     ],
@@ -16,7 +16,6 @@
         "dbgobject"
     ],
     "targetModules": [
-        "blink_core",
-        "chrome_child"
+        "chrome"
     ]
 }
