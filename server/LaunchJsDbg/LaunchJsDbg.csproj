@@ -53,9 +53,9 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\JsDbg.Remoting\JsDbg.Remoting.csproj">
+    <ProjectReference Include="..\JsDbg.Windows.Remoting\JsDbg.Windows.Remoting.csproj">
       <Project>{566a43bb-8d08-4af8-bc5a-95d08b38dadf}</Project>
-      <Name>JsDbg.Remoting</Name>
+      <Name>JsDbg.Windows.Remoting</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

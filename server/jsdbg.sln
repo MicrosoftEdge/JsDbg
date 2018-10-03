@@ -31,7 +31,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DiaSource", "DiaSource\DiaS
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "unelevate", "Unelevate\Unelevate.vcxproj", "{344B5B6D-BCED-4222-8573-8C0AC8418422}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsDbg.Remoting", "JsDbg.Remoting\JsDbg.Remoting.csproj", "{566A43BB-8D08-4AF8-BC5A-95D08B38DADF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsDbg.Windows.Remoting", "JsDbg.Windows.Remoting\JsDbg.Windows.Remoting.csproj", "{566A43BB-8D08-4AF8-BC5A-95D08B38DADF}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "JsDbg.Core", "JsDbg.Core\JsDbg.Core.csproj", "{B4AFAC76-6D97-4B5A-9900-1F7D5BAAECC7}"
 EndProject
