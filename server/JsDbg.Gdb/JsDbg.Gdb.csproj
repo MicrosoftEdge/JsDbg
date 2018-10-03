@@ -7,8 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\JsDbg.Core\JsDbg.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <RuntimeHostConfigurationOption Include="System.Globalization.Invariant" Value="true" />
-    <ProjectReference Include="../JsDbg.Core.Xplat/JsDbg.Core.Xplat.csproj" />
   </ItemGroup>
 
 </Project>

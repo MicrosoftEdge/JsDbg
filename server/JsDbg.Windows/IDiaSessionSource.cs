@@ -2,7 +2,7 @@
 using System.Threading.Tasks;
 using Dia2Lib;
 
-namespace JsDbg.Dia {
+namespace JsDbg.Windows.Dia {
     public class DiaSourceNotReadyException : Exception { }
 
     public interface IDiaSessionSource {

@@ -2,7 +2,7 @@
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using JsDbg.Core.Xplat;
+using JsDbg.Core;
 using JsDbg.Utilities;
 
 namespace JsDbg.Gdb

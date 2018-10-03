@@ -7,7 +7,7 @@ using System.Diagnostics;
 using JsDbg.Core;
 using System.Runtime.InteropServices;
 
-namespace JsDbg.Dia {
+namespace JsDbg.Windows.Dia {
     public class DiaSessionLoader {
         [DllImport("DiaSource.dll")]
         private static extern uint LoadDataSource([MarshalAs(UnmanagedType.LPWStr)] string dllName, out IDiaDataSource result);

@@ -3,7 +3,7 @@ using System.Threading.Tasks;
 using Dia2Lib;
 using JsDbg.WinDbg;
 
-namespace JsDbg.Dia.WinDbg {
+namespace JsDbg.Windows.Dia.WinDbg {
     internal class DiaSessionPathSource : IDiaSessionSource {
         internal DiaSessionPathSource(JsDbg.WinDbg.DebuggerRunner runner, JsDbg.WinDbg.SymbolCache symbolCache) {
             this.runner = runner;

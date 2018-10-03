@@ -77,7 +77,7 @@ namespace JsDbg.VisualStudio
             if (!this.webServer.IsListening) {
                 var webserverTask = this.webServer.Listen();
             }
-            JsDbg.Core.BrowserLauncher.Launch(this.webServer.Url);
+            JsDbg.Windows.BrowserLauncher.Launch(this.webServer.Url);
         }
 
         public void Dispose() {

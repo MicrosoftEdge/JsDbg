@@ -1,7 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using JsDbg.Core.Xplat;
+using JsDbg.Core;
 
 namespace JsDbg.Gdb {
     class GdbRunner : IDisposable {

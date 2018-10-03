@@ -3,17 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using JsDbg.Dia;
+using JsDbg.Core;
+using JsDbg.Windows.Dia;
 
-namespace JsDbg.Core {
+namespace JsDbg.Windows {
     public struct SStackFrameWithContext {
         public SStackFrame StackFrame;
         public object Context;
-    }
-
-    public struct SModule {
-        public string Name;
-        public ulong BaseAddress;
     }
 
     public interface ITypeCacheDebuggerEngine {

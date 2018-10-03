@@ -6,16 +6,18 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Debugger.Interop;
 using Microsoft.VisualStudio.Shell.Interop;
-using JsDbg.Dia.VisualStudio;
 using JsDbg.Core;
 using JsDbg.Utilities;
+using JsDbg.Windows;
+using JsDbg.Windows.Dia;
+using JsDbg.Windows.Dia.VisualStudio;
 
 namespace JsDbg.VisualStudio {
     class DebuggerRunner : IDebugEventCallback2 {
         internal DebuggerRunner() {
             this.engine = new DebuggerEngine(this);
-            this.engine.DiaLoader = new Dia.DiaSessionLoader(new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this), new DiaSessionModuleSource(this, this.engine) });
-            this.debugger = new Core.TypeCacheDebugger(this.engine);
+            this.engine.DiaLoader = new DiaSessionLoader(new IDiaSessionSource[] { new DiaSessionPathSource(this), new DiaSessionModuleSource(this, this.engine) });
+            this.debugger = new TypeCacheDebugger(this.engine);
             this.EnsureDebuggerService();
         }
 
@@ -227,7 +229,7 @@ namespace JsDbg.VisualStudio {
 
         #endregion
 
-        Core.TypeCacheDebugger debugger;
+        JsDbg.Windows.TypeCacheDebugger debugger;
         DebuggerEngine engine;
         IDebugProgram2 currentDebugProgram;
         IDebugMemoryContext2 memoryContext;

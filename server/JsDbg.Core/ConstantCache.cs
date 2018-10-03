@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace JsDbg.Core {
-    class ConstantCache {
+    public class ConstantCache {
         public ConstantCache(List<SConstantResult> constants) {
             foreach (var constant in constants) {
                 this.Values[constant.ConstantName] = constant.Value;

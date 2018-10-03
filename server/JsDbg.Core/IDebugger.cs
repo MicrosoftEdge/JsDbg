@@ -62,6 +62,11 @@ namespace JsDbg.Core {
         public int Offset;
     }
 
+    public struct SModule {
+        public string Name;
+        public ulong BaseAddress;
+    }
+
     public class DebuggerChangeEventArgs {
         public enum DebuggerStatus {
             Break,

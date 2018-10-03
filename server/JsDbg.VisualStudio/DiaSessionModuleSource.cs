@@ -4,7 +4,7 @@ using Dia2Lib;
 using JsDbg.VisualStudio;
 using System.IO;
 
-namespace JsDbg.Dia.VisualStudio {
+namespace JsDbg.Windows.Dia.VisualStudio {
     class DiaSessionModuleSource : IDiaSessionSource {
         private class ModuleReader : IDiaReadExeAtRVACallback, IDiaLoadCallback {
             internal ModuleReader(DebuggerEngine engine, string moduleName) {

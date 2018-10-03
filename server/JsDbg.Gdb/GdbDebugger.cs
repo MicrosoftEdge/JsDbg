@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using JsDbg.Core.Xplat;
+using JsDbg.Core;
 
 namespace JsDbg.Gdb {
     class GdbDebugger : IDebugger {

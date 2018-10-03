@@ -3,9 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Dia2Lib;
-using JsDbg.Dia;
+using JsDbg.Core;
+using JsDbg.Windows.Dia;
 
-namespace JsDbg.Core {
+namespace JsDbg.Windows {
     public class TypeCacheDebugger : IDebugger {
         public TypeCacheDebugger(ITypeCacheDebuggerEngine debuggerEngine) {
             this.debuggerEngine = debuggerEngine;
