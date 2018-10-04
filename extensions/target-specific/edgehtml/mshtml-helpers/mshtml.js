@@ -1229,20 +1229,24 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            function(type) { return type.module() == moduleName && type.name().match(/^(CDataAry|CPtrAry)<.*>$/) != null; },
+            function(type) { return type.module() == moduleName && type.name().match(/^CDataAry<.*>$/) != null; },
             "Items",
             function(type) {
-                var matches = type.name().match(/^(CDataAry|CPtrAry)<(.*)>$/);
-                if (matches[2].match(/\*$/) != null) {
-                    return matches[2].substr(0, matches[2].length - 1).trim();
-                } else {
-                    return matches[2];
-                }
+                return DbgObjectType(type.templateParameters()[0], type);
             },
             function (array) {
-                var innerType = array.type.name().match(/^(CDataAry|CPtrAry)<(.*)>$/)[2];
-                var result = array.f("_pv").as(innerType).array(array.f("_c"));
-                return result;
+                return array.f("_pv").as(DbgObjectType(array.type.templateParameters()[0], array.type)).array(array.f("_c"));
+            }
+        );
+
+        DbgObject.AddArrayField(
+            function(type) { return type.module() == moduleName && type.name().match(/^CPtrAry<.*>$/) != null; },
+            "Items",
+            function(type) {
+                return DbgObjectType(type.templateParameters()[0], type).dereferenced();
+            },
+            function (array) {
+                return array.f("_pv").as(DbgObjectType(array.type.templateParameters()[0], array.type)).array(array.f("_c")).deref();
             }
         );
 
@@ -1362,8 +1366,7 @@ var MSHTML = undefined;
             function(type) { return type.module() == moduleName && type.name().match(/^PointerBitReuse<(.*)>$/) != null; },
             "Object",
             function (type) {
-                var matches = type.name().match(/^PointerBitReuse<(.*)>$/);
-                return matches[1];
+                return type.templateParameters()[0];
             },
             function (pointerBitReuse) {
                 return pointerBitReuse.field("_ptr").deref()
@@ -1635,7 +1638,7 @@ var MSHTML = undefined;
                                 if (!firstInstanceSlotValue.isNull()) {
                                     return varExtension.as("edgehtml!void*", true).size()
                                     .then((voidptrSize) => {
-                                        var varExtensionFieldsSize = parseInt(firstInstanceSlot.ptr().replace("`", "")) - parseInt(varExtension.ptr().replace("`", ""));
+                                        var varExtensionFieldsSize = firstInstanceSlot.pointerValue().minus(varExtension.pointerValue());
                                         var varExtensionFieldsCount = (varExtensionFieldsSize / voidptrSize);
                                         var numInstanceSlots = varExtensionPointerCount - varExtensionFieldsCount;
                                         return firstInstanceSlot.array(numInstanceSlots)

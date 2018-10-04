@@ -4,6 +4,7 @@
     "description": "Inspect the Edge/IE DOM tree.",
     "dependencies": [
         "dbgobject",
+        "whitespace-formatter",
         "target-specific/edgehtml/mshtml-helpers",
         "tree-inspector"
     ],

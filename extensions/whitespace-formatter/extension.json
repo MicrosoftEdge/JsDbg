@@ -1,0 +1,10 @@
+{
+    "name": "whitespace-formatter",
+    "author": "Peter Salas",
+    "description": "Toggle whitespace display format",
+    "includes": [
+        "whitespace-formatter.js",
+        "whitespace-formatter.css"
+    ],
+    "headless": true
+}

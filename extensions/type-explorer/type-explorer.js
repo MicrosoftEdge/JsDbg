@@ -142,9 +142,9 @@ Loader.OnLoad(function() {
         return fields;
     }
 
-    TypeExplorerAggregateType.prototype.getAutoCastFieldsToRender = function() {
+    TypeExplorerAggregateType.prototype.getPerInstanceFieldsToRender = function() {
         console.assert(this.isPreparedForRendering);
-        return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getAutoCastFieldsToRender(); }));
+        return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getPerInstanceFieldsToRender(); }));
     }
 
     TypeExplorerAggregateType.prototype.getFieldsToRender = function() {
@@ -165,6 +165,15 @@ Loader.OnLoad(function() {
     TypeExplorerAggregateType.prototype.getDescriptionsToRender = function() {
         console.assert(this.isPreparedForRendering);
         return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getDescriptionsToRender(); }));
+    }
+
+    TypeExplorerAggregateType.prototype.getArrayItemFieldsToRender = function() {
+        console.assert(this.isPreparedForRendering);
+        return this.arrangeFields(this.backingTypes.map(function (backingType) { return backingType.getArrayItemFieldsToRender(); }));
+    }
+
+    TypeExplorerAggregateType.prototype.hasArrayItemField = function() {
+        return this.backingTypes.reduce((foundArrayItemField, backingType) => (foundArrayItemField || backingType.hasArrayItemField()), false);
     }
 
     function fuzzyMatch(body, term, context) {
@@ -252,12 +261,13 @@ Loader.OnLoad(function() {
         this.isExpanded = false;
         this.type = type;
         this.offsetFromAggregate = offsetFromAggregate;
-        this.autoCastFields = [];
+        this.perInstanceFields = [];
         this.fields = [];
         this.extendedFields = [];
         this.descriptions = [];
         this.arrayFields = [];
-        this.allFieldArrayNames = ["autoCastFields", "fields", "extendedFields", "arrayFields", "descriptions"];
+        this.arrayItemFields = [];
+        this.allFieldArrayNames = ["perInstanceFields", "fields", "extendedFields", "arrayFields", "descriptions", "arrayItemFields"];
         this.preparedForRenderingPromise = null;
     }
 
@@ -275,15 +285,25 @@ Loader.OnLoad(function() {
         return this.allFieldArrayNames.map(function (n) { return that[n]; })
     }
 
+    function getExtensionType(extension, baseType) {
+        var type = extension.type; 
+        if (type) {
+            return Promise.resolve(type instanceof Function ? type(baseType) : type, baseType)
+            .then((typeName) => DbgObjectType(typeName, baseType));
+        } else {
+            return Promise.resolve(null);
+        }
+    }
+
     TypeExplorerSingleType.prototype.monitorTypeExtensions = function(typeExtensions, arrayName) {
         var that = this;
-        function addTypeExtensionField(name, extension) {
+        function addTypeExtensionField(name, extension, extensionType) {
             // For descriptions, ignore the primary descriptions.
             if (extension.isPrimary) {
                 return;
             }
 
-            var newField = new TypeExplorerField(name, extension.type ? extension.type : null, extension.getter, that, arrayName);
+            var newField = new TypeExplorerField(name, extensionType, extension.getter, that, arrayName);
             that[arrayName].push(newField);
 
             if (UserDbgObjectExtensions.GetCreationContext(extension.getter) == that.aggregateType) {
@@ -291,41 +311,44 @@ Loader.OnLoad(function() {
             }
         }
 
-        typeExtensions.getAllExtensions(this.type).forEach(function (nameAndExtension) {
-            addTypeExtensionField(nameAndExtension.name, nameAndExtension.extension);
-        });
+        var allExtensions = typeExtensions.getAllExtensions(this.type);
+        // The extension types might be functions that return promises
+        return Promise.map(allExtensions, (nameAndExtension) => getExtensionType(nameAndExtension.extension, that.type))
+        .then((extensionTypes) => {
+            allExtensions.forEach((nameAndExtension, i) => addTypeExtensionField(nameAndExtension.name, nameAndExtension.extension, extensionTypes[i]))
 
-        typeExtensions.addListener(this.type, function (type, extensionName, extension, operation, argument) {
-            if (operation == "add") {
-                addTypeExtensionField(extensionName, extension);
-            } else if (operation == "remove") {
-                that[arrayName] = that[arrayName].filter(function (field) {
-                    if (field.name == extensionName) {
-                        field.disableCompletely();
-                        return false;
-                    } else {
-                        return true;
-                    }
-                });
-            } else if (operation == "rename") {
-                that[arrayName].forEach(function (field) {
-                    if (field.name == extensionName) {
-                        var wasEnabled = field.isEnabled;
-                        field.setIsEnabled(false);
-                        field.name = argument;
-                        field.setIsEnabled(wasEnabled);
-                    }
-                })
-            } else if (operation == "typechange") {
-                that[arrayName].forEach(function (field) {
-                    if (field.name == extensionName) {
-                        field.setChildType(argument);
-                    }
-                });
-            }
+            typeExtensions.addListener(this.type, function (type, extensionName, extension, operation, argument) {
+                if (operation == "add") {
+                    getExtensionType(extension, that.type).then((extensionType) => addTypeExtensionField(extensionName, extension, extensionType));
+                } else if (operation == "remove") {
+                    that[arrayName] = that[arrayName].filter(function (field) {
+                        if (field.name == extensionName) {
+                            field.disableCompletely();
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    });
+                } else if (operation == "rename") {
+                    that[arrayName].forEach(function (field) {
+                        if (field.name == extensionName) {
+                            var wasEnabled = field.isEnabled;
+                            field.setIsEnabled(false);
+                            field.name = argument;
+                            field.setIsEnabled(wasEnabled);
+                        }
+                    })
+                } else if (operation == "typechange") {
+                    that[arrayName].forEach(function (field) {
+                        if (field.name == extensionName) {
+                            field.setChildType(argument);
+                        }
+                    });
+                }
 
-            that.aggregateType.controller.requestRerender(/*changeFocus*/false);
-        });
+                that.aggregateType.controller.requestRerender(/*changeFocus*/false);
+            });
+        })
     }
 
     TypeExplorerSingleType.prototype.prepareForRendering = function() {
@@ -363,20 +386,21 @@ Loader.OnLoad(function() {
                 that.fields.push(new TypeExplorerField(field.name, fieldType, getter, that, "fields"));
             })
 
-            that.monitorTypeExtensions(DbgObject.ExtendedFields, "extendedFields");
-            that.monitorTypeExtensions(DbgObject.TypeDescriptions, "descriptions");
-            that.monitorTypeExtensions(DbgObject.ArrayFields, "arrayFields");
-
-            // Check for autocast fields?
-            return that.prepareAutoCastFields();
+            return Promise.all([
+                that.monitorTypeExtensions(DbgObject.ExtendedFields, "extendedFields"),
+                that.monitorTypeExtensions(DbgObject.TypeDescriptions, "descriptions"),
+                that.monitorTypeExtensions(DbgObject.ArrayFields, "arrayFields"),
+                that.preparePerInstanceFields(),
+            ])
         }, function () {
             // The type doesn't exist.
         });
     }
 
-    TypeExplorerSingleType.prototype.prepareAutoCastFields = function() {
+    // When we're operating on a single instance, there are automatic "fields" that can be rendered.
+    TypeExplorerSingleType.prototype.preparePerInstanceFields = function() {
         if (this.aggregateType.backingTypes[0] != this) {
-            // Only the primary type has autocast fields.
+            // Only the primary type has per-instance fields.
             return;
         }
 
@@ -396,21 +420,25 @@ Loader.OnLoad(function() {
         var that = this;
         return dbgObjectPromise
         .then(function (result) {
-            // We only support auto-casting on DbgObjects (not arrays of DbgObjects).
+            // We only support per-instance fields on DbgObjects (not arrays of DbgObjects).
             if (result instanceof DbgObject) {
-                return result.vcast()
-                .then(
-                    function (castedDbgObject) {
-                        if (!castedDbgObject.type.equals(that.type)) {
-                            var newField = new TypeExplorerField("[vtable cast]", castedDbgObject.type, function() { return castedDbgObject; }, that, "autoCastFields");
-                            that.autoCastFields.push(newField);
+                if (result.type.isPointer()) {
+                    var newField = new TypeExplorerField("[dereferenced]", result.type.dereferenced(), function() { return result.deref() }, that, "perInstanceFields");
+                    that.perInstanceFields.push(newField);
+                } else {
+                    return result.vcast()
+                    .then(
+                        function (castedDbgObject) {
+                            if (!castedDbgObject.type.equals(that.type)) {
+                                var newField = new TypeExplorerField("[vtable cast]", castedDbgObject.type, function() { return castedDbgObject; }, that, "perInstanceFields");
+                                that.perInstanceFields.push(newField);
+                            }
                         }
-                    },
-                    // The vcast might fail, in which case we simply don't add an autocast field.
-                    function (err) { }
-                )
+                    );
+                }
             }
         })
+        .catch((err) => true); // The vtable cast might fail, which is fine.
     }
 
     TypeExplorerSingleType.prototype.forEachField = function (f) {
@@ -455,8 +483,8 @@ Loader.OnLoad(function() {
         }
     }
 
-    TypeExplorerSingleType.prototype.getAutoCastFieldsToRender = function () {
-        return this.selectFieldsToRender(this.autoCastFields);
+    TypeExplorerSingleType.prototype.getPerInstanceFieldsToRender = function () {
+        return this.selectFieldsToRender(this.perInstanceFields);
     }
 
     TypeExplorerSingleType.prototype.getFieldsToRender = function () {
@@ -473,6 +501,14 @@ Loader.OnLoad(function() {
 
     TypeExplorerSingleType.prototype.getDescriptionsToRender = function() {
         return this.selectFieldsToRender(this.descriptions);
+    }
+
+    TypeExplorerSingleType.prototype.getArrayItemFieldsToRender = function() {
+        return this.selectFieldsToRender(this.arrayItemFields);
+    }
+
+    TypeExplorerSingleType.prototype.hasArrayItemField = function() {
+        return this.arrayItemFields.length > 0;
     }
 
     TypeExplorerSingleType.prototype.disableCompletely = function() {
@@ -501,10 +537,8 @@ Loader.OnLoad(function() {
         this.clientContext = {};
         this.childType = null;
 
-        if (fieldType instanceof Function) {
-            fieldType = DbgObjectType(fieldType(this.parentType.type), this.parentType.type);
-        }
         this.setChildType(fieldType);
+        this.cachedResults = new WeakMap();
     }
 
     TypeExplorerField.prototype.isUserDefinedArray = function() {
@@ -516,6 +550,7 @@ Loader.OnLoad(function() {
     }
 
     TypeExplorerField.prototype.getNestedField = function(dbgObject) {
+        console.assert(!dbgObject.isNull());
         var that = this;
         function checkType(result) {
             // Check that the field returned the proper type.
@@ -564,21 +599,33 @@ Loader.OnLoad(function() {
 
         function getFromParentResult(parentResult) {
             return Promise.resolve(parentResult)
-            .then(function (parentResult) {
+            .then((parentResult) => {
                 if (Array.isArray(parentResult)) {
-                    // Use a direct map, rather than Promise.map, to keep errors separate.
-                    return parentResult.map(getFromParentResult);
+                    if (that.sourceInParentType == "arrayItemFields") {
+                        var index = parseInt(that.name.substring(1, that.name.length - 1));
+                        return getFromParentDbgObject(parentResult[index]);
+                    } else {
+                        // Use a direct map, rather than Promise.map, to keep errors separate.
+                        return parentResult.map((entry) => getFromParentResult(entry));
+                    }
                 } else {
                     return getFromParentDbgObject(parentResult);
                 }
-            })
+            });
         }
 
-        var parentField = this.parentType.aggregateType.parentField;
-        if (parentField == null) {
-            return Promise.resolve(dbgObject).then(getFromParentDbgObject);
+        if (that.cachedResults.has(dbgObject)) {
+            return Promise.resolve(that.cachedResults.get(dbgObject));
         } else {
-            return parentField.getNestedField(dbgObject).then(getFromParentResult);
+            var parentField = that.parentType.aggregateType.parentField;
+            return ((parentField == null) ? Promise.resolve(dbgObject) : parentField.getNestedField(dbgObject))
+            .then((parentResult) => {
+                return getFromParentResult(parentResult);
+            })
+            .then((result) => {
+                that.cachedResults.set(dbgObject, result);
+                return result;
+            });
         }
     }
 
@@ -878,7 +925,22 @@ Loader.OnLoad(function() {
                 }
             }
 
-            return that._renderActions(type, actionContainer);
+            if ((type.parentField != null) && type.parentField.returnsArray() && that.allowFieldRendering()) {
+                return type.parentField.getNestedField(that.dbgObject)
+                .then(function (arrayToRender) {
+                    // Only add array item fields if they haven't already been added.
+                    if (!type.backingTypes[0].hasArrayItemField()) {
+                        if (arrayToRender.length > 0) {
+                            arrayToRender.forEach(function (entry, index) {
+                                var arrayItemField = new TypeExplorerField("[" + index + "]", type.backingTypes[0].type, function() { return entry; }, type.backingTypes[0], "arrayItemFields");
+                                type.backingTypes[0].arrayItemFields.push(arrayItemField);
+                            });
+                        }
+                    }
+                });
+            } else {
+                return that._renderActions(type, actionContainer);
+            }
         })
         .then(function () {
             return that._renderFieldList(type, fieldListContainer);
@@ -964,17 +1026,6 @@ Loader.OnLoad(function() {
     TypeExplorerController.prototype._renderFieldList = function(type, fieldsContainer) {
         var that = this;
 
-        var autoCastFields = type.getAutoCastFieldsToRender();
-        var fields = type.getFieldsToRender();
-        var extendedFields = type.getExtendedFieldsToRender();
-        var arrayFields = type.getArrayFieldsToRender();
-        var descriptions = type.getDescriptionsToRender()
-        extendedFields = autoCastFields.concat(extendedFields).concat(arrayFields).concat(descriptions);
-
-        // Find any collisions in the fields.
-        var fieldCollisions = findFieldNameCollisions(fields, type);
-        var extendedFieldCollisions = findFieldNameCollisions(extendedFields, type);
-        
         var existingFields = Array.prototype.slice.call(fieldsContainer.childNodes).filter(function (x) { return x.tagName == "DIV"; });
         var existingFieldIndex = 0;
         function getNextFieldContainer() {
@@ -989,38 +1040,67 @@ Loader.OnLoad(function() {
             return fieldContainer;
         }
 
-        return Promise.map(extendedFields, function (extendedField) {
-            return that._renderField(extendedField, type, getNextFieldContainer(), extendedFieldCollisions);
-        })
-        .then(function() {
-            var hr = Array.prototype.slice.call(fieldsContainer.childNodes).filter(function (x) { return x.tagName == "HR"; }).pop();
-            if (!hr) {
-                hr = document.createElement("hr");
-                fieldsContainer.appendChild(hr);
-            }
-
-            if (extendedFields.length > 0 && type.isExpanded()) {
-                if (existingFieldIndex < existingFields.length) {
-                    fieldsContainer.insertBefore(hr, existingFields[existingFieldIndex]);
-                } else {
-                    fieldsContainer.appendChild(hr);
-                }
-                hr.style.display = "";
-            } else {
-                hr.style.display = "none";
-            }
-
-            return Promise.map(fields, function (field) {
-                return that._renderField(field, type, getNextFieldContainer(), fieldCollisions);
-            })
-        })
-        .then(function () {
+        function hideExistingFields(existingFields, existingFieldIndex) {
             while (existingFieldIndex < existingFields.length) {
                 var container = existingFields[existingFieldIndex];
                 container.style.display = "none";
                 ++existingFieldIndex;
             }
-        })
+        }
+
+        if (type.hasArrayItemField()) {
+            var arrayItemFields = type.getArrayItemFieldsToRender();
+
+            // Find any collisions in the fields.
+            var arrayItemFieldCollisions = findFieldNameCollisions(arrayItemFields, type);
+
+            return Promise.map(arrayItemFields, function (arrayItemField) {
+                return that._renderField(arrayItemField, type, getNextFieldContainer(), arrayItemFieldCollisions);
+            })
+            .then(function () {
+                hideExistingFields(existingFields, existingFieldIndex);
+            })
+        } else {
+            var perInstanceFields = type.getPerInstanceFieldsToRender();
+            var fields = type.getFieldsToRender();
+            var extendedFields = type.getExtendedFieldsToRender();
+            var arrayFields = type.getArrayFieldsToRender();
+            var descriptions = type.getDescriptionsToRender();
+            extendedFields = perInstanceFields.concat(extendedFields).concat(arrayFields).concat(descriptions);
+
+            // Find any collisions in the fields.
+            var fieldCollisions = findFieldNameCollisions(fields, type);
+            var extendedFieldCollisions = findFieldNameCollisions(extendedFields, type);
+    
+            return Promise.map(extendedFields, function (extendedField) {
+                return that._renderField(extendedField, type, getNextFieldContainer(), extendedFieldCollisions);
+            })
+            .then(function() {
+                var hr = Array.prototype.slice.call(fieldsContainer.childNodes).filter(function (x) { return x.tagName == "HR"; }).pop();
+                if (!hr) {
+                    hr = document.createElement("hr");
+                    fieldsContainer.appendChild(hr);
+                }
+    
+                if (extendedFields.length > 0 && type.isExpanded()) {
+                    if (existingFieldIndex < existingFields.length) {
+                        fieldsContainer.insertBefore(hr, existingFields[existingFieldIndex]);
+                    } else {
+                        fieldsContainer.appendChild(hr);
+                    }
+                    hr.style.display = "";
+                } else {
+                    hr.style.display = "none";
+                }
+    
+                return Promise.map(fields, function (field) {
+                    return that._renderField(field, type, getNextFieldContainer(), fieldCollisions);
+                })
+            })
+            .then(function () {
+                hideExistingFields(existingFields, existingFieldIndex);
+            })
+        }
     }
 
     TypeExplorerController.prototype._renderField = function (field, renderingType, fieldContainer, nameCollisions) {
@@ -1057,7 +1137,7 @@ Loader.OnLoad(function() {
                     subFieldsContainer.classList.toggle("collapsed");
                     field.parentType.aggregateType.controller._renderType(field.childType, subFieldsContainer, /*changeFocus*/true);
                 }
-            })
+            });
             fieldContainer.querySelector(".edit-button").addEventListener("click", function(e) {
                 fieldContainer.currentField.beginEditing();
                 e.stopPropagation();

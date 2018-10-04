@@ -704,7 +704,7 @@ Loader.OnLoad(function() {
             return JsDbgPromise.LookupConstantName(that.type.module(), that.type.name(), value); })
 
         // And return it.
-        .then(function(result) { return result[0].name; })
+        .then(function(result) { return result.length ? result[0].name : Promise.reject("Invalid constant"); })
     }
 
     DbgObject.prototype._help_hasConstantFlag = {

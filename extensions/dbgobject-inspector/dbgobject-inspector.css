@@ -44,8 +44,8 @@
     border-top:1.5em solid #333338;
     background:white;
     padding:1em 1em 1em 0;
-    width:400px;
-    height:300px;
+    width:480px;
+    height:360px;
     overflow:auto;
 }
 .dbgobject-inspector > .drop-down > .close {

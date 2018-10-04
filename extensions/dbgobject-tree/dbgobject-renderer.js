@@ -32,11 +32,14 @@
         .then(function(typeName) {
             if (typeName == null) {
                 typeName = object.type.htmlName();
-                var namespaces = typeName.split("::");
+
+                var templateIndex = typeName.indexOf("&lt;");
+                var beforeTemplates = typeName.substr(0, templateIndex < 0 ? typeName.length : templateIndex);
+                var namespaces = beforeTemplates.split("::");
                 if (namespaces.length > 1) {
                     var namespace = namespaces.slice(0, namespaces.length - 1).join("::");
                     var type = namespaces[namespaces.length - 1];
-                    typeName = "<span class=\"namespace\">" + namespace + "::</span>" + type;
+                    typeName = "<span class=\"namespace\">" + namespace + "::</span>" + type + typeName.substr(beforeTemplates.length);
                 }
             }
 
@@ -54,6 +57,9 @@
 
             if (!(object instanceof DbgObject)) {
                 // For non-DbgObjects, return a representation which is just the basic description.
+                if (object.customStyles) {
+                    result.customStyles = object.customStyles();
+                }
                 return;
             }
 

@@ -1143,19 +1143,27 @@ namespace JsDbg.Core {
 
         private async void ServeExtensions(NameValueCollection query, Action<string> respond, Action fail) {
             List<string> jsonExtensions = new List<string>();
+            Dictionary<string, bool> moduleLoadStatus = new Dictionary<string, bool>();
             foreach (JsDbgExtension extension in this.loadedExtensions) {
                 // Check if the extension is target specific and only serve the extension if one or more of the target modules are loaded.
                 bool serveExtension;
                 if (extension.targetModules != null) {
                     serveExtension = false;
+
                     foreach (string moduleName in extension.targetModules) {
                         bool isModuleLoaded;
-                        try {
-                            await this.debugger.GetModuleForName(moduleName);
-                            isModuleLoaded = true;
-                        } catch (Exception) {
-                            isModuleLoaded = false;
+                        if (moduleLoadStatus.ContainsKey(moduleName)) {
+                            isModuleLoaded = moduleLoadStatus[moduleName];
+                        } else {
+                            try {
+                                await this.debugger.GetModuleForName(moduleName);
+                                isModuleLoaded = true;
+                            } catch (Exception) {
+                                isModuleLoaded = false;
+                            }
+                            moduleLoadStatus[moduleName] = isModuleLoaded;
                         }
+
                         if (isModuleLoaded) {
                             serveExtension = true;
                             break;

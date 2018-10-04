@@ -1,0 +1,13 @@
+{
+    "name": "chromium",
+    "author": "Sanket Joshi",
+    "description": "Extensions for debugging Chromium",
+    "headless": true,
+    "dependencies": [
+        "target-specific/chromium/chromium-helpers",
+        "target-specific/chromium/ax-tree",
+    ],
+    "targetModules": [
+        "chrome"
+    ]
+}

@@ -13,8 +13,13 @@ Loader.OnLoad(function () {
             this._offset = 0;
         }
 
-        this._module = module;
-        this._name = name.replace(/\s+$/g, '').replace(/^\s+/g, '');
+        this._module = module.toLowerCase();
+
+        // Normalize type name.
+        this._name = name.trim();  // strip outer whitespace
+        this._name = this._name.replace(/^const\s+/, "");  // remove leading "const" and whitespace
+        this._name = this._name.replace(/\s+const$/, "");  // remove trailing "const" and whitespace
+        this._name = this._name.replace(/(?:\s+const)?\s+(?=\*+$)/, "");  // remove whitespace and possible "const" before any "*"s
 
         // Get the array size.
         var arrayRegex = /\[[0-9]+\]/g;
@@ -135,6 +140,31 @@ Loader.OnLoad(function () {
 
     dbgObjectType.prototype.nonArrayType = function() {
         return this.isArray() ? new dbgObjectType(this.module(), this.name()) : this;
+    }
+
+    dbgObjectType.prototype.templateParameters = function() {
+        var templatedTypeName = this.name();
+        var parameterString = templatedTypeName.substring(templatedTypeName.indexOf('<') + 1, templatedTypeName.lastIndexOf('>'));
+        var parameters = [];
+
+        var currentParameterStartIndex = 0;
+        var openAngleBracketCount = 0;
+        for (var index = 0; index < parameterString.length; index++) {
+            var ch = parameterString.charAt(index);
+            if (ch == '<') {
+                openAngleBracketCount++;
+            } else if (ch == '>') {
+                openAngleBracketCount--;
+            } else if (ch == ',') {
+                if (openAngleBracketCount == 0) {
+                    parameters.push(parameterString.substring(currentParameterStartIndex, index));
+                    currentParameterStartIndex = index + 1;
+                }
+            }
+        }
+        console.assert(openAngleBracketCount == 0, "Bad templated type.");
+        parameters.push(parameterString.substring(currentParameterStartIndex));
+        return parameters;
     }
 
     DbgObjectType = function(arg1, arg2) {

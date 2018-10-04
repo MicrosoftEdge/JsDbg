@@ -13,7 +13,7 @@ Loader.OnLoad(function() {
         },
         GetRoots: function() { 
             return Promise.sort(Promise.filter(MSHTML.GetCDocs().F("PrimaryMarkup"), function (m) { return !m.isNull(); }), function(markup) {
-                return markup.f("_pStyleSheetArray").f("_pageStyleSheets", "_aStyleSheets").array("Items")
+                return markup.f("_pStyleSheetArray").f("_pageStyleSheets", "_aStyleSheets").array("Items").deref()
                 .then(function (stylesheetArray) {
                     return 0 - stylesheetArray.length;
                 });
@@ -182,11 +182,11 @@ Loader.OnLoad(function() {
     });
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CStyleSheetArray"), function(array) {
-        return array.f("_pageStyleSheets", "_aStyleSheets").array("Items");
+        return array.f("_pageStyleSheets", "_aStyleSheets").array("Items").deref();
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CStyleSheetArray"), function(array) {
-        return array.f("_extensionStyleSheets").array("Items");
+        return array.f("_extensionStyleSheets").array("Items").deref();
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CMarkup"), function(markup) {
@@ -221,27 +221,47 @@ Loader.OnLoad(function() {
     })        
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
-        return stylesheet.f("_apFontBlocks").array("Items");
+        return stylesheet.f("_apFontBlocks").array("Elements").f("m_pT")
+        .catch(function () {
+            // Fallback for when the field was not a std::vector.
+            return stylesheet.f("_apFontBlocks").array("Items");
+        })
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
-        return stylesheet.f("_apPageBlocks").array("Items");
+        return stylesheet.f("_apPageBlocks").array("Elements").f("m_pT")
+        .catch(function () {
+            // Fallback for when the field was not a std::vector.
+            return stylesheet.f("_apPageBlocks").array("Items");
+        })
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
-        return stylesheet.f("_apViewportBlocks").array("Items");
+        return stylesheet.f("_apViewportBlocks").array("Elements").f("m_pT")
+        .catch(function () {
+            // Fallback for when the field was not a std::vector.
+            return stylesheet.f("_apViewportBlocks").array("Items");
+        })
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
-        return stylesheet.f("_apImportBlocks").array("Items");
+        return stylesheet.f("_apImportBlocks").array("Elements").f("m_pT")
+        .catch(function () {
+            // Fallback for when the field was not a std::vector.
+            return stylesheet.f("_apImportBlocks").array("Items");
+        })
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CSharedStyleSheet"), function(stylesheet) {
-        return stylesheet.f("_apRulesList").array("Items");
+        return stylesheet.f("_apRulesList").array("Elements").f("m_pT")
+        .catch(function () {
+            // Fallback for when the field was not a std::vector.
+            return stylesheet.f("_apRulesList").array("Items");
+        })
     })
 
     StyleSheets.Tree.addChildren(MSHTML.Type("CStyleRule"), function(styleRule) {
-        return styleRule.f("_spSpecifiedStyle.m_pT.attrArray.m_pT", "_paaStyleProperties").array("Items");
+        return styleRule.f("_spSpecifiedStyle.m_pT.attrArray.m_pT", "_paaStyleProperties", "_pStyleRuleData._paaStyleProperties").array("Items");
     })
 
     StyleSheets.Renderer.addNameRenderer(MSHTML.Type("CMarkup"), function (markup) {

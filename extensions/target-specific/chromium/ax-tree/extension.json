@@ -1,0 +1,20 @@
+{
+    "name": "AXTree",
+    "author": "Peter Salas",
+    "description": "Inspect the Chromium accessibility tree.",
+    "dependencies": [
+        "dbgobject",
+        "tree-inspector",
+        "target-specific/chromium/chromium-helpers",
+        "target-specific/stl-helpers"
+    ],
+    "includes": [
+        "ax-tree.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": [
+        "chrome"
+    ]
+}
