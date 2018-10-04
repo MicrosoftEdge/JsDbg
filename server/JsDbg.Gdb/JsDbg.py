@@ -3,26 +3,7 @@ import sys
 import subprocess
 import threading
 
-
 jsdbg = None
-
-def EnsureJsDbg():
-    global jsdbg
-    if not jsdbg:
-        jsdbg = JsDbg()
-    return jsdbg
-
-
-
-class InitJsDbg (gdb.Command):
-    """Initialize JsDbg."""
-
-    def __init__(self):
-        super (InitJsDbg, self).__init__ ("jsdbg", gdb.COMMAND_USER)
-    
-    def invoke(self, arg, from_tty):
-        EnsureJsDbg()
-InitJsDbg()
             
 class JsDbg:
     class JsDbgGdbRequest:
@@ -30,51 +11,52 @@ class JsDbg:
             self.request = request
             self.responseStream = responseStream
             self.verbose = verbose
-
-            if verbose:
-                print("Creating event")
         
         def __call__(self):
-            # do things involving gdb
-            # TODO: For some reason these are never called!
-
             # TODO: wait until at a breakpoint?
             # Need to look at GDB events in python, track "stop" and "cont" evens
             if self.verbose:
-                print("<gdb " + self.request.decodE("utf-8"))
-            result = eval(self.request.decode("utf-8")) + "\n"
+                print("JsDbg [received command]: " + self.request)
+            response = eval(self.request) + "\n"
             if self.verbose:
-                print(">gdb " + result)
-            responseStream.write((result.encode("utf-8")))
+                print("JsDbg [sending response]: " + response.strip())
+            self.responseStream.write(response.encode("utf-8"))
+            self.responseStream.flush()
 
     def __init__(self):
         self.showStderr = False
-        self.verbose = False
+        self.verbose = True
         # TODO: assume that jsdbg is installed in "~/.jsdbg/" or some other known location?
-        execPath = "/mnt/e/projects/chakra/jsdbg/server/JsDbg.Gdb/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb"
-        self.proc = subprocess.Popen([execPath], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        execPath = "/mnt/c/jsdbg/server/JsDbg.Gdb/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb"
+        extensionsPath = "/mnt/c/jsdbg/extensions"
+        persistentStorePath = "/mnt/c/jsdbg/persistent"
+        self.proc = subprocess.Popen([execPath, extensionsPath, persistentStorePath], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         def stderrThreadProc():
             # Echo stderr from the subprocess, if showStderr is set
             while(self.proc.poll() == None):
                 val = self.proc.stderr.readline()
-                if val and self.verbose:
-                    print("JsDbg>> " + val.decode("utf-8"))
-                if val and self.showStderr:
-                    print("JsDbg> " + val.decode("utf-8"))
+                if not val:
+                    continue
+                val = val.strip().decode("utf-8")
+                if self.verbose:
+                    print("JsDbg [message]: " + val)
+                elif self.showStderr:
+                    print("JsDbg: " + val)
 
         def mainThreadProc():
             # Handle the main interaction loop between jsdbg and python
             while(self.proc.poll() == None):
                 request = self.proc.stdout.readline()
-                if request and self.verbose:
-                    print("JsDbg>> " + request.decode("utf-8"))
+                if not request:
+                    continue
+                
+                request = request.decode("utf-8").strip()
+                if self.verbose:
+                    print("JsDbg [posting command]: " + request)
                 # gdb does not allow multithreaded requests
                 # Anything going to gdb from another thread must go through gdb.post_event
-                if request:
-                    if self.verbose:
-                        print("Posting")
-                    gdb.post_event(self.JsDbgGdbRequest(request, self.proc.stdin, self.verbose))
+                gdb.post_event(self.JsDbgGdbRequest(request, self.proc.stdin, self.verbose))
                 # The response will asynchronously be sent back on the response stream
         
         # TODO: These threads don't get cleaned gracefully at exit, need to 
@@ -88,13 +70,10 @@ class JsDbg:
 def DebuggerQuery(tag, command):
     # pi exec('print(\\'{0}~\\' + str({1}))')
     try:
-        print("Evaling " + command)
         result = eval(command)
         return "%d~%s" % (tag, str(result))
     except:
-        print("Failed with command " + command)
         err = sys.exc_info()
-        print(str(err[1]))
         return "%d!%s" % (tag, str(err[1]))
 
 
@@ -275,4 +254,11 @@ def WriteMemoryBytes(pointer, hexString):
     inferior = gdb.selected_inferior()
     byteString = bytes.fromhex(hexString)
     inferior.write_memory(pointer, byteString)
-    
+
+def EnsureJsDbg():
+    global jsdbg
+    if not jsdbg:
+        jsdbg = JsDbg()
+    return jsdbg
+
+EnsureJsDbg()

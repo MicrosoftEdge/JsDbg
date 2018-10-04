@@ -30,9 +30,6 @@ namespace JsDbg.Gdb {
             }
         }
 
-        public async Task Initialize() {
-        }
-
         public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetAllFields(\"{0}\",\"{1}\",{2})",module, typename, includeBaseTypes ? "True" : "False"));
 

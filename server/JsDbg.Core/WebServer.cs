@@ -948,7 +948,12 @@ namespace JsDbg.Core {
         public bool LoadExtension(string extensionPath) {
             List<string> failedExtensions = new List<string>();
             string name;
-            return this.LoadExtensionAndDependencies(extensionPath, failedExtensions, out name);
+            bool result = this.LoadExtensionAndDependencies(extensionPath, failedExtensions, out name);
+
+            foreach (var failed in failedExtensions) {
+                Console.Error.WriteLine(String.Format("Failed to load extension: {0}", failed));
+            }
+            return result;
         }
 
         private bool LoadExtensionAndDependencies(string extensionPath, List<string> failedExtensions, out string extensionName) {

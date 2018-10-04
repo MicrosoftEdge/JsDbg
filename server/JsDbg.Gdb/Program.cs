@@ -3,38 +3,42 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using JsDbg.Core;
-using JsDbg.Utilities;
 
 namespace JsDbg.Gdb
 {
     class Program
     {
-        static void Main(string[] args)
-        {
-            // Inversion of control: Assume that this process has been started by python, stdio talks back to python and can ask it to do things.
-            GdbRunner runner = new GdbRunner();
-            
-            PersistentStore persistentStore = new PersistentStore("~/.jsdbg"); // TODO: sort this out based on config / arguments
-            UserFeedback userFeedback = new UserFeedback(Path.Combine("~/.jsdbg", "feedback"));
+        static void Main(string[] args) {
+            if (args.Length < 2) {
+                Console.Error.WriteLine("Usage: jsdbg [extensions directory] [persistent store directory]");
+                return;
+            }
 
-            string extensionPath = "/mnt/e/projects/chakra/jsdbg/extensions"; // TODO: have python pass its script directory and require jsdbg extension data is at known offset?
-            using (WebServer webServer = new WebServer(runner.debugger, persistentStore, userFeedback, extensionPath)) {
+            string extensionsDirectory = args[0];
+            string persistentStoreDirectory = args[1];
+
+            // Inversion of control: Assume that this process has been started by python, stdio talks back to python and can ask it to do things.
+            GdbDebugger debugger = new GdbDebugger();
+
+            PersistentStore persistentStore = new PersistentStore(persistentStoreDirectory);
+            UserFeedback userFeedback = new UserFeedback(Path.Combine(persistentStoreDirectory, "feedback"));
+
+            using (WebServer webServer = new WebServer(debugger, persistentStore, userFeedback, extensionsDirectory)) {
                 webServer.LoadExtension("default");
 
                 try {
-                    // The web server ending kills the debugger and completes our SynchronizationContext which allows us to exit.
-                    webServer.Listen().ContinueWith(async (Task result) => {
-                        await runner.Shutdown();
+                    var serverTask = webServer.Listen().ContinueWith(async (Task result) => {
                         await Task.Delay(500);
                     });
 
                     // Run the debugger.  If the debugger ends, kill the web server.
-                    runner.Run().ContinueWith((Task result) => {
+                    debugger.Run().ContinueWith((Task result) => {
                         webServer.Abort();
-                    }).Wait();
+                    });
 
+                    serverTask.Wait();
                 } catch (Exception ex) {
-                    Console.WriteLine("Shutting down due to exception: {0}\n{1}", ex.Message, ex.StackTrace);
+                    Console.Error.WriteLine("Shutting down due to exception: {0}\n{1}", ex.Message, ex.StackTrace);
                 }
             }
         }
