@@ -18,6 +18,6 @@ Loader.OnLoad(function() {
     });
 
     DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "WTF::StringImpl"), "Text", false, (wtfStringImpl) => {
-        return !wtfStringImpl.isNull() ? wtfStringImpl.idx(1).as("char", /*disregardSize*/true).string(wtfStringImpl.f("length_")) : "";
+        return !wtfStringImpl.isNull() ? wtfStringImpl.idx(1).as("char", /*disregardSize*/true).string(wtfStringImpl.f("length_")).then(WhitespaceFormatter.CreateFormattedText) : "";
     });
 });
