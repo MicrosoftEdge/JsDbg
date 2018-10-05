@@ -2,7 +2,7 @@
 
 Loader.OnLoad(function() {
     DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "blink::CharacterData"), "data", false, (characterDataNode) => {
-        return characterDataNode.f("data_").desc("Text");
+        return characterDataNode.f("data_").desc("Text").then(WhitespaceFormatter.CreateFormattedText);
     });
 
     DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "blink::CharacterData"), "length", false, (characterDataNode) => {
