@@ -9,13 +9,62 @@ Loader.OnLoad(function() {
         return characterDataNode.f("data_").desc("TextLength");
     });
 
+    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "blink::Document"), "URL", false, (document) => {
+        return document.f("base_url_").f("string_").desc("Text");
+    });
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Document"), "body", Chromium.ChildProcessType("blink_core", "blink::HTMLElement"), UserEditableFunctions.Create((document) => {
+        return document.f("document_element_.raw_").dcast(Chromium.ChildProcessType("blink_core", "blink::HTMLHtmlElement"))
+        .then((htmlElement) => {
+            if (!htmlElement.isNull()) {
+                return htmlElement.array("Child Nodes").filter((childNode) => {
+                    return Promise.all([childNode.dcast(Chromium.ChildProcessType("blink_core", "blink::HTMLBodyElement")), childNode.dcast(Chromium.ChildProcessType("blink_core", "blink::HTMLFrameSetElement"))])
+                    .thenAll((bodyElement, frameSetElement) => (!bodyElement.isNull() || !frameSetElement.isNull()));
+                })
+                .then((bodies) => ((bodies.length > 0) ? bodies[0] : DbgObject.NULL));
+            } else {
+                return DbgObject.NULL;
+            }
+        });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Document"), "DOMSelection", Chromium.ChildProcessType("blink_core", "blink::DOMSelection"), UserEditableFunctions.Create((document) => {
+        return document.f("tree_scope_.raw_").f("selection_.raw_");
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::ShadowRoot"), "DOMSelection", Chromium.ChildProcessType("blink_core", "blink::DOMSelection"), UserEditableFunctions.Create((shadowRoot) => {
+        return shadowRoot.f("tree_scope_.raw_").f("selection_.raw_");
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::DOMSelection"), "FrameSelection", Chromium.ChildProcessType("blink_core", "blink::FrameSelection"), UserEditableFunctions.Create((domSelection) => {
+        return validExecutionContextOrNull(domSelection.f("execution_context_.raw_"))
+        .then((validExecutionContextOrNull) => validExecutionContextOrNull.dcast(Chromium.ChildProcessType("blink_core", "blink::Document")).f("frame_.raw_").dcast(Chromium.ChildProcessType("blink_core", "blink::LocalFrame")).f("selection_.raw_"));
+    }));
+
+    function validExecutionContextOrNull(executionContext) {
+        return Promise.all([executionContext, executionContext.f("is_context_destroyed_").val()])
+        .thenAll((executionContext, isContextDestroyed) => ((executionContext.isNull() || isContextDestroyed) ? DbgObject.NULL : executionContext));
+    }
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Range"), "startContainer", Chromium.ChildProcessType("blink_core", "blink::Node"), UserEditableFunctions.Create((range) => {
+        return range.f("start_").f("container_node_.raw_");
+    }));
+
+    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "blink::Range"), "startOffset", false, UserEditableFunctions.Create((range) => {
+        return range.f("start_").f("offset_in_container_");
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Range"), "endContainer", Chromium.ChildProcessType("blink_core", "blink::Node"), UserEditableFunctions.Create((range) => {
+        return range.f("end_").f("container_node_.raw_");
+    }));
+
+    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "blink::Range"), "endOffset", false, UserEditableFunctions.Create((range) => {
+        return range.f("end_").f("offset_in_container_");
+    }));
+
     DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "blink::Element"), "id", false, (element) => {
         return element.f("element_data_.raw_")
         .then((elementData) => (!elementData.isNull() ? elementData.f("id_for_style_resolution_").desc("Text") : ""));
-    });
-
-    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "blink::Document"), "URL", false, (document) => {
-        return document.f("base_url_").f("string_").desc("Text");
     });
 
     DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Node"), "ownerDocument", Chromium.ChildProcessType("blink_core", "blink::Document"), (node) => {
