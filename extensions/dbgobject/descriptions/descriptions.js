@@ -186,10 +186,10 @@ Loader.OnLoad(function () {
         notes: function() {
             var html = "<p>Calling with no arguments will use the default description function. Type-specific description generators can be registered with <code>DbgObject.AddTypeDescription</code>.</p>";
             var loadedDescriptionTypes = registeredDescriptions.getAllTypes().map(function (type) {
-                if (DbgObjectType.is(type.type)) {
-                    return "<li>" + type.type.toString() + "</li>";
+                if (DbgObjectType.is(type)) {
+                    return "<li>" + type.toString() + "</li>";
                 } else {
-                    return "<li>Predicate: (" + type.type.toString() + ")</li>"
+                    return "<li>Predicate: (" + type.toString() + ")</li>"
                 }
             });
             return html + "Currently registered types with descriptions: <ul>" + loadedDescriptionTypes.join("") + "</ul>";
