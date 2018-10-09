@@ -4,9 +4,9 @@
     "description": "Default extensions for debugging Blink",
     "headless": true,
     "dependencies": [
-        "target-specific/blink/blink-helpers",
-        "target-specific/blink/dom-tree",
-        "target-specific/blink/wtf-helpers"
+        "target-specific/chromium/blink/blink-helpers",
+        "target-specific/chromium/blink/dom-tree",
+        "target-specific/chromium/blink/wtf-helpers"
     ],
     "targetModules": [
         "chrome"

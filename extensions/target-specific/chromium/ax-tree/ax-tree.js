@@ -49,7 +49,13 @@ Loader.OnLoad(function() {
             }
         },
         GetRoots: function() {
-            return getManagers().f("tree_").F("Object").vcast();
+            return getManagers().f("tree_").F("Object").vcast()
+            .then((trees) => ((trees.length == 0) ? Promise.reject("No accessibility trees found.") : trees))
+            .then(null, (error) => {
+                var errorMessage = ErrorMessages.CreateErrorsList(error) +
+                    ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium browser process"), ErrorMessages.SymbolsUnavailable);
+                return Promise.reject(errorMessage);
+            });
         },
         DefaultTypes: []
     };

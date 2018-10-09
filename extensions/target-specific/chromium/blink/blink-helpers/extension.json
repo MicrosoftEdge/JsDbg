@@ -6,7 +6,7 @@
     "dependencies": [
         "dbgobject",
         "target-specific/chromium/chromium-helpers",
-        "target-specific/blink/wtf-helpers",
+        "target-specific/chromium/blink/wtf-helpers",
         "target-specific/stl-helpers"
     ],
     "includes": [

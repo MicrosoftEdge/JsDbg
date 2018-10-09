@@ -1,0 +1,9 @@
+{
+    "name": "error-messages",
+    "author": "Sanket Joshi",
+    "description": "Commonly used error messages.",
+    "includes": [
+        "error-messages.js"
+    ],
+    "headless": true
+}
