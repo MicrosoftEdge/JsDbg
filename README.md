@@ -1,5 +1,5 @@
 # JsDbg: debugger extensions in the browser
-JsDbg is a platform for debugger extensions that are written in HTML/JS/CSS and run in the browser.  JsDbg extensions can have rich user interfaces and visualizations, but are easier to write than traditional debugger extensions.  JsDbg extensions are also debugger-agnostic and can be used with either WinDbg or Visual Studio 2015.
+JsDbg is a platform for debugger extensions that are written in HTML/JS/CSS and run in the browser.  JsDbg extensions can have rich user interfaces and visualizations, but are easier to write than traditional debugger extensions.  JsDbg extensions are also debugger-agnostic and can be used with either WinDbg or Visual Studio 2017.
 
 ## Using JsDbg
 
@@ -16,9 +16,9 @@ The current JsDbg extensions are targeted at developers working on Microsoft Edg
 
 3. The JsDbg server will launch and prompt you to select a browser. If the debugger is attached to one browser, using a different browser for JsDbg generally works best; e.g. if the debugger is attached to Edge, use Chrome or IE.
 
-### Visual Studio 2015
+### Visual Studio 2017
 
-1. If you haven't already, install JsDbg for Visual Studio 2015 by opening
+1. If you haven't already, install JsDbg for Visual Studio 2017 by opening
     ```
     \\iefs\users\psalas\jsdbg\JsDbg.VisualStudio.vsix
     ```
