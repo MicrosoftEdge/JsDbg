@@ -2,5 +2,8 @@
     "name": "dbgobject-type",
     "headless": true,
     "includes": ["dbgobject-type.js"],
-    "dependencies": ["help"]
+    "dependencies": [
+        "help",
+        "dbgobject/synthetic-modules"
+    ]
 }

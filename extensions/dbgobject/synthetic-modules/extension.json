@@ -1,0 +1,9 @@
+{
+    "name": "synthetic-modules",
+    "author": "Sanket Joshi",
+    "description": "An extension for managing synthetic module names.",
+    "includes": [
+        "synthetic-modules.js"
+    ],
+    "headless": true
+}

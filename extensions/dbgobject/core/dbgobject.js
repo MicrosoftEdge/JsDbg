@@ -78,17 +78,37 @@ Loader.OnLoad(function() {
         }
     }
 
+    function moduleBasedLookup(moduleName, lookupFunction, ...lookupFunctionArgs) {
+        var modulesToLookup = SyntheticModules.EquivalentModuleNames(moduleName);
+        return moduleBasedLookupHelper(modulesToLookup, /*arrayIndex*/0, lookupFunction, ...lookupFunctionArgs);
+    }
+
+    function moduleBasedLookupHelper(modulesToLookup, arrayIndex, lookupFunction, ...lookupFunctionArgs) {
+        console.assert(arrayIndex < modulesToLookup.length);
+
+        return lookupFunction(modulesToLookup[arrayIndex], ...lookupFunctionArgs)
+        .then((result) => {
+            SyntheticModules.ModuleLookupSuccessCallback(result.module);
+            return result;
+        }, (error) => {
+            if (arrayIndex == (modulesToLookup.length - 1)) {
+                return Promise.reject(error);
+            }
+            return moduleBasedLookupHelper(modulesToLookup, arrayIndex + 1, lookupFunction, ...lookupFunctionArgs);
+        });
+    }
+
     DbgObject._help_global = {
         description: "Looks up a global symbol in the debuggee.",
         returns: "A promise to a DbgObject representing the symbol.",
         arguments: [
-            {name:"module", type:"string", description:"The module containing the symbol."},
+            {name:"moduleName", type:"string", description:"The name of the module containing the symbol."},
             {name:"symbol", type:"string", description:"The global symbol to lookup."}
         ]
     }
-    DbgObject.global = function(module, symbol) {
+    DbgObject.global = function(moduleName, symbol) {
         return new PromisedDbgObject(
-            JsDbgPromise.LookupGlobalSymbol(module, symbol)
+            moduleBasedLookup(moduleName, JsDbgPromise.LookupGlobalSymbol, symbol)
             .then(function(result) {
                 return DbgObject.create(DbgObjectType(result.module, result.type), result.pointer);
             })
@@ -99,12 +119,12 @@ Loader.OnLoad(function() {
         description: "Evaluates a reference to local symbols in the debuggee.",
         returns: "A promise to an array of DbgObjects representing the symbols on the stack.",
         arguments: [
-            {name:"module", type:"string", description:"The module containing the method."},
+            {name:"moduleName", type:"string", description:"The name of the module containing the method."},
             {name:"method", type:"string", description:"The method containing the local symbol."},
             {name:"symbolName", type:"string", description:"The symbol to evaluate."}
         ]
     }
-    DbgObject.locals = function(module, method, symbolName) {
+    DbgObject.locals = function(moduleName, method, symbolName) {
         return new PromisedDbgObject.Array(
             JsDbgPromise.GetCallStack(/*maxCount*/20)
             .then(function(stackFrames) {
@@ -112,8 +132,9 @@ Loader.OnLoad(function() {
                 return Promise.filter(stackFrames, function (frame) {
                     return JsDbgPromise.LookupSymbolName(frame.instructionAddress)
                     .then(function (symbol) {
+                        symbol.module = SyntheticModules.ModuleOrSyntheticName(symbol.module);
                         return (
-                            symbol.module == module &&
+                            symbol.module == moduleName &&
                             symbol.name == method
                         );
                     })
@@ -168,21 +189,21 @@ Loader.OnLoad(function() {
         ]
     }
     DbgObject.constantValue = function(type, constantName) {
-        return JsDbgPromise.LookupConstantValue(type.module(), type.name(), constantName)
+        return moduleBasedLookup(type.moduleOrSyntheticName(), JsDbgPromise.LookupConstantValue, type.name(), constantName)
         .then(function (result) {
             return result.value;
         });
     }
 
-    DbgObject.globalConstantValue = function(module, constantName) {
-        return JsDbgPromise.LookupConstantValue(module, null, constantName)
+    DbgObject.globalConstantValue = function(moduleName, constantName) {
+        return moduleBasedLookup(moduleName, JsDbgPromise.LookupConstantValue, null, constantName)
         .then(function (result) {
             return result.value;
         });
     }
 
-    DbgObject.globalConstantNames = function(module, constantValue) {
-        return JsDbgPromise.LookupConstantName(module, null, constantValue)
+    DbgObject.globalConstantNames = function(moduleName, constantValue) {
+        return moduleBasedLookup(moduleName, JsDbgPromise.LookupConstantValue, null, constantValue)
         .then(function (result) {
             return result.map(function (x) { return x.name; });
         });
@@ -259,7 +280,8 @@ Loader.OnLoad(function() {
             return Promise.resolve(0);
         } else {
             var that = this;
-            return JsDbgPromise.LookupTypeSize(this.type.module(), this.type.name()).then(function(result) {
+            return moduleBasedLookup(this.type.moduleOrSyntheticName(), JsDbgPromise.LookupTypeSize, this.type.name())
+            .then(function(result) {
                 that.typeSize = result.size;
                 return that.typeSize * (that.type.isArray() ? that.type.arrayLength() : 1);
             });
@@ -386,7 +408,7 @@ Loader.OnLoad(function() {
         }
 
         var that = this;
-        return JsDbgPromise.LookupFieldOffset(that.type.module(), that.type.name(), field)
+        return moduleBasedLookup(that.type.moduleOrSyntheticName(), JsDbgPromise.LookupFieldOffset, that.type.name(), field)
         .then(function(result) {
             return DbgObject.create(
                 getFieldType(that.type, field, DbgObjectType(result.module, result.type)), 
@@ -413,8 +435,8 @@ Loader.OnLoad(function() {
         var that = this;
         var outerType = DbgObjectType(type, that.type);
         return new PromisedDbgObject(
-            JsDbgPromise.LookupFieldOffset(outerType.module(), outerType.name(), field)
-            .then(function(result) { 
+            moduleBasedLookup(outerType.moduleOrSyntheticName(), JsDbgPromise.LookupFieldOffset, outerType.name(), field)
+            .then(function(result) {
                 return DbgObject.create(outerType, that.isNull() ? 0 : that._pointer.add(-result.offset)); 
             })
         );
@@ -684,7 +706,7 @@ Loader.OnLoad(function() {
         returns: "A promise to a bool."
     }
     DbgObject.prototype.isEnum = function() {
-        return JsDbgPromise.IsTypeEnum(this.type.module(), this.type.name())
+        return moduleBasedLookup(this.type.moduleOrSyntheticName(), JsDbgPromise.IsTypeEnum, this.type.name())
         .then(function (result) { return result.isEnum; })
     }
 
@@ -700,8 +722,9 @@ Loader.OnLoad(function() {
         var that = this;
         return this.ubigval()
         // Lookup the constant name...
-        .then(function(value) { 
-            return JsDbgPromise.LookupConstantName(that.type.module(), that.type.name(), value); })
+        .then(function(value) {
+            return moduleBasedLookup(that.type.moduleOrSyntheticName(), JsDbgPromise.LookupConstantName, that.type.name(), value);
+        })
 
         // And return it.
         .then(function(result) { return result.length ? result[0].name : Promise.reject("Invalid constant"); })
@@ -881,7 +904,7 @@ Loader.OnLoad(function() {
             }
 
             // Lookup the base class offset...
-            return JsDbgPromise.LookupBaseTypes(vtableType.module(), vtableType.name())
+            return moduleBasedLookup(vtableType.moduleOrSyntheticName(), JsDbgPromise.LookupBaseTypes, vtableType.name())
 
             // And shift/cast.
             .then(function(baseTypes) {
@@ -892,7 +915,7 @@ Loader.OnLoad(function() {
                 }
 
                 // Maybe the vtable type is a base type of the original...
-                return JsDbgPromise.LookupBaseTypes(that.type.module(), that.type.name())
+                return moduleBasedLookup(that.type.moduleOrSyntheticName(), JsDbgPromise.LookupBaseTypes, that.type.name())
                 .then(function(originalBaseTypes) {
                     for (var i = 0; i < originalBaseTypes.length; ++i) {
                         if (vtableType.equals(originalBaseTypes[i].module, originalBaseTypes[i].type)) {
@@ -968,7 +991,7 @@ Loader.OnLoad(function() {
         }
 
         var that = this;
-        return JsDbgPromise.LookupBaseTypes(that.type.module(), that.type.name())
+        return moduleBasedLookup(that.type.moduleOrSyntheticName(), JsDbgPromise.LookupBaseTypes, that.type.name())
         .then(function (baseTypes) {
             // Put base types with greater offsets earlier so that the order proxies the order of fields.
             // So,
@@ -1012,7 +1035,7 @@ Loader.OnLoad(function() {
 
         var that = this;
         // Lookup the fields...
-        return JsDbgPromise.LookupFields(this.type.module(), this.type.name(), includeBaseTypes)
+        return moduleBasedLookup(this.type.moduleOrSyntheticName(), JsDbgPromise.LookupFields, this.type.name(), includeBaseTypes)
 
         // Sort them by offset and massage the output.
         .then(function(result) {

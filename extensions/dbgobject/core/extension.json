@@ -2,5 +2,13 @@
     "name": "dbgobject-core",
     "headless": true,
     "includes": ["dbgobject.js"],
-    "dependencies": ["jsdbg", "promise", "pointermath", "memorycache", "dbgobject/type", "help"]
+    "dependencies": [
+        "jsdbg",
+        "promise",
+        "pointermath",
+        "memorycache",
+        "dbgobject/synthetic-modules",
+        "dbgobject/type",
+        "help"
+    ]
 }

@@ -1,5 +1,3 @@
-"use strict";
-
 var Chromium = null;
 (function() {
     // Figure out which module to use.
@@ -61,6 +59,13 @@ var Chromium = null;
             },
             BrowserProcessType: (moduleName, typeName) => DbgObjectType(Chromium.BrowserProcessModuleName(moduleName), typeName),
         };
+
+        var equivalentChildModuleNames = ["blink_common", "blink_core", "blink_platform", "blink_modules", "blink_android_mojo_bindings_shared",
+        "blink_embedded_frame_sink_mojo_bindings_shared", "blink_core_mojo_bindings_shared", "blink_controller", "chrome_child"];
+        SyntheticModules.RegisterSyntheticName("child-module", ...equivalentChildModuleNames);
+
+        var equivalentBrowserModuleNames = ["accessibility", "chrome"];
+        SyntheticModules.RegisterSyntheticName("browser-module", ...equivalentBrowserModuleNames);
 
         Help.Register(Chromium);
     });

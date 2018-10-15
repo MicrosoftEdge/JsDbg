@@ -375,7 +375,7 @@ Loader.OnLoad(function() {
                 if (fieldType.isPointer()) {
                     if (fieldType.isArray())
                     {
-                        fieldType = DbgObjectType(fieldType.module(), fieldType.dereferenced().name() + "[" + fieldType.arrayLength() + "]");
+                        fieldType = DbgObjectType(fieldType.moduleName(), fieldType.dereferenced().name() + "[" + fieldType.arrayLength() + "]");
                     }
                     else
                     {

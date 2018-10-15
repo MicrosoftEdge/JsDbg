@@ -12,7 +12,7 @@ Loader.OnLoad(function() {
 
     function getManagers() {
         if (managersPromise == null) {
-            managersPromise = DbgObject.global(Chromium.BrowserProcessModuleName("content"),  "g_ax_tree_id_map").F("Object").array("Pairs").f("second");
+            managersPromise = DbgObject.global(Chromium.BrowserProcessModuleName("content"), "g_ax_tree_id_map").F("Object").array("Pairs").f("second");
         }
         return managersPromise;
     }

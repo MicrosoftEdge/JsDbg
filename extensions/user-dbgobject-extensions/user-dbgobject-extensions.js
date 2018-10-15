@@ -113,7 +113,7 @@ Loader.OnLoad(function() {
     EditableDbgObjectExtension.prototype.serialize = function() {
         if (this.isPersisted) {
             var serialized = {
-                module: this.type.module(),
+                module: this.type.moduleOrSyntheticName(),
                 typeName: this.type.fullName(),
                 name: this.name,
                 resultingTypeName: this.resultingType == null ? null : this.resultingType.qualifiedName(),
