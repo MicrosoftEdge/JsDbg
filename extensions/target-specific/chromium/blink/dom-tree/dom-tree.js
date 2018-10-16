@@ -50,7 +50,7 @@ Loader.OnLoad(function() {
     };
 
     DOMTree.Tree.addChildren(Chromium.ChildProcessType("blink_core", "blink::ContainerNode"), (containerNode) => {
-        return containerNode.array("Child Nodes");
+        return containerNode.array("child_nodes_");
     });
 
     DOMTree.Tree.addChildren(Chromium.ChildProcessType("blink_core", "blink::Element"), (element) => {

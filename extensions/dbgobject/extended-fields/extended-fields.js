@@ -72,6 +72,10 @@ Loader.OnLoad(function () {
         }
     };
     DbgObject.prototype.F = function(fieldNames) {
+        if (this == DbgObject.NULL) {
+            return Promise.resolve(DbgObject.NULL);
+        }
+
         var fields = fieldNames.split(".");
         var current = Promise.resolve(this);
         fields.forEach(function (field) {

@@ -17,7 +17,7 @@ Loader.OnLoad(function() {
         return document.f("document_element_.raw_").dcast(Chromium.ChildProcessType("blink_core", "blink::HTMLHtmlElement"))
         .then((htmlElement) => {
             if (!htmlElement.isNull()) {
-                return htmlElement.array("Child Nodes").filter((childNode) => {
+                return htmlElement.array("child_nodes_").filter((childNode) => {
                     return Promise.all([childNode.dcast(Chromium.ChildProcessType("blink_core", "blink::HTMLBodyElement")), childNode.dcast(Chromium.ChildProcessType("blink_core", "blink::HTMLFrameSetElement"))])
                     .thenAll((bodyElement, frameSetElement) => (!bodyElement.isNull() || !frameSetElement.isNull()));
                 })
@@ -26,6 +26,86 @@ Loader.OnLoad(function() {
                 return DbgObject.NULL;
             }
         });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Node"), "rare_data_", Chromium.ChildProcessType("blink_core", "blink::NodeRareData"), UserEditableFunctions.Create((node) => {
+        return Promise.all([node.f("node_flags_").val(), DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::Node::NodeFlags"), "kHasRareDataFlag")])
+        .thenAll((nodeFlags, hasRareDataFlag) => {
+            var nodeHasRareData = nodeFlags & hasRareDataFlag;
+            if (nodeHasRareData) {
+                return node.f("data_").f("rare_data_").as(Chromium.ChildProcessType("blink_core", "blink::NodeRareData"));
+            } else {
+                return DbgObject.NULL;
+            }
+        });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::NodeRareData"), "element_rare_data_", Chromium.ChildProcessType("blink_core", "blink::ElementRareData"), UserEditableFunctions.Create((nodeRareData) => {
+        return nodeRareData.f("is_element_rare_data_").val()
+        .then((isElementRareData) => {
+            if (isElementRareData) {
+                return nodeRareData.as(Chromium.ChildProcessType("blink_core", "blink::ElementRareData"));
+            } else {
+                return DbgObject.NULL;
+            }
+        });
+    }));
+
+    function getCollectionFromOwnerNode(node, collectionTypeOrPromise) {
+        return node.F("rare_data_").f("node_lists_.raw_").f("atomic_name_caches_").f("impl_")
+        .then((hashTable) => {
+            if (!hashTable.isNull()) {
+                return Promise.all([hashTable.array("Pairs"), collectionTypeOrPromise])
+                .thenAll((pairs, collectionType) => {
+                    return Promise.filter(pairs, (pair) => {
+                        return pair.f("key").f("first").val()
+                        .then((firstVal) => (firstVal == collectionType));
+                    });
+                })
+                .then((pairForCollectionType) => {
+                    console.assert(pairForCollectionType.length <= 1);
+                    return (pairForCollectionType.length > 0) ? pairForCollectionType[0].f("value.raw_").vcast() : DbgObject.NULL;
+                });
+            } else {
+                return DbgObject.NULL;
+            }
+        });
+    }
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::ContainerNode"), "children", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((containerNode) => {
+        return getCollectionFromOwnerNode(containerNode, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kNodeChildren"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Document"), "all", Chromium.ChildProcessType("blink_core", "blink::HTMLAllCollection"), UserEditableFunctions.Create((document) => {
+        return getCollectionFromOwnerNode(document, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kDocAll"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Document"), "images", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((document) => {
+        return getCollectionFromOwnerNode(document, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kDocImages"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Document"), "applets", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((document) => {
+        return getCollectionFromOwnerNode(document, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kDocApplets"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Document"), "embeds", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((document) => {
+        return getCollectionFromOwnerNode(document, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kDocEmbeds"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Document"), "scripts", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((document) => {
+        return getCollectionFromOwnerNode(document, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kDocScripts"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Document"), "links", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((document) => {
+        return getCollectionFromOwnerNode(document, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kDocLinks"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Document"), "forms", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((document) => {
+        return getCollectionFromOwnerNode(document, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kDocForms"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Document"), "anchors", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((document) => {
+        return getCollectionFromOwnerNode(document, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kDocAnchors"));
     }));
 
     DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Document"), "DOMSelection", Chromium.ChildProcessType("blink_core", "blink::DOMSelection"), UserEditableFunctions.Create((document) => {
@@ -72,32 +152,54 @@ Loader.OnLoad(function() {
         .then((document) => (!node.equals(document) ? document : DbgObject.NULL));
     });
 
-    DbgObject.AddArrayField(Chromium.ChildProcessType("blink_core", "blink::ContainerNode"), "Child Nodes", Chromium.ChildProcessType("blink_core", "blink::Node"), (containerNode) => {
+    DbgObject.AddArrayField(Chromium.ChildProcessType("blink_core", "blink::ContainerNode"), "child_nodes_", Chromium.ChildProcessType("blink_core", "blink::Node"), (containerNode) => {
         return containerNode.f("first_child_.raw_")
         .list((containerNode) => containerNode.f("next_.raw_"))
         .map((child) => child.vcast());
     });
 
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Node"), "childNodes", Chromium.ChildProcessType("blink_core", "blink::NodeList"), UserEditableFunctions.Create((node) => {
+        return node.F("rare_data_").f("node_lists_.raw_").f("child_node_list_.raw_");
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::HTMLDataListElement"), "options", Chromium.ChildProcessType("blink_core", "blink::HTMLDataListOptionsCollection"), UserEditableFunctions.Create((htmlDataListElement) => {
+        return getCollectionFromOwnerNode(htmlDataListElement, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kDataListOptions"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::HTMLFormElement"), "elements", Chromium.ChildProcessType("blink_core", "blink::HTMLFormControlsCollection"), UserEditableFunctions.Create((htmlFormElement) => {
+        return getCollectionFromOwnerNode(htmlFormElement, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kFormControls"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::HTMLMapElement"), "areas", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((htmlMapElement) => {
+        return getCollectionFromOwnerNode(htmlMapElement, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kMapAreas"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::HTMLSelectElement"), "options", Chromium.ChildProcessType("blink_core", "blink::HTMLOptionsCollection"), UserEditableFunctions.Create((htmlSelectElement) => {
+        return getCollectionFromOwnerNode(htmlSelectElement, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kSelectOptions"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::HTMLSelectElement"), "selectedOptions", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((htmlSelectElement) => {
+        return getCollectionFromOwnerNode(htmlSelectElement, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kSelectedOptions"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::HTMLTableElement"), "rows", Chromium.ChildProcessType("blink_core", "blink::HTMLTableRowsCollection"), UserEditableFunctions.Create((htmlTableElement) => {
+        return getCollectionFromOwnerNode(htmlTableElement, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kTableRows"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::HTMLTableElement"), "tBodies", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((htmlTableElement) => {
+        return getCollectionFromOwnerNode(htmlTableElement, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kTableTBodies"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::HTMLTableRowElement"), "cells", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((htmlTableRowElement) => {
+        return getCollectionFromOwnerNode(htmlTableRowElement, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kTRCells"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::HTMLTableSectionElement"), "rows", Chromium.ChildProcessType("blink_core", "blink::HTMLCollection"), UserEditableFunctions.Create((htmlTableSectionElement) => {
+        return getCollectionFromOwnerNode(htmlTableSectionElement, DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::CollectionType"), "kTSectionRows"));
+    }));
+
     DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Element"), "shadowRoot", Chromium.ChildProcessType("blink_core", "blink::ShadowRoot"), (element) => {
-        return Promise.all([element.f("node_flags_").val(), DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::Node::NodeFlags"), "kHasRareDataFlag")])
-        .thenAll((nodeFlags, hasRareDataFlag) => {
-            var elementHasRareData = nodeFlags & hasRareDataFlag;
-            if (elementHasRareData) {
-                return element.f("data_").f("rare_data_")
-                .then((rareDataBase) => {
-                    return rareDataBase.as(Chromium.ChildProcessType("blink_core", "blink::NodeRareData")).f("is_element_rare_data_").val()
-                    .then((isElementRareData) => {
-                        if (isElementRareData) {
-                            return rareDataBase.as(Chromium.ChildProcessType("blink_core", "blink::ElementRareData")).f("shadow_root_.raw_").vcast();
-                        } else {
-                            return DbgObject.NULL;
-                        }
-                    });
-                });
-            } else {
-                return DbgObject.NULL;
-            }
-        });
+        return element.F("rare_data_").F("element_rare_data_").f("shadow_root_.raw_").vcast();
     });
 
     DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "blink::Element"), "tagName", false, (element) => {
