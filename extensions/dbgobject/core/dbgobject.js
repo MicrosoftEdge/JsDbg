@@ -203,7 +203,7 @@ Loader.OnLoad(function() {
     }
 
     DbgObject.globalConstantNames = function(moduleName, constantValue) {
-        return moduleBasedLookup(moduleName, JsDbgPromise.LookupConstantValue, null, constantValue)
+        return moduleBasedLookup(moduleName, JsDbgPromise.LookupConstantName, null, constantValue)
         .then(function (result) {
             return result.map(function (x) { return x.name; });
         });
