@@ -1605,8 +1605,8 @@ var MSHTML = undefined;
                         .then((firstSubobjectOfPreviousVar) => {
                             if (!firstSubobjectOfPreviousVar.isNull()) {
                                 return firstSubobjectOfPreviousVar.F("Var").F("Custom External Object").F("VarExtensionBase").F("VarExtension")
-                                .then((varExtensionOffirstSubobjectOfPreviousVar) => {
-                                    if (varExtensionOffirstSubobjectOfPreviousVar.equals(varExtension)) {
+                                .then((varExtensionOfFirstSubobjectOfPreviousVar) => {
+                                    if (varExtensionOfFirstSubobjectOfPreviousVar.equals(varExtension)) {
                                         // parent found
                                         return varExtension.f("_prev").F("Var").F("Custom External Object");
                                     } else {
