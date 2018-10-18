@@ -1603,9 +1603,16 @@ var MSHTML = undefined;
                     .thenAll((previousCustomExternalObject, previousVarExtension) => {
                         return previousVarExtension.f("_subObjects")
                         .then((firstSubobjectOfPreviousVar) => {
-                            if (!firstSubobjectOfPreviousVar.isNull() && firstSubobjectOfPreviousVar.F("Var").F("Custom External Object").F("VarExtensionBase").F("VarExtension").equals(varExtension)) {
-                                // parent found
-                                return varExtension.f("_prev").F("Var").F("Custom External Object");
+                            if (!firstSubobjectOfPreviousVar.isNull()) {
+                                return firstSubobjectOfPreviousVar.F("Var").F("Custom External Object").F("VarExtensionBase").F("VarExtension")
+                                .then((varExtensionOffirstSubobjectOfPreviousVar) => {
+                                    if (varExtensionOffirstSubobjectOfPreviousVar.equals(varExtension)) {
+                                        // parent found
+                                        return varExtension.f("_prev").F("Var").F("Custom External Object");
+                                    } else {
+                                        return getSubobjectParentFromVarExtension(previousVarExtension);
+                                    }
+                                });
                             } else {
                                 return getSubobjectParentFromVarExtension(previousVarExtension);
                             }
@@ -1642,8 +1649,8 @@ var MSHTML = undefined;
                                         var varExtensionFieldsCount = (varExtensionFieldsSize / voidptrSize);
                                         var numInstanceSlots = varExtensionPointerCount - varExtensionFieldsCount;
                                         return firstInstanceSlot.array(numInstanceSlots)
-                                        .map((varAsVoid) => {
-                                            return varAsVoid.F("Var");
+                                        .map((varAsVoidPtr) => {
+                                            return varAsVoidPtr.deref().F("Var");
                                         });
                                     });
                                 } else {
@@ -1678,8 +1685,8 @@ var MSHTML = undefined;
             return varArray.f("_size").val()
             .then((size) => {
                 return varArray.f("_vars").array(size)
-                .map((varAsVoid) => {
-                    return varAsVoid.F("Var");
+                .map((varAsVoidPtr) => {
+                    return varAsVoidPtr.deref().F("Var");
                 });
             });
         });
