@@ -30,6 +30,10 @@ namespace JsDbg.WinDbg {
             get { return this.diaLoader; }
         }
 
+        public bool IsDebuggerBusy {
+            get { return this.runner.IsDebuggerBusy; }
+        }
+
         public bool IsPointer64Bit {
             get { return this.isPointer64Bit; }
             set {

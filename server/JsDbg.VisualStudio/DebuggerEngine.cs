@@ -25,6 +25,10 @@ namespace JsDbg.VisualStudio {
             set { this.diaLoader = value; }
         }
 
+        public bool IsDebuggerBusy {
+            get { return this.runner.IsDebuggerBusy; }
+        }
+
         public bool IsPointer64Bit {
             get { return this.runner.IsPointer64Bit; }
         }

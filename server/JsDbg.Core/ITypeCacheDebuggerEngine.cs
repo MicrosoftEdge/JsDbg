@@ -22,6 +22,8 @@ namespace JsDbg.Core {
         
         DiaSessionLoader DiaLoader { get; }
 
+        bool IsDebuggerBusy { get; }
+
         bool IsPointer64Bit { get; }
 
         Task<SModule> GetModuleForAddress(ulong address);

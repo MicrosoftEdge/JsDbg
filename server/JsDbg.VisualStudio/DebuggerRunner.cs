@@ -201,6 +201,16 @@ namespace JsDbg.VisualStudio {
             }
         }
 
+        internal bool IsDebuggerBusy {
+            get {
+                if (this.EnsureDebuggerService()) {
+                    DBGMODE[] mode = new DBGMODE[1];
+                    return (this.vsDebuggerService.GetMode(mode) == 0) && (mode[0] != DBGMODE.DBGMODE_Break);
+                }
+                return true;
+            }
+        }
+
         internal bool IsPointer64Bit {
             get { return this.isPointer64Bit; }
         }

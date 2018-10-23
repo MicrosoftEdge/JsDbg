@@ -1152,7 +1152,9 @@ namespace JsDbg.Core {
                             isModuleLoaded = moduleLoadStatus[moduleName];
                         } else {
                             try {
-                                await this.debugger.GetModuleForName(moduleName);
+                                if (!this.debugger.IsDebuggerBusy) {
+                                    await this.debugger.GetModuleForName(moduleName);
+                                }
                                 isModuleLoaded = true;
                             } catch (Exception) {
                                 isModuleLoaded = false;

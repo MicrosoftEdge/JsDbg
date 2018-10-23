@@ -34,10 +34,14 @@ namespace JsDbg.WinDbg {
             get { return this.debugger; }
         }
 
+        public bool IsDebuggerBusy {
+            get { return this.control.ExecutionStatus != DebugStatus.Break; }
+        }
+
         public async Task WaitForBreakIn() {
-            if (this.control.ExecutionStatus != DebugStatus.Break) {
+            if (this.IsDebuggerBusy) {
                 Console.Out.WriteLine("Debugger is busy, waiting for break in.");
-                while (this.control.ExecutionStatus != DebugStatus.Break) {
+                while (this.IsDebuggerBusy) {
                     this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.Waiting);
                     await Task.Delay(1000);
                 }

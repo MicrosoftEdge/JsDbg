@@ -198,6 +198,10 @@ namespace JsDbg.Core {
             return (await this.LoadType(module, typename)).BaseTypes;
         }
 
+        public bool IsDebuggerBusy {
+            get { return this.debuggerEngine.IsDebuggerBusy; }
+        }
+
         public bool IsPointer64Bit {
             get { return this.debuggerEngine.IsPointer64Bit; }
         }

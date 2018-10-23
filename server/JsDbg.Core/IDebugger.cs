@@ -85,6 +85,7 @@ namespace JsDbg.Core {
         void Dispose();
         Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes);
         Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typeName);
+        bool IsDebuggerBusy { get; }
         bool IsPointer64Bit { get; }
         Task<bool> IsTypeEnum(string module, string type);
         Task<IEnumerable<SConstantResult>> LookupConstants(string module, string type, ulong constantValue);
