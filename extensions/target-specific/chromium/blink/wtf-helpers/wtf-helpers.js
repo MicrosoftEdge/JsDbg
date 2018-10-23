@@ -1,25 +1,20 @@
 "use strict";
 
 Loader.OnLoad(function() {
-    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "WTF::AtomicString"), "Text", true, (wtfAtomicString) => {
-        return wtfAtomicString.f("string_").desc("Text");
-    });
+    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "WTF::AtomicString"), "Text", true, UserEditableFunctions.Create((wtfAtomicString) => wtfAtomicString.f("string_").desc("Text")));
 
-    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "WTF::AtomicString"), "TextLength", false, (wtfAtomicString) => {
-        return wtfAtomicString.f("string_").desc("TextLength");
-    });
+    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "WTF::AtomicString"), "TextLength", false, UserEditableFunctions.Create((wtfAtomicString) => wtfAtomicString.f("string_").desc("TextLength")));
 
-    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "WTF::String"), "Text", true, (wtfString) => {
-        return wtfString.f("impl_").f("ptr_").desc("Text");
-    });
+    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "WTF::String"), "Text", true, UserEditableFunctions.Create((wtfString) => wtfString.f("impl_").f("ptr_").desc("Text")));
 
-    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "WTF::String"), "TextLength", false, (wtfString) => {
-        return wtfString.f("impl_").f("ptr_").then((wtfStringImpl) => !wtfStringImpl.isNull() ? wtfStringImpl.f("length_").val() : 0);
-    });
+    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "WTF::String"), "TextLength", false, UserEditableFunctions.Create((wtfString) => {
+        return wtfString.f("impl_").f("ptr_")
+        .then((wtfStringImpl) => !wtfStringImpl.isNull() ? wtfStringImpl.f("length_").val() : 0);
+    }));
 
-    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "WTF::StringImpl"), "Text", true, (wtfStringImpl) => {
+    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "WTF::StringImpl"), "Text", true, UserEditableFunctions.Create((wtfStringImpl) => {
         return !wtfStringImpl.isNull() ? wtfStringImpl.idx(1).as("char", /*disregardSize*/true).string(wtfStringImpl.f("length_")) : "";
-    });
+    }));
 
     DbgObject.AddArrayField(
         (type) => {
