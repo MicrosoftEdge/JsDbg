@@ -18,6 +18,19 @@ Loader.OnLoad(function() {
 
     DbgObject.AddArrayField(
         (type) => {
+            return type.name().match(/^WTF::Vector<(.*)>$/) != null;
+        },
+        "Elements",
+        (type) => {
+            return type.templateParameters()[0];
+        },
+        UserEditableFunctions.Create((vector) => {
+            return vector.f("buffer_").array(vector.f("size_"));
+        })
+    );
+
+    DbgObject.AddArrayField(
+        (type) => {
             return type.name().match(/^WTF::HashTable<(.*)>$/) != null;
         },
         "Pairs",
