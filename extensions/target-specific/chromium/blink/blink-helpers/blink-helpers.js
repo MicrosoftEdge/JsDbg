@@ -83,6 +83,24 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Node"), "layout_object_", Chromium.ChildProcessType("blink_core", "blink::LayoutObject"), UserEditableFunctions.Create((node) => {
+        return node.F("rare_data_")
+        .then((nodeRareData) => {
+            if (!nodeRareData.isNull()) {
+                return nodeRareData.f("node_layout_data_").f("layout_object_");
+            } else {
+                return node.F("node_layout_data_")
+                .then((nodeLayoutData) => {
+                    if (!nodeLayoutData.isNull()) {
+                        return nodeLayoutData.f("layout_object_");
+                    } else {
+                        return DbgObject.NULL;
+                    }
+                });
+            }
+        });
+    }));
+
     function getCollectionFromOwnerNode(node, collectionTypeOrPromise) {
         return node.F("rare_data_").f("node_lists_.raw_").f("atomic_name_caches_").f("impl_")
         .then((hashTable) => {
@@ -262,19 +280,6 @@ Loader.OnLoad(function() {
         .thenAll((tagQualifiedName, htmlElement, documentClass) => {
             return tagQualifiedName.desc("ToString")
             .then((lowerCaseTagName) => ((!htmlElement.isNull() && (documentClass == /*HTMLDocument*/1)) ? lowerCaseTagName.toUpperCase() : lowerCaseTagName));
-        });
-    }));
-
-    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Node"), "layout_object_", Chromium.ChildProcessType("blink_core", "blink::LayoutObject"), UserEditableFunctions.Create((node) => {
-        return Promise.all([node.F("rare_data_"), node.F("node_layout_data_")])
-        .thenAll((nodeRareData, nodeLayoutData) => {
-            if (!nodeRareData.isNull()) {
-                return nodeRareData.f("node_layout_data_").f("layout_object_");
-            } else if (!nodeLayoutData.isNull()) {
-                return nodeLayoutData.f("layout_object_");
-            } else {
-                return DbgObject.NULL;
-            }
         });
     }));
 
