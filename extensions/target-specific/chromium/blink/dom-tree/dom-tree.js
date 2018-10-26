@@ -15,35 +15,38 @@ Loader.OnLoad(function() {
             }
         },
         GetRoots: function() {
-            return Promise.all([DbgObject.global(Chromium.ChildProcessModuleName("content"), "g_frame_map"), DbgObject.global(Chromium.ChildProcessModuleName("content"), "g_frame_map").f("private_buf_")])
-            .thenAll((frameMap, frameMapPrivateBuffer) => {
-                var typeName = frameMap.type.templateParameters()[0];
-                return Promise.map(frameMapPrivateBuffer.as(Chromium.ChildProcessType("content", typeName)).array("Keys"), (webFramePointer) => webFramePointer.deref());
-            })
-            .then((webFrames) => {
-                // Put the main frame (frame with a null parent) at the front of the array.
-                return Promise.sort(webFrames, (webFrame) => {
-                    return webFrame.f("parent_")
-                    .then((parentFrame) => !parentFrame.isNull());
+            return DbgObject.global(Chromium.ChildProcessModuleName("content"), "g_frame_map")
+            .then((frameMap) => {
+                return frameMap.f("private_buf_")
+                .then((frameMapPrivateBuffer) => {
+                    var typeName = frameMap.type.templateParameters()[0];
+                    return Promise.map(frameMapPrivateBuffer.as(Chromium.ChildProcessType("content", typeName)).array("Keys"), (webFramePointer) => webFramePointer.deref())
+                    .then((webFrames) => {
+                        // Put the main frame (frame with a null parent) at the front of the array.
+                        return Promise.sort(webFrames, (webFrame) => {
+                            return webFrame.f("parent_")
+                            .then((parentFrame) => !parentFrame.isNull());
+                        });
+                    })
+                    .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_.raw_").f("dom_window_.raw_").F("document")))
+                    .then((sortedDocuments) => Promise.filter(sortedDocuments, (document) => !document.isNull()))
+                    .then((documents) => {
+                        if (documents.length == 0) {
+                            var errorMessage = ErrorMessages.CreateErrorsList("No documents found.") +
+                                ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium child process"),
+                                    "The debuggee has been broken into prior to <i>" + Chromium.ChildProcessModuleName("content") + "!g_frame_map</i> being populated.",
+                                    ErrorMessages.SymbolsUnavailable) +
+                                "You may still specify a blink::Node explicitly.";
+                            return Promise.reject(errorMessage);
+                        } else {
+                            return documents;
+                        }
+                    }, (error) => {
+                        var errorMessage = ErrorMessages.CreateErrorsList(error) +
+                            ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium child process"), ErrorMessages.SymbolsUnavailable);
+                        return Promise.reject(errorMessage);
+                    });
                 });
-            })
-            .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_.raw_").f("dom_window_.raw_").F("document")))
-            .then((sortedDocuments) => Promise.filter(sortedDocuments, (document) => !document.isNull()))
-            .then((documents) => {
-                if (documents.length == 0) {
-                    var errorMessage = ErrorMessages.CreateErrorsList("No documents found.") +
-                        ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium child process"),
-                            "The debuggee has been broken into prior to <i>" + Chromium.ChildProcessModuleName("content") + "!g_frame_map</i> being populated.",
-                            ErrorMessages.SymbolsUnavailable) +
-                        "You may still specify a blink::Node explicitly.";
-                    return Promise.reject(errorMessage);
-                } else {
-                    return documents;
-                }
-            }, (error) => {
-                var errorMessage = ErrorMessages.CreateErrorsList(error) +
-                    ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium child process"), ErrorMessages.SymbolsUnavailable);
-                return Promise.reject(errorMessage);
             });
         },
         DefaultTypes: [Chromium.ChildProcessType("blink_core", "blink::ContainerNode")]
