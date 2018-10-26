@@ -322,4 +322,15 @@ Loader.OnLoad(function() {
     DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::HTMLTemplateElement"), "content", Chromium.ChildProcessType("blink_core", "blink::TemplateContentDocumentFragment"), UserEditableFunctions.Create((templateElement) => {
         return templateElement.f("content_.raw_");
     }));
+
+    DbgObject.AddTypeDescription(Chromium.ChildProcessType("blink_core", "blink::HTMLInputElement"), "type", false, UserEditableFunctions.Create((inputElement) => {
+        return Promise.filter(inputElement.array("attributes_"), (attribute) => {
+            return attribute.f("name_").desc()
+            .then((attributeName) => (attributeName == "type"));
+        })
+        .then((attribute) => {
+            console.assert(Array.isArray(attribute) && (attribute.length == 1));
+            return attribute[0].f("value_").desc();
+        });
+    }));
 });
