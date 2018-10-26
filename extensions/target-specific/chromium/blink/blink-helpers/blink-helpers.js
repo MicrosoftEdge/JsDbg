@@ -49,6 +49,28 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::ElementData"), "unique_element_data_", Chromium.ChildProcessType("blink_core", "blink::UniqueElementData"), UserEditableFunctions.Create((elementData) => {
+        return elementData.f("is_unique_").val()
+        .then((isUnique) => {
+            if (isUnique) {
+                return elementData.as(Chromium.ChildProcessType("blink_core", "blink::UniqueElementData"));
+            } else {
+                return DbgObject.NULL;
+            }
+        });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::ElementData"), "shareable_element_data_", Chromium.ChildProcessType("blink_core", "blink::ShareableElementData"), UserEditableFunctions.Create((elementData) => {
+        return elementData.f("is_unique_").val()
+        .then((isUnique) => {
+            if (!isUnique) {
+                return elementData.as(Chromium.ChildProcessType("blink_core", "blink::ShareableElementData"));
+            } else {
+                return DbgObject.NULL;
+            }
+        });
+    }));
+
     function getCollectionFromOwnerNode(node, collectionTypeOrPromise) {
         return node.F("rare_data_").f("node_lists_.raw_").f("atomic_name_caches_").f("impl_")
         .then((hashTable) => {
