@@ -49,6 +49,18 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Node"), "node_layout_data_", Chromium.ChildProcessType("blink_core", "blink::NodeRenderingData"), UserEditableFunctions.Create((node) => {
+        return Promise.all([node.f("node_flags_").val(), DbgObject.constantValue(Chromium.ChildProcessType("blink_core", "blink::Node::NodeFlags"), "kHasRareDataFlag")])
+        .thenAll((nodeFlags, hasRareDataFlag) => {
+            var nodeHasRareData = nodeFlags & hasRareDataFlag;
+            if (!nodeHasRareData) {
+                return node.f("data_").f("node_layout_data_").as(Chromium.ChildProcessType("blink_core", "blink::NodeRenderingData"));
+            } else {
+                return DbgObject.NULL;
+            }
+        });
+    }));
+
     DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::ElementData"), "unique_element_data_", Chromium.ChildProcessType("blink_core", "blink::UniqueElementData"), UserEditableFunctions.Create((elementData) => {
         return elementData.f("is_unique_").val()
         .then((isUnique) => {
@@ -250,6 +262,19 @@ Loader.OnLoad(function() {
         .thenAll((tagQualifiedName, htmlElement, documentClass) => {
             return tagQualifiedName.desc("ToString")
             .then((lowerCaseTagName) => ((!htmlElement.isNull() && (documentClass == /*HTMLDocument*/1)) ? lowerCaseTagName.toUpperCase() : lowerCaseTagName));
+        });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.ChildProcessType("blink_core", "blink::Node"), "layout_object_", Chromium.ChildProcessType("blink_core", "blink::LayoutObject"), UserEditableFunctions.Create((node) => {
+        return Promise.all([node.F("rare_data_"), node.F("node_layout_data_")])
+        .thenAll((nodeRareData, nodeLayoutData) => {
+            if (!nodeRareData.isNull()) {
+                return nodeRareData.f("node_layout_data_").f("layout_object_");
+            } else if (!nodeLayoutData.isNull()) {
+                return nodeLayoutData.f("layout_object_");
+            } else {
+                return DbgObject.NULL;
+            }
         });
     }));
 
