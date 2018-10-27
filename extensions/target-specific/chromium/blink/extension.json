@@ -10,6 +10,7 @@
         "target-specific/chromium/chromium-helpers"
     ],
     "targetModules": [
-        "chrome"
+        "chrome",
+        "content_shell"
     ]
 }

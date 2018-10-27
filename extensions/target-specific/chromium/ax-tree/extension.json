@@ -16,6 +16,7 @@
         "dbgobject"
     ],
     "targetModules": [
-        "chrome"
+        "chrome",
+        "content_shell"
     ]
 }

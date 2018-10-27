@@ -9,6 +9,7 @@
         "target-specific/chromium/blink"
     ],
     "targetModules": [
-        "chrome"
+        "chrome",
+        "content_shell"
     ]
 }
