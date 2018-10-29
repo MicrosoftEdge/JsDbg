@@ -1143,7 +1143,7 @@ namespace JsDbg.Core {
             foreach (JsDbgExtension extension in this.loadedExtensions) {
                 // Check if the extension is target specific and only serve the extension if one or more of the target modules are loaded.
                 bool serveExtension;
-                if (extension.targetModules != null) {
+                if (extension.targetModules != null && (extension.targetModules.Length > 0)) {
                     serveExtension = false;
 
                     foreach (string moduleName in extension.targetModules) {
