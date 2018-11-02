@@ -1,6 +1,6 @@
 Loader.OnLoad(function() {
     DbgObject.AddTypeDescription(
-        Chromium.ChildProcessType("cc", "gfx::Size"),
+        Chromium.RendererProcessType("gfx::Size"),
         "Size",
         true,
         UserEditableFunctions.Create((size) => Promise.all([size.f("width_").val(), size.f("height_").val()])
@@ -8,7 +8,7 @@ Loader.OnLoad(function() {
     );
 
     DbgObject.AddTypeDescription(
-        Chromium.ChildProcessType("cc", "gfx::Point"),
+        Chromium.RendererProcessType("gfx::Point"),
         "Point",
         true,
         UserEditableFunctions.Create((size) => Promise.all([size.f("x_").val(), size.f("y_").val()])

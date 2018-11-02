@@ -1,15 +1,7 @@
 var Chromium = null;
 (function() {
-    // Figure out which module to use.
-    var isContentModuleLoaded = false;
-
-    Loader.OnLoadAsync(function(onComplete) {
-        DbgObject.global("content", "g_frame_map")
-        .then(() => {
-            isContentModuleLoaded = true;
-        })
-        .finally(onComplete);
-    });
+    // TODO: query the debugger to figure this out
+    var currentTargetProcessName = undefined;
 
     Loader.OnLoad(function() {
         DbgObject.AddExtendedField(
@@ -25,47 +17,82 @@ var Chromium = null;
                 description: "Chromium-specific functionality."
             },
 
-            _help_ChildProcessModuleName: {
-                description: "Gets the module name in the Chromium child process.",
+            RendererProcessName: "renderer",
+            BrowserProcessName: "browser",
+
+            _help_SetTargetProcess: {
+                description: "Sets the name of Chromium process being debugged.",
                 arguments: [
-                    {name:"moduleName", type:"string", description: "The module name."},
+                    {name:"processName", type:"string", description: "The process name."},
                 ]
             },
-            ChildProcessModuleName: (moduleName) => isContentModuleLoaded ? moduleName : "chrome_child",
+            SetTargetProcess: setTargetProcess,
 
-            _help_ChildProcessType: {
-                description: "Gets a DbgObjectType in the Chromium child process.",
+            RendererProcessSyntheticModuleName: "renderer-module",
+            BrowserProcessSyntheticModuleName: "browser-module",
+
+            _help_RendererProcessType: {
+                description: "Creates a DbgObjectType in the Chromium renderer process.",
                 arguments: [
-                    {name:"moduleName", type:"string", description: "The module name."},
                     {name:"typeName", type:"string", description: "The type name."}
                 ]
             },
-            ChildProcessType: (moduleName, typeName) => DbgObjectType(Chromium.ChildProcessModuleName(moduleName), typeName),
-
-            _help_BrowserProcessModuleName: {
-                description: "Gets the module name in the Chromium browser process.",
-                arguments: [
-                    {name:"moduleName", type:"string", description: "The module name."},
-                ]
-            },
-            BrowserProcessModuleName: (moduleName) => isContentModuleLoaded ? moduleName : "chrome",
+            RendererProcessType: (typeName) => DbgObjectType(Chromium.RendererProcessSyntheticModuleName, typeName),
 
             _help_BrowserProcessType: {
-                description: "Gets a DbgObjectType in the Chromium browser process.",
+                description: "Creates a DbgObjectType in the Chromium browser process.",
                 arguments: [
-                    {name:"moduleName", type:"string", description: "The module name."},
                     {name:"typeName", type:"string", description: "The type name."}
                 ]
             },
-            BrowserProcessType: (moduleName, typeName) => DbgObjectType(Chromium.BrowserProcessModuleName(moduleName), typeName),
+            BrowserProcessType: (typeName) => DbgObjectType(Chromium.BrowserProcessSyntheticModuleName, typeName),
+
+            _help_RendererProcessEquivalentModules: {
+                description: "List of modules used in the Chromium renderer process.",
+            },
+            RendererProcessEquivalentModules: ["blink_common", "blink_core", "blink_platform", "blink_modules", "blink_android_mojo_bindings_shared",
+                "blink_embedded_frame_sink_mojo_bindings_shared", "blink_core_mojo_bindings_shared", "blink_controller", "cc", "chrome_child"],
+
+            _help_BrowserProcessEquivalentModules: {
+                description: "List of modules used in the Chromium browser process.",
+            },
+            BrowserProcessEquivalentModules: ["accessibility", "chrome"],
+
+            _help_MultiProcessModules: {
+                description: "List of modules used in multiple Chromium processes.",
+            },
+            MultiProcessModules: ["content", "content_shell"],
         };
 
-        var equivalentChildModuleNames = ["blink_common", "blink_core", "blink_platform", "blink_modules", "blink_android_mojo_bindings_shared",
-        "blink_embedded_frame_sink_mojo_bindings_shared", "blink_core_mojo_bindings_shared", "blink_controller", "chrome_child"];
-        SyntheticModules.RegisterSyntheticName("child-module", ...equivalentChildModuleNames);
+        function setTargetProcess(targetProcessName) {
+            // Set equivalency for multi process modules based on target process.
+            if (currentTargetProcessName != targetProcessName) {
+                if (currentTargetProcessName) {
+                    if (currentTargetProcessName == Chromium.BrowserProcessName) {
+                        SyntheticModules.RemoveEquivalentModules(Chromium.BrowserProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else if (currentTargetProcessName == Chromium.RendererProcessName) {
+                        SyntheticModules.RemoveEquivalentModules(Chromium.RendererProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else {
+                        console.assert(false);
+                    }
+                }
+    
+                currentTargetProcessName = targetProcessName;
+    
+                if (currentTargetProcessName) {
+                    if (currentTargetProcessName == Chromium.BrowserProcessName) {
+                        SyntheticModules.AddEquivalentModules(Chromium.BrowserProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else if (currentTargetProcessName == Chromium.RendererProcessName) {
+                        SyntheticModules.AddEquivalentModules(Chromium.RendererProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else {
+                        console.assert(false);
+                    }
+                }
+            }
+        }
 
-        var equivalentBrowserModuleNames = ["accessibility", "chrome"];
-        SyntheticModules.RegisterSyntheticName("browser-module", ...equivalentBrowserModuleNames);
+        SyntheticModules.RegisterSyntheticName(Chromium.RendererProcessSyntheticModuleName, ...Chromium.RendererProcessEquivalentModules);
+        SyntheticModules.RegisterSyntheticName(Chromium.BrowserProcessSyntheticModuleName, ...Chromium.BrowserProcessEquivalentModules);
 
         Help.Register(Chromium);
     });

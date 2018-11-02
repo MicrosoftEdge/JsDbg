@@ -6,53 +6,51 @@ Loader.OnLoad(function() {
         Tree: new DbgObjectTree.DbgObjectTreeReader(),
         Renderer: new DbgObjectTree.DbgObjectRenderer(),
         InterpretAddress: function(address) {
-            var voidObject = DbgObject.create(Chromium.ChildProcessType("blink_core", "void"), address);
+            var voidObject = DbgObject.create(Chromium.RendererProcessType("void"), address);
             if (!voidObject.isNull()) {
-                return voidObject.dcast(Chromium.ChildProcessType("blink_core", "blink::ContainerNode"))
+                return voidObject.dcast(Chromium.RendererProcessType("blink::ContainerNode"))
                 .then((containerNode) => (!containerNode.isNull() ? containerNode.vcast() : voidObject.vcast()));
             } else {
                 return DbgObject.NULL;
             }
         },
         GetRoots: function() {
-            return DbgObject.global(Chromium.ChildProcessModuleName("content"), "g_frame_map")
-            .then((frameMap) => {
-                return Promise.map(frameMap.F("Object").array("Keys"), (webFramePointer) => webFramePointer.deref())
-                .then((webFrames) => {
-                    // Put the main frame (frame with a null parent) at the front of the array.
-                    return Promise.sort(webFrames, (webFrame) => {
-                        return webFrame.f("parent_")
-                        .then((parentFrame) => !parentFrame.isNull());
-                    });
-                })
-                .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_.raw_").f("dom_window_.raw_").F("document")))
-                .then((sortedDocuments) => Promise.filter(sortedDocuments, (document) => !document.isNull()))
-                .then((documents) => {
-                    if (documents.length == 0) {
-                        var errorMessage = ErrorMessages.CreateErrorsList("No documents found.") +
-                            ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium child process"),
-                                "The debuggee has been broken into prior to <i>" + Chromium.ChildProcessModuleName("content") + "!g_frame_map</i> being populated.",
-                                ErrorMessages.SymbolsUnavailable) +
-                            "You may still specify a blink::Node explicitly.";
-                        return Promise.reject(errorMessage);
-                    } else {
-                        return documents;
-                    }
-                }, (error) => {
-                    var errorMessage = ErrorMessages.CreateErrorsList(error) +
-                        ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium child process"), ErrorMessages.SymbolsUnavailable);
-                    return Promise.reject(errorMessage);
+            return DbgObject.global(Chromium.RendererProcessSyntheticModuleName, "g_frame_map")
+            .then((frameMap) => Promise.map(frameMap.F("Object").array("Keys"), (webFramePointer) => webFramePointer.deref()))
+            .then((webFrames) => {
+                // Put the main frame (frame with a null parent) at the front of the array.
+                return Promise.sort(webFrames, (webFrame) => {
+                    return webFrame.f("parent_")
+                    .then((parentFrame) => !parentFrame.isNull());
                 });
+            })
+            .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_.raw_").f("dom_window_.raw_").F("document")))
+            .then((sortedDocuments) => Promise.filter(sortedDocuments, (document) => !document.isNull()))
+            .then((documents) => {
+                if (documents.length == 0) {
+                    var errorMessage = ErrorMessages.CreateErrorsList("No documents found.") +
+                        ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"),
+                            "The debuggee has been broken into prior to <i>g_frame_map</i> being populated.",
+                            ErrorMessages.SymbolsUnavailable) +
+                        "You may still specify a blink::Node explicitly.";
+                    return Promise.reject(errorMessage);
+                } else {
+                    return documents;
+                }
+            }, (error) => {
+                var errorMessage = ErrorMessages.CreateErrorsList(error) +
+                    ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"), ErrorMessages.SymbolsUnavailable);
+                return Promise.reject(errorMessage);
             });
         },
-        DefaultTypes: [Chromium.ChildProcessType("blink_core", "blink::ContainerNode")]
+        DefaultTypes: [Chromium.RendererProcessType("blink::ContainerNode")]
     };
 
-    DOMTree.Tree.addChildren(Chromium.ChildProcessType("blink_core", "blink::ContainerNode"), (containerNode) => {
+    DOMTree.Tree.addChildren(Chromium.RendererProcessType("blink::ContainerNode"), (containerNode) => {
         return containerNode.array("child_nodes_");
     });
 
-    DOMTree.Tree.addChildren(Chromium.ChildProcessType("blink_core", "blink::Element"), (element) => {
+    DOMTree.Tree.addChildren(Chromium.RendererProcessType("blink::Element"), (element) => {
         return element.F("shadowRoot")
         .then((shadowRoot) => {
             if (!shadowRoot.isNull()) {
@@ -75,7 +73,7 @@ Loader.OnLoad(function() {
         });
     });
 
-    DOMTree.Tree.addChildren(Chromium.ChildProcessType("blink_core", "blink::HTMLFrameOwnerElement"), (frameOwnerElement) => {
+    DOMTree.Tree.addChildren(Chromium.RendererProcessType("blink::HTMLFrameOwnerElement"), (frameOwnerElement) => {
         return frameOwnerElement.F("contentDocument")
         .then ((document) => {
             if (!document.isNull()) {
@@ -98,7 +96,7 @@ Loader.OnLoad(function() {
         });
     });
 
-    DOMTree.Tree.addChildren(Chromium.ChildProcessType("blink_core", "blink::HTMLTemplateElement"), (templateElement) => {
+    DOMTree.Tree.addChildren(Chromium.RendererProcessType("blink::HTMLTemplateElement"), (templateElement) => {
         return templateElement.F("content")
         .then ((templateContentDocumentFragment) => {
             if (!templateContentDocumentFragment.isNull()) {
@@ -121,7 +119,7 @@ Loader.OnLoad(function() {
         });
     });
 
-    DbgObject.AddAction(Chromium.ChildProcessType("blink_core", "blink::Node"), "DOMTree", (node) => {
+    DbgObject.AddAction(Chromium.RendererProcessType("blink::Node"), "DOMTree", (node) => {
         return TreeInspector.GetActions("domtree", "DOMTree", node);
     });
 });

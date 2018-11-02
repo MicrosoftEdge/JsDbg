@@ -60,13 +60,13 @@ DbgObject.AddArrayField(
     "Pairs",
     (type) => {
         var dummyMap = DbgObject.create(type, 0);
-        return dummyMap.f("_Myhead", "_Mypair._Myval2._Myval2._Myhead")
+        return dummyMap.f("_Mypair._Myval2._Myval2._Myhead", "_Myhead")
         .then((headNode) => {
             return headNode.type.templateParameters()[0];
         });
     },
     (map) => {
-        return map.f("_Myhead", "_Mypair._Myval2._Myval2._Myhead")
+        return map.f("_Mypair._Myval2._Myval2._Myhead", "_Myhead")
         .then((headNode) => {
             var resultArray = [];
             return inOrderTraversal(headNode.f("_Parent"), "_Left", "_Right", "_Myval", headNode, resultArray)
