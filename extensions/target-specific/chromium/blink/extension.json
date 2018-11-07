@@ -11,6 +11,7 @@
     ],
     "targetModules": [
         "chrome",
-        "content_shell"
+        "content_shell",
+        "browser_tests"
     ]
 }
