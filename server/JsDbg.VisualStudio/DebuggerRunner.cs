@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -33,6 +34,11 @@ namespace JsDbg.VisualStudio {
             } else {
                 return false;
             }
+        }
+
+        public Process TargetProcess {
+            get { return this.targetProcess; }
+            set { this.targetProcess = value; }
         }
 
         public async Task WaitForBreakIn() {
@@ -109,6 +115,53 @@ namespace JsDbg.VisualStudio {
                 // The user switched the current thread.
                 DisposableComReference.SetReference(ref this.currentThread, thread);
                 savedThread = true;
+
+                if (process != null) {
+                    AD_PROCESS_ID[] pdwProcessId = new AD_PROCESS_ID[1];
+                    process.GetPhysicalProcessId(pdwProcessId);
+                    if (this.TargetProcess != null) {
+                        // Check for a process change.
+                        if (pdwProcessId[0].dwProcessId != this.TargetProcess.Id) {
+                            DisposableComReference.SetReference(ref this.currentDebugProgram, program);
+                            savedProgram = true;
+
+                            if (program != null) {
+                                // Evaluate an expression get access to the memory context and the bitness.
+                                IDebugProperty2 debugProperty = this.EvaluateExpression(thread, "(void**)0x0 + 1");
+                                if (debugProperty != null) {
+                                    using (new DisposableComReference(debugProperty)) {
+                                        DEBUG_PROPERTY_INFO[] debugPropertyInfo = new DEBUG_PROPERTY_INFO[1];
+                                        if (debugProperty.GetPropertyInfo((uint)enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_VALUE, 16, evaluateExpressionTimeout, null, 0, debugPropertyInfo) == S_OK) {
+                                            IDebugMemoryContext2 memoryContext = null;
+                                            IDebugMemoryBytes2 memoryBytes = null;
+                                            if ((debugProperty.GetMemoryContext(out memoryContext) == S_OK) && (debugProperty.GetMemoryBytes(out memoryBytes) == S_OK)) {
+                                                DisposableComReference.SetReference(ref this.memoryContext, memoryContext);
+                                                DisposableComReference.SetReference(ref this.memoryBytes, memoryBytes);
+                                                ulong offset = ulong.Parse(debugPropertyInfo[0].bstrValue.Substring("0x".Length), System.Globalization.NumberStyles.AllowHexSpecifier);
+
+                                                // Adjust the memory context and calculate the bitness.
+                                                this.memoryContext.Subtract(offset, out memoryContext);
+                                                DisposableComReference.SetReference(ref this.memoryContext, memoryContext);
+                                                this.isPointer64Bit = (offset == 8);
+                                            } else {
+                                                DisposableComReference.ReleaseIfNotNull(ref memoryContext);
+                                                DisposableComReference.ReleaseIfNotNull(ref memoryBytes);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                this.TargetProcess = Process.GetProcessById((int)pdwProcessId[0].dwProcessId);
+                                this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
+                            }
+                        }
+                    } else {
+                        // Set the target process.
+                        this.TargetProcess = Process.GetProcessById((int)pdwProcessId[0].dwProcessId);
+                    }
+                } else {
+                    this.TargetProcess = null;
+                }
             }
 
             if (!savedProgram) {
@@ -244,6 +297,7 @@ namespace JsDbg.VisualStudio {
         IDebugMemoryBytes2 memoryBytes;
         IDebugThread2 currentThread;
         IVsDebugger vsDebuggerService;
+        private Process targetProcess;  // process being actively debugged
         bool isPointer64Bit;
 
         static Guid debugModule3Guid = Guid.Parse("245F9D6A-E550-404D-82F1-FDB68281607A");

@@ -72,6 +72,10 @@ Loader.OnLoad(function () {
             JsDbgTransport.InvalidateFullCache();
             fireListeners(debuggerBrokeListeners);
             fireListeners(memoryWriteListeners);
+        } else if (message == "processchanged") {
+            JsDbgTransport.InvalidateFullCache();
+            fireListeners(debuggerBrokeListeners);
+            fireListeners(memoryWriteListeners);
         } else if (message.indexOf("message:") == 0) {
             JsDbgLoadingIndicator.ShowAmbientMessage(message.substr("message:".length));
         } else {

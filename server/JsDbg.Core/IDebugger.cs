@@ -67,7 +67,8 @@ namespace JsDbg.Core {
             Break,
             Waiting,
             Detaching,
-            ChangingBitness
+            ChangingBitness,
+            ChangingProcess
         }
 
         public DebuggerChangeEventArgs(DebuggerStatus status) { Status = status; }

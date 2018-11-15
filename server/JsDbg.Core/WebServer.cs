@@ -1376,6 +1376,8 @@ namespace JsDbg.Core {
                 this.SendWebSocketMessage("detaching");
             } else if (status == DebuggerChangeEventArgs.DebuggerStatus.ChangingBitness) {
                 this.SendWebSocketMessage("bitnesschanged");
+            } else if (status == DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess) {
+                this.SendWebSocketMessage("processchanged");
             }
         }
 
@@ -1393,8 +1395,7 @@ namespace JsDbg.Core {
             }
         }
 
-        public bool IsListening
-        {
+        public bool IsListening {
             get { return this.httpListener != null && this.httpListener.IsListening; }
         }
 

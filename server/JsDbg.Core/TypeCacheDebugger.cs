@@ -14,7 +14,7 @@ namespace JsDbg.Core {
 
             this.debuggerEngine.DebuggerChange += (sender, args) => { this.DebuggerChange?.Invoke(this, args); };
             this.debuggerEngine.DebuggerChange += (sender, args) => {
-                if (args.Status == DebuggerChangeEventArgs.DebuggerStatus.ChangingBitness || args.Status == DebuggerChangeEventArgs.DebuggerStatus.Detaching) {
+                if (args.Status == DebuggerChangeEventArgs.DebuggerStatus.ChangingBitness || args.Status == DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess || args.Status == DebuggerChangeEventArgs.DebuggerStatus.Detaching) {
                     this.ClearTypeCache();
                 }
             };
