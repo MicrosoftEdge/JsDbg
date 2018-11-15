@@ -119,6 +119,19 @@ Loader.OnLoad(function() {
         });
     });
 
+    DOMTree.Renderer.addNameRenderer(Chromium.RendererProcessType("blink::Document"), function (document) {
+        return Promise.all([document.vcast(), document.desc("URL")])
+        .thenAll((vcastedDocument, url) => {
+            var typeNameParts = vcastedDocument.type.name().split("::");
+            var typeName = typeNameParts[typeNameParts.length - 1];
+            if (url) {
+                return typeName + " (" + url + ")";
+            } else {
+                return typeName;
+            }
+        });
+    });
+
     DbgObject.AddAction(Chromium.RendererProcessType("blink::Node"), "DOMTree", (node) => {
         return TreeInspector.GetActions("domtree", "DOMTree", node);
     });
