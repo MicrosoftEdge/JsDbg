@@ -36,6 +36,15 @@ namespace JsDbg.VisualStudio {
             }
         }
 
+        private void SetTargetProcessFromId(int processId) {
+            try {
+                this.TargetProcess = Process.GetProcessById(processId);
+            } catch (ArgumentException) {
+                // Target process is not running.
+                this.TargetProcess = null;
+            }
+        }
+
         public Process TargetProcess {
             get { return this.targetProcess; }
             set { this.targetProcess = value; }
@@ -116,51 +125,58 @@ namespace JsDbg.VisualStudio {
                 DisposableComReference.SetReference(ref this.currentThread, thread);
                 savedThread = true;
 
+                bool processChanged = false;
                 if (process != null) {
                     AD_PROCESS_ID[] pdwProcessId = new AD_PROCESS_ID[1];
                     process.GetPhysicalProcessId(pdwProcessId);
                     if (this.TargetProcess != null) {
-                        // Check for a process change.
                         if (pdwProcessId[0].dwProcessId != this.TargetProcess.Id) {
-                            DisposableComReference.SetReference(ref this.currentDebugProgram, program);
-                            savedProgram = true;
-
-                            if (program != null) {
-                                // Evaluate an expression get access to the memory context and the bitness.
-                                IDebugProperty2 debugProperty = this.EvaluateExpression(thread, "(void**)0x0 + 1");
-                                if (debugProperty != null) {
-                                    using (new DisposableComReference(debugProperty)) {
-                                        DEBUG_PROPERTY_INFO[] debugPropertyInfo = new DEBUG_PROPERTY_INFO[1];
-                                        if (debugProperty.GetPropertyInfo((uint)enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_VALUE, 16, evaluateExpressionTimeout, null, 0, debugPropertyInfo) == S_OK) {
-                                            IDebugMemoryContext2 memoryContext = null;
-                                            IDebugMemoryBytes2 memoryBytes = null;
-                                            if ((debugProperty.GetMemoryContext(out memoryContext) == S_OK) && (debugProperty.GetMemoryBytes(out memoryBytes) == S_OK)) {
-                                                DisposableComReference.SetReference(ref this.memoryContext, memoryContext);
-                                                DisposableComReference.SetReference(ref this.memoryBytes, memoryBytes);
-                                                ulong offset = ulong.Parse(debugPropertyInfo[0].bstrValue.Substring("0x".Length), System.Globalization.NumberStyles.AllowHexSpecifier);
-
-                                                // Adjust the memory context and calculate the bitness.
-                                                this.memoryContext.Subtract(offset, out memoryContext);
-                                                DisposableComReference.SetReference(ref this.memoryContext, memoryContext);
-                                                this.isPointer64Bit = (offset == 8);
-                                            } else {
-                                                DisposableComReference.ReleaseIfNotNull(ref memoryContext);
-                                                DisposableComReference.ReleaseIfNotNull(ref memoryBytes);
-                                            }
-                                        }
-                                    }
-                                }
-
-                                this.TargetProcess = Process.GetProcessById((int)pdwProcessId[0].dwProcessId);
-                                this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
-                            }
+                            this.SetTargetProcessFromId((int)pdwProcessId[0].dwProcessId);
+                            processChanged = true;
                         }
                     } else {
-                        // Set the target process.
-                        this.TargetProcess = Process.GetProcessById((int)pdwProcessId[0].dwProcessId);
+                        this.SetTargetProcessFromId((int)pdwProcessId[0].dwProcessId);
+                        if (this.TargetProcess != null) {
+                            processChanged = true;
+                        }
                     }
-                } else {
+                } else if (this.TargetProcess != null) {
                     this.TargetProcess = null;
+                    processChanged = true;
+                }
+
+                if (processChanged) {
+                    DisposableComReference.SetReference(ref this.currentDebugProgram, program);
+                    savedProgram = true;
+
+                    if (program != null) {
+                        // Evaluate an expression get access to the memory context and the bitness.
+                        IDebugProperty2 debugProperty = this.EvaluateExpression(thread, "(void**)0x0 + 1");
+                        if (debugProperty != null) {
+                            using (new DisposableComReference(debugProperty)) {
+                                DEBUG_PROPERTY_INFO[] debugPropertyInfo = new DEBUG_PROPERTY_INFO[1];
+                                if (debugProperty.GetPropertyInfo((uint)enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_VALUE, 16, evaluateExpressionTimeout, null, 0, debugPropertyInfo) == S_OK) {
+                                    IDebugMemoryContext2 memoryContext = null;
+                                    IDebugMemoryBytes2 memoryBytes = null;
+                                    if ((debugProperty.GetMemoryContext(out memoryContext) == S_OK) && (debugProperty.GetMemoryBytes(out memoryBytes) == S_OK)) {
+                                        DisposableComReference.SetReference(ref this.memoryContext, memoryContext);
+                                        DisposableComReference.SetReference(ref this.memoryBytes, memoryBytes);
+                                        ulong offset = ulong.Parse(debugPropertyInfo[0].bstrValue.Substring("0x".Length), System.Globalization.NumberStyles.AllowHexSpecifier);
+
+                                        // Adjust the memory context and calculate the bitness.
+                                        this.memoryContext.Subtract(offset, out memoryContext);
+                                        DisposableComReference.SetReference(ref this.memoryContext, memoryContext);
+                                        this.isPointer64Bit = (offset == 8);
+                                    } else {
+                                        DisposableComReference.ReleaseIfNotNull(ref memoryContext);
+                                        DisposableComReference.ReleaseIfNotNull(ref memoryBytes);
+                                    }
+                                }
+                            }
+                        }
+
+                        this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
+                    }
                 }
             }
 

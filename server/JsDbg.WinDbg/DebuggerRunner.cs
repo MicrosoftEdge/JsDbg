@@ -24,7 +24,7 @@ namespace JsDbg.WinDbg {
             this.didShutdown = true;
             this.engine = new DebuggerEngine(this, this.client, this.control, this.diaLoader);
             this.debugger = new Core.TypeCacheDebugger(this.engine);
-            this.SetTargetProcess((int)(this.systemObjects.CurrentProcessSystemId));
+            this.SetTargetProcessFromId((int)(this.systemObjects.CurrentProcessSystemId));
         }
 
         public void Dispose() {
@@ -39,7 +39,7 @@ namespace JsDbg.WinDbg {
             get { return this.debugger; }
         }
 
-        private void SetTargetProcess(int processId) {
+        private void SetTargetProcessFromId(int processId) {
             try {
                 this.TargetProcess = Process.GetProcessById(processId);
             } catch (ArgumentException) {
@@ -102,12 +102,12 @@ namespace JsDbg.WinDbg {
                 try {
                     int currentProcessSystemId = (int)(this.systemObjects.CurrentProcessSystemId);
                     if (this.TargetProcess == null) {
-                        this.SetTargetProcess(currentProcessSystemId);
+                        this.SetTargetProcessFromId(currentProcessSystemId);
                         if (this.TargetProcess != null) {
                             this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
                         }
                     } else if (this.TargetProcess.Id != currentProcessSystemId) {
-                        this.SetTargetProcess(currentProcessSystemId);
+                        this.SetTargetProcessFromId(currentProcessSystemId);
                         this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
                     }
 
