@@ -24,7 +24,7 @@ namespace JsDbg.WinDbg {
             this.didShutdown = true;
             this.engine = new DebuggerEngine(this, this.client, this.control, this.diaLoader);
             this.debugger = new Core.TypeCacheDebugger(this.engine);
-            this.TargetProcess = Process.GetProcessById((int)(this.systemObjects.CurrentProcessSystemId));
+            this.SetTargetProcess((int)(this.systemObjects.CurrentProcessSystemId));
         }
 
         public void Dispose() {
@@ -37,6 +37,15 @@ namespace JsDbg.WinDbg {
 
         public IDebugger Debugger {
             get { return this.debugger; }
+        }
+
+        private void SetTargetProcess(int processId) {
+            try {
+                this.TargetProcess = Process.GetProcessById(processId);
+            } catch (ArgumentException) {
+                // Target process is not running.
+                this.TargetProcess = null;
+            }
         }
 
         public Process TargetProcess {
@@ -92,8 +101,13 @@ namespace JsDbg.WinDbg {
             while (!this.isShuttingDown) {
                 try {
                     int currentProcessSystemId = (int)(this.systemObjects.CurrentProcessSystemId);
-                    if (this.TargetProcess.Id != currentProcessSystemId) {
-                        this.TargetProcess = Process.GetProcessById(currentProcessSystemId);
+                    if (this.TargetProcess == null) {
+                        this.SetTargetProcess(currentProcessSystemId);
+                        if (this.TargetProcess != null) {
+                            this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
+                        }
+                    } else if (this.TargetProcess.Id != currentProcessSystemId) {
+                        this.SetTargetProcess(currentProcessSystemId);
                         this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
                     }
 
