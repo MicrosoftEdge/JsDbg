@@ -1330,13 +1330,7 @@ var MSHTML = undefined;
             function(type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^(CModernArray)<.*>$/) != null; },
             "Items",
             function(type) {
-                var matches = type.name().match(/^(CModernArray)<(.*)>$/);
-                var innerType = separateTemplateArguments(matches[2])[0];
-                if (innerType.name().match(/\*$/) != null) {
-                    return innerType.substr(0, innerType.length - 1).trim();
-                } else {
-                    return innerType;
-                }
+                return type.templateParameters()[0];
             },
             function (array) {
                 var innerType = separateTemplateArguments(array.type.name().match(/^(CModernArray)<(.*)>$/)[2])[0];
