@@ -24,7 +24,9 @@ namespace JsDbg.WinDbg {
             this.didShutdown = true;
             this.engine = new DebuggerEngine(this, this.client, this.control, this.diaLoader);
             this.debugger = new Core.TypeCacheDebugger(this.engine);
-            this.SetTargetProcessFromId((int)(this.systemObjects.CurrentProcessSystemId));
+            if (!this.IsDebuggerBusy) {
+                this.SetTargetProcessFromId((int)(this.systemObjects.CurrentProcessSystemId));
+            }
         }
 
         public void Dispose() {
@@ -100,15 +102,17 @@ namespace JsDbg.WinDbg {
 
             while (!this.isShuttingDown) {
                 try {
-                    int currentProcessSystemId = (int)(this.systemObjects.CurrentProcessSystemId);
-                    if (this.TargetProcess == null) {
-                        this.SetTargetProcessFromId(currentProcessSystemId);
-                        if (this.TargetProcess != null) {
+                    if (!this.IsDebuggerBusy) {
+                        int currentProcessSystemId = (int)(this.systemObjects.CurrentProcessSystemId);
+                        if (this.TargetProcess == null) {
+                            this.SetTargetProcessFromId(currentProcessSystemId);
+                            if (this.TargetProcess != null) {
+                                this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
+                            }
+                        } else if (this.TargetProcess.Id != currentProcessSystemId) {
+                            this.SetTargetProcessFromId(currentProcessSystemId);
                             this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
                         }
-                    } else if (this.TargetProcess.Id != currentProcessSystemId) {
-                        this.SetTargetProcessFromId(currentProcessSystemId);
-                        this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
                     }
 
                     this.client.DispatchCallbacks(TimeSpan.Zero);
