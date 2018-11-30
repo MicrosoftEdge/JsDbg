@@ -6,6 +6,7 @@
     "dependencies": [
         "target-specific/chromium",
         "target-specific/edgehtml",
+        "target-specific/ntdll",
         "target-specific/stl-helpers"
     ]
 }

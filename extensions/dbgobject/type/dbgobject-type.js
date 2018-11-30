@@ -128,11 +128,8 @@ Loader.OnLoad(function () {
     }
 
     dbgObjectType.prototype.dereferenced = function() {
-        if (this.isPointer()) {
-            return DbgObjectType(this._name.substring(0, this._name.length - 1), this);
-        } else {
-            return DbgObjectType("void", this);
-        }
+        console.assert(this.isPointer());
+        return DbgObjectType(this._name.substring(0, this._name.length - 1), this);
     }
 
     dbgObjectType.prototype.isArray = function() {

@@ -372,15 +372,8 @@ Loader.OnLoad(function() {
         .then(function (fields) {
             fields.forEach(function (field) {
                 var fieldType = field.value.type;
-                if (fieldType.isPointer()) {
-                    if (fieldType.isArray())
-                    {
-                        fieldType = DbgObjectType(fieldType.moduleName(), fieldType.dereferenced().name() + "[" + fieldType.arrayLength() + "]");
-                    }
-                    else
-                    {
-                        fieldType = fieldType.dereferenced();
-                    }
+                if (fieldType.isPointer() && !fieldType.isArray()) {
+                    fieldType = fieldType.dereferenced();
                 }
                 var getter = field.value.type.isArray() ? function (dbgObject) { return dbgObject.f(field.name).array(); } : function(dbgObject) { return dbgObject.f(field.name); };
                 that.fields.push(new TypeExplorerField(field.name, fieldType, getter, that, "fields"));
@@ -932,7 +925,7 @@ Loader.OnLoad(function() {
                     if (!type.backingTypes[0].hasArrayItemField()) {
                         if (arrayToRender.length > 0) {
                             arrayToRender.forEach(function (entry, index) {
-                                var arrayItemField = new TypeExplorerField("[" + index + "]", type.backingTypes[0].type, function() { return entry; }, type.backingTypes[0], "arrayItemFields");
+                                var arrayItemField = new TypeExplorerField("[" + index + "]", type.backingTypes[0].type.nonArrayType(), function() { return entry; }, type.backingTypes[0], "arrayItemFields");
                                 type.backingTypes[0].arrayItemFields.push(arrayItemField);
                             });
                         }

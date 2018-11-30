@@ -26,6 +26,8 @@ namespace JsDbg.Core {
 
         bool IsPointer64Bit { get; }
 
+        Task<ulong> TebAddress();
+
         Task<SModule> GetModuleForAddress(ulong address);
 
         Task<SModule> GetModuleForName(string module);

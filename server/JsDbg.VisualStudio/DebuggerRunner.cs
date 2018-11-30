@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
@@ -34,6 +35,25 @@ namespace JsDbg.VisualStudio {
             } else {
                 return false;
             }
+        }
+
+        public ulong TebAddress() {
+            IDebugProperty2 debugProperty = this.EvaluateExpression(this.CurrentThread, "@tib");
+            if (debugProperty != null) {
+                using (new DisposableComReference(debugProperty)) {
+                    DEBUG_PROPERTY_INFO[] debugPropertyInfo = new DEBUG_PROPERTY_INFO[1];
+                    if (debugProperty.GetPropertyInfo((uint)enum_DEBUGPROP_INFO_FLAGS.DEBUGPROP_INFO_VALUE, 16, evaluateExpressionTimeout, null, 0, debugPropertyInfo) == S_OK) {
+                        IDebugMemoryContext2 memoryContext = null;
+                        if (debugProperty.GetMemoryContext(out memoryContext) == S_OK) {
+                            string hexString;
+                            memoryContext.GetName(out hexString);
+                            hexString = hexString.Substring(2);  // Strip '0x' for conversion to ulong
+                            return ulong.Parse(hexString, NumberStyles.HexNumber);
+                        }
+                    }
+                }
+            }
+            return 0;
         }
 
         private void SetTargetProcessFromId(int processId) {
@@ -177,6 +197,8 @@ namespace JsDbg.VisualStudio {
 
                         this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
                     }
+                } else {
+                    this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingThread);
                 }
             }
 

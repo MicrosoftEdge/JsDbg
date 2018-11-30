@@ -358,6 +358,9 @@ namespace JsDbg.Core {
                 case "typefields":
                     this.ServeTypeFields(query, respond, fail);
                     break;
+                case "teb":
+                    this.ServeTebAddress(query, respond, fail);
+                    break;
                 case "loadextension":
                     this.LoadExtension(query, respond, fail);
                     break;
@@ -942,6 +945,21 @@ namespace JsDbg.Core {
             respond(responseString);
         }
 
+        private async void ServeTebAddress(NameValueCollection query, Action<string> respond, Action fail) {
+            ulong tebAddress = await this.debugger.TebAddress();
+
+            if (tebAddress <= 0) {
+                respond(this.JSONError("Unable to access the TEB address."));
+            } else {
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(ulong));
+                using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                    serializer.WriteObject(memoryStream, tebAddress);
+                    string result = Encoding.Default.GetString(memoryStream.ToArray());
+                    respond(result);
+                }
+            }
+        }
+
         private static DataContractJsonSerializer ExtensionSerializer = new DataContractJsonSerializer(typeof(JsDbgExtension));
 
         public bool LoadExtension(string extensionPath) {
@@ -1376,6 +1394,8 @@ namespace JsDbg.Core {
                 this.SendWebSocketMessage("detaching");
             } else if (status == DebuggerChangeEventArgs.DebuggerStatus.ChangingBitness) {
                 this.SendWebSocketMessage("bitnesschanged");
+            } else if (status == DebuggerChangeEventArgs.DebuggerStatus.ChangingThread) {
+                this.SendWebSocketMessage("threadchanged");
             } else if (status == DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess) {
                 this.SendWebSocketMessage("processchanged");
             }

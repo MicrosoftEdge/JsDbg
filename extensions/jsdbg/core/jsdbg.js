@@ -72,7 +72,7 @@ Loader.OnLoad(function () {
             JsDbgTransport.InvalidateFullCache();
             fireListeners(debuggerBrokeListeners);
             fireListeners(memoryWriteListeners);
-        } else if (message == "processchanged") {
+        } else if ((message == "threadchanged") || (message == "processchanged")) {
             JsDbgTransport.InvalidateFullCache();
             fireListeners(debuggerBrokeListeners);
             fireListeners(memoryWriteListeners);
@@ -308,6 +308,16 @@ Loader.OnLoad(function () {
             }
 
             JsDbgTransport.JsonRequest("/jsdbg-server/array?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&length=" + count, callback, JsDbgTransport.CacheType.TransientCache);
+        },
+
+        _help_LookupTebAddress: {
+            description: "Gets the address of the thread environment block (TEB) for the current thread.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        LookupTebAddress: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/teb", callback, JsDbgTransport.CacheType.Uncached);
         },
 
         _help_LookupSymbolName: {
