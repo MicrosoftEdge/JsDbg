@@ -823,8 +823,13 @@ var MSHTML = undefined;
                         return "::" + gcType.replace(/GC_/, "").toLowerCase();
                     });
                 } else {
-                    // Non-generic elements: just strip the tag identifier.
-                    return etagValue.substr("ETAG_".length).toLowerCase();
+                    var tag = etagValue.substr("ETAG_".length).toLowerCase();
+                    return treeNode.f("isMarkupTreeNode", "hasScriptableIdentity").val()
+                    .then((isMarkupTreeNode) => {
+                        return !isMarkupTreeNode ? ("::" + tag) : tag;
+                    }, () => {
+                        return tag;
+                    });
                 }
             })
             .then(function (tag) {
