@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Text;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Debugger.Interop;
 using Microsoft.VisualStudio.Shell.Interop;
@@ -19,6 +18,7 @@ namespace JsDbg.VisualStudio {
             this.engine.DiaLoader = new Dia.DiaSessionLoader(new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this), new DiaSessionModuleSource(this, this.engine) });
             this.debugger = new Core.TypeCacheDebugger(this.engine);
             this.EnsureDebuggerService();
+            this.attachedProcesses = new List<uint>();
         }
 
         private bool EnsureDebuggerService() {
@@ -56,18 +56,64 @@ namespace JsDbg.VisualStudio {
             return 0;
         }
 
-        private void SetTargetProcessFromId(int processId) {
-            try {
-                this.TargetProcess = Process.GetProcessById(processId);
-            } catch (ArgumentException) {
-                // Target process is not running.
-                this.TargetProcess = null;
+        public void SetTargetProcess(uint systemProcessId) {
+            int targetProcessIndex = Array.IndexOf(this.GetAttachedProcesses(), systemProcessId);
+            if (targetProcessIndex == -1) {
+                throw new DebuggerException("Invalid process ID");
+            } else {
+                if (this.TargetProcessSystemId != systemProcessId) {
+                    Guid setCurrentProcessCmdGroup;
+                    uint setCurrentProcessCmdId;
+                    IVsCmdNameMapping vsCmdNameMapping = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsCmdNameMapping)) as IVsCmdNameMapping;
+                    vsCmdNameMapping.MapNameToGUIDID("Debug.SetCurrentProcess", out setCurrentProcessCmdGroup, out setCurrentProcessCmdId);
+                    Microsoft.VisualStudio.Shell.OleMenuCommandService commandService = new Microsoft.VisualStudio.Shell.OleMenuCommandService(Microsoft.VisualStudio.Shell.ServiceProvider.GlobalProvider);
+                    if (!commandService.GlobalInvoke(new CommandID(setCurrentProcessCmdGroup, (int)setCurrentProcessCmdId), Convert.ToString(targetProcessIndex + 1))) {
+                        throw new DebuggerException("Unable to set the active process in the debugger.");
+                    }
+                }
             }
         }
 
-        public Process TargetProcess {
-            get { return this.targetProcess; }
-            set { this.targetProcess = value; }
+        public uint[] GetAttachedProcesses() {
+            return this.attachedProcesses.ToArray();
+        }
+
+        public void SetTargetThread(uint systemThreadId) {
+            int targetThreadIndex = Array.IndexOf(this.GetCurrentProcessThreads(), systemThreadId);
+            if (targetThreadIndex == -1) {
+                throw new DebuggerException("Invalid thread ID");
+            } else {
+                if (this.TargetThreadSystemId != systemThreadId) {
+                    Guid setCurrentThreadCmdGroup;
+                    uint setCurrentThreadCmdId;
+                    IVsCmdNameMapping vsCmdNameMapping = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsCmdNameMapping)) as IVsCmdNameMapping;
+                    vsCmdNameMapping.MapNameToGUIDID("Debug.SetCurrentThread", out setCurrentThreadCmdGroup, out setCurrentThreadCmdId);
+                    Microsoft.VisualStudio.Shell.OleMenuCommandService commandService = new Microsoft.VisualStudio.Shell.OleMenuCommandService(Microsoft.VisualStudio.Shell.ServiceProvider.GlobalProvider);
+                    if (!commandService.GlobalInvoke(new CommandID(setCurrentThreadCmdGroup, (int)setCurrentThreadCmdId), Convert.ToString(targetThreadIndex + 1))) {
+                        throw new DebuggerException("Unable to set the active thread in the debugger.");
+                    }
+                }
+            }
+        }
+
+        public uint[] GetCurrentProcessThreads() {
+            if (this.TargetProcessSystemId != 0) {
+                Process targetProcess = Process.GetProcessById((int)this.TargetProcessSystemId);
+                ProcessThread[] targetProcessThreads = new ProcessThread[targetProcess.Threads.Count];
+                targetProcess.Threads.CopyTo(targetProcessThreads, index: 0);
+                return targetProcessThreads.Select((thread) => (uint)thread.Id).ToArray();
+            }
+            return null;
+        }
+
+        public uint TargetProcessSystemId {
+            get { return this.targetProcessSystemId; }
+            set { this.targetProcessSystemId = value; }
+        }
+
+        public uint TargetThreadSystemId {
+            get { return this.targetThreadSystemId; }
+            set { this.targetThreadSystemId = value; }
         }
 
         public async Task WaitForBreakIn() {
@@ -85,7 +131,7 @@ namespace JsDbg.VisualStudio {
                     }
                 }
 
-                this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Waiting);
+                this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.Waiting);
                 await Task.Delay(1000);
             }
         }
@@ -98,7 +144,17 @@ namespace JsDbg.VisualStudio {
             bool savedProgram = false;
             bool savedThread = false;
 
-            if (riidEvent == breakInEvent && this.currentDebugProgram != program && program != null && thread != null) {
+            if (riidEvent == processCreateEvent) {
+                AD_PROCESS_ID[] pdwProcessId = new AD_PROCESS_ID[1];
+                process.GetPhysicalProcessId(pdwProcessId);
+                Debug.Assert(!this.attachedProcesses.Contains(pdwProcessId[0].dwProcessId));
+                this.attachedProcesses.Add(pdwProcessId[0].dwProcessId);
+            } else if (riidEvent == processDestroyEvent) {
+                AD_PROCESS_ID[] pdwProcessId = new AD_PROCESS_ID[1];
+                process.GetPhysicalProcessId(pdwProcessId);
+                Debug.Assert(this.attachedProcesses.Contains(pdwProcessId[0].dwProcessId));
+                this.attachedProcesses.Remove(pdwProcessId[0].dwProcessId);
+            } else if (riidEvent == breakInEvent && this.currentDebugProgram != program && program != null && thread != null) {
                 // Evaluate an expression get access to the memory context and the bitness.
                 IDebugProperty2 debugProperty = this.EvaluateExpression(thread, "(void**)0x0 + 1");
                 if (debugProperty != null) {
@@ -119,7 +175,7 @@ namespace JsDbg.VisualStudio {
                                 DisposableComReference.SetReference(ref this.memoryContext, memoryContext);
                                 this.isPointer64Bit = (offset == 8);
 
-                                this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Detaching);
+                                this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.Detaching);
                                 this.engine.DiaLoader.ClearSymbols();
                                 savedProgram = true;
                                 savedThread = true;
@@ -135,33 +191,38 @@ namespace JsDbg.VisualStudio {
                 DisposableComReference.ReleaseIfNotNull(ref this.currentDebugProgram);
                 DisposableComReference.ReleaseIfNotNull(ref this.memoryContext);
                 DisposableComReference.ReleaseIfNotNull(ref this.memoryBytes);
-                this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Detaching);
+                this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.Detaching);
                 this.engine.DiaLoader.ClearSymbols();
             } else if (riidEvent == breakInEvent) {
                 // The debugger broke in, notify the client.
-                this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.Break);
+                this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.Break);
             } else if (riidEvent == threadSwitchEvent) {
                 // The user switched the current thread.
                 DisposableComReference.SetReference(ref this.currentThread, thread);
                 savedThread = true;
+                if (this.currentThread != null) {
+                    uint threadId;
+                    thread.GetThreadId(out threadId);
+                    this.TargetThreadSystemId = threadId;
+                }
 
                 bool processChanged = false;
                 if (process != null) {
                     AD_PROCESS_ID[] pdwProcessId = new AD_PROCESS_ID[1];
                     process.GetPhysicalProcessId(pdwProcessId);
-                    if (this.TargetProcess != null) {
-                        if (pdwProcessId[0].dwProcessId != this.TargetProcess.Id) {
-                            this.SetTargetProcessFromId((int)pdwProcessId[0].dwProcessId);
+                    if (this.TargetProcessSystemId != 0) {
+                        if (pdwProcessId[0].dwProcessId != this.TargetProcessSystemId) {
+                            this.TargetProcessSystemId = pdwProcessId[0].dwProcessId;
                             processChanged = true;
                         }
                     } else {
-                        this.SetTargetProcessFromId((int)pdwProcessId[0].dwProcessId);
-                        if (this.TargetProcess != null) {
+                        this.TargetProcessSystemId = pdwProcessId[0].dwProcessId;
+                        if (this.TargetProcessSystemId != 0) {
                             processChanged = true;
                         }
                     }
-                } else if (this.TargetProcess != null) {
-                    this.TargetProcess = null;
+                } else if (this.TargetProcessSystemId != 0) {
+                    this.TargetProcessSystemId = 0;
                     processChanged = true;
                 }
 
@@ -195,10 +256,10 @@ namespace JsDbg.VisualStudio {
                             }
                         }
 
-                        this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
+                        this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
                     }
                 } else {
-                    this.engine.NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingThread);
+                    this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingThread);
                 }
             }
 
@@ -335,14 +396,21 @@ namespace JsDbg.VisualStudio {
         IDebugMemoryBytes2 memoryBytes;
         IDebugThread2 currentThread;
         IVsDebugger vsDebuggerService;
-        private Process targetProcess;  // process being actively debugged
+        List<uint> attachedProcesses;
+        private uint targetProcessSystemId;  // process being actively debugged
+        private uint targetThreadSystemId;  // thread being actively debugged
         bool isPointer64Bit;
 
-        static Guid debugModule3Guid = Guid.Parse("245F9D6A-E550-404D-82F1-FDB68281607A");
+        static Guid debugModule3Guid = Guid.Parse("245f9d6a-e550-404d-82f1-fdb68281607a");
         static Guid startDebugEvent = Guid.Parse("2c2b15b7-fc6d-45b3-9622-29665d964a76");
         static Guid stopDebugEvent = Guid.Parse("f199b2c2-88fe-4c5d-a0fd-aa046b0dc0dc");
         static Guid breakInEvent = Guid.Parse("04bcb310-5e1a-469c-87c6-4971e6c8483a");
         static Guid threadSwitchEvent = Guid.Parse("8764364b-0c52-4c7c-af6a-8b19a8c98226");
+        static Guid statementChangedEvent = Guid.Parse("ce6f92d3-4222-4b1e-830d-3ecff112bf22");
+        static Guid processCreateEvent = Guid.Parse("bac3780f-04da-4726-901c-ba6a4633e1ca");
+        static Guid processDestroyEvent = Guid.Parse("3e2a0832-17e1-4886-8c0e-204da242995f");
+        static Guid threadCreateEvent = Guid.Parse("2090ccfc-70c5-491d-a5e8-bad2dd9ee3ea");
+        static Guid threadDestroyEvent = Guid.Parse("2c3b7532-a36f-4a6e-9072-49be649B8541");
         const int evaluateExpressionTimeout = int.MaxValue;
         const int decimalBaseRadix = 10;
     }

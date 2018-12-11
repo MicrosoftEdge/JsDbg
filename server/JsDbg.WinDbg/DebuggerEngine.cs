@@ -71,6 +71,24 @@ namespace JsDbg.WinDbg {
             } while (true);
         }
 
+        public uint TargetProcess {
+            get { return this.runner.TargetProcessSystemId; }
+            set { this.runner.SetTargetProcess(value); }
+        }
+
+        public uint[] GetAttachedProcesses() {
+            return this.runner.GetAttachedProcesses();
+        }
+
+        public uint TargetThread {
+            get { return this.runner.TargetThreadSystemId; }
+            set { this.runner.SetTargetThread(value); }
+        }
+
+        public uint[] GetCurrentProcessThreads() {
+            return this.runner.GetCurrentProcessThreads();
+        }
+
         public Task<Core.SModule> GetModuleForAddress(ulong address) {
             return this.AttemptOperation<Core.SModule>(() => {
                 Core.SModule result = new Core.SModule();

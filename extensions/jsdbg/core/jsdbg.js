@@ -149,6 +149,68 @@ Loader.OnLoad(function () {
             JsDbgTransport.JsonRequest("/jsdbg-server/extensionpath", callback, JsDbgTransport.CacheType.Uncached, "PUT", path);
         },
 
+        _help_GetAttachedProcesses: {
+            description: "Gets the list of processes the debugger is attached to.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        GetAttachedProcesses: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/attachedprocesses", callback, JsDbgTransport.CacheType.Uncached, "GET");
+        },
+
+        _help_GetTargetProcess: {
+            description: "Gets the process that is being actively debugged.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        GetTargetProcess: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/targetprocess", callback, JsDbgTransport.CacheType.Uncached, "GET");
+        },
+
+        _help_SetTargetProcess: {
+            description: "Sets the process in the debugger.",
+            arguments: [
+                {name:"processId", type:"integer", description:"Id of the process to set."},
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        SetTargetProcess: function(processId, callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/targetprocess", callback, JsDbgTransport.CacheType.Uncached, "PUT", processId);
+        },
+
+        _help_GetCurrentProcessThreads: {
+            description: "Gets the list of threads for the process that is being actively debugged.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        GetCurrentProcessThreads: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/currentprocessthreads", callback, JsDbgTransport.CacheType.Uncached, "GET");
+        },
+
+        _help_GetTargetThread: {
+            description: "Gets the thread that is being actively debugged.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        GetTargetThread: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/targetthread", callback, JsDbgTransport.CacheType.Uncached, "GET");
+        },
+
+        _help_SetTargetThread: {
+            description: "Sets the thread in the debugger.",
+            arguments: [
+                {name:"threadId", type:"integer", description:"Id of the thread to set."},
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        SetTargetThread: function(threadId, callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/targetthread", callback, JsDbgTransport.CacheType.Uncached, "PUT", threadId);
+        },
+
         _help_LookupTypeSize: {
             description: "Looks up the size of the type.",
             arguments: [

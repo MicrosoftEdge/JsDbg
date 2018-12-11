@@ -25,7 +25,7 @@ namespace JsDbg.WinDbg {
             this.engine = new DebuggerEngine(this, this.client, this.control, this.diaLoader);
             this.debugger = new Core.TypeCacheDebugger(this.engine);
             if (!this.IsDebuggerBusy) {
-                this.SetTargetProcessFromId((int)(this.systemObjects.CurrentProcessSystemId));
+                this.TargetProcessSystemId = this.systemObjects.CurrentProcessSystemId;
             }
         }
 
@@ -46,35 +46,57 @@ namespace JsDbg.WinDbg {
             return this.systemObjects.CurrentThreadTeb;
         }
 
-        private void SetTargetThreadFromTargetProcess() {
-            foreach (ProcessThread processThread in this.TargetProcess.Threads) {
-                if (processThread.Id == this.systemObjects.CurrentThreadSystemId) {
-                    this.TargetThread = processThread;
-                    break;
+        public void SetTargetProcess(uint systemProcessId) {
+            if (Array.IndexOf(this.GetAttachedProcesses(), systemProcessId) == -1) {
+                throw new DebuggerException("Invalid process ID");
+            } else {
+                if (this.TargetProcessSystemId != systemProcessId) {
+                    this.TargetProcessSystemId = systemProcessId;
+                    uint engineProcessId = this.systemObjects.GetProcessIdBySystemId(systemProcessId);
+                    this.control.Execute("|" + engineProcessId + "s");
+                    this.TargetThreadSystemId = this.systemObjects.CurrentThreadSystemId;  // Process change also causes a thread change.
+                    this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
                 }
             }
         }
 
-        private void SetTargetProcessFromId(int processId) {
-            try {
-                this.TargetProcess = Process.GetProcessById(processId);
-            } catch (ArgumentException) {
-                // Target process is not running.
-                this.TargetProcess = null;
-            }
-            if (this.TargetProcess != null) {
-                this.SetTargetThreadFromTargetProcess();
+        public uint[] GetAttachedProcesses() {
+            uint numProcesses = this.systemObjects.NumberProcesses;
+            uint[] ids;
+            uint[] systemIds;
+            this.systemObjects.GetProcessIdsByIndex(/*start*/0, /*count*/numProcesses, out ids, out systemIds);
+            return systemIds;
+        }
+
+        public uint TargetProcessSystemId {
+            get { return this.targetProcessSystemId; }
+            set { this.targetProcessSystemId = value; }
+        }
+
+        public void SetTargetThread(uint systemThreadId) {
+            if (Array.IndexOf(this.GetCurrentProcessThreads(), systemThreadId) == -1) {
+                throw new DebuggerException("Invalid thread ID");
+            } else {
+                if (this.TargetThreadSystemId != systemThreadId) {
+                    this.TargetThreadSystemId = systemThreadId;
+                    uint engineThreadId = this.systemObjects.GetThreadIdBySystemId(systemThreadId);
+                    this.control.Execute("~" + engineThreadId + "s");
+                    this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingThread);
+                }
             }
         }
 
-        public Process TargetProcess {
-            get { return this.targetProcess; }
-            set { this.targetProcess = value; }
+        public uint[] GetCurrentProcessThreads() {
+            uint numThreads = this.systemObjects.NumberThreads;
+            uint[] ids;
+            uint[] systemIds;
+            this.systemObjects.GetThreadIdsByIndex(/*start*/0, /*count*/ numThreads, out ids, out systemIds);
+            return systemIds;
         }
 
-        public ProcessThread TargetThread {
-            get { return this.targetThread; }
-            set { this.targetThread = value; }
+        public uint TargetThreadSystemId {
+            get { return this.targetThreadSystemId; }
+            set { this.targetThreadSystemId = value; }
         }
 
         public bool IsDebuggerBusy {
@@ -125,18 +147,18 @@ namespace JsDbg.WinDbg {
             while (!this.isShuttingDown) {
                 try {
                     if (!this.IsDebuggerBusy) {
-                        int currentProcessSystemId = (int)(this.systemObjects.CurrentProcessSystemId);
-                        int currentThreadSystemId = (int)(this.systemObjects.CurrentThreadSystemId);
-                        if (this.TargetProcess == null) {
-                            this.SetTargetProcessFromId(currentProcessSystemId);
-                            if (this.TargetProcess != null) {
+                        uint currentProcessSystemId = this.systemObjects.CurrentProcessSystemId;
+                        uint currentThreadSystemId = this.systemObjects.CurrentThreadSystemId;
+                        if (this.TargetProcessSystemId == 0) {
+                            this.TargetProcessSystemId = currentProcessSystemId;
+                            if (this.TargetProcessSystemId != 0) {
                                 this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
                             }
-                        } else if (this.TargetProcess.Id != currentProcessSystemId) {
-                            this.SetTargetProcessFromId(currentProcessSystemId);
+                        } else if (this.TargetProcessSystemId != currentProcessSystemId) {
+                            this.TargetProcessSystemId = currentProcessSystemId;
                             this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
-                        } else if(this.TargetThread.Id != currentThreadSystemId) {
-                            this.SetTargetThreadFromTargetProcess();
+                        } else if (this.TargetThreadSystemId != currentThreadSystemId) {
+                            this.TargetThreadSystemId = currentThreadSystemId;
                             this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingThread);
                         }
                     }
@@ -177,8 +199,8 @@ namespace JsDbg.WinDbg {
         private TypeCacheDebugger debugger;
         private SymbolCache symbolCache;
         private Dia.DiaSessionLoader diaLoader;
-        private Process targetProcess;  // process being actively debugged
-        private ProcessThread targetThread;  // thread being actively debugged
+        private uint targetProcessSystemId;  // process being actively debugged
+        private uint targetThreadSystemId;  // thread being actively debugged
         private bool isShuttingDown;
         private bool didShutdown;
     }

@@ -395,6 +395,26 @@ namespace JsDbg.Core {
                 case "persistentstorageusers":
                     this.ServePersistentStorageUsers(query, respond, fail);
                     break;
+                case "attachedprocesses":
+                    this.ServeAttachedProcesses(query, respond, fail);
+                    break;
+                case "targetprocess":
+                    if (context == null) {
+                        goto default;
+                    } else {
+                        this.ServeTargetProcess(segments, context);
+                    }
+                    break;
+                case "currentprocessthreads":
+                    this.ServeCurrentProcessThreads(query, respond, fail);
+                    break;
+                case "targetthread":
+                    if (context == null) {
+                        goto default;
+                    } else {
+                        this.ServeTargetThread(segments, context);
+                    }
+                    break;
                 default:
                     fail();
                     break;
@@ -1308,6 +1328,96 @@ namespace JsDbg.Core {
                     string result = Encoding.Default.GetString(memoryStream.ToArray());
                     respond(String.Format("{{ \"users\": {0} }}", result));
                 }
+            }
+        }
+
+        private void ServeAttachedProcesses(NameValueCollection query, Action<string> respond, Action fail) {
+            uint[] processes = this.debugger.GetAttachedProcesses();
+
+            if (processes == null) {
+                respond(this.JSONError("Unable to access the debugger."));
+            } else {
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(uint[]));
+                using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                    serializer.WriteObject(memoryStream, processes);
+                    string result = Encoding.Default.GetString(memoryStream.ToArray());
+                    respond(result);
+                }
+            }
+        }
+
+        private void ServeTargetProcess(string[] segments, HttpListenerContext context) {
+            if (context.Request.HttpMethod == "GET") {
+                uint targetProcess = this.debugger.TargetProcess;
+                if (targetProcess == 0) {
+                    this.ServeUncachedString(this.JSONError("Unable to retrieve the target process."), context);
+                } else {
+                    DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(int));
+                    using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                        serializer.WriteObject(memoryStream, targetProcess);
+                        string result = Encoding.Default.GetString(memoryStream.ToArray());
+                        this.ServeUncachedString(result, context);
+                    }
+                }
+            } else if (context.Request.HttpMethod == "PUT") {
+                string processId = this.ReadRequestBody(context);
+                if (processId == null) {
+                    return;
+                }
+
+                try {
+                    this.debugger.TargetProcess = UInt32.Parse(processId);
+                    this.ServeUncachedString("{ \"success\": true }", context);
+                } catch (Exception e) {
+                    this.ServeUncachedString(this.JSONError("Unable to set the target process."), context);
+                }
+            } else {
+                this.ServeFailure(context);
+            }
+        }
+
+        private void ServeCurrentProcessThreads(NameValueCollection query, Action<string> respond, Action fail) {
+            uint[] threads = this.debugger.GetCurrentProcessThreads();
+
+            if (threads == null) {
+                respond(this.JSONError("Unable to access the debugger."));
+            } else {
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(uint[]));
+                using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                    serializer.WriteObject(memoryStream, threads);
+                    string result = Encoding.Default.GetString(memoryStream.ToArray());
+                    respond(result);
+                }
+            }
+        }
+
+        private void ServeTargetThread(string[] segments, HttpListenerContext context) {
+            if (context.Request.HttpMethod == "GET") {
+                uint targetThread = this.debugger.TargetThread;
+                if (targetThread == 0) {
+                    this.ServeUncachedString(this.JSONError("Unable to retrieve the target process."), context);
+                } else {
+                    DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(int));
+                    using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                        serializer.WriteObject(memoryStream, targetThread);
+                        string result = Encoding.Default.GetString(memoryStream.ToArray());
+                        this.ServeUncachedString(result, context);
+                    }
+                }
+            } else if (context.Request.HttpMethod == "PUT") {
+                string threadId = this.ReadRequestBody(context);
+                if (threadId == null) {
+                    return;
+                }
+
+                try {
+                    this.debugger.TargetThread = UInt32.Parse(threadId);
+                    this.ServeUncachedString("{ \"success\": true }", context);
+                } catch (Exception) {
+                    this.ServeUncachedString(this.JSONError("Unable to set the target process."), context);
+                }
+            } else {
+                this.ServeFailure(context);
             }
         }
 

@@ -14,7 +14,7 @@ namespace JsDbg.VisualStudio {
             this.diaLoader = null;
         }
 
-        internal void NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus status) {
+        internal void NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus status) {
             this.DebuggerChange?.Invoke(this, new DebuggerChangeEventArgs(status));
         }
 
@@ -31,6 +31,24 @@ namespace JsDbg.VisualStudio {
 
         public bool IsPointer64Bit {
             get { return this.runner.IsPointer64Bit; }
+        }
+
+        public uint TargetProcess {
+            get { return this.runner.TargetProcessSystemId; }
+            set { this.runner.SetTargetProcess(value); }
+        }
+
+        public uint[] GetAttachedProcesses() {
+            return this.runner.GetAttachedProcesses();
+        }
+
+        public uint TargetThread {
+            get { return this.runner.TargetThreadSystemId; }
+            set { this.runner.SetTargetThread(value); }
+        }
+
+        public uint[] GetCurrentProcessThreads() {
+            return this.runner.GetCurrentProcessThreads();
         }
 
         public async Task<ulong> TebAddress() {

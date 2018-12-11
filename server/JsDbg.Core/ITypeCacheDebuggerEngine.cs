@@ -26,6 +26,14 @@ namespace JsDbg.Core {
 
         bool IsPointer64Bit { get; }
 
+        uint TargetProcess { get; set; }
+
+        uint[] GetAttachedProcesses();
+
+        uint TargetThread { get; set; }
+
+        uint[] GetCurrentProcessThreads();
+
         Task<ulong> TebAddress();
 
         Task<SModule> GetModuleForAddress(ulong address);

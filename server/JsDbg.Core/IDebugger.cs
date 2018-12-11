@@ -85,6 +85,10 @@ namespace JsDbg.Core {
         event DebuggerMessageEventHandler DebuggerMessage;
 
         void Dispose();
+        uint TargetProcess { get; set; }
+        uint[] GetAttachedProcesses();
+        uint TargetThread { get; set; }
+        uint[] GetCurrentProcessThreads();
         Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes);
         Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typeName);
         bool IsDebuggerBusy { get; }

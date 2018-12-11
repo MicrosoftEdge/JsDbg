@@ -190,6 +190,24 @@ namespace JsDbg.Core {
 
         public void Dispose() { }
 
+        public uint TargetProcess {
+            get { return this.debuggerEngine.TargetProcess; }
+            set { this.debuggerEngine.TargetProcess = value; }
+        }
+
+        public uint[] GetAttachedProcesses() {
+            return this.debuggerEngine.GetAttachedProcesses();
+        }
+
+        public uint TargetThread {
+            get { return this.debuggerEngine.TargetThread; }
+            set { this.debuggerEngine.TargetThread = value; }
+        }
+
+        public uint[] GetCurrentProcessThreads() {
+            return this.debuggerEngine.GetCurrentProcessThreads();
+        }
+
         public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
             return (await this.LoadType(module, typename)).Fields(includeBaseTypes);
         }

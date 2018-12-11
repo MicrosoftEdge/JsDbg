@@ -86,6 +86,70 @@ Loader.OnLoad(function () {
         ++queuedExtensionListUpdates;
     }
 
+    function updateProcessSelector() {
+        JsDbg.GetAttachedProcesses((processIds) => {
+            var processSelector = document.getElementById("processSelector");
+            var selectedProcessId = -1;
+            if (processSelector.selectedOptions.length != 0) {
+                console.assert(processSelector.selectedOptions.length == 1);
+                selectedProcessId = processSelector.selectedOptions[0].value;
+            }
+            processSelector.innerHTML = "";
+            processIds.forEach((processId) => {
+                var option = document.createElement("option");
+                option.append(processId);
+                option.setAttribute("label", processId + " (0x" + processId.toString(16) + ")");
+                if (processId == selectedProcessId) {
+                    option.setAttribute("selected", "true");
+                }
+                processSelector.appendChild(option);
+            });
+
+            JsDbg.GetTargetProcess((targetProcessId) => {
+                var optionToSelect = [...processSelector.options].filter((option) => (option.value == targetProcessId));
+                if (processSelector.selectedOptions.length != 0) {
+                    console.assert(processSelector.selectedOptions.length == 1);
+                    processSelector.selectedOptions[0].setAttribute("selected", "false");
+                }
+                if (optionToSelect.length == 1) {
+                    optionToSelect[0].setAttribute("selected", "true");
+                }
+            });
+        });
+    }
+
+    function updateThreadSelector() {
+        JsDbg.GetCurrentProcessThreads((threadIds) => {
+            var threadSelector = document.getElementById("threadSelector");
+            var selectedThreadId = -1;
+            if (threadSelector.selectedOptions.length != 0) {
+                console.assert(threadSelector.selectedOptions.length == 1);
+                selectedThreadId = threadSelector.selectedOptions[0].value;
+            }
+            threadSelector.innerHTML = "";
+            threadIds.forEach((threadId) => {
+                var option = document.createElement("option");
+                option.append(threadId);
+                option.setAttribute("label", threadId + " (0x" + threadId.toString(16) + ")");
+                if (threadId == selectedThreadId) {
+                    option.setAttribute("selected", "true");
+                }
+                threadSelector.appendChild(option);
+            });
+
+            JsDbg.GetTargetThread((targetThreadId) => {
+                var optionToSelect = [...threadSelector.options].filter((option) => (option.value == targetThreadId));
+                if (threadSelector.selectedOptions.length != 0) {
+                    console.assert(threadSelector.selectedOptions.length == 1);
+                    threadSelector.selectedOptions[0].setAttribute("selected", "false");
+                }
+                if (optionToSelect.length == 1) {
+                    optionToSelect[0].setAttribute("selected", "true");
+                }
+            });
+        });
+    }
+
     function buildToolbar() {
         // Insert the toolbar.
         var toolbar = document.createElement("div");
@@ -159,6 +223,36 @@ Loader.OnLoad(function () {
 
         toolbar.appendChild(feedback);
 
+        var processSelectorPane = document.createElement("div");
+        processSelectorPane.classList.add("jsdbg-process-selector");
+        processSelectorPane.append("Current process: ");
+
+        var processSelector = document.createElement("select");
+        processSelector.setAttribute("id", "processSelector");
+        processSelectorPane.appendChild(processSelector);
+
+        processSelector.addEventListener("change", () => {
+            console.assert(processSelector.selectedOptions.length == 1)
+            JsDbg.SetTargetProcess(processSelector.selectedOptions[0].value);
+        }, false);
+
+        toolbar.appendChild(processSelectorPane);
+
+        var threadSelectorPane = document.createElement("div");
+        threadSelectorPane.classList.add("jsdbg-thread-selector");
+        threadSelectorPane.append("Current thread: ");
+
+        var threadSelector = document.createElement("select");
+        threadSelector.setAttribute("id", "threadSelector");
+        threadSelectorPane.appendChild(threadSelector);
+
+        threadSelector.addEventListener("change", () => {
+            console.assert(threadSelector.selectedOptions.length == 1)
+            JsDbg.SetTargetThread(threadSelector.selectedOptions[0].value);
+        }, false);
+
+        toolbar.appendChild(threadSelectorPane);
+
         document.documentElement.insertBefore(toolbar, document.documentElement.firstChild);
         
         updateExtensionList();
@@ -170,7 +264,12 @@ Loader.OnLoad(function () {
 
     buildToolbar();
 
+    updateProcessSelector();
+    updateThreadSelector();
+
     JsDbg.RegisterOnBreakListener(function () {
         updateExtensionList();
+        updateProcessSelector();
+        updateThreadSelector();
     });
 })
