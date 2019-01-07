@@ -10,6 +10,7 @@
         "target-specific/chromium/chromium-helpers"
     ],
     "targetModules": [
+        "msedge",
         "chrome",
         "content_shell",
         "browser_tests"
