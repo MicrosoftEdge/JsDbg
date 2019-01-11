@@ -17,9 +17,21 @@ namespace JsDbg.VisualStudio {
         }
 
         [DataMember(IsRequired = true)]
-        public string persistent_store_directory {
-            get { return this.persistentStoreDirectory; }
-            set { this.persistentStoreDirectory = value; }
+        public string azure_user_data_read_write_function_url {
+            get { return this.azureUserDataReadWriteFunctionUrl; }
+            set { this.azureUserDataReadWriteFunctionUrl = value; }
+        }
+
+        [DataMember(IsRequired = true)]
+        public string azure_get_users_function_url {
+            get { return this.azureGetUsersFunctionUrl; }
+            set { this.azureGetUsersFunctionUrl = value; }
+        }
+
+        [DataMember(IsRequired = true)]
+        public string azure_feedback_read_write_function_url {
+            get { return this.azureFeedbackReadWriteFunctionUrl; }
+            set { this.azureFeedbackReadWriteFunctionUrl = value; }
         }
 
         [DataMember(IsRequired = true)]
@@ -33,9 +45,22 @@ namespace JsDbg.VisualStudio {
                 return this.extensionDirectory;
             }
         }
-        public string PersistentStoreDirectory {
+
+        public string AzureUserDataReadWriteFunctionUrl {
             get {
-                return this.persistentStoreDirectory;
+                return this.azure_user_data_read_write_function_url;
+            }
+        }
+
+        public string AzureGetUsersFunctionUrl {
+            get {
+                return this.azure_get_users_function_url;
+            }
+        }
+
+        public string AzureFeedbackReadWriteFunctionUrl {
+            get {
+                return this.azure_feedback_read_write_function_url;
             }
         }
 
@@ -48,7 +73,9 @@ namespace JsDbg.VisualStudio {
         private static DataContractJsonSerializer ConfigurationSerializer = new DataContractJsonSerializer(typeof(Configuration));
 
         private string extensionDirectory;
-        private string persistentStoreDirectory;
+        private string azureUserDataReadWriteFunctionUrl;
+        private string azureGetUsersFunctionUrl;
+        private string azureFeedbackReadWriteFunctionUrl;
         private string updateUrl;
     }
 }

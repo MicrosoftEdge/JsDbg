@@ -1368,7 +1368,7 @@ namespace JsDbg.Core {
                 try {
                     this.debugger.TargetProcess = UInt32.Parse(processId);
                     this.ServeUncachedString("{ \"success\": true }", context);
-                } catch (Exception e) {
+                } catch (Exception) {
                     this.ServeUncachedString(this.JSONError("Unable to set the target process."), context);
                 }
             } else {

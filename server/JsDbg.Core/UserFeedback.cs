@@ -1,31 +1,30 @@
 ﻿using System;
-using System.IO;
+using System.Net.Http;
 
 namespace JsDbg.Core {
     public class UserFeedback {
-        public UserFeedback(string location) {
-            this.location = location;
+        public UserFeedback(string azureFeedbackReadWriteFunctionURL) {
+            this.azureFeedbackReadWriteFunctionURL = azureFeedbackReadWriteFunctionURL;
             this.counter = 0;
-
-            if (!Directory.Exists(location)) {
-                try {
-                    Directory.CreateDirectory(location);
-                } catch { }
-            }
         }
 
         private string GetPath() {
             string date = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             string body = date + "." + System.Environment.UserDomainName + "_" + System.Environment.UserName + "." + this.counter++;
-            return Path.Combine(this.location, body + ".txt");
+            return body + ".txt";
         }
 
-        public void RecordUserFeedback(string feedback) {
+        public async void RecordUserFeedback(string feedback) {
             string path = this.GetPath();
-            File.WriteAllText(path, feedback);
+            string pathQueryParameter = "path=" + path;
+            using (HttpClient client = new HttpClient()) {
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, new Uri(this.azureFeedbackReadWriteFunctionURL + "&" + pathQueryParameter));
+                request.Content = new StringContent(feedback);
+                await client.SendAsync(request);
+            }
         }
 
-        private string location;
+        private string azureFeedbackReadWriteFunctionURL;
         private int counter;
     }
 }

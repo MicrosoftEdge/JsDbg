@@ -49,8 +49,8 @@ namespace JsDbg.WinDbg {
                 return -1;
             }
 
-            PersistentStore persistentStore = new PersistentStore(configuration.PersistentStoreDirectory);
-            UserFeedback userFeedback = new UserFeedback(Path.Combine(configuration.PersistentStoreDirectory, "feedback"));
+            PersistentStore persistentStore = new PersistentStore(configuration.AzureUserDataReadWriteFunctionURL, configuration.AzureGetUsersFunctionURL);
+            UserFeedback userFeedback = new UserFeedback(configuration.AzureFeedbackReadWriteFunctionURL);
 
             using (WebServer webServer = new WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot)) {
                 webServer.LoadExtension("default");

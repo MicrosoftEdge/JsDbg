@@ -1,7 +1,9 @@
 ﻿using System;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using System.IO;
 
 namespace JsDbg.Core {
     public class PersistentStore {
@@ -9,55 +11,53 @@ namespace JsDbg.Core {
             get { return Encoding.UTF8; }
         }
 
-        public PersistentStore(string location) {
-            this.location = location;
+        public PersistentStore(string azureUserDataReadWriteFunctionURL, string azureGetUsersFunctionURL) {
+            this.azureUserDataReadWriteFunctionURL = azureUserDataReadWriteFunctionURL;
+            this.azureGetUsersFunctionURL = azureGetUsersFunctionURL;
         }
 
         private string GetPath(string user) {
             if (user == null) {
                 user = System.Environment.UserDomainName + "." + System.Environment.UserName;
             }
-            return Path.Combine(this.location, user);
+            return user;
         }
 
         public Task<string> Get(string user) {
             return this.AttemptFileOperation<string>(async () => {
                 string path = this.GetPath(user);
-                if (File.Exists(path)) {
-                    using (var file = File.OpenRead(path)) {
-                        using (var reader = new StreamReader(file, PersistentStore.Encoding)) {
-                            return await reader.ReadToEndAsync();
-                        }
-                    }
-                } else {
-                    return "{}";
+                string pathQueryParameter = "path=" + path;
+                using (HttpClient client = new HttpClient()) {
+                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, new Uri(this.azureUserDataReadWriteFunctionURL + "&" + pathQueryParameter));
+                    HttpResponseMessage response = await client.SendAsync(request);
+                    return await response.Content.ReadAsStringAsync();
                 }
             });
         }
 
         public Task<bool> Set(string value) {
             return this.AttemptFileOperation<bool>(async () => {
-                string path = this.GetPath(/*user*/null);
-                using (var file = File.Create(path)) {
-                    using (var writer = new StreamWriter(file, PersistentStore.Encoding)) {
-                        await writer.WriteAsync(value);
-                    }
+                string path = this.GetPath(user: null);
+                string pathQueryParameter = "path=" + path;
+                using (HttpClient client = new HttpClient()) {
+                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, new Uri(this.azureUserDataReadWriteFunctionURL + "&" + pathQueryParameter));
+                    request.Content = new StringContent(value, PersistentStore.Encoding, "application/json");
+                    await client.SendAsync(request);
+                    return true;
                 }
-
-                return true;
             });
         }
 
         public Task<string[]> GetUsers() {
-            return this.AttemptFileOperation<string[]>(() => {
-                string[] paths = Directory.GetFiles(this.location);
-
-                // Instead of paths, we just want the filenames.
-                for (int i = 0; i < paths.Length; ++i) {
-                    paths[i] = Path.GetFileName(paths[i]);
+            return this.AttemptFileOperation<string[]>(async () => {
+                using (HttpClient client = new HttpClient()) {
+                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, new Uri(this.azureGetUsersFunctionURL));
+                    HttpResponseMessage response = await client.SendAsync(request);
+                    string contentString = await response.Content.ReadAsStringAsync();
+                    // contentString is a string of format: '["user1","user2",...]' - we need to strip the square brackets and double quotes, and convert it to an array
+                    string[] users = contentString.Substring(1, contentString.Length - 2).Split(',').Select((userNameWithQuotes) => userNameWithQuotes.Substring(1, userNameWithQuotes.Length - 2)).ToArray();
+                    return users;
                 }
-
-                return Task.FromResult<string[]>(paths);
             });
         }
 
@@ -88,8 +88,8 @@ namespace JsDbg.Core {
             this.isActive = 0;
         }
 
-
-        private string location;
+        private string azureUserDataReadWriteFunctionURL;
+        private string azureGetUsersFunctionURL;
         private int isActive;
     }
 }

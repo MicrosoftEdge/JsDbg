@@ -1,4 +1,6 @@
 {
     "extension_root": ".\\extensions",
-    "persistent_store_directory": "\\\\iefs\\users\\psalas\\jsdbg\\support\\persistent"
+    "azure_user_data_read_write_function_url": "https://jsdbg-user-data-read-write.azurewebsites.net/api/HttpTrigger1?code=poWAJbDr1vlToVM71Z7wmsuwTgK6gH0uA8EKNE5y2HAFVnxSFsaMwg==",
+    "azure_get_users_function_url": "https://jsdbg-get-users.azurewebsites.net/api/HttpTrigger1?code=NjmLDuS/9k307a3UbDcFpTsZHMNXiTHPaCF8Nb5LecutbwfEXIZEXA==",
+    "azure_feedback_read_write_function_url": "https://jsdbg-feedback-read-write.azurewebsites.net/api/HttpTrigger1?code=nTB/rOMdO7Y3o6zhzjzmksOxGNNW1yJTzbvEmJeFvzqqK3EUF2G7Yw=="
 }

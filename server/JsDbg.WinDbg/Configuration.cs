@@ -13,9 +13,21 @@ namespace JsDbg.WinDbg {
         }
 
         [DataMember(IsRequired = true)]
-        public string persistent_store_directory {
-            get { return this._persistent_store_directory; }
-            set { this._persistent_store_directory = value; }
+        public string azure_user_data_read_write_function_url {
+            get { return this._azure_user_data_read_write_function_url; }
+            set { this._azure_user_data_read_write_function_url = value; }
+        }
+
+        [DataMember(IsRequired = true)]
+        public string azure_get_users_function_url {
+            get { return this._azure_get_users_function_url; }
+            set { this._azure_get_users_function_url = value; }
+        }
+
+        [DataMember(IsRequired = true)]
+        public string azure_feedback_read_write_function_url {
+            get { return this._azure_feedback_read_write_function_url; }
+            set { this._azure_feedback_read_write_function_url = value; }
         }
 
         internal static Configuration Load() {
@@ -31,17 +43,29 @@ namespace JsDbg.WinDbg {
                 return Path.GetFullPath(this.extension_root);
             }
         }
-        public string PersistentStoreDirectory {
+
+        public string AzureUserDataReadWriteFunctionURL {
             get {
-                return Path.GetFullPath(this.persistent_store_directory);
+                return this.azure_user_data_read_write_function_url;
+            }
+        }
+
+        public string AzureGetUsersFunctionURL {
+            get {
+                return this.azure_get_users_function_url;
+            }
+        }
+
+        public string AzureFeedbackReadWriteFunctionURL {
+            get {
+                return this.azure_feedback_read_write_function_url;
             }
         }
 
         public static string Schema {
             get {
                 return @"{
-    ""extension_root"": ""\path\to\extensions"",
-    ""persistent_store_directory"": ""\path\to\persistent\store""
+    ""extension_root"": ""\path\to\extensions""
 }";
             }
         }
@@ -49,6 +73,8 @@ namespace JsDbg.WinDbg {
         private static DataContractJsonSerializer ConfigurationSerializer = new DataContractJsonSerializer(typeof(Configuration));
 
         private string _extension_root;
-        private string _persistent_store_directory;
+        private string _azure_user_data_read_write_function_url;
+        private string _azure_get_users_function_url;
+        private string _azure_feedback_read_write_function_url;
     }
 }
