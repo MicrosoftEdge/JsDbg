@@ -90,6 +90,5 @@ namespace JsDbg.VisualStudio
         }
 
         private Core.WebServer webServer;
-        private string azureStorageAccountConnectionString;
     }
 }
