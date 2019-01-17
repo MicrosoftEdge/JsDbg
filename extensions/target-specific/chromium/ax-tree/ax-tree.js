@@ -65,10 +65,10 @@ Loader.OnLoad(function() {
     AXTree.Tree.addChildren(Chromium.BrowserProcessType("ui::AXTree"), (tree) => tree.f("root_"));
     AXTree.Tree.addChildren(Chromium.BrowserProcessType("ui::AXNode"), (node) => node.f("children_").array("Elements").deref());
 
-    AXTree.Renderer.addNameRenderer(Chromium.BrowserProcessType("ui::AXTree"), (tree) => 
-        Promise.all([tree.f("data_.url").desc(), tree.f("data_.tree_id").val()])
-        .thenAll((url, id) => `AXTree(#${id}) ${url}`)
-    );
+    AXTree.Renderer.addNameRenderer(Chromium.BrowserProcessType("ui::AXTree"), (tree) => {
+        return tree.f("data_.url").desc()
+        .then((url) => `AXTree (${url})`);
+    });
     AXTree.Renderer.addNameRenderer(Chromium.BrowserProcessType("ui::AXNode"), (node) =>
         Promise.all([
             node.f("data_.role").constant().then((str) => str.substr(1)),
