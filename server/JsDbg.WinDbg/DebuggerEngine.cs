@@ -44,31 +44,8 @@ namespace JsDbg.WinDbg {
             }
         }
 
-        public Task<ulong> TebAddress() {
-            return this.AttemptOperation<ulong>(() => {
-                return this.runner.TebAddress();
-            }, String.Format("Unable to get TEB address."));
-        }
-
-        private async Task<T> AttemptOperation<T>(Func<T> operation, string errorMessage) {
-            bool retryAfterWaitingForBreak = false;
-            do {
-                try {
-                    return operation();
-                } catch (InvalidOperationException) {
-                    if (!retryAfterWaitingForBreak) {
-                        retryAfterWaitingForBreak = true;
-                    } else {
-                        throw new DebuggerException(errorMessage);
-                    }
-                } catch (DebuggerException) {
-                    throw;
-                } catch {
-                    throw new DebuggerException(errorMessage);
-                }
-
-                await this.runner.WaitForBreakIn();
-            } while (true);
+        public async Task<ulong> TebAddress() {
+            return await this.runner.TebAddress();
         }
 
         public uint TargetProcess {
@@ -76,8 +53,8 @@ namespace JsDbg.WinDbg {
             set { this.runner.SetTargetProcess(value); }
         }
 
-        public uint[] GetAttachedProcesses() {
-            return this.runner.GetAttachedProcesses();
+        public async Task<uint[]> GetAttachedProcesses() {
+            return await this.runner.GetAttachedProcesses();
         }
 
         public uint TargetThread {
@@ -85,12 +62,12 @@ namespace JsDbg.WinDbg {
             set { this.runner.SetTargetThread(value); }
         }
 
-        public uint[] GetCurrentProcessThreads() {
-            return this.runner.GetCurrentProcessThreads();
+        public async Task<uint[]> GetCurrentProcessThreads() {
+            return await this.runner.GetCurrentProcessThreads();
         }
 
         public Task<Core.SModule> GetModuleForAddress(ulong address) {
-            return this.AttemptOperation<Core.SModule>(() => {
+            return this.runner.AttemptOperation<Core.SModule>(() => {
                 Core.SModule result = new Core.SModule();
                 this.symbolCache.GetModule(address, out result.BaseAddress, out result.Name);
                 return result;
@@ -98,7 +75,7 @@ namespace JsDbg.WinDbg {
         }
 
         public Task<Core.SModule> GetModuleForName(string module) {
-            return this.AttemptOperation<Core.SModule>(() => {
+            return this.runner.AttemptOperation<Core.SModule>(() => {
                 Core.SModule result = new Core.SModule();
                 result.Name = module;
                 result.BaseAddress = this.symbolCache.GetModuleBase(module);
@@ -107,7 +84,7 @@ namespace JsDbg.WinDbg {
         }
 
         public Task<T[]> ReadArray<T>(ulong pointer, ulong size) where T : struct {
-            return this.AttemptOperation<T[]>(() => {
+            return this.runner.AttemptOperation<T[]>(() => {
                 T[] result = new T[size];
                 uint bytesRead = this.dataSpaces.ReadVirtual<T>(pointer, result);
                 if ((uint)System.Runtime.InteropServices.Marshal.SizeOf(typeof(T)) * size > bytesRead) {
@@ -118,7 +95,7 @@ namespace JsDbg.WinDbg {
         }
 
         public Task WriteValue<T>(ulong pointer, T value) where T : struct {
-            return this.AttemptOperation<bool>(() => {
+            return this.runner.AttemptOperation<bool>(() => {
                 T[] data = { value };
                 uint bytesWritten = this.dataSpaces.WriteVirtual<T>(pointer, data);
                 if (bytesWritten < System.Runtime.InteropServices.Marshal.SizeOf(typeof(T))) {
@@ -129,7 +106,7 @@ namespace JsDbg.WinDbg {
         }
 
         public Task<IEnumerable<Core.SStackFrame>> GetCurrentCallStack(int requestedFrameCount) {
-            return this.AttemptOperation<IEnumerable<Core.SStackFrame>>(() => {
+            return this.runner.AttemptOperation<IEnumerable<Core.SStackFrame>>(() => {
                 List<Core.SStackFrame> stackFrames = new List<Core.SStackFrame>();
 
                 uint frameCount = 0;
@@ -158,7 +135,7 @@ namespace JsDbg.WinDbg {
         }
 
         public Task<Core.Type> GetTypeFromDebugger(string module, string typename) {
-            return this.AttemptOperation<Core.Type>(() => {
+            return this.runner.AttemptOperation<Core.Type>(() => {
                 uint typeSize = 0;
 
                 ulong moduleBase;
@@ -311,7 +288,7 @@ namespace JsDbg.WinDbg {
         }
 
         public Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol) {
-            return this.AttemptOperation<SSymbolResult>(() => {
+            return this.runner.AttemptOperation<SSymbolResult>(() => {
                 SSymbolResult result = new SSymbolResult();
 
                 uint typeId = 0;
@@ -336,7 +313,7 @@ namespace JsDbg.WinDbg {
         }
 
         public Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer) {
-            return this.AttemptOperation<SSymbolNameAndDisplacement>(() => {
+            return this.runner.AttemptOperation<SSymbolNameAndDisplacement>(() => {
                 string fullyQualifiedSymbolName;
                 ulong displacement;
                 this.symbolCache.GetSymbolName(pointer, out fullyQualifiedSymbolName, out displacement);

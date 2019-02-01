@@ -195,8 +195,8 @@ namespace JsDbg.Core {
             set { this.debuggerEngine.TargetProcess = value; }
         }
 
-        public uint[] GetAttachedProcesses() {
-            return this.debuggerEngine.GetAttachedProcesses();
+        public async Task<uint[]> GetAttachedProcesses() {
+            return await this.debuggerEngine.GetAttachedProcesses();
         }
 
         public uint TargetThread {
@@ -204,8 +204,8 @@ namespace JsDbg.Core {
             set { this.debuggerEngine.TargetThread = value; }
         }
 
-        public uint[] GetCurrentProcessThreads() {
-            return this.debuggerEngine.GetCurrentProcessThreads();
+        public async Task<uint[]> GetCurrentProcessThreads() {
+            return await this.debuggerEngine.GetCurrentProcessThreads();
         }
 
         public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {

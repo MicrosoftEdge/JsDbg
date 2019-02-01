@@ -28,11 +28,11 @@ namespace JsDbg.Core {
 
         uint TargetProcess { get; set; }
 
-        uint[] GetAttachedProcesses();
+        Task<uint[]> GetAttachedProcesses();
 
         uint TargetThread { get; set; }
 
-        uint[] GetCurrentProcessThreads();
+        Task<uint[]> GetCurrentProcessThreads();
 
         Task<ulong> TebAddress();
 

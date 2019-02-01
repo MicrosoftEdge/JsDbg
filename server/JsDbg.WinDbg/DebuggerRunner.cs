@@ -24,9 +24,8 @@ namespace JsDbg.WinDbg {
             this.didShutdown = true;
             this.engine = new DebuggerEngine(this, this.client, this.control, this.diaLoader);
             this.debugger = new Core.TypeCacheDebugger(this.engine);
-            if (!this.IsDebuggerBusy) {
-                this.TargetProcessSystemId = this.systemObjects.CurrentProcessSystemId;
-            }
+            Debug.Assert(!this.IsDebuggerBusy);
+            this.TargetProcessSystemId = this.systemObjects.CurrentProcessSystemId;
         }
 
         public void Dispose() {
@@ -41,31 +40,33 @@ namespace JsDbg.WinDbg {
             get { return this.debugger; }
         }
 
-        public ulong TebAddress() {
-            Debug.Assert(!this.IsDebuggerBusy);
-            return this.systemObjects.CurrentThreadTeb;
+        public Task<ulong> TebAddress() {
+            return this.AttemptOperation<ulong>(() => this.systemObjects.CurrentThreadTeb, String.Format("Unable to get TEB address."));
+
         }
 
-        public void SetTargetProcess(uint systemProcessId) {
-            if (Array.IndexOf(this.GetAttachedProcesses(), systemProcessId) == -1) {
+        public async void SetTargetProcess(uint systemProcessId) {
+            if (Array.IndexOf(await this.GetAttachedProcesses(), systemProcessId) == -1) {
                 throw new DebuggerException("Invalid process ID");
             } else {
                 if (this.TargetProcessSystemId != systemProcessId) {
                     this.TargetProcessSystemId = systemProcessId;
-                    uint engineProcessId = this.systemObjects.GetProcessIdBySystemId(systemProcessId);
+                    uint engineProcessId = await this.AttemptOperation<uint>(() => this.systemObjects.GetProcessIdBySystemId(systemProcessId), String.Format("Unable to set process ID."));
                     this.control.Execute("|" + engineProcessId + "s");
-                    this.TargetThreadSystemId = this.systemObjects.CurrentThreadSystemId;  // Process change also causes a thread change.
+                    this.TargetThreadSystemId = await this.AttemptOperation<uint>(() => this.systemObjects.CurrentThreadSystemId, String.Format("Unable to set thread ID."));  // Process change also causes a thread change.
                     this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
                 }
             }
         }
 
-        public uint[] GetAttachedProcesses() {
-            uint numProcesses = this.systemObjects.NumberProcesses;
-            uint[] ids;
-            uint[] systemIds;
-            this.systemObjects.GetProcessIdsByIndex(/*start*/0, /*count*/numProcesses, out ids, out systemIds);
-            return systemIds;
+        public async Task<uint[]> GetAttachedProcesses() {
+            return await this.AttemptOperation<uint[]>(() => {
+                uint numProcesses = this.systemObjects.NumberProcesses;
+                uint[] ids;
+                uint[] systemIds;
+                this.systemObjects.GetProcessIdsByIndex(/*start*/0, /*count*/numProcesses, out ids, out systemIds);
+                return systemIds;
+            }, String.Format("Unable to get process IDs."));
         }
 
         public uint TargetProcessSystemId {
@@ -73,25 +74,27 @@ namespace JsDbg.WinDbg {
             set { this.targetProcessSystemId = value; }
         }
 
-        public void SetTargetThread(uint systemThreadId) {
-            if (Array.IndexOf(this.GetCurrentProcessThreads(), systemThreadId) == -1) {
+        public async void SetTargetThread(uint systemThreadId) {
+            if (Array.IndexOf(await this.GetCurrentProcessThreads(), systemThreadId) == -1) {
                 throw new DebuggerException("Invalid thread ID");
             } else {
                 if (this.TargetThreadSystemId != systemThreadId) {
                     this.TargetThreadSystemId = systemThreadId;
-                    uint engineThreadId = this.systemObjects.GetThreadIdBySystemId(systemThreadId);
+                    uint engineThreadId = await this.AttemptOperation<uint>(() => this.systemObjects.GetThreadIdBySystemId(systemThreadId), String.Format("Unable to set thread ID."));
                     this.control.Execute("~" + engineThreadId + "s");
                     this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingThread);
                 }
             }
         }
 
-        public uint[] GetCurrentProcessThreads() {
-            uint numThreads = this.systemObjects.NumberThreads;
-            uint[] ids;
-            uint[] systemIds;
-            this.systemObjects.GetThreadIdsByIndex(/*start*/0, /*count*/ numThreads, out ids, out systemIds);
-            return systemIds;
+        public async Task<uint[]> GetCurrentProcessThreads() {
+            return await this.AttemptOperation<uint[]>(() => {
+                uint numThreads = this.systemObjects.NumberThreads;
+                uint[] ids;
+                uint[] systemIds;
+                this.systemObjects.GetThreadIdsByIndex(/*start*/0, /*count*/ numThreads, out ids, out systemIds);
+                return systemIds;
+            }, String.Format("Unable to get thread IDs."));
         }
 
         public uint TargetThreadSystemId {
@@ -146,21 +149,19 @@ namespace JsDbg.WinDbg {
 
             while (!this.isShuttingDown) {
                 try {
-                    if (!this.IsDebuggerBusy) {
-                        uint currentProcessSystemId = this.systemObjects.CurrentProcessSystemId;
-                        uint currentThreadSystemId = this.systemObjects.CurrentThreadSystemId;
-                        if (this.TargetProcessSystemId == 0) {
-                            this.TargetProcessSystemId = currentProcessSystemId;
-                            if (this.TargetProcessSystemId != 0) {
-                                this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
-                            }
-                        } else if (this.TargetProcessSystemId != currentProcessSystemId) {
-                            this.TargetProcessSystemId = currentProcessSystemId;
+                    uint currentProcessSystemId = await this.AttemptOperation<uint>(() => this.systemObjects.CurrentProcessSystemId, String.Format("Unable to retrieve the current process system ID."));
+                    uint currentThreadSystemId = await this.AttemptOperation<uint>(() => this.systemObjects.CurrentThreadSystemId, String.Format("Unable to retrieve the current thread system ID."));
+                    if (this.TargetProcessSystemId == 0) {
+                        this.TargetProcessSystemId = currentProcessSystemId;
+                        if (this.TargetProcessSystemId != 0) {
                             this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
-                        } else if (this.TargetThreadSystemId != currentThreadSystemId) {
-                            this.TargetThreadSystemId = currentThreadSystemId;
-                            this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingThread);
                         }
+                    } else if (this.TargetProcessSystemId != currentProcessSystemId) {
+                        this.TargetProcessSystemId = currentProcessSystemId;
+                        this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
+                    } else if (this.TargetThreadSystemId != currentThreadSystemId) {
+                        this.TargetThreadSystemId = currentThreadSystemId;
+                        this.engine.NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingThread);
                     }
 
                     this.client.DispatchCallbacks(TimeSpan.Zero);
@@ -178,6 +179,27 @@ namespace JsDbg.WinDbg {
                 this.isShuttingDown = false;
                 this.didShutdown = true;
             }
+        }
+
+        public async Task<T> AttemptOperation<T>(Func<T> operation, string errorMessage) {
+            bool retryAfterWaitingForBreak = false;
+            do {
+                try {
+                    return operation();
+                } catch (InvalidOperationException) {
+                    if (!retryAfterWaitingForBreak) {
+                        retryAfterWaitingForBreak = true;
+                    } else {
+                        throw new DebuggerException(errorMessage);
+                    }
+                } catch (DebuggerException) {
+                    throw;
+                } catch {
+                    throw new DebuggerException(errorMessage);
+                }
+
+                await this.WaitForBreakIn();
+            } while (true);
         }
 
         public async Task Shutdown() {
