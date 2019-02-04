@@ -182,16 +182,11 @@ namespace JsDbg.WinDbg {
         }
 
         public async Task<T> AttemptOperation<T>(Func<T> operation, string errorMessage) {
-            bool retryAfterWaitingForBreak = false;
             do {
                 try {
                     return operation();
                 } catch (InvalidOperationException) {
-                    if (!retryAfterWaitingForBreak) {
-                        retryAfterWaitingForBreak = true;
-                    } else {
-                        throw new DebuggerException(errorMessage);
-                    }
+                    // retry after waiting for break-in
                 } catch (DebuggerException) {
                     throw;
                 } catch {
