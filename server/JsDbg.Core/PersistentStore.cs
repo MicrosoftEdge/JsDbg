@@ -11,9 +11,11 @@ namespace JsDbg.Core {
             get { return Encoding.UTF8; }
         }
 
-        public PersistentStore(string azureUserDataReadWriteFunctionURL, string azureGetUsersFunctionURL) {
-            this.azureUserDataReadWriteFunctionURL = azureUserDataReadWriteFunctionURL;
-            this.azureGetUsersFunctionURL = azureGetUsersFunctionURL;
+        private static string PersistentStoreFileName {
+            get { return "jsdbg-persistent-store.json"; }
+        }
+
+        public PersistentStore() {
         }
 
         private string GetPath(string user) {
@@ -24,40 +26,18 @@ namespace JsDbg.Core {
         }
 
         public Task<string> Get(string user) {
-            return this.AttemptFileOperation<string>(async () => {
-                string path = this.GetPath(user);
-                string pathQueryParameter = "path=" + path;
-                using (HttpClient client = new HttpClient()) {
-                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, new Uri(this.azureUserDataReadWriteFunctionURL + "&" + pathQueryParameter));
-                    HttpResponseMessage response = await client.SendAsync(request);
-                    return await response.Content.ReadAsStringAsync();
-                }
+            return this.AttemptFileOperation<string>(() => {
+                return Task.FromResult<string>(File.ReadAllText(Path.GetTempPath() + PersistentStore.PersistentStoreFileName, PersistentStore.Encoding));
             });
         }
 
         public Task<bool> Set(string value) {
-            return this.AttemptFileOperation<bool>(async () => {
-                string path = this.GetPath(user: null);
-                string pathQueryParameter = "path=" + path;
-                using (HttpClient client = new HttpClient()) {
-                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, new Uri(this.azureUserDataReadWriteFunctionURL + "&" + pathQueryParameter));
-                    request.Content = new StringContent(value, PersistentStore.Encoding, "application/json");
-                    await client.SendAsync(request);
-                    return true;
+            return this.AttemptFileOperation<bool>(() => {
+                using (FileStream fs = File.Create(Path.GetTempPath() + PersistentStore.PersistentStoreFileName)) {
+                    byte[] valueToWrite = PersistentStore.Encoding.GetBytes(value);
+                    fs.Write(valueToWrite, 0, valueToWrite.Length);
                 }
-            });
-        }
-
-        public Task<string[]> GetUsers() {
-            return this.AttemptFileOperation<string[]>(async () => {
-                using (HttpClient client = new HttpClient()) {
-                    HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, new Uri(this.azureGetUsersFunctionURL));
-                    HttpResponseMessage response = await client.SendAsync(request);
-                    string contentString = await response.Content.ReadAsStringAsync();
-                    // contentString is a string of format: '["user1","user2",...]' - we need to strip the square brackets and double quotes, and convert it to an array
-                    string[] users = contentString.Substring(1, contentString.Length - 2).Split(',').Select((userNameWithQuotes) => userNameWithQuotes.Substring(1, userNameWithQuotes.Length - 2)).ToArray();
-                    return users;
-                }
+                return Task.FromResult<bool>(true);
             });
         }
 
@@ -87,9 +67,6 @@ namespace JsDbg.Core {
         private void ReleaseLock() {
             this.isActive = 0;
         }
-
-        private string azureUserDataReadWriteFunctionURL;
-        private string azureGetUsersFunctionURL;
         private int isActive;
     }
 }

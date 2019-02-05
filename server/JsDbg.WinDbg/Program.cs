@@ -49,7 +49,7 @@ namespace JsDbg.WinDbg {
                 return -1;
             }
 
-            PersistentStore persistentStore = new PersistentStore(configuration.AzureUserDataReadWriteFunctionURL, configuration.AzureGetUsersFunctionURL);
+            PersistentStore persistentStore = new PersistentStore();
             using (WebServer webServer = new WebServer(runner.Debugger, persistentStore, configuration.ExtensionRoot)) {
                 webServer.LoadExtension("default");
 

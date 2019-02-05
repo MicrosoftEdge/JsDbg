@@ -52,31 +52,7 @@ function init() {
     })
 
     document.getElementById("loadPublishedExtension").addEventListener("click", function() {
-        CatalogViewer.Instantiate(
-            "extension-manager",
-            function (store, user) {
-                if (store.published) {
-                    return store.published.map(function(e) {
-                        e.publisher = user;
-                        return e;
-                    })
-                } else {
-                    return [];
-                }
-            },
-            "Select extensions to load:",
-            function (extension) {
-                return [extension.name, extension.description, extension.author, extension.publisher, extension.path];
-            }, 
-            function (selectedExtensions) {
-                for (var i = 0; i < selectedExtensions.length; ++i) {
-                    loadExtension(selectedExtensions[i].path, /*isMine*/false);
-                }
-            },
-            function (extension) {
-                return extension.name + "|" + extension.publisher;
-            }
-        )
+        CatalogViewer.Instantiate();
     })
 
     reloadLoadedExtensions(function() {

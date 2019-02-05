@@ -491,16 +491,6 @@ Loader.OnLoad(function () {
             JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorage", callback, JsDbgTransport.CacheType.Uncached, "PUT", value);
         },
 
-        _help_GetPersistentDataUsers: {
-            description: "Gets a collection of users with persistent data stored.",
-            arguments: [
-                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
-            ]
-        },
-        GetPersistentDataUsers: function(callback) {
-            JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorageusers", callback, JsDbgTransport.CacheType.Uncached);
-        },
-
         _help_RegisterOnBreakListener: {
             description: "Registers a callback to be fired when the debugger breaks in.",
             arguments: [

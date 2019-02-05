@@ -54,7 +54,7 @@ namespace JsDbg.VisualStudio
             }
 
             Configuration configuration = Configuration.Load();
-            Core.PersistentStore persistentStore = new Core.PersistentStore(configuration.AzureUserDataReadWriteFunctionUrl, configuration.AzureGetUsersFunctionUrl);
+            Core.PersistentStore persistentStore = new Core.PersistentStore();
 
             if (AutoUpdater.CheckForUpdates("5b3af206-b4d4-4d12-9661-5d2d8dd8d194", configuration.UpdateUrl) != Microsoft.VisualStudio.ExtensionManager.RestartReason.None) {
                 Debug.WriteLine("Update pending.");

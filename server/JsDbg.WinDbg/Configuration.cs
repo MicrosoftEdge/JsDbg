@@ -12,18 +12,6 @@ namespace JsDbg.WinDbg {
             set { this._extension_root = value; }
         }
 
-        [DataMember(IsRequired = true)]
-        public string azure_user_data_read_write_function_url {
-            get { return this._azure_user_data_read_write_function_url; }
-            set { this._azure_user_data_read_write_function_url = value; }
-        }
-
-        [DataMember(IsRequired = true)]
-        public string azure_get_users_function_url {
-            get { return this._azure_get_users_function_url; }
-            set { this._azure_get_users_function_url = value; }
-        }
-
         internal static Configuration Load() {
             string assemblyPath = System.Reflection.Assembly.GetExecutingAssembly().Location;
             string configurationPath = Path.Combine(Path.GetDirectoryName(assemblyPath), "configuration.json");
@@ -38,18 +26,6 @@ namespace JsDbg.WinDbg {
             }
         }
 
-        public string AzureUserDataReadWriteFunctionURL {
-            get {
-                return this.azure_user_data_read_write_function_url;
-            }
-        }
-
-        public string AzureGetUsersFunctionURL {
-            get {
-                return this.azure_get_users_function_url;
-            }
-        }
-
         public static string Schema {
             get {
                 return @"{
@@ -61,7 +37,5 @@ namespace JsDbg.WinDbg {
         private static DataContractJsonSerializer ConfigurationSerializer = new DataContractJsonSerializer(typeof(Configuration));
 
         private string _extension_root;
-        private string _azure_user_data_read_write_function_url;
-        private string _azure_get_users_function_url;
     }
 }

@@ -201,24 +201,6 @@ var Catalog = (function() {
             (new Store(namespace + "-metadata", null)).set("Last Access Date", new Date());
             return new Store(namespace, null);;
         },
-
-        _help_LoadAllUsers: {
-            description:"Loads the every user's data store for a namespace.",
-            arguments: [
-                {name:"namespace", type:"string", description:"The namespace."},
-                {name:"callback", type:"function(array of Catalog.Store objects)", description: "The result callback."}
-            ],
-            notes:"The resulting stores are not writeable; calling <code>set</code> on them will result in an error."
-        },
-        LoadAllUsers: function(namespace, callback) {
-            JsDbg.GetPersistentDataUsers(function (result) {
-                if (result.error) {
-                    callback(result);
-                } else {
-                    callback(result.users.map(function(username) { return new Store(namespace, username); }));
-                }
-            });
-        },
     }
 })();
 

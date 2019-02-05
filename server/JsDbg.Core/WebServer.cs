@@ -384,9 +384,6 @@ namespace JsDbg.Core {
                         this.ServeDefaultExtensionPath(segments, context);
                     }
                     break;
-                case "persistentstorageusers":
-                    this.ServePersistentStorageUsers(query, respond, fail);
-                    break;
                 case "attachedprocesses":
                     this.ServeAttachedProcesses(query, respond, fail);
                     break;
@@ -1286,21 +1283,6 @@ namespace JsDbg.Core {
                 }
             } else {
                 this.ServeFailure(context);
-            }
-        }
-
-        private async void ServePersistentStorageUsers(NameValueCollection query, Action<string> respond, Action fail) {
-            string[] users = await this.persistentStore.GetUsers();
-
-            if (users == null) {
-                respond(this.JSONError("Unable to access the persistent store."));
-            } else {
-                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(string[]));
-                using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
-                    serializer.WriteObject(memoryStream, users);
-                    string result = Encoding.Default.GetString(memoryStream.ToArray());
-                    respond(String.Format("{{ \"users\": {0} }}", result));
-                }
             }
         }
 

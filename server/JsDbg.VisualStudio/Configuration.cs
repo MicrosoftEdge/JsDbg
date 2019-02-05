@@ -17,18 +17,6 @@ namespace JsDbg.VisualStudio {
         }
 
         [DataMember(IsRequired = true)]
-        public string azure_user_data_read_write_function_url {
-            get { return this.azureUserDataReadWriteFunctionUrl; }
-            set { this.azureUserDataReadWriteFunctionUrl = value; }
-        }
-
-        [DataMember(IsRequired = true)]
-        public string azure_get_users_function_url {
-            get { return this.azureGetUsersFunctionUrl; }
-            set { this.azureGetUsersFunctionUrl = value; }
-        }
-
-        [DataMember(IsRequired = true)]
         public string update_url {
             get { return this.updateUrl; }
             set { this.updateUrl = value; }
@@ -37,18 +25,6 @@ namespace JsDbg.VisualStudio {
         public string ExtensionRoot {
             get {
                 return this.extensionDirectory;
-            }
-        }
-
-        public string AzureUserDataReadWriteFunctionUrl {
-            get {
-                return this.azure_user_data_read_write_function_url;
-            }
-        }
-
-        public string AzureGetUsersFunctionUrl {
-            get {
-                return this.azure_get_users_function_url;
             }
         }
 
@@ -61,8 +37,6 @@ namespace JsDbg.VisualStudio {
         private static DataContractJsonSerializer ConfigurationSerializer = new DataContractJsonSerializer(typeof(Configuration));
 
         private string extensionDirectory;
-        private string azureUserDataReadWriteFunctionUrl;
-        private string azureGetUsersFunctionUrl;
         private string updateUrl;
     }
 }
