@@ -38,8 +38,8 @@ namespace JsDbg.VisualStudio {
             set { this.runner.SetTargetProcess(value); }
         }
 
-        public uint[] GetAttachedProcesses() {
-            return this.runner.GetAttachedProcesses();
+        public Task<uint[]> GetAttachedProcesses() {
+            return Task.FromResult<uint[]>(this.runner.GetAttachedProcesses());
         }
 
         public uint TargetThread {
@@ -47,8 +47,8 @@ namespace JsDbg.VisualStudio {
             set { this.runner.SetTargetThread(value); }
         }
 
-        public uint[] GetCurrentProcessThreads() {
-            return this.runner.GetCurrentProcessThreads();
+        public Task<uint[]> GetCurrentProcessThreads() {
+            return Task.FromResult<uint[]>(this.runner.GetCurrentProcessThreads());
         }
 
         public async Task<ulong> TebAddress() {
