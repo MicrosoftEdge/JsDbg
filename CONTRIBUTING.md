@@ -6,7 +6,6 @@ Thanks for taking the time to contribute to JsDbg!  There are a few different wa
 
 If you notice something wrong with JsDbg or have an idea for how JsDbg can be better, we'd love to hear from you. Feel free to:
 * Join or send mail to the [JsDbg Users](mailto:jsdbgusers@microsoft.com) alias 
-* Send feedback using the form in JsDbg
 * Open a bug or work item in [VSTS](http://aka.ms/jsdbgwork)
 
 ## Contributing Code

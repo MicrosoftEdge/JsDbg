@@ -6,7 +6,7 @@ using JsDbg.Core;
 using JsDbg.Utilities;
 
 namespace JsDbg.WinDbg {
-    public class Program {      
+    public class Program {
 
         [STAThread]
         static int Main(string[] args) {
@@ -50,9 +50,7 @@ namespace JsDbg.WinDbg {
             }
 
             PersistentStore persistentStore = new PersistentStore(configuration.AzureUserDataReadWriteFunctionURL, configuration.AzureGetUsersFunctionURL);
-            UserFeedback userFeedback = new UserFeedback(configuration.AzureFeedbackReadWriteFunctionURL);
-
-            using (WebServer webServer = new WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot)) {
+            using (WebServer webServer = new WebServer(runner.Debugger, persistentStore, configuration.ExtensionRoot)) {
                 webServer.LoadExtension("default");
 
                 SynchronizationContext previousContext = SynchronizationContext.Current;

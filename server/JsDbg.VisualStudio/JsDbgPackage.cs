@@ -55,20 +55,13 @@ namespace JsDbg.VisualStudio
 
             Configuration configuration = Configuration.Load();
             Core.PersistentStore persistentStore = new Core.PersistentStore(configuration.AzureUserDataReadWriteFunctionUrl, configuration.AzureGetUsersFunctionUrl);
-            Core.UserFeedback userFeedback = new Core.UserFeedback(configuration.AzureUserDataReadWriteFunctionUrl);
 
-            try {
-                if (AutoUpdater.CheckForUpdates("5b3af206-b4d4-4d12-9661-5d2d8dd8d194", configuration.UpdateUrl) != Microsoft.VisualStudio.ExtensionManager.RestartReason.None) {
-                    Debug.WriteLine("Update pending.");
-                }
-            } catch (Exception ex) {
-                try {
-                    userFeedback.RecordUserFeedback(String.Format("Error while checking updates: {0}", ex));
-                } catch { }
+            if (AutoUpdater.CheckForUpdates("5b3af206-b4d4-4d12-9661-5d2d8dd8d194", configuration.UpdateUrl) != Microsoft.VisualStudio.ExtensionManager.RestartReason.None) {
+                Debug.WriteLine("Update pending.");
             }
 
             DebuggerRunner runner = new DebuggerRunner();
-            this.webServer = new Core.WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot);
+            this.webServer = new Core.WebServer(runner.Debugger, persistentStore, configuration.ExtensionRoot);
             this.webServer.LoadExtension("default");
         }
         #endregion

@@ -501,23 +501,6 @@ Loader.OnLoad(function () {
             JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorageusers", callback, JsDbgTransport.CacheType.Uncached);
         },
 
-        _help_SendFeedback: {
-            description: "Sends feedback for JsDbg.",
-            arguments: [
-                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
-            ]
-        },
-        SendFeedback: function (message, callback) {
-            // Include some diagnostics data as well.
-            var feedbackObject = {
-                userAgent: window.navigator.userAgent,
-                extension: Loader.GetCurrentExtension,
-                message: message
-            };
-
-            JsDbgTransport.JsonRequest("/jsdbg-server/feedback", callback, JsDbgTransport.CacheType.Uncached, "PUT", JSON.stringify(feedbackObject, null, '  '));
-        },
-
         _help_RegisterOnBreakListener: {
             description: "Registers a callback to be fired when the debugger breaks in.",
             arguments: [

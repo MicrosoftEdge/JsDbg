@@ -107,7 +107,7 @@ namespace JsDbg.Core {
         private const int StartPortNumber = 50000;
         private const int EndPortNumber = 50099;
 
-        public WebServer(IDebugger debugger, PersistentStore persistentStore, UserFeedback userFeedback, string extensionRoot) {
+        public WebServer(IDebugger debugger, PersistentStore persistentStore, string extensionRoot) {
             this.debugger = debugger;
             this.debugger.DebuggerChange += (sender, e) => { this.NotifyClientsOfDebuggerChange(e.Status); };
             this.debugger.DebuggerMessage += (sender, message) => {
@@ -115,7 +115,6 @@ namespace JsDbg.Core {
                 this.SendWebSocketMessage(String.Format("message:{0}", message));
             };
             this.persistentStore = persistentStore;
-            this.userFeedback = userFeedback;
             this.extensionRoot = extensionRoot;
             this.port = StartPortNumber;
             this.loadedExtensions = new List<JsDbgExtension>();
@@ -376,13 +375,6 @@ namespace JsDbg.Core {
                         goto default;
                     } else {
                         this.ServePersistentStorage(segments, context);
-                        break;
-                    }
-                case "feedback":
-                    if (context == null) {
-                        goto default;
-                    } else {
-                        this.ServeFeedbackRequest(segments, context);
                         break;
                     }
                 case "extensionpath":
@@ -1257,25 +1249,6 @@ namespace JsDbg.Core {
             }
         }
 
-        private void ServeFeedbackRequest(string[] segments, HttpListenerContext context) {
-            if (context.Request.HttpMethod == "PUT") {
-                string data = this.ReadRequestBody(context);
-                if (data == null) {
-                    return;
-                }
-
-                try {
-                    this.userFeedback.RecordUserFeedback(data);
-                    this.ServeUncachedString("{ \"success\": true }", context);
-                } catch (Exception ex) {
-                    Console.WriteLine("Saving feedback failed due to an exception: {0}", ex);
-                    this.ServeUncachedString("{ \"error\": \"Unable to record your feedback request due to an internal error.\" }", context);
-                }
-            } else {
-                this.ServeFailure(context);
-            }
-        }
-
         private void ServeDefaultExtensionPath(string[] segments, HttpListenerContext context) {
             if (context.Request.HttpMethod == "GET") {
                 DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(string));
@@ -1541,7 +1514,6 @@ namespace JsDbg.Core {
         private CancellationTokenSource cancellationSource;
         private IDebugger debugger;
         private PersistentStore persistentStore;
-        private UserFeedback userFeedback;
         private FileCache fileCache;
         private HashSet<WebSocket> openSockets;
         private List<JsDbgExtension> loadedExtensions;

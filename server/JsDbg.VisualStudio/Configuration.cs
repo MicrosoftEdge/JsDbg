@@ -29,12 +29,6 @@ namespace JsDbg.VisualStudio {
         }
 
         [DataMember(IsRequired = true)]
-        public string azure_feedback_read_write_function_url {
-            get { return this.azureFeedbackReadWriteFunctionUrl; }
-            set { this.azureFeedbackReadWriteFunctionUrl = value; }
-        }
-
-        [DataMember(IsRequired = true)]
         public string update_url {
             get { return this.updateUrl; }
             set { this.updateUrl = value; }
@@ -58,12 +52,6 @@ namespace JsDbg.VisualStudio {
             }
         }
 
-        public string AzureFeedbackReadWriteFunctionUrl {
-            get {
-                return this.azure_feedback_read_write_function_url;
-            }
-        }
-
         public string UpdateUrl {
             get {
                 return this.updateUrl;
@@ -75,7 +63,6 @@ namespace JsDbg.VisualStudio {
         private string extensionDirectory;
         private string azureUserDataReadWriteFunctionUrl;
         private string azureGetUsersFunctionUrl;
-        private string azureFeedbackReadWriteFunctionUrl;
         private string updateUrl;
     }
 }
