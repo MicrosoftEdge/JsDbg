@@ -17,7 +17,7 @@ To set up your debugger for JsDbg usage, please follow the steps below.
 
 ## [Using JsDbg](#using-jsdbg)
 
-To use JsDbg extensions in your debugging workflow, please follow the steps below.
+To use JsDbg extensions in your debugging workflow, please follow the steps below. Make sure you have set up your debugger for JsDbg usage first [see [setup JsDbg](#setup-jsdbg) above].
 
 ### WinDbg
 
