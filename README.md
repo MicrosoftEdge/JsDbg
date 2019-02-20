@@ -31,9 +31,9 @@ To use JsDbg extensions in your debugging workflow, please follow the steps belo
 
 1. Attach the VS debugger to the desired Microsoft Edge or Chromium process.
 
-2. Break into the running process using the "Pause" icon on the Debug toolbar or `Debug -> Break All`.
+2. Break into the running process using the `Pause` icon on the Debug toolbar or `Debug -> Break All`.
 
-3. Launch JsDbg by clicking the "JS" icon on the Debug toolbar or `Tools -> Launch JsDbg`.
+3. Launch JsDbg by clicking the `JS` icon on the Debug toolbar or `Tools -> Launch JsDbg`.
 
 4. The JsDbg server will launch and prompt you to select a browser. If the debugger is attached to one browser, it is recommended that you choose a different browser for JsDbg.
 
