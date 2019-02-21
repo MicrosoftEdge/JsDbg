@@ -161,6 +161,10 @@ All extensions have a similar make-up [see [anatomy of an extension](#anatomy-of
 
 If you wish to write a new JsDbg extension, please start by filing an issue and connecting with the JsDbg maintainers.
 
-### Tasks/Promises and Asynchronicity
+#### Debugging JsDbg extensions
+
+Because JsDbg extensions are web-based, they can be debugged using common web debugging tools like F12.
+
+## Tasks/Promises and Asynchronicity
 
 Communication between the web client, web server and debugger is mostly asynchronous. As such, a large amount of code in JsDbg is written using asynchronous programming patterns, ex. tasks in C# and promises in JavaScript.
