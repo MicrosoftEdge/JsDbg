@@ -1,5 +1,6 @@
 "use strict";
 
+var BlinkHelpers = null;
 Loader.OnLoad(function() {
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::CharacterData"), "data", false, UserEditableFunctions.Create((characterDataNode) => {
         return characterDataNode.f("data_").desc("Text").then(WhitespaceFormatter.CreateFormattedText);
@@ -333,4 +334,47 @@ Loader.OnLoad(function() {
             return attribute[0].f("value_").desc();
         });
     }));
+
+    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutObject"), "child_objects_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((layoutObject) => {
+        return layoutObject.vcast().f("children_")
+        .then((layoutObjectChildList) => layoutObjectChildList.array("entries_"),
+              () => []);
+    }));
+
+    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutObjectChildList"), "entries_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((layoutObjectChildList) => {
+        return layoutObjectChildList.f("first_child_").list("next_").vcast();
+    }));
+
+    DbgObject.AddArrayField(
+        (type) => type.name().match(/^blink::InlineBoxList<(.*)>$/) != null,
+        "entries_",
+        (type) => type.templateParameters()[0],
+        (inlineBoxList) => inlineBoxList.f("first_").list("next_").vcast()
+    );
+
+    BlinkHelpers = {
+        _help : {
+            name: "BlinkHelpers",
+            description: "Helpers for Blink-specific functionality."
+        },
+
+        _help_GetDocuments: {
+            description: "Returns (a promise to) a collection of documents for all web frames in the current renderer process."
+        },
+        GetDocuments: () => {
+            return DbgObject.global(Chromium.RendererProcessSyntheticModuleName, "g_frame_map")
+            .then((frameMap) => Promise.map(frameMap.F("Object").array("Keys"), (webFramePointer) => webFramePointer.deref()))
+            .then((webFrames) => {
+                // Put the main frame (frame with a null parent) at the front of the array.
+                return Promise.sort(webFrames, (webFrame) => {
+                    return webFrame.f("parent_")
+                    .then((parentFrame) => !parentFrame.isNull());
+                });
+            })
+            .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_.raw_").f("dom_window_.raw_").F("document")))
+            .then((sortedDocuments) => Promise.filter(sortedDocuments, (document) => !document.isNull()))
+        },
+    };
+
+    Help.Register(BlinkHelpers);
 });

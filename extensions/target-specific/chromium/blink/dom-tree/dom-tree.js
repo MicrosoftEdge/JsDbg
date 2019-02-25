@@ -15,17 +15,7 @@ Loader.OnLoad(function() {
             }
         },
         GetRoots: function() {
-            return DbgObject.global(Chromium.RendererProcessSyntheticModuleName, "g_frame_map")
-            .then((frameMap) => Promise.map(frameMap.F("Object").array("Keys"), (webFramePointer) => webFramePointer.deref()))
-            .then((webFrames) => {
-                // Put the main frame (frame with a null parent) at the front of the array.
-                return Promise.sort(webFrames, (webFrame) => {
-                    return webFrame.f("parent_")
-                    .then((parentFrame) => !parentFrame.isNull());
-                });
-            })
-            .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_.raw_").f("dom_window_.raw_").F("document")))
-            .then((sortedDocuments) => Promise.filter(sortedDocuments, (document) => !document.isNull()))
+            return BlinkHelpers.GetDocuments()
             .then((documents) => {
                 if (documents.length == 0) {
                     var errorMessage = ErrorMessages.CreateErrorsList("No documents found.") +
