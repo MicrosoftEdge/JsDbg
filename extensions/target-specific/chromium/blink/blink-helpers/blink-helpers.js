@@ -352,6 +352,15 @@ Loader.OnLoad(function() {
         (inlineBoxList) => inlineBoxList.f("first_").list("next_").vcast()
     );
 
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Color"), "Color", true, UserEditableFunctions.Create((color) => {
+        return color.f("color_").val()
+        .then((colorValue) => {
+            var rgbaChannels = [(colorValue >> 16) & 0xFF, (colorValue >> 8) & 0xFF, colorValue & 0xFF, (colorValue >> 24) & 0xFF];
+            var rgbaString = "rgba(" + rgbaChannels[0].toString() + ", " + rgbaChannels[1].toString() + ", " + rgbaChannels[2].toString() + ", " + rgbaChannels[3].toString() + ")";
+            return "<div style='display:inline-block;border:thin solid black;width:2ex;height:1ex;background-color:" + rgbaString + ";'></div> " + rgbaString;
+        });
+    }));
+
     BlinkHelpers = {
         _help : {
             name: "BlinkHelpers",
