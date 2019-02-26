@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="5b3af206-b4d4-4d12-9661-5d2d8dd8d194" Version="1.0.50" Language="en-US" Publisher="Peter Salas" />
+        <Identity Id="5b3af206-b4d4-4d12-9661-5d2d8dd8d194" Version="1.0.51" Language="en-US" Publisher="Peter Salas" />
         <DisplayName>JsDbg for Visual Studio</DisplayName>
         <Description xml:space="preserve">Hosts debugger extensions written in HTML, CSS, and JS.</Description>
     </Metadata>
