@@ -361,6 +361,20 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::LayoutUnit"), "RawValue", true, UserEditableFunctions.Create((layoutUnit) => {
+        return layoutUnit.f("value_").val();
+    }));
+
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::LayoutSize"), "Size", true, UserEditableFunctions.Create((size) => {
+        return Promise.all([size.f("width_").val(), size.f("height_").val()])
+        .thenAll((first, second) => `{${first}, ${second}}`);
+    }));
+
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::LayoutPoint"), "Point", true, UserEditableFunctions.Create((point) => {
+        return Promise.all([point.f("x_").val(), point.f("y_").val()])
+        .thenAll((first, second) => `{${first}, ${second}}`);
+    }));
+
     BlinkHelpers = {
         _help : {
             name: "BlinkHelpers",
