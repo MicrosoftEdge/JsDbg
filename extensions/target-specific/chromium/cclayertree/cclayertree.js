@@ -63,4 +63,18 @@ Loader.OnLoad(function() {
         UserEditableFunctions.Create((layer) => layer.f("inputs_").f("bounds").desc())
     );
 
+    DbgObject.AddTypeDescription(
+        Chromium.RendererProcessType("cc::Layer"),
+        "layer_id",
+        false,
+        UserEditableFunctions.Create((layer) => layer.f("inputs_").f("layer_id").val())
+    );
+
+    DbgObject.AddTypeDescription(
+        Chromium.RendererProcessType("cc::ElementId"),
+        "id",
+        true,
+        UserEditableFunctions.Create((elementId) => elementId.f("id_").val())
+    );
+
 });
