@@ -1,6 +1,6 @@
 # Contributing to JsDbg
 
-Thank you for your interest in contributing to JsDbg! Code contributations, as well as feedback on how we can improve the tool, are more than welcome. Please connect with the maintainers of JsDbg by filing an issue.
+Thank you for your interest in contributing to JsDbg! Code contributations, as well as feedback on how the tool can be improved, are more than welcome. Please connect with the maintainers of JsDbg by filing an issue.
 
 ## Building and running JsDbg
 
@@ -10,12 +10,12 @@ Thank you for your interest in contributing to JsDbg! Code contributations, as w
 * [GitHub account](https://github.com/join)
 * [Visual Studio (VS) 2017](https://visualstudio.microsoft.com/downloads/)
 
-### [Getting the source](#getting-the-source)
+### Getting the source
 The JsDbg source can be obtained from the [JsDbg repository on GitHub](https://aka.ms/jsdbg). The URL for cloning the repository is: `https://github.com/MicrosoftEdge/JsDbg.git`.
 
 ### Building JsDbg
 
-Once you have cloned the JsDbg repository [see [Getting the source](#getting-the-source) above], please follow the steps below to build the JsDbg source code.
+Once you have cloned the JsDbg repository, please follow the steps below to build the JsDbg source code.
 
 1. Open `jsdbg.sln` in Visual Studio 2017. The solution file is located in the `server` directory.
 
@@ -75,11 +75,11 @@ Interactions between the web server and client occur using the WebSocket protoco
 
 ### JsDbg server
 
-The JsDbg server contains several sub-components, including one component per supported debugger. Because there are different APIs for querying/driving each debugger, the implementations for each of these pieces can vary greatly and code shareability is limited. Every debugger-specific component implements a common `IDebugger` interface, which is provided by the `JsDbg.Core` component. `JsDbg.Core` interfaces with both the debugger and with the symbol files directly, and serves the client with debugging information.
+The JsDbg server contains several sub-components, including one component per supported debugger. Because there are different APIs for querying/driving each debugger, the implementations for each of these pieces can vary greatly and code shareability is limited. Every debugger-specific component implements a common `IDebugger` interface, which is provided by the `JsDbg.Core` component. `JsDbg.Core` interfaces with the debugger as well as the symbol files, and serves the client with debugging information.
 
 ### JsDbg client
 
-The JsDbg client is compromised almost entirely of [extensions](#anatomy-of-an-extension). Some extensions are user-facing, while many are internal and run "behind-the-scenes". At the lowest level, the `jsdbg` extension - in particular its `jsdbg-transport` and `jsdbg-core` sub-extensions - is responsible for relaying debugging information to the rest of the web client. The `jsdbg-transport` extension sends/receives WebSocket messages to/from the server, and `jsdbg-core` provides an API layer on top of `jsdbg-transport` for all other extensions. Some examples of `jsdbg-core` APIs are:
+The JsDbg client is compromised almost entirely of [extensions](#anatomy-of-an-extension). Some extensions are user-facing, while many are internal and run "behind-the-scenes". At the lowest level, the `jsdbg` extension is responsible for relaying debugging information to the rest of the web client. The `jsdbg-transport` extension (a sub-extension of `jsdbg`) sends/receives WebSocket messages to/from the server, and the `jsdbg-core` extension (also a sub-extension of `jsdbg`) provides an API layer on top of `jsdbg-transport` for all other extensions. Some examples of `jsdbg-core` APIs are:
 
 * JsDbg.LookupTypeSize(module, type, callback);
 
@@ -114,6 +114,10 @@ Below are more details about each of the fields in the extension manifest.
 
   The name of the extension. This is the only required field in `extension.json`. When an extension is loaded, its name specifies where the content in the directory will be served. So, for example, if JsDbg is being served on port 50000, the `DbgObject` extension will be available at `http://localhost:50000/dbgobject`. The extension name must be unique. Extension names are case-insensitive.
 
+* Field: `author` | Type: string
+
+  The name of the extension author.
+
 * Field: `description` | Type: string
 
   A description of the extension.
@@ -136,7 +140,7 @@ Below are more details about each of the fields in the extension manifest.
 
 * Field: `targetModules` | Type: array of strings
 
-  An array of module names that this extension targets. This extension will only be served if one or more of its target modules are loaded in the debugger. This extension will target all modules if this field is excluded or an empty array is provided.
+  An array of module names that this extension targets. This extension will only be served if one or more of its target modules are loaded in the debugger. This extension will target all modules if this field is excluded or if an empty array is provided.
 
 
 #### DbgObject
@@ -157,7 +161,7 @@ Most debugging extensions in JsDbg are written on top of the `DbgObject` extensi
 
 #### Writing a new extension
 
-All extensions have a similar make-up [see [anatomy of an extension](#anatomy-of-an-extension) above], but the implementation can vary depending on what the extension is doing and how it should be rendered/used. For extensions that require a tree-based view, the `tree-extension-template` is best place to start. (The "new-extension" video in the `examples` extension goes over this in more detail.)
+All extensions have a similar make-up [see [anatomy of an extension](#anatomy-of-an-extension) above], but the implementation can vary depending on what the extension is doing and how it should be rendered/used. For extensions that require a tree-based view, the `tree-extension-template` is the best place to start. (The "new-extension" video in the `examples` extension goes over this in more detail.)
 
 If you wish to write a new JsDbg extension, please start by filing an issue and connecting with the JsDbg maintainers.
 
