@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 Loader.OnLoad(function() {
     DbgObject.AddTypeDescription(
         Chromium.RendererProcessType("gfx::Size"),

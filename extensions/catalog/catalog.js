@@ -1,3 +1,10 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
 
 var Catalog = (function() {
     var isOperationPending = false;

@@ -1,3 +1,10 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
 
 DbgObject.AddTypeDescription(MSHTML.Module, function(type) { return type.match(/^SArray<(.*)>$/); }, function(object) {
     var itemType = object.type.name().replace(/^SArray<\s*(.*?)\s*>$/, "$1");

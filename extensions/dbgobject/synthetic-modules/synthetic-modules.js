@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 var SyntheticModules = undefined;
 Loader.OnLoad(function() {
     SyntheticModules = {

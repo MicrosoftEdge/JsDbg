@@ -1,3 +1,10 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
 
 DbgObject.AddExtendedField(
     (type) => type.name().match(/^std::unique_ptr<.*>$/) != null,

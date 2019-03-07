@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 var CatalogViewer = (function() {
     function loadAll(stores, callback) {
         var counter = stores.length;

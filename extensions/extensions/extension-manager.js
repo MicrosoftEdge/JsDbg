@@ -1,3 +1,10 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
 
 function createElement(tag, innerHTML, attributes, events) {
     var e = document.createElement(tag);
