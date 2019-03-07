@@ -1,4 +1,12 @@
-﻿// PkgCmdID.cs
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+// PkgCmdID.cs
 // MUST match PkgCmdID.h
 using System;
 
