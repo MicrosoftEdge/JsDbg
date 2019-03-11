@@ -1231,8 +1231,7 @@ namespace JsDbg.Core {
 
         private async void ServePersistentStorage(string[] segments, HttpListenerContext context) {
             if (context.Request.HttpMethod == "GET") {
-                string user = context.Request.QueryString["user"];
-                string result = await this.persistentStore.Get(user);
+                string result = await this.persistentStore.Get();
                 if (result != null) {
                     this.ServeUncachedString(String.Format("{{ \"data\": {0} }}", result), context);
                 } else {

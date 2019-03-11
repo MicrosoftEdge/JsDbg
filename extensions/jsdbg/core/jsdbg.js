@@ -477,14 +477,13 @@ Loader.OnLoad(function () {
         },
 
         _help_GetPersistentData: {
-            description: "Gets the persistent data associated with the current user or a specified user.",
+            description: "Gets the persistent data associated with the current user.",
             arguments: [
-                {name:"user", type:"string", description:"(optional) The user whose data should be retrieved."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        GetPersistentData: function(user, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorage" + (user ? "?user=" + esc(user) : ""), callback, JsDbgTransport.CacheType.Uncached, "GET");
+        GetPersistentData: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorage", callback, JsDbgTransport.CacheType.Uncached, "GET");
         },
 
         _help_SetPersistentData: {
