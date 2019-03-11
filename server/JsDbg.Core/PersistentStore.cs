@@ -26,16 +26,14 @@ namespace JsDbg.Core {
         public PersistentStore() {
         }
 
-        private string GetPath(string user) {
-            if (user == null) {
-                user = System.Environment.UserDomainName + "." + System.Environment.UserName;
-            }
-            return user;
-        }
-
-        public Task<string> Get(string user) {
+        public Task<string> Get() {
             return this.AttemptFileOperation<string>(() => {
-                return Task.FromResult<string>(File.ReadAllText(Path.GetTempPath() + PersistentStore.PersistentStoreFileName, PersistentStore.Encoding));
+                string filePath = Path.GetTempPath() + PersistentStore.PersistentStoreFileName;
+                if (File.Exists(filePath)) {
+                    return Task.FromResult<string>(File.ReadAllText(filePath, PersistentStore.Encoding));
+                } else {
+                    return Task.FromResult<string>("{}");
+                }
             });
         }
 
