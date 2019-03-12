@@ -57,7 +57,7 @@ JsDbg also provides an interactive way to explore a type and its associated fiel
 
 In addition to type exploration, developers can also use JsDbg to explore relationships between browser components. Several JsDbg extensions visualize key components of the browser pipeline, such as DOMTree and LayoutObjectTree. Users can use these extensions in combination see how objects flow through the pipeline. Actions - links that allow objects encountered in one extension to be explored in another - provide a convenient way to do this. Below is an example of using an action to launch the LayoutObjectTree extension from the DOMTree extension when a DOM node's layout object is explored.
 
-![DOMTree: LayoutObjecTree action](./readme/domtree_3.png "DOMTree: LayoutObjecTree action")
+![DOMTree: LayoutObjectTree action](./readme/domtree_3.png "DOMTree: LayoutObjectTree action")
 
 ![LayoutObjectTree: launched from action](./readme/layoutobjecttree_1.png "LayoutObjectTree: launched from action")
 
