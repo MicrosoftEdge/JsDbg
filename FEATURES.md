@@ -28,19 +28,19 @@ JsDbg also allows users to add helper fields to types. These fields can be used 
 
 An extended field is a helper field that returns a 'pointer' to a single object. The object that represents the field's value can be explored using the type explorer just like any other object. Below is an example of an extended field on `blink::Node` to retrieve its associated `blink::LayoutObject`.
 
-![DOMTree: layout_object_ extended field](./features/extendedfield_1.png "DOMTree: layout_object_ extended field")
+![DOMTree: layout_object_ extended field](./features/extendedfield_1.PNG "DOMTree: layout_object_ extended field")
 
 ### Array fields
 
 Unlike extended fields that return a single object, array fields return an array of zero or more objects that can then be expanded individually. For example, below is a screenshot of an array field to view the `blink::Attribute`s associated with a `blink::Element`.
 
-![DOMTree: attributes_ array field](./features/arrayfield_1.png "DOMTree: attributes_ array field")
+![DOMTree: attributes_ array field](./features/arrayfield_1.PNG "DOMTree: attributes_ array field")
 
 ### Type descriptions
 
 Type descriptions are fields that return a string type. An example of where this is useful is the `data` type description on `blink::CharacterData` (`blink::Text` is a specialization of `blink::CharacterData`).
 
-![DOMTree: data_ type description](./features/typedescription_1.png "DOMTree: data_ type description")
+![DOMTree: data_ type description](./features/typedescription_1.PNG "DOMTree: data_ type description")
 
 #### Primary vs. non-primary type descriptions
 
@@ -60,9 +60,9 @@ HTML/CSS formatting can also be applied to the string returned by a type descrip
 
 In addition to looking at the JsDbg source code, if a helper field is implemented to be "user editable", users can view its implementation from within the browser by clicking on the `[edit]` button next to the field. For instance, the `attributes_` array field (from the array fields example above) is user editable.
 
-![DOMTree: attributes_ edit button](./features/viewhelperfield_1.png "DOMTree: attributes_ edit button")
+![DOMTree: attributes_ edit button](./features/viewhelperfield_1.PNG "DOMTree: attributes_ edit button")
 
-![DOMTree: view attributes_ implementation](./features/viewhelperfield_2.png "DOMTree: view attributes_ implementation")
+![DOMTree: view attributes_ implementation](./features/viewhelperfield_2.PNG "DOMTree: view attributes_ implementation")
 
 ### Writing helpers fields
 
@@ -96,9 +96,9 @@ Below are two examples of helper fields that are constructed using other fields.
 
 Many helper fields are implemented as part of the JsDbg source code so that they are available to all users. However, the tool also allows users to implement their own custom fields from within the browser itself. This can be useful when writing a helper field that is temporary or does not need to be shared broadly. When inspecting a type in the type explorer, users can edit existing helper fields using the `[edit]` button or add a new helper field using the `[extend]` button. The example below shows the addition of a helper field from the browser to `blink::Element` that adds a light green background color to elements in the DOM tree that use a shareable element data object (to indicate possible sharing).
 
-![DOMTree: highlightSharedElementData user field](./features/writehelperfield_1.png "DOMTree: highlightSharedElementData user field")
+![DOMTree: highlightSharedElementData user field](./features/writehelperfield_1.PNG "DOMTree: highlightSharedElementData user field")
 
-![DOMTree: highlightSharedElementData user field applied](./features/writehelperfield_2.png "DOMTree: highlightSharedElementData user field applied")
+![DOMTree: highlightSharedElementData user field applied](./features/writehelperfield_2.PNG "DOMTree: highlightSharedElementData user field applied")
 
 ## Actions
 
