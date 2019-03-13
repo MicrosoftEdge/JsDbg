@@ -16,7 +16,7 @@ The `type-explorer` extension provides an interactive way to explore a type and 
 
 ![AXTree: Form type exploration](./features/typeexplorer_1.png "AXTree: Form type exploration")
 
-The second way is explore information across all objects of a particular type. Below is an example of the type explorer being used with the CCLayerTree extension - an extension to view the layer tree - to look at the position of all layers.
+The second way is to explore information across all objects of a particular type. Below is an example of the type explorer being used with the CCLayerTree extension - an extension to view the layer tree - to look at the position of all layers.
 
 ![CCLayerTree: All layers type exploration](./features/typeexplorer_2.png "CCLayerTree: All layers type exploration")
 
@@ -44,7 +44,7 @@ Type descriptions are fields that return a string type. An example of where this
 
 #### Primary vs. non-primary type descriptions
 
-If a type description is defined as the "primary" description for a type, it will appear in place of object's address in the type explorer. Below are two examples to compare primary vs. non-primary type descriptions. The first is a non-primary type description, `tagName` for `blink::Element`, while the second is a primary type description, `Text` for `WTF::String`.
+If a type description is defined as the "primary" description for a type, it will appear in place of the object's address in the type explorer. Below are two examples comparing primary vs. non-primary type descriptions. The first is a non-primary type description, `tagName` for `blink::Element`, while the second is a primary type description, `Text` for `WTF::String`.
 
 ![DOMTree: non-primary type description](./features/typedescription_2.png "DOMTree: non-primary type description")
 
@@ -52,7 +52,7 @@ If a type description is defined as the "primary" description for a type, it wil
 
 #### HTML/CSS formatting
 
-HTML/CSS formatting can also be applied to the string returned by a type description. For example, `blink::Color` has a primary type description that not only returns the RBGA values for the color, but also includes an inline-block to show the color.
+HTML/CSS formatting can also be applied to the string returned by a type description. For example, `blink::Color` has a primary type description that not only returns a string for the RBGA values, but also includes an inline-block to show the color.
 
 ![LayoutObjectTree: Color type description](./features/typedescription_4.png "LayoutObjectTree: Color type description")
 
