@@ -41,28 +41,7 @@ JsDbg currently supports WinDbg and the Visual Studio debugger on Windows. Suppo
 
 ## Using JsDbg extensions
 
-There are several ways browser developers can incorporate JsDbg extensions into their debugging workflow. Some common usages are listed below.
-
-JsDbg extensions can be used to visualize large and complex data structures, such as the DOM tree. Below is an example showing the use of the DOMTree extension to inspect the DOM for a YouTube video page.
-
-![DOMTree: YouTube video](./readme/domtree_1.png "DOMTree: YouTube video")
-
-![DOMTree: HTMLVideoElement](./readme/domtree_2.png "DOMTree: HTMLVideoElement")
-
-
-JsDbg also provides an interactive way to explore a type and its associated fields. This feature is called the type explorer. It allows users to inspect an object and its relationships in great detail, and see a broader picture than what is generally possible with just a debugger. Below is a screenshot of the type explorer being used with the AXTree extension - an extension to visualize the Chromium accessibility tree - to explore the HTML attributes associated with a form.
-
-![AXTree: Form type exploration](./readme/axtree_1.png "AXTree: Form type exploration")
-
-
-In addition to type exploration, developers can also use JsDbg to explore relationships between browser components. Several JsDbg extensions visualize key components of the browser pipeline, such as DOMTree and LayoutObjectTree. Users can use these extensions in combination see how objects flow through the pipeline. Actions - links that allow objects encountered in one extension to be explored in another - provide a convenient way to do this. Below is an example of using an action to launch the LayoutObjectTree extension from the DOMTree extension when a DOM node's layout object is explored.
-
-![DOMTree: LayoutObjectTree action](./readme/domtree_3.png "DOMTree: LayoutObjectTree action")
-
-![LayoutObjectTree: launched from action](./readme/layoutobjecttree_1.png "LayoutObjectTree: launched from action")
-
-
-JsDbg extensions are not only useful in live debugging scenarios, but are also helpful for post-mortem debugging, ie. inspecting crash dumps. When F12 and helper functions are no longer available, JsDbg's visualizations continue to work, and can therefore help browser developers assess state contained within a dump.
+There are many different ways browser developers can incorporate JsDbg extensions into their debugging workflow. See [JsDbg features](./FEATURES.md) for details about popular features in JsDbg.
 
 # Contributing
 
