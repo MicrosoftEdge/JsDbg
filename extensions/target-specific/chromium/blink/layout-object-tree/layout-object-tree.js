@@ -33,7 +33,7 @@ Loader.OnLoad(function() {
                         "You may still specify a blink::LayoutObject explicitly.";
                     return Promise.reject(errorMessage);
                 } else {
-                    return Promise.map(documents, (document) => document.F("layout_object_").vcast());
+                    return Promise.map(documents, (document) => document.F("node_layout_data_").f("layout_object_").vcast());
                 }
             }, (error) => {
                 var errorMessage = ErrorMessages.CreateErrorsList(error) +

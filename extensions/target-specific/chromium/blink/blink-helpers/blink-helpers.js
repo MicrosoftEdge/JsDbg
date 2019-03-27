@@ -86,10 +86,6 @@ Loader.OnLoad(function() {
         .then((nodeData) => nodeData.f("node_layout_data_"));
     }));
 
-    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "layout_object_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((node) => {
-        return node.F("node_layout_data_").f("layout_object_");
-    }));
-
     function getCollectionFromOwnerNode(node, collectionTypeOrPromise) {
         return node.F("rare_data_").f("node_lists_.raw_").f("atomic_name_caches_").f("impl_")
         .then((hashTable) => {
