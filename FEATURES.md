@@ -26,9 +26,9 @@ JsDbg also allows users to add helper fields to types. These fields can be used 
 
 ### Extended fields
 
-An extended field is a helper field that returns a 'pointer' to a single object. The object that represents the field's value can be explored using the type explorer just like any other object. Below is an example of an extended field on `blink::Node` to retrieve its associated `blink::LayoutObject`.
+An extended field is a helper field that returns a 'pointer' to a single object. The object that represents the field's value can be explored using the type explorer just like any other object. Below is an example of an extended field on `blink::Element` to retrieve the `blink::ShadowRoot` that it hosts.
 
-![DOMTree: layout_object_ extended field](./features/extendedfield_1.PNG "DOMTree: layout_object_ extended field")
+![DOMTree: shadowRoot extended field](./features/extendedfield_1.PNG "DOMTree: shadowRoot extended field")
 
 ### Array fields
 
