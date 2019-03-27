@@ -58,18 +58,6 @@ Loader.OnLoad(function() {
         });
     }));
 
-    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "node_layout_data_", Chromium.RendererProcessType("blink::NodeRenderingData"), UserEditableFunctions.Create((node) => {
-        return Promise.all([node.f("node_flags_").val(), DbgObject.constantValue(Chromium.RendererProcessType("blink::Node::NodeFlags"), "kHasRareDataFlag")])
-        .thenAll((nodeFlags, hasRareDataFlag) => {
-            var nodeHasRareData = nodeFlags & hasRareDataFlag;
-            if (!nodeHasRareData) {
-                return node.f("data_").f("node_layout_data_").as(Chromium.RendererProcessType("blink::NodeRenderingData"));
-            } else {
-                return DbgObject.NULL;
-            }
-        });
-    }));
-
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::ElementData"), "unique_element_data_", Chromium.RendererProcessType("blink::UniqueElementData"), UserEditableFunctions.Create((elementData) => {
         return elementData.f("is_unique_").val()
         .then((isUnique) => {
@@ -92,22 +80,14 @@ Loader.OnLoad(function() {
         });
     }));
 
-    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "layout_object_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((node) => {
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "node_layout_data_", Chromium.RendererProcessType("blink::NodeRenderingData"), UserEditableFunctions.Create((node) => {
         return node.F("rare_data_")
-        .then((nodeRareData) => {
-            if (!nodeRareData.isNull()) {
-                return nodeRareData.f("node_layout_data_").f("layout_object_");
-            } else {
-                return node.F("node_layout_data_")
-                .then((nodeLayoutData) => {
-                    if (!nodeLayoutData.isNull()) {
-                        return nodeLayoutData.f("layout_object_");
-                    } else {
-                        return DbgObject.NULL;
-                    }
-                });
-            }
-        });
+        .then((nodeRareData) => (!nodeRareData.isNull() ? nodeRareData : node.f("data_")))
+        .then((nodeData) => nodeData.f("node_layout_data_"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "layout_object_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((node) => {
+        return node.F("node_layout_data_").f("layout_object_");
     }));
 
     function getCollectionFromOwnerNode(node, collectionTypeOrPromise) {
