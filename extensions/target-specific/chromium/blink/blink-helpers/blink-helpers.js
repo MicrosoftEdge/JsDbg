@@ -358,6 +358,15 @@ Loader.OnLoad(function() {
         return Promise.all([point.f("x_").val(), point.f("y_").val()])
         .thenAll((first, second) => `{${first}, ${second}}`);
     }));
+    
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Length"), "Length", false, UserEditableFunctions.Create((characterDataNode) => {
+        return Promise.all([dbgObject.f("type_").as(Chromium.RendererProcessType("blink::Length::Type")).desc(), dbgObject.f("int_value_").val(), dbgObject.f("float_value_").val(), dbgObject.f("is_float_").val()]).thenAll((type, int_val, float_val, is_float) => {
+          let val = "";
+          if (type == "kFixed" || type == "kPercent")
+            val = is_float ? float_val : int_val;
+          return "Length::" + type.substr(1) + "(" + val + ")";
+        });
+    }));
 
     BlinkHelpers = {
         _help : {
