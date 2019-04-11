@@ -359,7 +359,7 @@ Loader.OnLoad(function() {
         .thenAll((first, second) => `{${first}, ${second}}`);
     }));
     
-    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Length"), "Length", false, UserEditableFunctions.Create((characterDataNode) => {
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Length"), "Length", true, UserEditableFunctions.Create((dbgObject) => {
         return Promise.all([dbgObject.f("type_").as(Chromium.RendererProcessType("blink::Length::Type")).desc(), dbgObject.f("int_value_").val(), dbgObject.f("float_value_").val(), dbgObject.f("is_float_").val()]).thenAll((type, int_val, float_val, is_float) => {
           let val = "";
           if (type == "kFixed" || type == "kPercent")
