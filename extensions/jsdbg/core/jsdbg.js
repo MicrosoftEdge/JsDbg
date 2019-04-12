@@ -413,7 +413,7 @@ Loader.OnLoad(function () {
             JsDbgTransport.JsonRequest("/jsdbg-server/isenum?module=" + esc(module) + "&type=" + esc(type), callback, JsDbgTransport.CacheType.Cached);
         },
 
-        
+
         _help_LookupConstantName: {
             description: "Looks up the name of a given constant (i.e. an enum value).",
             arguments: [
@@ -445,11 +445,16 @@ Loader.OnLoad(function () {
             arguments: [
                 {name:"module", type:"string", description:"The module containing the symbol."},
                 {name:"symbol", type:"string", description:"The symbol to evaluate."},
+                {name:"typeName", type:"string", description: "The type name of the symbol to look up."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        LookupGlobalSymbol: function(module, symbol, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol), callback, JsDbgTransport.CacheType.Cached);
+        LookupGlobalSymbol: function(module, symbol, typeName, callback) {
+            if (typeName) {
+                JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol) + "&typeName=" + esc(typeName), callback, JsDbgTransport.CacheType.Cached);
+            } else {
+                JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol), callback, JsDbgTransport.CacheType.Cached);
+            }
         },
 
         _help_GetCallStack: {

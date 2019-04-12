@@ -299,9 +299,7 @@ namespace JsDbg.Core {
             return (await this.LoadType(module, typename)).Size;
         }
 
-        public async Task<SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName) {
-            SSymbolResult result = new SSymbolResult();
-
+        public async Task<SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName, string typeName) {
             Dia2Lib.IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(moduleName);
             if (session != null) {
                 // We have a DIA session, use that.
@@ -311,18 +309,26 @@ namespace JsDbg.Core {
                     foreach (Dia2Lib.IDiaSymbol diaSymbol in symbols) {
                         if (((DiaHelpers.LocationType)diaSymbol.locationType) == DiaHelpers.LocationType.LocIsTLS) {
                             // For TLS-relative symbols, fall back to the debugger.
-                            return await this.debuggerEngine.LookupGlobalSymbol(moduleName, symbolName);
+                            return await this.debuggerEngine.LookupGlobalSymbol(moduleName, symbolName, typeName);
                         }
 
-                        result.Module = moduleName;
-                        result.Pointer = (await this.debuggerEngine.GetModuleForName(moduleName)).BaseAddress + diaSymbol.relativeVirtualAddress;
-                        result.Type = DiaHelpers.GetTypeName(diaSymbol.type);
-                        return result;
+                        string resultTypeName = DiaHelpers.GetTypeName(diaSymbol.type);
+                        if ((typeName == null) || resultTypeName.Equals(typeName)) {
+                            SSymbolResult result = new SSymbolResult();
+                            result.Module = moduleName;
+                            result.Pointer = (await this.debuggerEngine.GetModuleForName(moduleName)).BaseAddress + diaSymbol.relativeVirtualAddress;
+                            result.Type = resultTypeName;
+                            return result;
+                        }
                     }
                 } catch { }
-                throw new DebuggerException(String.Format("Invalid symbol: {0}!{1}", moduleName, symbolName));
+                if (typeName != null) {
+                    throw new DebuggerException(String.Format("No symbol {0}!{1} with type name {2}", moduleName, symbolName, typeName));
+                } else {
+                    throw new DebuggerException(String.Format("Invalid symbol: {0}!{1}", moduleName, symbolName));
+                }
             } else {
-                return await this.debuggerEngine.LookupGlobalSymbol(moduleName, symbolName);
+                return await this.debuggerEngine.LookupGlobalSymbol(moduleName, symbolName, typeName);
             }
         }
 

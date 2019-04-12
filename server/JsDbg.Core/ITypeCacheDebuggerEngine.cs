@@ -60,7 +60,7 @@ namespace JsDbg.Core {
 
         Task<Type> GetTypeFromDebugger(string module, string typename);
 
-        Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol);
+        Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typeName);
 
         Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer);
 

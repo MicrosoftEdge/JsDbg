@@ -295,7 +295,7 @@ namespace JsDbg.WinDbg {
             }, String.Format("Unable to lookup type from debugger: {0}!{1}", module, typename));
         }
 
-        public Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol) {
+        public Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typeName) {
             return this.runner.AttemptOperation<SSymbolResult>(() => {
                 SSymbolResult result = new SSymbolResult();
 
@@ -311,7 +311,11 @@ namespace JsDbg.WinDbg {
 
                 // Now that we have type ids and an offset, we can resolve the names.
                 try {
-                    result.Type = this.symbolCache.GetTypeName(moduleBase, typeId);
+                    string resultTypeName = this.symbolCache.GetTypeName(moduleBase, typeId);
+                    if ((typeName != null) && !resultTypeName.Equals(typeName)) {
+                        throw new DebuggerException(String.Format("Unable to lookup global symbol {0}!{1} with type name {2}", module, symbol, typeName));
+                    }
+                    result.Type = resultTypeName;
                     result.Module = this.symbols.GetModuleNameStringByBaseAddress(ModuleName.Module, moduleBase);
                     return result;
                 } catch {

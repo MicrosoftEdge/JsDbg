@@ -763,6 +763,7 @@ namespace JsDbg.Core {
         private async void ServeGlobalSymbol(NameValueCollection query, Action<string> respond, Action fail) {
             string module = query["module"];
             string symbol = query["symbol"];
+            string typeName = query["typeName"];
 
             if (module == null || symbol == null) {
                 fail();
@@ -770,7 +771,7 @@ namespace JsDbg.Core {
             }
             string responseString;
             try {
-                SSymbolResult result = await this.debugger.LookupGlobalSymbol(module, symbol);
+                SSymbolResult result = await this.debugger.LookupGlobalSymbol(module, symbol, typeName);
                 responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
             } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
