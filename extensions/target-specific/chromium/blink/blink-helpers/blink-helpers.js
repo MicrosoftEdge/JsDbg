@@ -345,20 +345,26 @@ Loader.OnLoad(function() {
         });
     }));
 
+    function layoutValueToPx(layout_unit) {
+      // kFixedPointDenominator is not present in the PDBs, so we define it here.
+      const kFixedPointDenominator = 64;
+      return (layout_unit / kFixedPointDenominator) + "px";
+    }
+
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::LayoutUnit"), "RawValue", true, UserEditableFunctions.Create((layoutUnit) => {
-        return layoutUnit.f("value_").val();
+        return layoutUnit.f("value_").val().then((unit) => layoutValueToPx(unit));
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::LayoutSize"), "Size", true, UserEditableFunctions.Create((size) => {
         return Promise.all([size.f("width_").val(), size.f("height_").val()])
-        .thenAll((first, second) => `{${first}, ${second}}`);
+        .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::LayoutPoint"), "Point", true, UserEditableFunctions.Create((point) => {
         return Promise.all([point.f("x_").val(), point.f("y_").val()])
-        .thenAll((first, second) => `{${first}, ${second}}`);
+        .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
     }));
-    
+
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Length"), "Length", true, UserEditableFunctions.Create((dbgObject) => {
         return Promise.all([dbgObject.f("type_").as(Chromium.RendererProcessType("blink::Length::Type")).desc(), dbgObject.f("int_value_").val(), dbgObject.f("float_value_").val(), dbgObject.f("is_float_").val()]).thenAll((type, int_val, float_val, is_float) => {
           let val = "";
