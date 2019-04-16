@@ -212,7 +212,7 @@ namespace JsDbg.VisualStudio {
             throw new DebuggerException("Cannot load types from the Visual Studio debugger directly.");
         }
 
-        public Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol) {
+        public Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typeName) {
             throw new DebuggerException("Cannot load symbols from the Visual Studio debugger directly.");
         }
 
