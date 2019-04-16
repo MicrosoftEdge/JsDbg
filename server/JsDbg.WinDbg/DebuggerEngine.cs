@@ -313,7 +313,7 @@ namespace JsDbg.WinDbg {
                 try {
                     string resultTypeName = this.symbolCache.GetTypeName(moduleBase, typeId);
                     if ((typeName != null) && !resultTypeName.Equals(typeName)) {
-                        throw new DebuggerException(String.Format("Unable to lookup global symbol {0}!{1} with type name {2}", module, symbol, typeName));
+                        throw new DebuggerException(String.Format("Unable to lookup global symbol {0}!{1} with type name {2} from debugger", module, symbol, typeName));
                     }
                     result.Type = resultTypeName;
                     result.Module = this.symbols.GetModuleNameStringByBaseAddress(ModuleName.Module, moduleBase);
