@@ -1,0 +1,30 @@
+<!--
+    MIT License
+
+    Copyright (c) Microsoft Corporation. All rights reserved.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>NGPhysicalFragmentTree</title>
+    <script type="text/javascript" src="/jsdbg/loader.js"></script>
+    <script type="text/javascript">
+        Loader.OnPageReady(function() {
+            Chromium.SetTargetProcess(Chromium.RendererProcessName);
+
+            TreeInspector.Initialize(
+                NGPhysicalFragmentTree.GetRoots,
+                NGPhysicalFragmentTree.Tree,
+                NGPhysicalFragmentTree.Renderer,
+                NGPhysicalFragmentTree.InterpretAddress,
+                NGPhysicalFragmentTree.DefaultTypes,
+                document.body
+            );
+        });
+    </script>
+</head>
+<body>
+</body>
+</html>

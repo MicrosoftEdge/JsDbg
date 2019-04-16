@@ -6,6 +6,7 @@
     "dependencies": [
         "target-specific/chromium/blink/blink-helpers",
         "target-specific/chromium/blink/dom-tree",
+        "target-specific/chromium/blink/fragment-tree",
         "target-specific/chromium/blink/layout-object-tree",
         "target-specific/chromium/blink/wtf-helpers",
         "target-specific/chromium/chromium-helpers"
