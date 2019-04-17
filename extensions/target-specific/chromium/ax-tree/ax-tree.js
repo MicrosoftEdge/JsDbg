@@ -11,18 +11,25 @@
 var AXTree = undefined;
 Loader.OnLoad(function() {
     var wrapperMaps = new Map();
-    var managersPromise = null;
+    var managers = null;
 
     function clearCaches() {
         wrapperMaps = new Map();
-        managersPromise = null;
+        managers = null;
     }
 
     function getManagers() {
-        if (managersPromise == null) {
-            managersPromise = DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "g_ax_tree_id_map").F("Object").array("Pairs").f("second");
+        if (managers == null) {
+            return DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "instance", "base::NoDestructor<ui::AXTreeManagerMap>").F("Object").f("map_").f("_List").array("Elements").f("second")
+            .catch(() => {
+                return DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "g_ax_tree_id_map").F("Object").array("Pairs").f("second");
+            })
+            .then((resolvedManagers) => {
+                managers = resolvedManagers;
+                return managers;
+            });
         }
-        return managersPromise;
+        return managers;
     }
 
     function getWrapperNode(manager, nodeId) {
@@ -57,7 +64,8 @@ Loader.OnLoad(function() {
             }
         },
         GetRoots: function() {
-            return getManagers().f("tree_").F("Object").vcast()
+            return getManagers()
+            .then((managers) => Promise.map(managers, (manager) => manager.vcast().f("tree_").F("Object").vcast()))
             .then((trees) => ((trees.length == 0) ? Promise.reject("No accessibility trees found.") : trees))
             .then(null, (error) => {
                 var errorMessage = ErrorMessages.CreateErrorsList(error) +
