@@ -345,6 +345,115 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "white_space_", "blink::EWhiteSpace");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "list_style_type_", "blink::EListStyleType");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "cursor_", "blink::ECursor");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "display_", "blink::EDisplay");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "original_display_", "blink::EDisplay");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "break_after_", "blink::EBreakBetween");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "break_before_", "blink::EBreakBetween");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "pointer_events_", "blink::EPointerEvents");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "text_align_", "blink::ETextAlign");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "break_inside_", "blink::EBreakInside");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "clear_", "blink::EClear");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "floating_", "blink::EFloat");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "overflow_x_", "blink::EOverflow");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "overflow_y_", "blink::EOverflow");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "position_", "blink::EPosition");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "unicode_bidi_", "blink::UnicodeBidi");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "inside_link_", "blink::EInsideLink");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "overflow_anchor_", "blink::EOverflowAnchor");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "overscroll_behavior_x_", "blink::EOverscrollBehavior");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "overscroll_behavior_y_", "blink::EOverscrollBehavior");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "text_transform_", "blink::ETextTransform");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "visibility_", "blink::EVisibility");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "writing_mode_", "blink::WritingMode");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "border_collapse_", "blink::EBorderCollapse");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "box_direction_", "blink::EBoxDirection");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "direction_", "blink::TextDirection");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "empty_cells_", "blink::EEmptyCells");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "list_style_position_", "blink::EListStylePosition");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "print_color_adjust_", "blink::EPrintColorAdjust");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "rtl_ordering_", "blink::EOrder");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "scroll_snap_stop_", "blink::EScrollSnapStop");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "table_layout_", "blink::ETableLayout");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "transform_box_", "blink::ETransformBox");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleBoxData"), "box_decoration_break_", "blink::EBoxDecorationBreak");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleBoxData"), "box_sizing_", "blink::EBoxSizing");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleGridData"), "grid_auto_repeat_columns_type_", "blink::AutoRepeatType");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleGridData"), "grid_auto_repeat_rows_type_", "blink::AutoRepeatType");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan100PercentData"), "blend_mode_", "blink::BlendMode");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan100PercentData"), "column_rule_style_", "blink::EBorderStyle");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan100PercentData"), "grid_auto_flow_", "blink::GridAutoFlow");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan100PercentData"), "object_fit_", "blink::EObjectFit");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan100PercentData"), "text_decoration_style_", "blink::ETextDecorationStyle");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan100PercentData"), "scroll_behavior_ ", "blink::ScrollBehavior");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan100PercentData"), "column_fill_", "blink::EColumnFill");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan100PercentData"), "column_span_", "blink::EColumnSpan");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan100PercentData"), "isolation_", "blink::EIsolation");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan100PercentData"), "transform_style_3d_", "blink::ETransformStyle3D");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan33PercentData"), "touch_action_ ", "blink::TouchAction");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan33PercentData"), "outline_style_", "blink::EBorderStyle");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan33PercentData"), "resize_", "blink::EResize");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan33PercentData"), "flex_wrap_", "blink::EFlexWrap");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan33PercentData"), "backface_visibility_ ", "blink::EBackfaceVisibility");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentSubData"), "appearance_", "blink::ControlPart");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentSubData"), "scroll_customization_ ", "blink::scroll_customization::ScrollDirection");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentSubData"), "box_align_", "blink::EBoxAlignment");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentSubData"), "box_pack_", "blink::EBoxPack");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentSubData"), "draggable_region_mode_", "blink::EDraggableRegionMode");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentSubData"), "margin_after_collapse_ ", "blink::EMarginCollapse");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentSubData"), "margin_before_collapse_ ", "blink::EMarginCollapse");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentSubData"), "page_size_type_", "blink::EPageSizeType");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentSubData"), "user_drag_", "blink::EUserDrag");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentSubData"), "box_orient_", "blink::EBoxOrient");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentData"), "flex_direction_", "blink::EFlexDirection");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareNonInheritedUsageLessThan13PercentData"), "text_overflow_", "blink::ETextOverflow");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleSurroundData"), "border_bottom_style_", "blink::EBorderStyle");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleSurroundData"), "border_left_style_", "blink::EBorderStyle");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleSurroundData"), "border_right_style_", "blink::EBorderStyle");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleSurroundData"), "border_top_style_", "blink::EBorderStyle");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleVisualData"), "text_decoration_", "blink::TextDecoration");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan100PercentData"), "text_align_last_", "blink::ETextAlignLast");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan100PercentData"), "hyphens_", "blink::Hyphens");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan100PercentData"), "text_justify_", "blink::TextJustify");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan100PercentData"), "text_orientation_", "blink::ETextOrientation");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan100PercentData"), "text_combine_", "blink::ETextCombine");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan100PercentData"), "text_decoration_skip_ink_", "blink::ETextDecorationSkipInk");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentSubData"), "effective_touch_action_", "blink::TouchAction");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentSubData"), "line_break_", "blink::LineBreak");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentSubData"), "text_emphasis_mark_", "blink::TextEmphasisMark");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentSubData"), "text_emphasis_position_", "blink::TextEmphasisPosition");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentSubData"), "text_security_", "blink::ETextSecurity");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentSubData"), "user_modify_", "blink::EUserModify");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentSubData"), "ruby_position_", "blink::RubyPosition");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentSubData"), "text_emphasis_fill_", "blink::TextEmphasisFill");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentSubData"), "text_indent_line_", "blink::TextIndentLine");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentSubData"), "text_indent_type_", "blink::TextIndentType");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentData"), "image_rendering_", "blink::EImageRendering");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentData"), "speak_", "blink::ESpeak");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentData"), "user_select_", "blink::EUserSelect");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentData"), "word_break_", "blink::EWordBreak");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase::StyleRareInheritedUsageLessThan40PercentData"), "overflow_wrap_", "blink::EOverflowWrap");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::StyleSelfAlignmentData"), "position_", "blink::ItemPosition");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::StyleSelfAlignmentData"), "overflow_", "blink::OverflowAlignment");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::StyleContentAlignmentData"), "position_", "blink::ContentPosition");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::StyleContentAlignmentData"), "distribution_", "blink::ContentDistributionType");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::StyleContentAlignmentData"), "overflow_", "blink::OverflowAlignment");
+
     function layoutValueToPx(layout_unit) {
       // kFixedPointDenominator is not present in the PDBs, so we define it here.
       const kFixedPointDenominator = 64;
