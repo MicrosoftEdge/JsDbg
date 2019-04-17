@@ -19,6 +19,13 @@ var Chromium = null;
             (lazyInstance) => lazyInstance.f("private_instance_").as(lazyInstance.type.templateParameters()[0] + "*").deref()
         );
 
+        DbgObject.AddExtendedField(
+            (type) => type.name().match(/^base::NoDestructor<.*>/),
+            "Object",
+            (type) => DbgObjectType(type.templateParameters()[0], type),
+            (noDestructor) => noDestructor.f("storage_").as(noDestructor.type.templateParameters()[0])
+        );
+
         Chromium = {
             _help : {
                 name: "Chromium",

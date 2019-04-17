@@ -11,25 +11,30 @@
 var AXTree = undefined;
 Loader.OnLoad(function() {
     var wrapperMaps = new Map();
-    var managers = null;
+    var managersPromise = null;
 
     function clearCaches() {
         wrapperMaps = new Map();
-        managers = null;
+        managersPromise = null;
     }
 
     function getManagers() {
-        if (managers == null) {
-            return DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "instance", "base::NoDestructor<ui::AXTreeManagerMap>").F("Object").f("map_").f("_List").array("Elements").f("second")
-            .catch(() => {
-                return DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "g_ax_tree_id_map").F("Object").array("Pairs").f("second");
-            })
-            .then((resolvedManagers) => {
-                managers = resolvedManagers;
-                return managers;
-            });
+        if (managersPromise == null) {
+            // g_ax_tree_id_map was replaced by a specialized AXTreeManagerMap. Check for both in case an older
+            // crash dump is inspected.
+            managersPromise = Promise.any([
+                DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "instance", "base::NoDestructor<ui::AXTreeManagerMap>")
+                    .F("Object")
+                    .f("map_")
+                    .f("_List")
+                    .array("Elements")
+                    .f("second"),
+                DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "g_ax_tree_id_map")
+                    .F("Object")
+                    .array("Pairs")
+                    .f("second")]);
         }
-        return managers;
+        return managersPromise;
     }
 
     function getWrapperNode(manager, nodeId) {
@@ -100,9 +105,12 @@ Loader.OnLoad(function() {
         (node) => {
             return Promise.all([getManagers(), node.list("parent_")])
             .thenAll((managers, ancestry) => {
-                return Promise.filter(managers, (manager) => manager.f("tree_").F("Object").vcast().f("root_").equals(ancestry[ancestry.length - 1]));
+                return Promise.filter(managers, (manager) => manager.vcast().f("tree_").F("Object").vcast().f("root_").equals(ancestry[ancestry.length - 1]));
             })
-            .then((managers) => managers[0]);
+            .then((managers) => {
+                console.assert(managers.length > 0);
+                return managers[0].vcast();
+            });
         }
     );
 
