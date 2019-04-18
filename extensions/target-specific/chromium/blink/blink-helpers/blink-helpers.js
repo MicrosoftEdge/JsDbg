@@ -473,8 +473,18 @@ Loader.OnLoad(function() {
         .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
     }));
 
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::NGPhysicalSize"), "Size", true, UserEditableFunctions.Create((size) => {
+        return Promise.all([size.f("width").val(), size.f("height").val()])
+        .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
+    }));
+
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::LayoutPoint"), "Point", true, UserEditableFunctions.Create((point) => {
         return Promise.all([point.f("x_").val(), point.f("y_").val()])
+        .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
+    }));
+
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::NGPhysicalOffset"), "offset", true, UserEditableFunctions.Create((offset) => {
+        return Promise.all([offset.f("left").val(), offset.f("top").val()])
         .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
     }));
 
@@ -486,6 +496,26 @@ Loader.OnLoad(function() {
           return "Length::" + type.substr(1) + "(" + val + ")";
         });
     }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "[as container fragment]", Chromium.RendererProcessType("blink::NGPhysicalContainerFragment"), UserEditableFunctions.Create((fragment) => {
+        return fragment.f("type_").desc().then((type) => {
+            if (type == "kFragmentBox" || type == "kFragmentLineBox" || type == "kFragmentRenderedLegend")
+                return fragment.as(Chromium.RendererProcessType("blink::NGPhysicalContainerFragment"));
+            return DbgObject.NULL;
+      });
+    }));
+
+    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "children_", Chromium.RendererProcessType("blink::NGLinkStorage"), UserEditableFunctions.Create((fragment) => {
+        return fragment.F("[as container fragment]").then((container) => {
+            if (!container.isNull())
+                return container.f("buffer_").array(container.f("num_children_"));
+            return [];
+        });
+    }));
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "type_", "blink::NGPhysicalFragment::NGFragmentType");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "style_variant_", "blink::NGStyleVariant");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "line_orientation_", "blink::NGLineOrientation");
 
     BlinkHelpers = {
         _help : {
