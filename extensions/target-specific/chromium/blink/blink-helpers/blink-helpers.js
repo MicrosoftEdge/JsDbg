@@ -314,8 +314,12 @@ Loader.OnLoad(function() {
             .then((attributeName) => (attributeName == "type"));
         })
         .then((attribute) => {
-            console.assert(Array.isArray(attribute) && (attribute.length == 1));
-            return attribute[0].f("value_").desc();
+            if (attribute.length > 0) {
+                console.assert(attribute.length == 1);
+                return attribute[0].f("value_").desc();
+            } else {
+                return "text";
+            }
         });
     }));
 
