@@ -623,14 +623,14 @@ Using '.thenAll' makes this a bit smoother:\
     }
 
     Promise._help_any = {
-        description: "Similar to Promise.all, except it resolves when a single promise provided has succeeded.",
+        description: "Creates a single promise that resolves when any one of the promises in the given iterable resolve.",
         returns: "The succeeded promise.",
         arguments: [
-            {name:"promiseArray", type:"array", description: "The array of promises to evaluate."}
+            {name:"promiseIterable", type:"iterable", description: "The iterable collection (e.g. array) of promises to evaluate."}
         ]
     }
-    Promise.any = function(promiseArray) {
-        return Promise.all(promiseArray.map(p => {
+    Promise.any = function(promiseIterable) {
+        return Promise.all(promiseIterable.map(p => {
             // Invert Promise.all's rejection logic by swapping the pass/fail logic.
             return p.then(
               value => Promise.reject(value),
