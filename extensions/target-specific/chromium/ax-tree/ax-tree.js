@@ -20,7 +20,19 @@ Loader.OnLoad(function() {
 
     function getManagers() {
         if (managersPromise == null) {
-            managersPromise = DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "g_ax_tree_id_map").F("Object").array("Pairs").f("second");
+            // g_ax_tree_id_map was replaced by a specialized AXTreeManagerMap. Check for both in case an older
+            // build or crash dump is inspected.
+            managersPromise = Promise.any([
+                DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "instance", "base::NoDestructor<ui::AXTreeManagerMap>")
+                    .F("Object")
+                    .f("map_")
+                    .f("_List")
+                    .array("Elements")
+                    .f("second"),
+                DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "g_ax_tree_id_map")
+                    .F("Object")
+                    .array("Pairs")
+                    .f("second")]);
         }
         return managersPromise;
     }
@@ -57,7 +69,8 @@ Loader.OnLoad(function() {
             }
         },
         GetRoots: function() {
-            return getManagers().f("tree_").F("Object").vcast()
+            return getManagers()
+            .then((managers) => Promise.map(managers, (manager) => manager.vcast().f("tree_").F("Object").vcast()))
             .then((trees) => ((trees.length == 0) ? Promise.reject("No accessibility trees found.") : trees))
             .then(null, (error) => {
                 var errorMessage = ErrorMessages.CreateErrorsList(error) +
@@ -92,9 +105,12 @@ Loader.OnLoad(function() {
         (node) => {
             return Promise.all([getManagers(), node.list("parent_")])
             .thenAll((managers, ancestry) => {
-                return Promise.filter(managers, (manager) => manager.f("tree_").F("Object").vcast().f("root_").equals(ancestry[ancestry.length - 1]));
+                return Promise.filter(managers, (manager) => manager.vcast().f("tree_").F("Object").vcast().f("root_").equals(ancestry[ancestry.length - 1]));
             })
-            .then((managers) => managers[0]);
+            .then((managers) => {
+                console.assert(managers.length > 0);
+                return managers[0].vcast();
+            });
         }
     );
 

@@ -621,4 +621,26 @@ Using '.thenAll' makes this a bit smoother:\
         
         return promisedType;
     }
+
+    Promise._help_any = {
+        description: "Creates a single promise that resolves when any one of the promises in the given iterable resolves and rejects if all promises reject.",
+        returns: "The succeeded promise.",
+        arguments: [
+            {name:"promiseIterable", type:"iterable", description: "The iterable collection (e.g. array) of promises to evaluate."}
+        ]
+    }
+    Promise.any = function(promiseIterable) {
+        return Promise.all(promiseIterable.map(promise => {
+            // Invert Promise.all's rejection logic by swapping the pass/fail logic.
+            return Promise.resolve(promise).then(
+              value => Promise.reject(value),
+              error => Promise.resolve(error)
+            );
+          })).then(
+            // If '.all' resolved, there were no resolved promises in the array
+            errors => Promise.reject(errors),
+            // If '.all' rejected, the error value will be the completed promise
+            value => Promise.resolve(value)
+          );
+    }
 })
