@@ -505,6 +505,30 @@ Loader.OnLoad(function() {
       });
     }));
 
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "[as box fragment]", Chromium.RendererProcessType("blink::NGPhysicalBoxFragment"), UserEditableFunctions.Create((fragment) => {
+        return fragment.f("type_").desc().then((type) => {
+            if (type == "kFragmentBox" || type == "kFragmentRenderedLegend")
+                return fragment.as(Chromium.RendererProcessType("blink::NGPhysicalBoxFragment"));
+            return DbgObject.NULL;
+      });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "[as line box fragment]", Chromium.RendererProcessType("blink::NGPhysicalLineBoxFragment"), UserEditableFunctions.Create((fragment) => {
+        return fragment.f("type_").desc().then((type) => {
+            if (type == "kFragmentLineBox")
+                return fragment.as(Chromium.RendererProcessType("blink::NGPhysicalLineBoxFragment"));
+            return DbgObject.NULL;
+      });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "[as text fragment]", Chromium.RendererProcessType("blink::NGPhysicalTextFragment"), UserEditableFunctions.Create((fragment) => {
+        return fragment.f("type_").desc().then((type) => {
+            if (type == "kFragmentText")
+                return fragment.as(Chromium.RendererProcessType("blink::NGPhysicalTextFragment"));
+            return DbgObject.NULL;
+      });
+    }));
+
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "children_", Chromium.RendererProcessType("blink::NGLinkStorage"), UserEditableFunctions.Create((fragment) => {
         return fragment.F("[as container fragment]").then((container) => {
             if (!container.isNull())
