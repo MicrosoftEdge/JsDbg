@@ -1,0 +1,25 @@
+{
+    "name": "CompositorFrame",
+    "author": "Sushanth Rajasankar (sushraja)",
+    "description": "Inspect a compositor frame",
+    "dependencies": [
+        "dbgobject",
+        "user-editable-functions",
+        "tree-inspector",
+        "target-specific/stl-helpers",
+        "target-specific/chromium/chromium-helpers",
+        "target-specific/chromium/gfx-type-helpers"
+    ],
+    "includes": [
+        "compositorframe.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": [
+        "msedge",
+        "chrome",
+        "content_shell",
+        "browser_tests"
+    ]
+}
