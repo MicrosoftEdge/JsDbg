@@ -177,6 +177,7 @@ def GetBaseTypes(module, type):
         if not field.is_base_class:
             continue
         resultFields.append(SBaseTypeResult(module, field.type.name, field.bitpos / 8))
+        resultFields.extend(GetBaseTypes(module, field.type.name))
     
     return resultFields
 
