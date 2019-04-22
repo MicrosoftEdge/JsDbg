@@ -330,7 +330,7 @@ namespace JsDbg.Gdb {
         public async Task<uint> LookupTypeSize(string module, string typename) {
             string pythonResponse = await this.QueryDebuggerPython(String.Format("LookupTypeSize(\"{0}\",\"{1}\")", module, typename));
 
-            return UInt32.Parse(pythonResponse.Substring(1,pythonResponse.Length-2));
+            return UInt32.Parse(pythonResponse);
         }
         
         public async Task<T[]> ReadArray<T>(ulong pointer, ulong count) where T : struct {
