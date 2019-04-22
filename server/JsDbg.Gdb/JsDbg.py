@@ -261,4 +261,13 @@ def EnsureJsDbg():
         jsdbg = JsDbg()
     return jsdbg
 
-EnsureJsDbg()
+class JsDbgCmd(gdb.Command):
+  """Runs JsDbg."""
+
+  def __init__(self):
+    super(JsDbgCmd, self).__init__("jsdbg", gdb.COMMAND_USER)
+
+  def invoke(self, arg, from_tty):
+    EnsureJsDbg()
+
+JsDbgCmd()
