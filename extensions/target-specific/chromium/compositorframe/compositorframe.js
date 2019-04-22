@@ -31,13 +31,13 @@ Loader.OnLoad(function () {
   });
 
   CompositorFrame.Tree.addChildren(Chromium.GpuProcessType("viz::RenderPass"), (parentLayer) => {
-    return Promise.all([parentLayer.f("quad_list").f("helper_").f("data_").F("Object").pointerValue()]).then(
+    return parentLayer.f("quad_list").f("helper_").f("data_").F("Object").as("ntdll!void**").then(
       (charAllocator) => {
-        var voidObj = DbgObject.create("ntdll!void**", charAllocator);
-        if (!voidObj.isNull()) {
+
+        if (!charAllocator.isNull()) {
           // voidObj is a std::vector<std::unique_ptr<InnerList>>
-          return voidObj.size().then((platformPointerSize) => {
-            return voidObj.vals(2).then((val) => {
+          return charAllocator.size().then((platformPointerSize) => {
+            return charAllocator.vals(2).then((val) => {
               // Memory address from val[0] to val[1] contain pointers
               var count = (val[1] - val[0]) / platformPointerSize;
               var address = val[0];
