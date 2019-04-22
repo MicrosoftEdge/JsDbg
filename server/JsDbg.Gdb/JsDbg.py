@@ -2,6 +2,7 @@ import gdb
 import sys
 import subprocess
 import threading
+import binascii
 
 jsdbg = None
             
@@ -241,7 +242,10 @@ def LookupSymbolName(pointer):
 def ReadMemoryBytes(pointer, size):
     inferior = gdb.selected_inferior()
     # Note: will throw an error if this includes unmapped/ unreadable memory
-    return inferior.read_memory(pointer, size).hex()
+    buf = inferior.read_memory(pointer, size)
+    if (sys.version_info < (3, 0)):
+      return binascii.hexlify(bytearray(buf))
+    return buf.hex()
 
 def WriteMemoryBytes(pointer, hexString):
     inferior = gdb.selected_inferior()
