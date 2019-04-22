@@ -22,7 +22,7 @@ Loader.OnLoad(function() {
 
     ArrayField.prototype.ensureCompatibleResult = function(result, parentDbgObject) {
         if (!Array.isArray(result)) {
-            throw new Error("The \"" + this.name + "\" array on " + parentDbgObject.type.name() + " did not return an array.");
+            throw new Error("The \"" + this.name + "\" array on " + parentDbgObject.type.htmlName() + " did not return an array.");
         }
 
         var that = this;
@@ -36,7 +36,7 @@ Loader.OnLoad(function() {
             .then(function (areAllTypes) {
                 var incorrectIndex = areAllTypes.indexOf(false);
                 if (incorrectIndex != -1) {
-                    throw new Error("The \"" + that.name + "\" array on " + parentDbgObject.type.name() + " was supposed to return an array of " + resultType + " but there was an unrelated " + result[incorrectIndex].type.name() + ".")
+                    throw new Error("The \"" + that.name + "\" array on " + parentDbgObject.type.htmlName() + " was supposed to return an array of " + resultType + " but there was an unrelated " + result[incorrectIndex].type.htmlName() + ".")
                 }
 
                 return result;
@@ -95,7 +95,7 @@ Loader.OnLoad(function() {
             return registeredArrayTypes.getExtensionIncludingBaseTypes(this, name)
             .then(function (result) {
                 if (result == null) {
-                    throw new Error("There was no array \"" + name + "\" on " + that.type.name());
+                    throw new Error("There was no array \"" + name + "\" on " + that.type.htmlName());
                 }
                 return Promise.resolve(result.extension.getter(result.dbgObject))
                 .then(function (resultArray) {
