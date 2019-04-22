@@ -82,7 +82,7 @@ Loader.OnLoad(function () {
       var r = (c & 0x00FF0000) >> 16;
       var g = (c & 0x0000FF00) >> 8;
       var b = (c & 0x000000FF);
-      var color = "rgba(" + r + "," + g + "," + b + "," + a + ")";
+      var color = "rgba(" + r + "," + g + "," + b + "," + a / 255 + ")";
       return "SolidColorDrawQuad <span style=\"display:inline-block; vertical-align: middle; width:16px; height:8px; background-color:" + color + "; border:1px solid black;\"></span>";
     });
   }
