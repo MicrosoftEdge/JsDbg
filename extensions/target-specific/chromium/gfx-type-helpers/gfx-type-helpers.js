@@ -56,7 +56,7 @@ Loader.OnLoad(function() {
     );
 
     DbgObject.AddTypeDescription(
-        DbgObjectType("viz_common", "gfx::Rect"),
+        Chromium.GpuProcessType("gfx::Rect"),
         "Rect",
         true,
         UserEditableFunctions.Create((rect) => Promise.all([rect.f("origin_").f("x_").val(),
@@ -67,7 +67,7 @@ Loader.OnLoad(function() {
     );
 
     DbgObject.AddTypeDescription(
-        DbgObjectType("viz_common", "gfx::RectF"),
+        Chromium.GpuProcessType("gfx::RectF"),
         "Rect",
         true,
         UserEditableFunctions.Create((rect) => Promise.all([rect.f("origin_").f("x_").val(),
@@ -78,7 +78,7 @@ Loader.OnLoad(function() {
     );
 
     DbgObject.AddTypeDescription(
-        DbgObjectType("viz_common", "gfx::Size"),
+        Chromium.GpuProcessType("gfx::Size"),
         "Size",
         true,
         UserEditableFunctions.Create((size) => Promise.all([size.f("width_").val(), size.f("height_").val()])
@@ -86,7 +86,7 @@ Loader.OnLoad(function() {
     );
 
     DbgObject.AddTypeDescription(
-        DbgObjectType("viz_common", "gfx::Transform"),
+        Chromium.GpuProcessType("gfx::Transform"),
         "Size",
         true,
         UserEditableFunctions.Create((transform) => Promise.all([transform.f("matrix_").f("fmat").vals(16)])

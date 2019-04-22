@@ -21,17 +21,13 @@ Loader.OnLoad(function () {
       return DbgObject.NULL;
     },
     GetRoots: function () {
-      return DbgObject.locals("service", "viz::CompositorFrameSinkImpl::SubmitCompositorFrameInternal", "frame").then(
-        (frames) => {
-          return frames;
-        }
-      );
+      return Promise.all([]);
     },
     DefaultTypes: []
   };
 
   CompositorFrame.Tree.addChildren(Chromium.GpuProcessType("viz::CompositorFrame"), (parentLayer) => {
-    return parentLayer.f("render_pass_list").array("Elements").map(unique_ptr => { return unique_ptr.F("Object"); });
+    return parentLayer.f("render_pass_list").array("Elements").map(unique_ptr => unique_ptr.F("Object"));
   });
 
   CompositorFrame.Tree.addChildren(Chromium.GpuProcessType("viz::RenderPass"), (parentLayer) => {

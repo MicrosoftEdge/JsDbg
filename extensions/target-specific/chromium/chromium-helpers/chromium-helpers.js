@@ -87,7 +87,7 @@ var Chromium = null;
             _help_GpuProcessEquivalentModules: {
                 description: "List of modules used in the Chromium gpu process.",
             },
-            GpuProcessEquivalentModules: ["msedge", "service", "chrome"],
+            GpuProcessEquivalentModules: ["msedge_child", "service", "chrome_child", "viz_common"],
 
             _help_MultiProcessModules: {
                 description: "List of modules used in multiple Chromium processes.",
