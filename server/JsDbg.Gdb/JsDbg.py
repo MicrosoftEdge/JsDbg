@@ -189,7 +189,10 @@ def LookupField(module, type, field):
         fields = [f for m in match for f in m.type.fields()]
 
 def LookupGlobalSymbol(module, symbol):
-    sym = gdb.lookup_global_symbol(symbol)
+    # We can't use lookup_global_symbol because that does not work for symbols
+    # with local linkage, such as those in an anonymous namespace.
+    # https://sourceware.org/bugzilla/show_bug.cgi?id=24474
+    (sym, _) = gdb.lookup_symbol(symbol)
     return SSymbolResult(sym)
 
 def GetCallStack(numFrames):
