@@ -141,9 +141,9 @@ namespace JsDbg.Gdb {
             string pythonResult = await this.QueryDebuggerPython(String.Format("LookupField(\"{0}\",\"{1}\", \"{2}\")", module, typename, fieldName));
             // '{%d#%d#%d#%d#%s#%s}' % (self.offset, self.size, self.bitOffset, self.bitCount, self.fieldName, self.typeName)
 
-            Debug.Assert(pythonResult[1] == '{');
+            Debug.Assert(pythonResult[0] == '{');
             int fieldEndIndex = pythonResult.IndexOf('}');
-            string fieldString = pythonResult.Substring(2, fieldEndIndex-2);
+            string fieldString = pythonResult.Substring(1, fieldEndIndex-1);
 
             string[] properties = fieldString.Split('#');
 
@@ -163,9 +163,9 @@ namespace JsDbg.Gdb {
             string pythonResult = await this.QueryDebuggerPython(String.Format("LookupGlobalSymbol(\"{0}\",\"{1}\")", module, symbol));
             // '{%s#%d' % (self.type, self.pointer)
 
-            Debug.Assert(pythonResult[1] == '{');
+            Debug.Assert(pythonResult[0] == '{');
             int fieldEndIndex = pythonResult.IndexOf('}');
-            string fieldString = pythonResult.Substring(2, fieldEndIndex-2);
+            string fieldString = pythonResult.Substring(1, fieldEndIndex-1);
 
             string[] properties = fieldString.Split("#");
 
