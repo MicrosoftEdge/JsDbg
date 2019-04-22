@@ -115,7 +115,7 @@ class SSymbolResult:
         self.pointer = symbol.value().address.reinterpret_cast(gdb.lookup_type("unsigned long long"))
     
     def __repr__(self):
-        return '{%s#%d' % (self.type, self.pointer)
+        return '{%s#%d}' % (self.type, self.pointer)
 
 class SStackFrame:
     def __init__(self, frame):
@@ -126,14 +126,6 @@ class SStackFrame:
     def __repr__(self):
         return '{%d#%d#%d}' % (self.instructionAddress, self.stackAddress, self.frameAddress)
 
-
-class SSymbolResult:
-    def __init__(self, value):
-        self.pointer = value.address.reinterpret_cast(gdb.lookup_type("unsigned long long"))
-        self.type = value.type.name
-        
-    def __repr__(self):
-        return '{%d#%s}' % (self.pointer, self.type)
 
 class SNamedSymbol:
     def __init__(self, symbol, frame):
