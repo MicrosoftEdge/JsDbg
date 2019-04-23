@@ -63,7 +63,7 @@ Loader.OnLoad(function () {
                     size--;
                   }
                 }
-                return Promise.all(quads).then((resolvedQuads) => { return resolvedQuads; });
+                return Promise.all(quads);
               });
             });
           });
@@ -85,7 +85,7 @@ Loader.OnLoad(function () {
   );
 
   DbgObject.AddTypeDescription(
-    DbgObjectType("viz_common", "viz::DrawQuad::Resources"),
+    Chromium.GpuProcessType("viz::DrawQuad::Resources"),
     "Resources",
     true,
     UserEditableFunctions.Create((r) => Promise.all([r.f("count").val()])
