@@ -48,7 +48,6 @@ namespace JsDbg.Gdb {
                 string[] properties = fieldString.Split('#');
                 Debug.Assert(properties.Length == 6);
                 SFieldResult field = new SFieldResult();
-                Console.WriteLine("GetAllFields: {0}", fieldString);
                 field.Offset = UInt32.Parse(properties[0]);
                 field.Size = UInt32.Parse(properties[1]);
                 field.BitOffset = Byte.Parse(properties[2]);
