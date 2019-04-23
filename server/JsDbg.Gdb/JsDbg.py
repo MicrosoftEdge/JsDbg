@@ -59,11 +59,12 @@ class JsDbg:
                 # Anything going to gdb from another thread must go through gdb.post_event
                 gdb.post_event(self.JsDbgGdbRequest(request, self.proc.stdin, self.verbose))
                 # The response will asynchronously be sent back on the response stream
-        
-        # TODO: These threads don't get cleaned gracefully at exit, need to 
-        # work out what the correct way of handling that is. 
+
+        # Mark threads as daemon threads so they don't block exiting.
         self.stderrThread = threading.Thread(target=stderrThreadProc)
+        self.stderrThread.daemon = True
         self.mainThread = threading.Thread(target=mainThreadProc)
+        self.mainThread.daemon = True
         self.stderrThread.start()
         self.mainThread.start()
 
