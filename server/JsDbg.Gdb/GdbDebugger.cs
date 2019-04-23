@@ -8,6 +8,8 @@ namespace JsDbg.Gdb {
     class GdbDebugger : IDebugger {
 
         public GdbDebugger() {
+            // TODO: Initialize from LookupTypeSize("void*")
+            IsPointer64Bit = true;
         }
 
 
@@ -102,7 +104,6 @@ namespace JsDbg.Gdb {
             return result;
         }
 
-        // TODO: Determine whether the process is 64 bit or 32 bit        
         public bool IsPointer64Bit { 
             get {
                 return this.isPointer64Bit;
@@ -347,7 +348,13 @@ namespace JsDbg.Gdb {
 
             if (result.Name.StartsWith("vtable for ")) {
                 result.Name = result.Name.Substring("vtable for ".Length) + "::`vftable'";
-                // TODO: If displacement = 2 pointers, assume RTTI and set displacement to 0?
+                ulong pointer_size = IsPointer64Bit ? 8UL : 4UL;
+                if (result.Displacement == 2 * pointer_size) {
+                    // First two words of the vtable are reserved for RTTI.
+                    // http://refspecs.linuxbase.org/cxxabi-1.83.html#rtti-layout
+                    // TODO: Should we subtract 2*pointer_size from all vtable references?
+                    result.Displacement = 0;
+                }
             }
 
             return result;
