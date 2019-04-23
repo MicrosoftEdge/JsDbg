@@ -101,7 +101,7 @@ Loader.OnLoad(function () {
             return null;
         });
     }
-    
+
     function getDefaultTypeDescription(dbgObject, element) {
         if (dbgObject.isNull()) {
             return Promise.resolve("nullptr");
@@ -111,24 +111,26 @@ Loader.OnLoad(function () {
         .then(function (customDescription) {
             var hasCustomDescription = customDescription != null;
             if (!hasCustomDescription) {
-                customDescription = function(x) { 
+                customDescription = function(x) {
                     // Default description: first try to get val(), then just provide the pointer with the type.
-                    if (x.type.equals("bool") || x.bitcount == 1) {
-                        return x.val()
-                        .then(function (value) {
-                            return value == 1 ? "true" : "false";
-                        });
-                    } else if (x.type.equals("wchar_t")) {
-                        if (x.wasDereferenced) {
-                            return x.string()
-                            .then(null, function() {
-                                return x.val().then(String.fromCharCode);
+                    if (x.type.isScalar()) {
+                        if (x.type.equals("bool") || x.bitcount == 1) {
+                            return x.val()
+                            .then(function (value) {
+                                return value == 1 ? "true" : "false";
                             });
+                        } else if (x.type.equals("wchar_t")) {
+                            if (x.wasDereferenced) {
+                                return x.string()
+                                .then(null, function() {
+                                    return x.val().then(String.fromCharCode);
+                                });
+                            } else {
+                                return x.val().then(String.fromCharCode);
+                            }
                         } else {
-                            return x.val().then(String.fromCharCode);
+                            return x.bigval().then(function (bigint) { return bigint.toString(); });
                         }
-                    } else if (x.type.isScalar()) {
-                        return x.bigval().then(function (bigint) { return bigint.toString(); }); 
                     } else if (x.type.isPointer()) {
                         return Promise.resolve(x.deref())
                         .then(function (dereferenced) {
@@ -164,7 +166,7 @@ Loader.OnLoad(function () {
                     } else {
                         return obj.ptr();
                     }
-                }); 
+                });
             }
 
             if (dbgObject.type.isArray()) {
