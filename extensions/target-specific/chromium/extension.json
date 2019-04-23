@@ -8,7 +8,8 @@
         "target-specific/chromium/ax-tree",
         "target-specific/chromium/blink",
         "target-specific/chromium/gfx-type-helpers",
-        "target-specific/chromium/cclayertree"
+        "target-specific/chromium/cclayertree",
+        "target-specific/chromium/compositorframe"
     ],
     "targetModules": [
         "msedge",

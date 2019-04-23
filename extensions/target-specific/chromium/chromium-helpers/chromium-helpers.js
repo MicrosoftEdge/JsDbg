@@ -34,6 +34,7 @@ var Chromium = null;
 
             RendererProcessName: "renderer",
             BrowserProcessName: "browser",
+            GpuProcessName: "gpu",
 
             _help_SetTargetProcess: {
                 description: "Sets the name of Chromium process being debugged.",
@@ -45,6 +46,7 @@ var Chromium = null;
 
             RendererProcessSyntheticModuleName: "renderer-module",
             BrowserProcessSyntheticModuleName: "browser-module",
+            GpuProcessSyntheticModuleName: "gpu-module",
 
             _help_RendererProcessType: {
                 description: "Creates a DbgObjectType in the Chromium renderer process.",
@@ -62,6 +64,14 @@ var Chromium = null;
             },
             BrowserProcessType: (typeName) => DbgObjectType(Chromium.BrowserProcessSyntheticModuleName, typeName),
 
+            _help_GpuProcessType: {
+                description: "Creates a DbgObjectType in the Chromium gpu process.",
+                arguments: [
+                    {name:"typeName", type:"string", description: "The type name."}
+                ]
+            },
+            GpuProcessType: (typeName) => DbgObjectType(Chromium.GpuProcessSyntheticModuleName, typeName),
+
             _help_RendererProcessEquivalentModules: {
                 description: "List of modules used in the Chromium renderer process.",
             },
@@ -73,6 +83,11 @@ var Chromium = null;
                 description: "List of modules used in the Chromium browser process.",
             },
             BrowserProcessEquivalentModules: ["msedge", "accessibility", "chrome"],
+
+            _help_GpuProcessEquivalentModules: {
+                description: "List of modules used in the Chromium gpu process.",
+            },
+            GpuProcessEquivalentModules: ["msedge_child", "service", "chrome_child", "viz_common"],
 
             _help_MultiProcessModules: {
                 description: "List of modules used in multiple Chromium processes.",
@@ -88,6 +103,8 @@ var Chromium = null;
                         SyntheticModules.RemoveEquivalentModules(Chromium.BrowserProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
                     } else if (currentTargetProcessName == Chromium.RendererProcessName) {
                         SyntheticModules.RemoveEquivalentModules(Chromium.RendererProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else if (currentTargetProcessName == Chromium.GpuProcessName) {
+                        SyntheticModules.RemoveEquivalentModules(Chromium.GpuProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
                     } else {
                         console.assert(false);
                     }
@@ -100,6 +117,8 @@ var Chromium = null;
                         SyntheticModules.AddEquivalentModules(Chromium.BrowserProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
                     } else if (currentTargetProcessName == Chromium.RendererProcessName) {
                         SyntheticModules.AddEquivalentModules(Chromium.RendererProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else if (currentTargetProcessName == Chromium.GpuProcessName) {
+                        SyntheticModules.AddEquivalentModules(Chromium.GpuProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
                     } else {
                         console.assert(false);
                     }
@@ -109,6 +128,7 @@ var Chromium = null;
 
         SyntheticModules.RegisterSyntheticName(Chromium.RendererProcessSyntheticModuleName, ...Chromium.RendererProcessEquivalentModules);
         SyntheticModules.RegisterSyntheticName(Chromium.BrowserProcessSyntheticModuleName, ...Chromium.BrowserProcessEquivalentModules);
+        SyntheticModules.RegisterSyntheticName(Chromium.GpuProcessSyntheticModuleName, ...Chromium.GpuProcessEquivalentModules);
 
         Help.Register(Chromium);
     });
