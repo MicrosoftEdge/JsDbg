@@ -88,11 +88,6 @@ Loader.OnLoad(function () {
     Chromium.GpuProcessType("viz::DrawQuad::Resources"),
     "Resources",
     true,
-    UserEditableFunctions.Create((r) => Promise.all([r.f("count").val()])
-      .thenAll((count) => {
-        return r.f("ids").vals(count).then((rs) => {
-          return rs;
-        });
-      }))
+    UserEditableFunctions.Create((r) =>  r.f("ids").vals(r.f("count").val()))
   );
 });

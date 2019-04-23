@@ -89,8 +89,8 @@ Loader.OnLoad(function() {
         Chromium.GpuProcessType("gfx::Transform"),
         "Size",
         true,
-        UserEditableFunctions.Create((transform) => Promise.all([transform.f("matrix_").f("fmat").vals(16)])
-            .thenAll((mat) => {
+        UserEditableFunctions.Create((transform) => transform.f("matrix_").f("fmat").vals(16)
+            .then((mat) => {
                 if (mat[0] == 1 && mat[5] == 1 && mat[10] == 1 && mat[15] == 1 && 
                     mat[9] == 0 && mat[1] == 0 && mat[2] == 0  && mat[3] ==  0 && 
                     mat[4] == 0 && mat[6] == 0 && mat[7] == 0  && mat[8] == 0  &&
