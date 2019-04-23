@@ -120,11 +120,38 @@ namespace JsDbg.Gdb {
         }
         
         public async Task<IEnumerable<SConstantResult>> LookupConstants(string module, string type, ulong constantValue) {
-            // Not currently aware of a way to find all constants with a given value from GDB
-            // TODO:
-            //   -var-create - * ((type)constantValue)
-            //   may return a useful result; ^done,name="var1",numchild="0",value="ENUM_1",type="enum1",has_more="0"
-            return new List<SConstantResult>();
+            string pythonResult = await this.QueryDebuggerPython(String.Format("LookupConstants(\"{0}\", \"{1}\", {2})", module, type, constantValue));
+
+            List<SConstantResult> result = new List<SConstantResult>();
+
+            // TODO: Refactor this list parsing to share code with GetAllFields
+            // [{...}, {...}]
+            int index = 0;
+            Debug.Assert(pythonResult[index] == '[');
+            ++index;
+            while(pythonResult[index] != ']') {
+                // '{%s#%d}' % (self.name, self.value)
+                Debug.Assert(pythonResult[index] == '{');
+                ++index;
+                int fieldEndIndex = pythonResult.IndexOf('}',index);
+                string fieldString = pythonResult.Substring(index, fieldEndIndex-index);
+
+                string[] properties = fieldString.Split('#');
+                Debug.Assert(properties.Length == 2);
+                SConstantResult field = new SConstantResult();
+                field.ConstantName = properties[0];
+                field.Value = UInt64.Parse(properties[1]);
+                result.Add(field);
+
+                index = fieldEndIndex+1;
+                if (pythonResult[index] == ',') {
+                    ++index;
+                    Debug.Assert(pythonResult[index] == ' ');
+                    ++index;
+                }
+            }
+
+            return result;
         }
         
         public async Task<SConstantResult> LookupConstant(string module, string type, string constantName) {
