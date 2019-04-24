@@ -22,7 +22,9 @@ namespace JsDbg.Gdb {
         }
 
         public async Task Run() {
-            Task<uint> task = LookupTypeSize("", "void*");
+            LookupTypeSize("", "void*").ContinueWith((task) => {
+                IsPointer64Bit = task.Result == 8 ? true : false;
+            });
 
             while(true) {
                 // Pump messages from python back to any waiting handlers
@@ -31,7 +33,6 @@ namespace JsDbg.Gdb {
                     return;
                 }
                 this.OutputDataReceived?.Invoke(this, response);
-                IsPointer64Bit = task.Result == 8 ? true : false;
             }
         }
 
