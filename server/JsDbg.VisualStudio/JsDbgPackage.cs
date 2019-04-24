@@ -16,6 +16,7 @@ using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.OLE.Interop;
 using Microsoft.VisualStudio.Shell;
+using EnvDTE;
 
 namespace JsDbg.VisualStudio
 {
@@ -68,7 +69,8 @@ namespace JsDbg.VisualStudio
                 Debug.WriteLine("Update pending.");
             }
 
-            DebuggerRunner runner = new DebuggerRunner();
+            EnvDTE.DTE dte = (DTE)GetService(typeof(DTE));
+            DebuggerRunner runner = new DebuggerRunner(dte.Debugger);
             this.webServer = new Core.WebServer(runner.Debugger, persistentStore, configuration.ExtensionRoot);
             this.webServer.LoadExtension("default");
         }
