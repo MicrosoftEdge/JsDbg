@@ -10,6 +10,13 @@
 
 var BlinkHelpers = null;
 Loader.OnLoad(function() {
+    DbgObject.AddExtendedField(
+        (type) => type.name().match(/^blink::DataRef<.*>$/) != null,
+        "Data",
+        (type) => type.templateParameters()[0],
+        (dataRef) => dataRef.f("data_.ptr_")
+    );
+
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::CharacterData"), "data", false, UserEditableFunctions.Create((characterDataNode) => {
         return characterDataNode.f("data_").desc("Text").then(WhitespaceFormatter.CreateFormattedText);
     }));
