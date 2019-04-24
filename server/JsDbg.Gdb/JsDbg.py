@@ -70,6 +70,13 @@ class JsDbg:
         self.stderrThread.start()
         self.mainThread.start()
 
+    def SendGdbEvent(self, event):
+        response = '%' + event + '\n';
+        if self.verbose:
+            print("JsDbg [sending event]: " + response)
+        self.proc.stdin.write(response.encode("utf-8"))
+        self.proc.stdin.flush()
+
 
 def DebuggerQuery(tag, command):
     # pi exec('print(\\'{0}~\\' + str({1}))')
@@ -314,6 +321,29 @@ def EnsureJsDbg():
     if not jsdbg:
         jsdbg = JsDbg()
     return jsdbg
+
+def StoppedHandler(ev):
+    global jsdbg
+    if jsdbg:
+        jsdbg.SendGdbEvent('stop')
+
+def ContHandler(ev):
+    global jsdbg
+    if jsdbg:
+        jsdbg.SendGdbEvent('cont')
+
+def ExitHandler(ev):
+    global jsdbg
+    if jsdbg:
+        jsdbg.SendGdbEvent('exit')
+
+# TODO: Also support events for thread and process switching,
+# probably using gdb.before_prompt. See also
+# https://sourceware.org/bugzilla/show_bug.cgi?id=24482
+
+gdb.events.stop.connect(StoppedHandler)
+gdb.events.cont.connect(ContHandler)
+gdb.events.exited.connect(ExitHandler)
 
 class JsDbgCmd(gdb.Command):
   """Runs JsDbg."""
