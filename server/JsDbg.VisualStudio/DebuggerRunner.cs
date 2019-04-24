@@ -122,7 +122,7 @@ namespace JsDbg.VisualStudio {
             vsCmdNameMapping.MapNameToGUIDID("Debug.Start", out startCmdGroup, out startCmdId);
             Microsoft.VisualStudio.Shell.OleMenuCommandService commandService = new Microsoft.VisualStudio.Shell.OleMenuCommandService(Microsoft.VisualStudio.Shell.ServiceProvider.GlobalProvider);
             if (!commandService.GlobalInvoke(new CommandID(startCmdGroup, (int)startCmdId))) {
-                throw new DebuggerException("Unable to continue debugging.");
+                throw new DebuggerException("Failed to continue debugging.");
             }
         }
 
