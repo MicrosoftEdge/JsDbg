@@ -9,8 +9,9 @@
 using System;
 using System.Collections.Generic;
 using Dia2Lib;
+using JsDbg.Core;
 
-namespace JsDbg.Core {
+namespace JsDbg.Windows {
     #region Helper Structs
     public struct SField {
         public SField(uint offset, uint size, string module, string typename, byte bitOffset, byte bitCount) {

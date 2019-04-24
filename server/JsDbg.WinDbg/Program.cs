@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.IO;
 using JsDbg.Core;
 using JsDbg.Utilities;
+using JsDbg.Windows;
 
 namespace JsDbg.WinDbg {
     public class Program {
