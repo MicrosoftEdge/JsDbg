@@ -413,14 +413,7 @@ namespace JsDbg.Core {
                     }
                     break;
                 case "continue":
-                    if (context == null)
-                    {
-                      goto default;
-                    }
-                    else
-                    {
-                      this.ServeContinue(query, respond, fail);
-                    }
+                    this.ServeContinue(query, respond, fail);
                     break;  
                 default:
                     fail();

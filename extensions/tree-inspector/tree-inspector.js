@@ -17,6 +17,7 @@ var TreeInspector = (function() {
         this.expandTreeAutomatically = (window.sessionStorage.getItem(id("FullyExpand")) !== "false");
 
         this.refreshOnBreak = (window.sessionStorage.getItem(id("RefreshOnBreak")) === "true");
+        this.refreshOnBreakAndContinueEnabled = (window.sessionStorage.getItem(id("RefreshOnBreakAndContinueEnabled")) === "true");
         this.notifyOnBreak = !this.refreshOnBreak;
         this.debuggerHasRunSinceLastRefresh = false;
         var that = this;
@@ -64,6 +65,11 @@ var TreeInspector = (function() {
         }
     }
 
+    TreeInspectorUIController.prototype.setRefreshOnBreakAndContinue = function(value) {
+        this.refreshOnBreakAndContinueEnabled = value;
+        window.sessionStorage.setItem(id("RefreshOnBreakAndContinueEnabled"), value);
+    }
+
     TreeInspectorUIController.prototype.setNotifyOnBreak = function(value) {
         this.notifyOnBreak = value;
     }
@@ -96,6 +102,12 @@ var TreeInspector = (function() {
             .then(function () {
                 if (emphasisNodePtr != null) {
                     that.emphasizeNode(emphasisNodePtr, that.treeRoot, that.treeReader);
+                }                
+            })
+            .then(function () {
+                if (that.refreshOnBreakAndContinueEnabled)
+                {
+                    JsDbg.Continue();
                 }
             })
             .catch(function(error) {
@@ -384,6 +396,15 @@ var TreeInspector = (function() {
         message.appendChild(buttons);
         messageContainer.appendChild(message);
 
+        var selectRefreshOnBreakTypeControl = createElement("select", null, {
+            "for": id("RefreshOnBreak")
+        });
+        selectRefreshOnBreakTypeControl.appendChild(createElement("option", "Update When Debugger Breaks", null));
+        selectRefreshOnBreakTypeControl.appendChild(createElement("option", "Update When Debugger Breaks & Continue (experimental)", null));
+        selectRefreshOnBreakTypeControl.addEventListener("change", () => {
+            that.setRefreshOnBreakAndContinue(selectRefreshOnBreakTypeControl.selectedIndex == 1);
+        }, false);
+
         updateCheckboxControl.appendChild(messageContainer);
         updateCheckboxControl.appendChild(createElement("input", null, {
             name: "refreshOnBreak",
@@ -396,9 +417,7 @@ var TreeInspector = (function() {
                 that.setRefreshOnBreak(e.target.checked);
             }
         }));
-        updateCheckboxControl.appendChild(createElement("label", "Update When Debugger Breaks", {
-            "for": id("RefreshOnBreak")
-        }));
+        updateCheckboxControl.appendChild(selectRefreshOnBreakTypeControl);
 
         topPane.appendChild(createElement("div", "Click a node to show its children.  Ctrl-Click to expand or collapse a subtree."));
 

@@ -21,13 +21,12 @@ using JsDbg.Utilities;
 
 namespace JsDbg.VisualStudio {
     class DebuggerRunner : IDebugEventCallback2 {
-        internal DebuggerRunner(EnvDTE.Debugger debuggerAutomation) {
+        internal DebuggerRunner() {
             this.engine = new DebuggerEngine(this);
             this.engine.DiaLoader = new Dia.DiaSessionLoader(new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this), new DiaSessionModuleSource(this, this.engine) });
             this.debugger = new Core.TypeCacheDebugger(this.engine);
             this.EnsureDebuggerService();
             this.attachedProcesses = new List<uint>();
-            this.debuggerAutomation = debuggerAutomation;
         }
 
         private bool EnsureDebuggerService() {
@@ -117,9 +116,14 @@ namespace JsDbg.VisualStudio {
 
         public void Continue()
         {
-            // While currentDebugProgram.Continue(this.currentThread) exists, it results in
-            // VisualStudio UI not realizing that the program is now running.
-            debuggerAutomation.Go();
+            Guid startCmdGroup;
+            uint startCmdId;
+            IVsCmdNameMapping vsCmdNameMapping = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsCmdNameMapping)) as IVsCmdNameMapping;
+            vsCmdNameMapping.MapNameToGUIDID("Debug.Start", out startCmdGroup, out startCmdId);
+            Microsoft.VisualStudio.Shell.OleMenuCommandService commandService = new Microsoft.VisualStudio.Shell.OleMenuCommandService(Microsoft.VisualStudio.Shell.ServiceProvider.GlobalProvider);
+            if (!commandService.GlobalInvoke(new CommandID(startCmdGroup, (int)startCmdId))) {
+                throw new DebuggerException("Unable to set the active thread in the debugger.");
+            }
         }
 
         public uint TargetProcessSystemId {
@@ -416,7 +420,6 @@ namespace JsDbg.VisualStudio {
         private uint targetProcessSystemId;  // process being actively debugged
         private uint targetThreadSystemId;  // thread being actively debugged
         bool isPointer64Bit;
-        EnvDTE.Debugger debuggerAutomation;
 
         static Guid debugModule3Guid = Guid.Parse("245f9d6a-e550-404d-82f1-fdb68281607a");
         static Guid startDebugEvent = Guid.Parse("2c2b15b7-fc6d-45b3-9622-29665d964a76");

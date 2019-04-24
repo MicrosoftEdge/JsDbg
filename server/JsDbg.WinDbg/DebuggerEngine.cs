@@ -76,6 +76,9 @@ namespace JsDbg.WinDbg {
 
         public Task Continue()
         {
+            System.Diagnostics.Debug.WriteLine("Executing command: g");
+            this.control.Execute(OutputControl.Ignore, "g", ExecuteOptions.NotLogged);
+            System.Diagnostics.Debug.WriteLine("Done executing g.");
             return Task.CompletedTask;
         }
 

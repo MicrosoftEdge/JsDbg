@@ -69,8 +69,7 @@ namespace JsDbg.VisualStudio
                 Debug.WriteLine("Update pending.");
             }
 
-            EnvDTE.DTE dte = (DTE)GetService(typeof(DTE));
-            DebuggerRunner runner = new DebuggerRunner(dte.Debugger);
+            DebuggerRunner runner = new DebuggerRunner();
             this.webServer = new Core.WebServer(runner.Debugger, persistentStore, configuration.ExtensionRoot);
             this.webServer.LoadExtension("default");
         }
