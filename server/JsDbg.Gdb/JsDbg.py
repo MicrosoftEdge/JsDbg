@@ -139,6 +139,15 @@ class SNamedSymbol:
         return '{%s#%d#%s}' % (self.name, self.symbolResult.pointer, s.symbolResult.type)
 
 
+class SConstantResult:
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
+    def __repr__(self):
+        return '{%s#%d}' % (self.name, self.value)
+
+
 def GetAllFields(module, type, includeBaseTypes):
     t = gdb.lookup_type(type)
     fields = t.fields()
@@ -243,6 +252,24 @@ def LookupTypeSize(module, typename):
         return t.reference().sizeof
     t = gdb.lookup_type(typename)
     return t.sizeof
+
+
+def LookupConstants(module, type, value):
+    type = gdb.lookup_type(type)
+    if type.code != gdb.TYPE_CODE_ENUM:
+        return None
+    values = []
+    for f in type.fields():
+        if f.enumval != value:
+            continue
+
+        # GDB will give us "EnumType::Value", but we just want to return the
+        # "Value" part.
+        name = f.name
+        name = name[name.rfind("::") + 2:]
+        values.append(SConstantResult(name, f.enumval))
+    return values
+
 
 def LookupConstant(module, typename, constantName):
     if typename:
