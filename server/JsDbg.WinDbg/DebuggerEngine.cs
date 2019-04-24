@@ -74,6 +74,11 @@ namespace JsDbg.WinDbg {
             return await this.runner.GetCurrentProcessThreads();
         }
 
+        public Task Continue()
+        {
+            return Task.CompletedTask;
+        }
+
         public Task<Core.SModule> GetModuleForAddress(ulong address) {
             return this.runner.AttemptOperation<Core.SModule>(() => {
                 Core.SModule result = new Core.SModule();

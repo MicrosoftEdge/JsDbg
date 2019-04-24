@@ -59,6 +59,12 @@ namespace JsDbg.VisualStudio {
             return Task.FromResult<uint[]>(this.runner.GetCurrentProcessThreads());
         }
 
+        public Task Continue()
+        {
+            this.runner.Continue();
+            return Task.CompletedTask;
+        }
+
         public async Task<ulong> TebAddress() {
             await this.runner.WaitForBreakIn();
             return this.runner.TebAddress();

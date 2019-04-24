@@ -412,6 +412,16 @@ namespace JsDbg.Core {
                         this.ServeTargetThread(segments, context);
                     }
                     break;
+                case "continue":
+                    if (context == null)
+                    {
+                      goto default;
+                    }
+                    else
+                    {
+                      this.ServeContinue(query, respond, fail);
+                    }
+                    break;  
                 default:
                     fail();
                     break;
@@ -1352,6 +1362,12 @@ namespace JsDbg.Core {
                     respond(result);
                 }
             }
+        }
+
+        private async void ServeContinue(NameValueCollection query, Action<string> respond, Action fail)
+        {
+          await this.debugger.Continue();
+          respond(string.Empty);
         }
 
         private void ServeTargetThread(string[] segments, HttpListenerContext context) {

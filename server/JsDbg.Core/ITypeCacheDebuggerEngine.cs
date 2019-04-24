@@ -42,6 +42,8 @@ namespace JsDbg.Core {
 
         Task<uint[]> GetCurrentProcessThreads();
 
+        Task Continue();
+
         Task<ulong> TebAddress();
 
         Task<SModule> GetModuleForAddress(ulong address);

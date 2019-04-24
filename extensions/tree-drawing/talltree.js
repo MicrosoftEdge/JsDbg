@@ -192,6 +192,7 @@ Loader.OnLoad(function() {
         .finally(function() {
             timer.Mark("Finished rendering into DOM");
             JsDbgLoadingIndicator.RemoveMessageProvider(messageProvider);
+            JsDbg.Continue();
         })
     }
 
