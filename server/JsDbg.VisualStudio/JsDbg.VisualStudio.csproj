@@ -198,6 +198,10 @@
       <Project>{585cec7e-c788-4e43-bc35-fab4655c96f2}</Project>
       <Name>JsDbg.Core</Name>
     </ProjectReference>
+    <ProjectReference Include="..\JsDbg.Windows\JsDbg.Windows.csproj">
+      <Project>{cd5a9d9d-4a11-4786-bd6a-ac49919ab165}</Project>
+      <Name>JsDbg.Windows</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">
