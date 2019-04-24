@@ -13,10 +13,12 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Debuggers.DbgEng;
 using JsDbg.Core;
+using JsDbg.Windows;
+using JsDbg.Windows.Dia;
 
 namespace JsDbg.WinDbg {
     class DebuggerEngine : ITypeCacheDebuggerEngine {
-        public DebuggerEngine(DebuggerRunner runner, DebugClient client, DebugControl control, Dia.DiaSessionLoader diaLoader) {
+        public DebuggerEngine(DebuggerRunner runner, DebugClient client, DebugControl control, DiaSessionLoader diaLoader) {
             this.runner = runner;
             this.client = client;
             this.client.OutputMask = OutputModes.Normal;
@@ -34,7 +36,7 @@ namespace JsDbg.WinDbg {
 
         #region ITypeCacheDebuggerEngine Members
 
-        public Dia.DiaSessionLoader DiaLoader {
+        public DiaSessionLoader DiaLoader {
             get { return this.diaLoader; }
         }
 
@@ -150,8 +152,8 @@ namespace JsDbg.WinDbg {
             Console.Out.Write('.');
         }
 
-        public Task<Core.Type> GetTypeFromDebugger(string module, string typename) {
-            return this.runner.AttemptOperation<Core.Type>(() => {
+        public Task<JsDbg.Windows.Type> GetTypeFromDebugger(string module, string typename) {
+            return this.runner.AttemptOperation<JsDbg.Windows.Type>(() => {
                 uint typeSize = 0;
 
                 ulong moduleBase;
@@ -237,7 +239,7 @@ namespace JsDbg.WinDbg {
                             //  - Base types of the base types aren't known.
                             // The only thing this base type is sufficient for is knowing which fields are associated with each type,
                             // which fortunately is all we need it for (right now anyway).
-                            SBaseType baseType = new SBaseType(new Core.Type(module, currentBaseClass.TypeName, currentBaseClass.TypeSize, /*isEnum*/false, fields, null, null), (int)currentBaseClass.Offset);
+                            SBaseType baseType = new SBaseType(new JsDbg.Windows.Type(module, currentBaseClass.TypeName, currentBaseClass.TypeSize, /*isEnum*/false, fields, null, null), (int)currentBaseClass.Offset);
                             baseTypes.Add(baseType);
                             fields = new Dictionary<string, SField>();
                             ++currentBaseClassIndex;
@@ -288,7 +290,7 @@ namespace JsDbg.WinDbg {
                 // Finish up the base types.
                 while (currentBaseClassIndex < parser.ParsedBaseClasses.Count) {
                     var currentBaseClass = parser.ParsedBaseClasses[currentBaseClassIndex];
-                    SBaseType baseType = new SBaseType(new Core.Type(module, currentBaseClass.TypeName, currentBaseClass.TypeSize, /*isEnum*/false, fields, null, null), (int)currentBaseClass.Offset);
+                    SBaseType baseType = new SBaseType(new JsDbg.Windows.Type(module, currentBaseClass.TypeName, currentBaseClass.TypeSize, /*isEnum*/false, fields, null, null), (int)currentBaseClass.Offset);
                     baseTypes.Add(baseType);
                     fields = new Dictionary<string, SField>();
                     ++currentBaseClassIndex;
@@ -299,7 +301,7 @@ namespace JsDbg.WinDbg {
                     constants.Add(constant.ConstantName, constant.Value);
                 }
 
-                return new Core.Type(module, typename, typeSize, parser.IsEnum, fields, constants, baseTypes);
+                return new JsDbg.Windows.Type(module, typename, typeSize, parser.IsEnum, fields, constants, baseTypes);
             }, String.Format("Unable to lookup type from debugger: {0}!{1}", module, typename));
         }
 
@@ -353,7 +355,7 @@ namespace JsDbg.WinDbg {
         private Microsoft.Debuggers.DbgEng.DebugDataSpaces dataSpaces;
         private Microsoft.Debuggers.DbgEng.DebugSymbols symbols;
         private SymbolCache symbolCache;
-        private Dia.DiaSessionLoader diaLoader;
+        private DiaSessionLoader diaLoader;
         private bool isPointer64Bit;
     }
 }

@@ -28,10 +28,6 @@
     <DebugType>pdbonly</DebugType>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Dia2Lib">
-      <HintPath>..\references\Dia2Lib.dll</HintPath>
-      <EmbedInteropTypes>True</EmbedInteropTypes>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.Core" />
@@ -74,35 +70,18 @@
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BrowserLauncher.cs" />
     <Compile Include="ConstantCache.cs" />
-    <Compile Include="DiaHelpers.cs" />
-    <Compile Include="DiaSessionLoader.cs" />
     <Compile Include="FileCache.cs" />
     <Compile Include="IDebugger.cs" />
-    <Compile Include="IDiaSessionSource.cs" />
-    <Compile Include="ITypeCacheDebuggerEngine.cs" />
     <Compile Include="PersistentStore.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TypeCache.cs" />
-    <Compile Include="TypeCacheDebugger.cs" />
     <Compile Include="WebServer.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="$(SolutionDir)references\msdia140.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="$(SolutionDir)DiaSource\bin\$(Platform)\$(Configuration)\DiaSource.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="$(SolutionDir)Unelevate\bin\$(Platform)\$(Configuration)\unelevate.exe">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

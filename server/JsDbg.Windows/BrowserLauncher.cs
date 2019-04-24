@@ -10,7 +10,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 
-namespace JsDbg.Core {
+namespace JsDbg.Windows {
     public static class BrowserLauncher {
         public static void Launch(string url) {
             try {

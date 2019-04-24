@@ -14,8 +14,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Debuggers.DbgEng;
-using JsDbg.Dia.WinDbg;
 using JsDbg.Core;
+using JsDbg.Windows;
+using JsDbg.Windows.Dia;
+using JsDbg.Windows.Dia.WinDbg;
 
 namespace JsDbg.WinDbg {
     class DebuggerRunner : IDisposable {
@@ -25,13 +27,13 @@ namespace JsDbg.WinDbg {
             this.symbolCache = new SymbolCache(this.client);
             this.dataSpaces = new DebugDataSpaces(this.client);
             this.systemObjects = new DebugSystemObjects(this.client);
-            this.diaLoader = new Dia.DiaSessionLoader(
-                new Dia.IDiaSessionSource[] { new DiaSessionPathSource(this, this.symbolCache), new DiaSessionModuleSource(this, this.symbolCache, this.dataSpaces) }
+            this.diaLoader = new DiaSessionLoader(
+                new IDiaSessionSource[] { new DiaSessionPathSource(this, this.symbolCache), new DiaSessionModuleSource(this, this.symbolCache, this.dataSpaces) }
             );
             this.isShuttingDown = false;
             this.didShutdown = true;
             this.engine = new DebuggerEngine(this, this.client, this.control, this.diaLoader);
-            this.debugger = new Core.TypeCacheDebugger(this.engine);
+            this.debugger = new TypeCacheDebugger(this.engine);
             Debug.Assert(!this.IsDebuggerBusy);
             this.TargetProcessSystemId = this.systemObjects.CurrentProcessSystemId;
         }
@@ -223,7 +225,7 @@ namespace JsDbg.WinDbg {
         private DebuggerEngine engine;
         private TypeCacheDebugger debugger;
         private SymbolCache symbolCache;
-        private Dia.DiaSessionLoader diaLoader;
+        private DiaSessionLoader diaLoader;
         private uint targetProcessSystemId;  // process being actively debugged
         private uint targetThreadSystemId;  // thread being actively debugged
         private bool isShuttingDown;
