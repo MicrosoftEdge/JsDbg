@@ -9,7 +9,8 @@
         "target-specific/chromium/blink",
         "target-specific/chromium/gfx-type-helpers",
         "target-specific/chromium/cclayertree",
-        "target-specific/chromium/compositorframe"
+        "target-specific/chromium/compositorframe",
+        "target-specific/chromium/angletextures"
     ],
     "targetModules": [
         "msedge",

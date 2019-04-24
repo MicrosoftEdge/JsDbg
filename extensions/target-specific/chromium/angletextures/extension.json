@@ -1,0 +1,27 @@
+{
+    "name": "AngleTextures",
+    "author": "Sushanth Rajasankar (sushraja)",
+    "description": "View Angle texture handles",
+    "dependencies": [
+        "dbgobject",
+        "dbgobject-inspector",
+        "user-editable-functions",
+        "error-messages",
+        "target-specific/chromium/blink/blink-helpers",
+        "target-specific/chromium/blink/wtf-helpers",
+        "target-specific/chromium/chromium-helpers",
+        "target-specific/stl-helpers"
+    ],
+    "includes": [
+        "angletextures.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": [
+        "msedge",
+        "chrome",
+        "content_shell",
+        "browser_tests"
+    ]
+}
