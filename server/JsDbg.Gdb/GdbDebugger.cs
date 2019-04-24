@@ -8,7 +8,7 @@ namespace JsDbg.Gdb {
     class GdbDebugger : IDebugger {
 
         public GdbDebugger() {
-            // TODO: Initialize from LookupTypeSize("void*")
+            // Assume 64-bit until we get a response from the debugger
             IsPointer64Bit = true;
         }
 
@@ -22,6 +22,8 @@ namespace JsDbg.Gdb {
         }
 
         public async Task Run() {
+            Task<uint> task = LookupTypeSize("", "void*");
+
             while(true) {
                 // Pump messages from python back to any waiting handlers
                 string response = await Console.In.ReadLineAsync();
@@ -29,6 +31,7 @@ namespace JsDbg.Gdb {
                     return;
                 }
                 this.OutputDataReceived?.Invoke(this, response);
+                IsPointer64Bit = task.Result == 8 ? true : false;
             }
         }
 
