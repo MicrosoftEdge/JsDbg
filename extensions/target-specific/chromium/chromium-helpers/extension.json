@@ -13,6 +13,9 @@
         "dbgobject"
     ],
     "targetModules": [
-        "chrome"
+        "msedge",
+        "chrome",
+        "content_shell",
+        "browser_tests"
     ]
 }

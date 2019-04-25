@@ -9,21 +9,19 @@ namespace JsDbg.Gdb
     class Program
     {
         static void Main(string[] args) {
-            if (args.Length < 2) {
-                Console.Error.WriteLine("Usage: jsdbg [extensions directory] [persistent store directory]");
+            if (args.Length < 1) {
+                Console.Error.WriteLine("Usage: jsdbg [extensions directory]");
                 return;
             }
 
             string extensionsDirectory = args[0];
-            string persistentStoreDirectory = args[1];
 
             // Inversion of control: Assume that this process has been started by python, stdio talks back to python and can ask it to do things.
             GdbDebugger debugger = new GdbDebugger();
 
-            PersistentStore persistentStore = new PersistentStore(persistentStoreDirectory);
-            UserFeedback userFeedback = new UserFeedback(Path.Combine(persistentStoreDirectory, "feedback"));
+            PersistentStore persistentStore = new PersistentStore();
 
-            using (WebServer webServer = new WebServer(debugger, persistentStore, userFeedback, extensionsDirectory)) {
+            using (WebServer webServer = new WebServer(debugger, persistentStore, extensionsDirectory)) {
                 webServer.LoadExtension("default");
 
                 try {

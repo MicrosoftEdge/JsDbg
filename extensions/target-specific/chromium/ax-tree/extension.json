@@ -4,6 +4,7 @@
     "description": "Inspect the Chromium accessibility tree.",
     "dependencies": [
         "dbgobject",
+        "error-messages",
         "tree-inspector",
         "target-specific/chromium/chromium-helpers",
         "target-specific/stl-helpers"
@@ -15,6 +16,9 @@
         "dbgobject"
     ],
     "targetModules": [
-        "chrome"
+        "msedge",
+        "chrome",
+        "content_shell",
+        "browser_tests"
     ]
 }

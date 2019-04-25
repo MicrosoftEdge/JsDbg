@@ -1,8 +1,16 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 "use strict";
 
 var DbgObjectType = undefined;
 Loader.OnLoad(function () {
-    var dbgObjectType = function(module, nameAndOffset) {
+    var dbgObjectType = function(moduleOrSyntheticName, nameAndOffset, moduleName) {
         var offsetMatches = nameAndOffset.match(/(^.*)\(([0-9]+)\)$/);
         var name = null;
         if (offsetMatches) {
@@ -13,7 +21,8 @@ Loader.OnLoad(function () {
             this._offset = 0;
         }
 
-        this._module = module.toLowerCase();
+        this._moduleOrSyntheticName = moduleOrSyntheticName.toLowerCase();
+        this._moduleName = moduleName ? moduleName : this._moduleOrSyntheticName;
 
         // Normalize type name.
         this._name = name.trim();  // strip outer whitespace
@@ -42,8 +51,12 @@ Loader.OnLoad(function () {
         return this.qualifiedName();
     }
 
-    dbgObjectType.prototype.module = function() {
-        return this._module;
+    dbgObjectType.prototype.moduleOrSyntheticName = function() {
+        return this._moduleOrSyntheticName;
+    }
+
+    dbgObjectType.prototype.moduleName = function() {
+        return this._moduleName;
     }
 
     dbgObjectType.prototype.equals = function () {
@@ -79,15 +92,15 @@ Loader.OnLoad(function () {
     }
 
     dbgObjectType.prototype.qualifiedName = function() {
-        return this._module + "!" + this.fullName();
+        return this._moduleName + "!" + this.fullName();
     }
 
     dbgObjectType.prototype.comparisonName = function() {
-        return this._module.toLowerCase() + "!" + this.fullName();
+        return this._moduleOrSyntheticName.toLowerCase() + "!" + this.fullName();
     }
 
     dbgObjectType.prototype.nonArrayComparisonName = function() {
-        return this._module.toLowerCase() + "!" + this.name();
+        return this._moduleOrSyntheticName.toLowerCase() + "!" + this.name();
     }
 
     dbgObjectType.prototype.isPointer = function() {
@@ -123,11 +136,8 @@ Loader.OnLoad(function () {
     }
 
     dbgObjectType.prototype.dereferenced = function() {
-        if (this.isPointer()) {
-            return DbgObjectType(this._name.substring(0, this._name.length - 1), this);
-        } else {
-            return DbgObjectType("void", this);
-        }
+        console.assert(this.isPointer());
+        return DbgObjectType(this._name.substring(0, this._name.length - 1), this);
     }
 
     dbgObjectType.prototype.isArray = function() {
@@ -139,7 +149,7 @@ Loader.OnLoad(function () {
     }
 
     dbgObjectType.prototype.nonArrayType = function() {
-        return this.isArray() ? new dbgObjectType(this.module(), this.name()) : this;
+        return this.isArray() ? new dbgObjectType(this.moduleOrSyntheticName(), this.name()) : this;
     }
 
     dbgObjectType.prototype.templateParameters = function() {
@@ -174,17 +184,17 @@ Loader.OnLoad(function () {
         } else if (arg1.indexOf("!") < 0) {
             if (arg2 instanceof dbgObjectType) {
                 // arg1 is a name and arg2 is the context for the module.
-                return new dbgObjectType(arg2.module(), arg1);
+                return new dbgObjectType(arg2.moduleOrSyntheticName(), arg1, arg2.moduleName());
             } else if (typeof arg1 == typeof "" && typeof arg2 == typeof "") {
                 // arg1 is the module and arg2 is the type.
-                return new dbgObjectType(arg1, arg2);
+                return new dbgObjectType(SyntheticModules.ModuleOrSyntheticName(arg1), arg2, arg1);
             } else {
                 throw new Error("Unable to create a type from: " + arg1 + ", " + arg2);
             }
         } else {
-            var module = arg1.substr(0, arg1.indexOf("!"));
-            var name = arg1.substr(module.length + 1);
-            return new dbgObjectType(module, name);
+            var moduleName = arg1.substr(0, arg1.indexOf("!"));
+            var name = arg1.substr(moduleName.length + 1);
+            return new dbgObjectType(SyntheticModules.ModuleOrSyntheticName(moduleName), name, moduleName);
         }
     }
 

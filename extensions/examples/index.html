@@ -1,0 +1,39 @@
+<!--
+    MIT License
+
+    Copyright (c) Microsoft Corporation. All rights reserved.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <title>Examples</title>
+    <script src="/jsdbg/loader.js"></script>
+    <style type="text/css">
+        h1 {
+            text-decoration: underline;
+        }
+    </style>
+    <script>
+        function init() {
+            document.body.innerHTML = "<h1>Creating a new JsDbg extension</h1> \
+                                        <video src='new-extension.mp4'></video> \
+                                        <h1>Adding an array field</h1> \
+                                        <video src='array-field.mp4'></video> \
+                                        <h1>Adding an extended field</h1> \
+                                        <video src='extended-field.mp4'></video> \
+                                        <h1>Adding a type description</h1> \
+                                        <video src='type-description.mp4'></video>";
+            var videos = document.querySelectorAll("video");
+            videos.forEach((video) => {
+                video.setAttribute("width", "860");
+                video.setAttribute("height", "420");
+                video.setAttribute("controls", "true");
+            });
+        }
+
+        Loader.OnPageReady(init);
+    </script>
+</head>
+</html>

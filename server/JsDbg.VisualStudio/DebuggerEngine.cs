@@ -1,4 +1,12 @@
-﻿using System;
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Debugger.Interop;
@@ -15,7 +23,7 @@ namespace JsDbg.VisualStudio {
             this.diaLoader = null;
         }
 
-        internal void NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus status) {
+        internal void NotifyDebuggerStatusChange(DebuggerChangeEventArgs.DebuggerStatus status) {
             this.DebuggerChange?.Invoke(this, new DebuggerChangeEventArgs(status));
         }
 
@@ -26,8 +34,35 @@ namespace JsDbg.VisualStudio {
             set { this.diaLoader = value; }
         }
 
+        public bool IsDebuggerBusy {
+            get { return this.runner.IsDebuggerBusy; }
+        }
+
         public bool IsPointer64Bit {
             get { return this.runner.IsPointer64Bit; }
+        }
+
+        public uint TargetProcess {
+            get { return this.runner.TargetProcessSystemId; }
+            set { this.runner.SetTargetProcess(value); }
+        }
+
+        public Task<uint[]> GetAttachedProcesses() {
+            return Task.FromResult<uint[]>(this.runner.GetAttachedProcesses());
+        }
+
+        public uint TargetThread {
+            get { return this.runner.TargetThreadSystemId; }
+            set { this.runner.SetTargetThread(value); }
+        }
+
+        public Task<uint[]> GetCurrentProcessThreads() {
+            return Task.FromResult<uint[]>(this.runner.GetCurrentProcessThreads());
+        }
+
+        public async Task<ulong> TebAddress() {
+            await this.runner.WaitForBreakIn();
+            return this.runner.TebAddress();
         }
 
         public async Task<Core.SModule> GetModuleForAddress(ulong address) {
@@ -178,7 +213,7 @@ namespace JsDbg.VisualStudio {
             throw new DebuggerException("Cannot load types from the Visual Studio debugger directly.");
         }
 
-        public Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol) {
+        public Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typeName) {
             throw new DebuggerException("Cannot load symbols from the Visual Studio debugger directly.");
         }
 

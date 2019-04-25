@@ -1,3 +1,9 @@
+<!--
+    MIT License
+
+    Copyright (c) Microsoft Corporation. All rights reserved.
+-->
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,17 +16,7 @@
     <script src="/catalog-viewer/catalogviewer.js" type="text/javascript"></script>
     <script type="text/javascript">
         function init() {
-            CatalogViewer.Instantiate(
-                "BoxTree.UserFields",
-                "Select fields to load:",
-                function(obj) { return [obj.value.type, obj.value.name, obj.user] },
-                function(selected) {
-                    alert(selected.length);
-                },
-                function(a) {
-                    return (a.value.type + "." + a.value.name)
-                }
-            );
+            CatalogViewer.Instantiate();
         }
 
         Loader.OnPageReady(init);

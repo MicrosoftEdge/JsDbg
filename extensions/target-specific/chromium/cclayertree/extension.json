@@ -1,0 +1,25 @@
+{
+    "name": "CCLayerTree",
+    "author": "Daniel Libby",
+    "description": "Inspect the Chromium layer tree",
+    "dependencies": [
+        "dbgobject",
+        "user-editable-functions",
+        "tree-inspector",
+        "target-specific/stl-helpers",
+        "target-specific/chromium/chromium-helpers",
+        "target-specific/chromium/gfx-type-helpers"
+    ],
+    "includes": [
+        "cclayertree.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": [
+        "msedge",
+        "chrome",
+        "content_shell",
+        "browser_tests"
+    ]
+}

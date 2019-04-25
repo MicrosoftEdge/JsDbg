@@ -1,4 +1,12 @@
-﻿using System;
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+using System;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
@@ -10,12 +18,6 @@ namespace JsDbg.WinDbg {
         public string extension_root {
             get { return this._extension_root; }
             set { this._extension_root = value; }
-        }
-
-        [DataMember(IsRequired = true)]
-        public string persistent_store_directory {
-            get { return this._persistent_store_directory; }
-            set { this._persistent_store_directory = value; }
         }
 
         internal static Configuration Load() {
@@ -31,17 +33,11 @@ namespace JsDbg.WinDbg {
                 return Path.GetFullPath(this.extension_root);
             }
         }
-        public string PersistentStoreDirectory {
-            get {
-                return Path.GetFullPath(this.persistent_store_directory);
-            }
-        }
 
         public static string Schema {
             get {
                 return @"{
-    ""extension_root"": ""\path\to\extensions"",
-    ""persistent_store_directory"": ""\path\to\persistent\store""
+    ""extension_root"": ""\path\to\extensions""
 }";
             }
         }
@@ -49,6 +45,5 @@ namespace JsDbg.WinDbg {
         private static DataContractJsonSerializer ConfigurationSerializer = new DataContractJsonSerializer(typeof(Configuration));
 
         private string _extension_root;
-        private string _persistent_store_directory;
     }
 }

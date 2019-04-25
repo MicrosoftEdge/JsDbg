@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 "use strict";
 
 Loader.OnLoad(function() {
@@ -41,7 +49,7 @@ Loader.OnLoad(function() {
     var panelPromise = new Promise(function (onsuccess) {
         Loader.OnPageReady(function() {
             // Get any startup extensions.
-            JsDbg.GetPersistentData(null, function(data) {
+            JsDbg.GetPersistentData(function(data) {
                 if (typeof(data) == typeof({}) && "_CATALOG-extension-manager" in data) {
                     var extensions = data["_CATALOG-extension-manager"];
                     if (extensions.startup && Array.isArray(extensions.startup) && extensions.startup.length > 0) {

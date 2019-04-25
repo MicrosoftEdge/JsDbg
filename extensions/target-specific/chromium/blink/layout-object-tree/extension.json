@@ -1,0 +1,26 @@
+{
+    "name": "LayoutObjectTree",
+    "author": "Sanket Joshi",
+    "description": "Inspect the Blink layout object tree.",
+    "dependencies": [
+        "dbgobject",
+        "error-messages",
+        "tree-inspector",
+        "target-specific/chromium/blink/blink-helpers",
+        "target-specific/chromium/blink/wtf-helpers",
+        "target-specific/chromium/chromium-helpers",
+        "target-specific/stl-helpers"
+    ],
+    "includes": [
+        "layout-object-tree.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": [
+        "msedge",
+        "chrome",
+        "content_shell",
+        "browser_tests"
+    ]
+}

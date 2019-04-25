@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 "use strict";
 
 var BoxTree = undefined;
@@ -35,21 +43,15 @@ Loader.OnLoad(function() {
                 }
             })
             .then(null, function(error) {
-                var errorMessage =
-                    "No root tree nodes with LayoutBoxes were found.\
-                    Possible reasons:\
-                    <ul>\
-                        <li>The debuggee is not IE 11 or Edge.</li>\
-                        <li>No page is loaded.</li>\
-                        <li>The docmode is < 8.</li>\
-                        <li>The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).</li>\
-                        <li>Symbols aren't available.</li>\
-                    </ul>\
-                    Refresh the page to try again, or specify a LayoutBox explicitly.";
+                var errorMessage = "No root tree nodes with LayoutBoxes were found.<br/>";
+                errorMessage += ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("IE 11", "Edge"),
+                    "No page is loaded.",
+                    "The docmode is < 8.",
+                    "The debugger is in 64-bit mode on a WoW64 process (\".effmach x86\" will fix).",
+                    ErrorMessages.SymbolsUnavailable);
+                errorMessage += "Refresh the page to try again, or specify a LayoutBox explicitly.";
 
-                if (error) {
-                    errorMessage = "<h4>" + error.toString() + "</h4>" + errorMessage;
-                }
+                errorMessage = ErrorMessages.CreateErrorsList(error) + errorMessage;
                 return Promise.reject(errorMessage);
             });
         },

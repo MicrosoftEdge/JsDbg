@@ -1,0 +1,27 @@
+<!--
+    MIT License
+
+    Copyright (c) Microsoft Corporation. All rights reserved.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>TEB</title>
+    <script type="text/javascript" src="/jsdbg/loader.js"></script>
+    <script type="text/javascript">
+        Loader.OnPageReady(() => {
+            TreeInspector.Initialize(
+                TEB.GetRoots,
+                TEB.Tree,
+                TEB.Renderer,
+                TEB.InterpretAddress,
+                TEB.DefaultTypes,
+                document.body
+            );
+        });
+    </script>
+</head>
+<body></body>
+</html>

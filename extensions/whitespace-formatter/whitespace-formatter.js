@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 var WhitespaceFormatter = undefined;
 Loader.OnLoad(function() {
     WhitespaceFormatter = {

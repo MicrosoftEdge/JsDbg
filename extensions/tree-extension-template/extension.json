@@ -1,0 +1,17 @@
+{
+    "name": "TreeExtensionTemplate",
+    "author": "Sanket Joshi",
+    "headless": true,
+    "description": "Template for building JsDbg extensions using the tree inspector.",
+    "dependencies": [
+        "dbgobject",
+        "tree-inspector"
+    ],
+    "includes": [
+        "tree-extension-template.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": []
+}

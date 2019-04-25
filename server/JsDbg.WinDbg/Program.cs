@@ -1,4 +1,12 @@
-﻿using System;
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
@@ -7,7 +15,7 @@ using JsDbg.Utilities;
 using JsDbg.Windows;
 
 namespace JsDbg.WinDbg {
-    public class Program {      
+    public class Program {
 
         [STAThread]
         static int Main(string[] args) {
@@ -50,10 +58,8 @@ namespace JsDbg.WinDbg {
                 return -1;
             }
 
-            PersistentStore persistentStore = new PersistentStore(configuration.PersistentStoreDirectory);
-            UserFeedback userFeedback = new UserFeedback(Path.Combine(configuration.PersistentStoreDirectory, "feedback"));
-
-            using (WebServer webServer = new WebServer(runner.Debugger, persistentStore, userFeedback, configuration.ExtensionRoot)) {
+            PersistentStore persistentStore = new PersistentStore();
+            using (WebServer webServer = new WebServer(runner.Debugger, persistentStore, configuration.ExtensionRoot)) {
                 webServer.LoadExtension("default");
 
                 SynchronizationContext previousContext = SynchronizationContext.Current;

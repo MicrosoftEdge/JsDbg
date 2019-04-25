@@ -1,71 +1,62 @@
-# JsDbg: debugger extensions in the browser
-JsDbg is a platform for debugger extensions that are written in HTML/JS/CSS and run in the browser.  JsDbg extensions can have rich user interfaces and visualizations, but are easier to write than traditional debugger extensions.  JsDbg extensions are also debugger-agnostic and can be used with either WinDbg or Visual Studio 2015.
+# JsDbg: Browser-based debugging extensions
+JsDbg is a tool that provides browser developers with a web-based platform for native debugger extensions. Browser developers can use this tool to visualize large and complex data structures within the web platform, such as the DOM tree and accessibility tree. Unlike traditional debugging extensions that are debugger specific, JsDbg extensions are written with web technologies to run in the browser, which allows them to work across platforms and debuggers. By leveraging the benefits of HTML/CSS/JS, the extensions can also have richer user interfaces and functionality than what is typically present in a debugging extension.
 
-## Using JsDbg
+# Using JsDbg
 
-The current JsDbg extensions are targeted at developers working on Microsoft Edge and Internet Explorer (specifically `edgehtml.dll` and `mshtml.dll`), but are approachable enough that anyone can follow along to get a feel for JsDbg.
+## Supported debuggers and platforms
 
-### WinDbg
+JsDbg currently supports WinDbg and the Visual Studio debugger on Windows. Support for additional debuggers (ex. GDB) and platforms (ex. MacOS) will be available in the future. If you wish to use JsDbg with a debugger that is currently unsupported, please file an issue (or upvote an existing one) to track your request.
 
-1. Attach WinDbg to a process that hosts `edgehtml.dll` or `mshtml.dll` (`MicrosoftEdgeCP.exe`, `iexplore.exe`, `WWAHost.exe`, etc.)
+## JsDbg for WinDbg
 
-2. In the WinDbg command window, run
-    ```
-    !jsdbg
-    ```
+### Setup
 
-3. The JsDbg server will launch and prompt you to select a browser. If the debugger is attached to one browser, using a different browser for JsDbg generally works best; e.g. if the debugger is attached to Edge, use Chrome or IE.
+1. Download the [JsDbg WinDbg extension](https://aka.ms/jsdbg-windbg). (This extension changes infrequently because JsDbg extensions can be updated without updating the WinDbg extension. [Last update: Jan 30th, 2019])
 
-### Visual Studio 2015
+2. Copy jsdbg.dll into the `winext` folder located next your `windbg.exe` installation. Make sure to use the x64 version of the dll for 64-bit WinDbg, and the x86 version for 32-bit WinDbg.
 
-1. If you haven't already, install JsDbg for Visual Studio 2015 by opening
-    ```
-    \\iefs\users\psalas\jsdbg\JsDbg.VisualStudio.vsix
-    ```
-and restarting Visual Studio if necessary.
+### Usage
 
-2. Open Visual Studio and attach to a process that hosts `edgehtml.dll` or `mshtml.dll` (`MicrosoftEdgeCP.exe`, `iexplore.exe`, `WWAHost.exe`, etc.)
+1. Attach WinDbg to the desired Microsoft Edge or Chromium process.
 
-3. Once attached, break in to the running process (the "Pause" icon on the Debug toolbar, or `Debug -> Break All`).
+2. In the WinDbg command window, run `!jsdbg.jsdbg`, or `.load jsdbg.dll` followed by `!jsdbg`.
 
-4. Launch JsDbg by clicking the "JS" icon on the Debug toolbar or `Tools -> Launch JsDbg`.
+3. The JsDbg server will launch and prompt you to select a browser. If the debugger is attached to one browser, it is recommended that you choose a different browser for JsDbg.
 
-5. You will be prompted to select a browser. If the debugger is attached to one browser, using a different browser for JsDbg generally works best; e.g. if the debugger is attached to Edge, use Chrome or IE.
+## JsDbg for Visual Studio
 
-### Included Extensions
+### Setup
 
-The most powerful extensions are the ones that show you the "three trees" of Trident: the markup (MarkupTree), layout (BoxTree), and display trees (DisplayTree).
+1. Install the [JsDbg Visual Studio (VS) extension](https://aka.ms/jsdbg-visualstudio). (This extension should be able to update without a re-install. To install the update, restart VS, use the extension once, and then restart VS again.)
 
-MarkupTree, for example, will display the internal representation of the DOM.  Here's a look at the DOM of bing.com:
+### Usage
 
-![Bing MarkupTree](./readme/markuptree_1.png "Bing MarkupTree") 
+1. Attach the VS debugger to the desired Microsoft Edge or Chromium process.
 
-Seeing structure is useful, but since this extension is interactive we can inspect properties of the tree.  If we want to see the text in each text node, we can click on the CDOMTextNode type and enable the "Text" field to see the contents of the text nodes:
+2. Break into the running process using the `Pause` icon on the Debug toolbar, or `Debug -> Break All`.
 
-![Adding a field](./readme/markuptree_2.png "Adding a field")
+3. Launch JsDbg by clicking the `JS` icon on the Debug toolbar, or `Tools -> Launch JsDbg`.
 
-Just below "Text" you can see all the fields on the CDOMTextNode type; we could show any of them as well.  Or, similar to a watch window, we can expand those fields by clicking the type name.  For example, the parent element's tag:
+4. The JsDbg server will launch and prompt you to select a browser. If the debugger is attached to one browser, it is recommended that you choose a different browser for JsDbg.
 
-![Adding a field on a secondary object](./readme/markuptree_3.png "Adding a field on a secondary object")
+## Using JsDbg extensions
 
-One of the most powerful parts of the tree viewer is being able to add your own custom properties or visualizations.  One of the fields on `CTreeNode` is `_fIFFValid` which indicates whether the computed styles are up-to-date for that element.  Of course, seeing the value is trivial:
+There are many different ways browser developers can incorporate JsDbg extensions into their debugging workflow. See [JsDbg features](./FEATURES.md) for details about popular features in JsDbg.
 
-![Adding the _fIFFValid field](./readme/markuptree_4.png "Adding the _fIFFValid field")
+# Contributing
 
-But with a little bit of JavaScript, we can visualize this value more easily across the tree.  Just below each type is the "Extend" button, which lets you write visualizations or even synthetic fields, defined solely in script!  We'll write some code that reads the value of the `_fIFFValid` field and sets the background to red or green accordingly:
+This project welcomes contributions and suggestions. Most contributions require you to agree to a
+Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
+the rights to use your contribution. For details, visit https://cla.microsoft.com.
 
-![Visualizing the _fIFFValid field with color](./readme/markuptree_5.png "Visualizing the _fIFFValid field with color")
+When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
+a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
+provided by the bot. You will only need to do this once across all repos using our CLA.
 
-And the final result:
+See [Contributing to JsDbg](./CONTRIBUTING.md) for more details about contributing to this project.
 
-![Viewing the visualization](./readme/markuptree_6.png "Viewing the visualization")
+# Code of Conduct
 
-With the visualization applied, it's easy to see that most of the nodes underneath the `<head>` element don't have styles computed, which makes sense because they're not rendered.  The code you write is automatically saved so that it will be available the next time you use the extension.
-
-## Writing New Extensions or Contributing to JsDbg
-
-If you're interested in writing a new extension or contributing to JsDbg see [CONTRIBUTING.md](./CONTRIBUTING.md).
-
-## Questions?
-
-Contact PSalas with any questions or suggestions!
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
+contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.

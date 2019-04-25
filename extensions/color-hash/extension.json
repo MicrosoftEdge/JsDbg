@@ -1,7 +1,0 @@
-{
-    "name": "color-hash",
-    "description": "https://github.com/zenozeng/color-hash/ version 1.0.3, with modifications",
-    "includes": ["color-hash.js"],
-    "augments": ["About"],
-    "headless": true
-}

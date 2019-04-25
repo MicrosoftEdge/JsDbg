@@ -1,17 +1,15 @@
-"use strict";
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
 
 var Chromium = null;
 (function() {
-    // Figure out which module to use.
-    var isContentModuleLoaded = false;
-
-    Loader.OnLoadAsync(function(onComplete) {
-        DbgObject.global("content", "g_frame_map")
-        .then(() => {
-            isContentModuleLoaded = true;
-        })
-        .finally(onComplete);
-    });
+    // TODO: query the debugger to figure this out
+    var currentTargetProcessName = undefined;
 
     Loader.OnLoad(function() {
         DbgObject.AddExtendedField(
@@ -21,46 +19,116 @@ var Chromium = null;
             (lazyInstance) => lazyInstance.f("private_instance_").as(lazyInstance.type.templateParameters()[0] + "*").deref()
         );
 
+        DbgObject.AddExtendedField(
+            (type) => type.name().match(/^base::NoDestructor<.*>/),
+            "Object",
+            (type) => DbgObjectType(type.templateParameters()[0], type),
+            (noDestructor) => noDestructor.f("storage_").as(noDestructor.type.templateParameters()[0])
+        );
+
         Chromium = {
             _help : {
                 name: "Chromium",
                 description: "Chromium-specific functionality."
             },
 
-            _help_ChildProcessModuleName: {
-                description: "Gets the module name in the Chromium child process.",
+            RendererProcessName: "renderer",
+            BrowserProcessName: "browser",
+            GpuProcessName: "gpu",
+
+            _help_SetTargetProcess: {
+                description: "Sets the name of Chromium process being debugged.",
                 arguments: [
-                    {name:"moduleName", type:"string", description: "The module name."},
+                    {name:"processName", type:"string", description: "The process name."},
                 ]
             },
-            ChildProcessModuleName: (moduleName) => isContentModuleLoaded ? moduleName : "chrome_child",
+            SetTargetProcess: setTargetProcess,
 
-            _help_ChildProcessType: {
-                description: "Gets a DbgObjectType in the Chromium child process.",
+            RendererProcessSyntheticModuleName: "renderer-module",
+            BrowserProcessSyntheticModuleName: "browser-module",
+            GpuProcessSyntheticModuleName: "gpu-module",
+
+            _help_RendererProcessType: {
+                description: "Creates a DbgObjectType in the Chromium renderer process.",
                 arguments: [
-                    {name:"moduleName", type:"string", description: "The module name."},
                     {name:"typeName", type:"string", description: "The type name."}
                 ]
             },
-            ChildProcessType: (moduleName, typeName) => DbgObjectType(Chromium.ChildProcessModuleName(moduleName), typeName),
-
-            _help_BrowserProcessModuleName: {
-                description: "Gets the module name in the Chromium browser process.",
-                arguments: [
-                    {name:"moduleName", type:"string", description: "The module name."},
-                ]
-            },
-            BrowserProcessModuleName: (moduleName) => isContentModuleLoaded ? moduleName : "chrome",
+            RendererProcessType: (typeName) => DbgObjectType(Chromium.RendererProcessSyntheticModuleName, typeName),
 
             _help_BrowserProcessType: {
-                description: "Gets a DbgObjectType in the Chromium browser process.",
+                description: "Creates a DbgObjectType in the Chromium browser process.",
                 arguments: [
-                    {name:"moduleName", type:"string", description: "The module name."},
                     {name:"typeName", type:"string", description: "The type name."}
                 ]
             },
-            BrowserProcessType: (moduleName, typeName) => DbgObjectType(Chromium.BrowserProcessModuleName(moduleName), typeName),
+            BrowserProcessType: (typeName) => DbgObjectType(Chromium.BrowserProcessSyntheticModuleName, typeName),
+
+            _help_GpuProcessType: {
+                description: "Creates a DbgObjectType in the Chromium gpu process.",
+                arguments: [
+                    {name:"typeName", type:"string", description: "The type name."}
+                ]
+            },
+            GpuProcessType: (typeName) => DbgObjectType(Chromium.GpuProcessSyntheticModuleName, typeName),
+
+            _help_RendererProcessEquivalentModules: {
+                description: "List of modules used in the Chromium renderer process.",
+            },
+            RendererProcessEquivalentModules: ["blink_core", "blink_common", "blink_platform", "blink_modules", "blink_android_mojo_bindings_shared",
+                "blink_embedded_frame_sink_mojo_bindings_shared", "blink_core_mojo_bindings_shared", "blink_controller", "cc", "cc_animation", "cc_paint",
+                "cc_base", "cc_debug", "cc_mojo_embedder"],
+
+            _help_BrowserProcessEquivalentModules: {
+                description: "List of modules used in the Chromium browser process.",
+            },
+            BrowserProcessEquivalentModules: ["msedge", "accessibility", "chrome"],
+
+            _help_GpuProcessEquivalentModules: {
+                description: "List of modules used in the Chromium gpu process.",
+            },
+            GpuProcessEquivalentModules: ["service", "viz_common"],
+
+            _help_MultiProcessModules: {
+                description: "List of modules used in multiple Chromium processes.",
+            },
+            MultiProcessModules: ["msedge_child", "chrome_child", "content", "content_shell", "browser_tests"],
         };
+
+        function setTargetProcess(targetProcessName) {
+            // Set equivalency for multi process modules based on target process.
+            if (currentTargetProcessName != targetProcessName) {
+                if (currentTargetProcessName) {
+                    if (currentTargetProcessName == Chromium.BrowserProcessName) {
+                        SyntheticModules.RemoveEquivalentModules(Chromium.BrowserProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else if (currentTargetProcessName == Chromium.RendererProcessName) {
+                        SyntheticModules.RemoveEquivalentModules(Chromium.RendererProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else if (currentTargetProcessName == Chromium.GpuProcessName) {
+                        SyntheticModules.RemoveEquivalentModules(Chromium.GpuProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else {
+                        console.assert(false);
+                    }
+                }
+    
+                currentTargetProcessName = targetProcessName;
+    
+                if (currentTargetProcessName) {
+                    if (currentTargetProcessName == Chromium.BrowserProcessName) {
+                        SyntheticModules.AddEquivalentModules(Chromium.BrowserProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else if (currentTargetProcessName == Chromium.RendererProcessName) {
+                        SyntheticModules.AddEquivalentModules(Chromium.RendererProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else if (currentTargetProcessName == Chromium.GpuProcessName) {
+                        SyntheticModules.AddEquivalentModules(Chromium.GpuProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
+                    } else {
+                        console.assert(false);
+                    }
+                }
+            }
+        }
+
+        SyntheticModules.RegisterSyntheticName(Chromium.RendererProcessSyntheticModuleName, ...Chromium.RendererProcessEquivalentModules);
+        SyntheticModules.RegisterSyntheticName(Chromium.BrowserProcessSyntheticModuleName, ...Chromium.BrowserProcessEquivalentModules);
+        SyntheticModules.RegisterSyntheticName(Chromium.GpuProcessSyntheticModuleName, ...Chromium.GpuProcessEquivalentModules);
 
         Help.Register(Chromium);
     });

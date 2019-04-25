@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 "use strict";
 
 // user-editable-functions.js
@@ -13,11 +21,18 @@ Loader.OnLoad(function() {
         var fString = f.toString();
         var argumentNames = fString
         .split("{", 2)[0] // Drop the function body
+        .split("=>", 2)[0] // Drop the body for lambdas
         .match(/\(((.|\s)*)\)/)[1] // Grab the argument list
         .replace(/(\/\*.*?\*\/)|\s+/g, "") // Remove any /**/ comments or whitespace
         .split(","); // Split on ','
-        
-        var body = fString.match(/{((.|\s)*)}/)[1];
+
+        var body = fString.match(/{((.|\s)*)}/);
+        if (body) {
+            body = body[1];
+        } else {
+            // Handle lambdas without function parentheses.
+            body = fString.match(/=>((.|\s)*)/)[1];
+        }
 
         // Strip any carriage returns.
         body = body.replace(/\r/g, "");

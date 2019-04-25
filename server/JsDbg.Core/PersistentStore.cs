@@ -1,7 +1,17 @@
-﻿using System;
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+using System;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
-using System.IO;
 
 namespace JsDbg.Core {
     public class PersistentStore {
@@ -9,55 +19,31 @@ namespace JsDbg.Core {
             get { return Encoding.UTF8; }
         }
 
-        public PersistentStore(string location) {
-            this.location = location;
+        private static string PersistentStoreFileName {
+            get { return "jsdbg-persistent-store.json"; }
         }
 
-        private string GetPath(string user) {
-            if (user == null) {
-                user = System.Environment.UserDomainName + "." + System.Environment.UserName;
-            }
-            return Path.Combine(this.location, user);
+        public PersistentStore() {
         }
 
-        public Task<string> Get(string user) {
-            return this.AttemptFileOperation<string>(async () => {
-                string path = this.GetPath(user);
-                if (File.Exists(path)) {
-                    using (var file = File.OpenRead(path)) {
-                        using (var reader = new StreamReader(file, PersistentStore.Encoding)) {
-                            return await reader.ReadToEndAsync();
-                        }
-                    }
+        public Task<string> Get() {
+            return this.AttemptFileOperation<string>(() => {
+                string filePath = Path.GetTempPath() + PersistentStore.PersistentStoreFileName;
+                if (File.Exists(filePath)) {
+                    return Task.FromResult<string>(File.ReadAllText(filePath, PersistentStore.Encoding));
                 } else {
-                    return "{}";
+                    return Task.FromResult<string>("{}");
                 }
             });
         }
 
         public Task<bool> Set(string value) {
-            return this.AttemptFileOperation<bool>(async () => {
-                string path = this.GetPath(/*user*/null);
-                using (var file = File.Create(path)) {
-                    using (var writer = new StreamWriter(file, PersistentStore.Encoding)) {
-                        await writer.WriteAsync(value);
-                    }
+            return this.AttemptFileOperation<bool>(() => {
+                using (FileStream fs = File.Create(Path.GetTempPath() + PersistentStore.PersistentStoreFileName)) {
+                    byte[] valueToWrite = PersistentStore.Encoding.GetBytes(value);
+                    fs.Write(valueToWrite, 0, valueToWrite.Length);
                 }
-
-                return true;
-            });
-        }
-
-        public Task<string[]> GetUsers() {
-            return this.AttemptFileOperation<string[]>(() => {
-                string[] paths = Directory.GetFiles(this.location);
-
-                // Instead of paths, we just want the filenames.
-                for (int i = 0; i < paths.Length; ++i) {
-                    paths[i] = Path.GetFileName(paths[i]);
-                }
-
-                return Task.FromResult<string[]>(paths);
+                return Task.FromResult<bool>(true);
             });
         }
 
@@ -87,9 +73,6 @@ namespace JsDbg.Core {
         private void ReleaseLock() {
             this.isActive = 0;
         }
-
-
-        private string location;
         private int isActive;
     }
 }

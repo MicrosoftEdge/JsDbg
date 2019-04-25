@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
     <Metadata>
-        <Identity Id="5b3af206-b4d4-4d12-9661-5d2d8dd8d194" Version="1.0.29" Language="en-US" Publisher="Peter Salas" />
+        <Identity Id="5b3af206-b4d4-4d12-9661-5d2d8dd8d194" Version="1.0.55" Language="en-US" Publisher="Peter Salas" />
         <DisplayName>JsDbg for Visual Studio</DisplayName>
         <Description xml:space="preserve">Hosts debugger extensions written in HTML, CSS, and JS.</Description>
     </Metadata>
     <Installation InstalledByMsi="false">
-        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[14.0,15.0]" />
+        <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="15.0" />
     </Installation>
     <Dependencies>
         <Dependency Id="Microsoft.Framework.NDP" DisplayName="Microsoft .NET Framework" d:Source="Manual" Version="4.5" />
@@ -20,5 +20,6 @@
     <Prerequisites>
         <Prerequisite Id="Microsoft.VisualStudio.Component.CoreEditor" Version="[15.0.26208.0,16.0)" DisplayName="Visual Studio core editor" />
         <Prerequisite Id="Microsoft.VisualStudio.Component.VC.CoreIde" Version="[15.0.26208.0,16.0)" DisplayName="Visual Studio C++ core features" />
+        <Prerequisite Id="Microsoft.VisualStudio.ComponentGroup.VisualStudioExtension.Prerequisites" Version="[15.0.26208.0,16.0)" DisplayName="Visual Studio extension development prerequisites" />
     </Prerequisites>
 </PackageManifest>

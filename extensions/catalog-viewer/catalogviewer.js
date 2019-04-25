@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 var CatalogViewer = (function() {
     function loadAll(stores, callback) {
         var counter = stores.length;
@@ -39,104 +47,13 @@ var CatalogViewer = (function() {
             ],
             returns: "A boolean indicating if the viewer is going to open."
         },
-        Instantiate: function(namespace, collectItemsFromStore, prompt, ui, selected, sortStringifier) {
+        Instantiate: function() {
             if (currentlyActive) {
                 return false;
             } else {
                 currentlyActive = true;
+                return true;
             }
-
-            // Get all the stores.
-            Catalog.LoadAllUsers(namespace, function(stores) {
-                if (stores.error) {
-                    throw "Unable to get all the user stores.";
-                } else {
-                    loadAll(stores, function(values) {
-                        var rows = [];
-                        for (var i = 0; i < values.length; ++i) {
-                            rows = rows.concat(collectItemsFromStore(values[i], stores[i].user.replace(".", "\\")));
-                        }
-
-                        if (sortStringifier) {
-                            rows.sort(function(a, b) {
-                                return sortStringifier(a).localeCompare(sortStringifier(b));
-                            });
-                        }
-
-                        var checkBoxes = new Array(rows.length);
-
-                        var uiRows = rows.map(function(value, valueIndex) {
-                            var tableRow = document.createElement("tr");
-
-                            var checkBoxCell = document.createElement("td");
-                            tableRow.appendChild(checkBoxCell);
-                            var checkBox = document.createElement("input");
-                            checkBox.setAttribute("type", "checkbox");
-                            checkBoxCell.appendChild(checkBox);
-
-                            checkBoxes[valueIndex] = checkBox;
-
-                            tableRow.addEventListener("click", function(e) {
-                                if (e.target != checkBox) {
-                                    checkBox.checked = checkBox.checked ? "" : "checked";
-                                }
-                            });
-
-                            var cells = ui(value);
-                            for (var i = 0; i < cells.length; ++i) {
-                                var cell = document.createElement("td");
-                                cell.innerHTML = cells[i] == null ? "" : cells[i];
-                                tableRow.appendChild(cell);
-                            }
-
-                            return tableRow;
-                        });
-
-                        var table = document.createElement("table");
-                        uiRows.forEach(function(tr) { table.appendChild(tr); });
-
-                        var container = document.createElement("div");
-                        container.className = "catalog-viewer";
-
-                        var tableContainer = document.createElement("div");
-                        tableContainer.className = "table-container";
-
-                        var promptP = document.createElement("p");
-                        promptP.innerHTML = prompt;
-                        tableContainer.appendChild(promptP);
-                        tableContainer.appendChild(table);
-                        container.appendChild(tableContainer);
-
-                        var buttonContainer = document.createElement("div");
-                        buttonContainer.className = "button-container";
-                        var doneButton = document.createElement("button");
-                        doneButton.innerHTML = "Done";
-                        buttonContainer.appendChild(doneButton);
-
-                        container.appendChild(buttonContainer);
-
-                        doneButton.addEventListener("click", function() {
-                            // Remove the selection box.
-                            document.body.removeChild(container);
-
-                            var selection = [];
-                            for (var i = 0; i < rows.length; ++i) {
-                                if (checkBoxes[i].checked) {
-                                    selection.push(rows[i]);
-                                }
-                            }
-
-                            currentlyActive = false;
-                            selected(selection);
-                        });
-
-                        
-                        document.body.appendChild(container);
-                    });
-                }
-            });
-
-            return true;
         }
     }
 })();

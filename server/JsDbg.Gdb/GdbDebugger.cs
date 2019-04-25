@@ -190,7 +190,7 @@ namespace JsDbg.Gdb {
             return field;
         }
          
-        public async Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol) {
+        public async Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typename) {
             string pythonResult = await this.QueryDebuggerPython(String.Format("LookupGlobalSymbol(\"{0}\",\"{1}\")", module, symbol));
             // '{%s#%d' % (self.type, self.pointer)
 
@@ -409,6 +409,13 @@ namespace JsDbg.Gdb {
 
             string response = await this.QueryDebuggerPython(String.Format("WriteMemoryBytes({0},\"{1}\")", pointer, hexString));
         }
+
+        public async Task<uint[]> GetAttachedProcesses() { return new uint[0]; }
+        public async Task<uint[]> GetCurrentProcessThreads() { return new uint[0]; }
+        public async Task<ulong> TebAddress() { return 0; }
+        public uint TargetProcess { get { return 0; } set {  } }
+        public uint TargetThread { get { return 0; } set {  } }
+        public bool IsDebuggerBusy { get { return false; } }
 
         // Return a string which can be interpreted as the output of a python script
         // e.g. the string might be the literal characters

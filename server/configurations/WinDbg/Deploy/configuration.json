@@ -1,4 +1,3 @@
 {
-    "extension_root": ".\\extensions",
-    "persistent_store_directory": "\\\\iefs\\users\\psalas\\jsdbg\\support\\persistent"
+    "extension_root": ".\\extensions"
 }

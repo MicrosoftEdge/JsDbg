@@ -1,0 +1,20 @@
+{
+    "name": "blink",
+    "author": "Sanket Joshi",
+    "description": "Default extensions for debugging Blink",
+    "headless": true,
+    "dependencies": [
+        "target-specific/chromium/blink/blink-helpers",
+        "target-specific/chromium/blink/dom-tree",
+        "target-specific/chromium/blink/fragment-tree",
+        "target-specific/chromium/blink/layout-object-tree",
+        "target-specific/chromium/blink/wtf-helpers",
+        "target-specific/chromium/chromium-helpers"
+    ],
+    "targetModules": [
+        "msedge",
+        "chrome",
+        "content_shell",
+        "browser_tests"
+    ]
+}
