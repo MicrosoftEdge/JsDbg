@@ -89,7 +89,7 @@ class SFieldResult:
         self.size = field.type.sizeof
         self.fieldName = field.name
         pointer_depth = 0
-        t = field.type
+        t = field.type.strip_typedefs()
         while t.code == gdb.TYPE_CODE_PTR or field.type.code == gdb.TYPE_CODE_ARRAY:
             pointer_depth = pointer_depth + 1
             t = t.target()
@@ -114,7 +114,7 @@ class SBaseTypeResult:
 
 class SSymbolResult:
     def __init__(self, symbol):
-        self.type = symbol.type.name
+        self.type = symbol.type.strip_typedefs().name
         self.pointer = symbol.value().address.reinterpret_cast(gdb.lookup_type("unsigned long long"))
     
     def __repr__(self):
