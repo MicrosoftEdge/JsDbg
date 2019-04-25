@@ -73,7 +73,6 @@ Loader.OnLoad(function () {
                       var cell5 = document.createElement("td");                    
                       row.appendChild(cell5);
                       texStorage.f("mTexture").f("mData").f("_Ptr").f("object").then((r)=>{cell5.appendChild(DbgObjectInspector.Inspect(r, r.ptr()))});
-
                     }});
                     textureTable.appendChild(row);              
                   }
