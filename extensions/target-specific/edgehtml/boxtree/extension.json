@@ -4,6 +4,7 @@
     "description": "Inspect the Edge/IE layout tree.",
     "dependencies": [
         "dbgobject",
+        "error-messages",
         "target-specific/edgehtml/mshtml-helpers",
         "tree-inspector"
     ],

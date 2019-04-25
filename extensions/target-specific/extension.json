@@ -4,9 +4,9 @@
     "description": "Load extensions for specific debugging targets (ex. edgehtml).",
     "headless": true,
     "dependencies": [
-        "target-specific/blink",
         "target-specific/chromium",
         "target-specific/edgehtml",
+        "target-specific/ntdll",
         "target-specific/stl-helpers"
     ]
 }

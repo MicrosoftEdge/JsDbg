@@ -1,4 +1,3 @@
 {
-    "extension_root": "..\\..\\..\\..\\..\\extensions",
-    "persistent_store_directory": "..\\..\\..\\..\\..\\persistent"
+    "extension_root": "..\\..\\..\\..\\..\\extensions"
 }

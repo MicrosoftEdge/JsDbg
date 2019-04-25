@@ -1,4 +1,12 @@
-﻿using System;
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+using System;
 using System.IO.Pipes;
 using System.Security.Cryptography;
 using System.Text;

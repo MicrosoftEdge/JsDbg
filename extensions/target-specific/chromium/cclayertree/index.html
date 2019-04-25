@@ -1,0 +1,29 @@
+<!--
+    MIT License
+
+    Copyright (c) Microsoft Corporation. All rights reserved.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>LayerTree</title>
+    <script type="text/javascript" src="/jsdbg/loader.js"></script>
+    <script type="text/javascript">
+        Loader.OnPageReady(() => {
+            Chromium.SetTargetProcess(Chromium.RendererProcessName);
+
+            TreeInspector.Initialize(
+                CCLayerTree.GetRoots,
+                CCLayerTree.Tree,
+                CCLayerTree.Renderer,
+                CCLayerTree.InterpretAddress,
+                CCLayerTree.DefaultTypes,
+                document.body
+            );
+        });
+    </script>
+</head>
+<body></body>
+</html>

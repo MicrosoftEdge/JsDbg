@@ -1,0 +1,24 @@
+{
+    "name": "blink-helpers",
+    "author": "Sanket Joshi",
+    "description": "Helper functions for debugging Blink types",
+    "headless": true,
+    "dependencies": [
+        "dbgobject",
+        "target-specific/chromium/chromium-helpers",
+        "target-specific/chromium/blink/wtf-helpers",
+        "target-specific/stl-helpers"
+    ],
+    "includes": [
+        "blink-helpers.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": [
+        "msedge",
+        "chrome",
+        "content_shell",
+        "browser_tests"
+    ]
+}

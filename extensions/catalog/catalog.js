@@ -1,3 +1,10 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
 
 var Catalog = (function() {
     var isOperationPending = false;
@@ -21,15 +28,14 @@ var Catalog = (function() {
         }
     }
 
-    function Store(namespace, user) {
+    function Store(namespace) {
         this.namespace = "_CATALOG-" + namespace;
-        this.user = user;
     };
 
     Help.Register(Store);
     Store._help = {
         name: "Catalog.Store",
-        description: "A data store for a particular user and namespace."
+        description: "A data store for a particular namespace."
     }
 
     Store.prototype._help_all = {
@@ -40,7 +46,7 @@ var Catalog = (function() {
         var that = this;
 
         if (waitForOperation(function() { that.all(callback); })) {
-            JsDbg.GetPersistentData(this.user, function(result) {
+            JsDbg.GetPersistentData(function(result) {
                 if (result.error) {
                     callback(result);
                 } else if (that.namespace in result.data) {
@@ -62,10 +68,6 @@ var Catalog = (function() {
         ]
     };
     Store.prototype.set = function(key, value, callback) {
-        if (this.user) {
-            throw "You cannot set data on a different user.";
-        }
-
         if (!callback) {
             callback = function() { };
         }
@@ -73,7 +75,7 @@ var Catalog = (function() {
         // Read the current object.
         var that = this;
         if (waitForOperation(function() { that.set(key, value, callback); })) {
-            JsDbg.GetPersistentData(/*user*/null, function(result) {
+            JsDbg.GetPersistentData(function(result) {
                 if (result.error) {
                     callback(result);
                     completedOperation();
@@ -106,10 +108,6 @@ var Catalog = (function() {
         ]
     };
     Store.prototype.setMultiple = function(keysAndValues, callback) {
-        if (this.user) {
-            throw "You cannot set data on a different user.";
-        }
-
         if (!callback) {
             callback = function() { };
         }
@@ -117,7 +115,7 @@ var Catalog = (function() {
         // Read the current object.
         var that = this;
         if (waitForOperation(function() { that.setMultiple(keysAndValues, callback); })) {
-            JsDbg.GetPersistentData(/*user*/null, function(result) {
+            JsDbg.GetPersistentData(function(result) {
                 if (result.error) {
                     callback(result);
                     completedOperation();
@@ -152,10 +150,6 @@ var Catalog = (function() {
         ]
     };
     Store.prototype.delete = function(key, callback) {
-        if (this.user) {
-            throw "You cannot delete keys from a different user.";
-        }
-
         if (!callback) {
             callback = function() { };
         }
@@ -163,7 +157,7 @@ var Catalog = (function() {
         // Read the current object.
         var that = this;
         if (waitForOperation(function() { that.delete(key, callback); })) {
-            JsDbg.GetPersistentData(/*user*/null, function(result) {
+            JsDbg.GetPersistentData(function(result) {
                 if (result.error) {
                     callback(result);
                     completedOperation();
@@ -200,24 +194,6 @@ var Catalog = (function() {
         Load: function(namespace) {
             (new Store(namespace + "-metadata", null)).set("Last Access Date", new Date());
             return new Store(namespace, null);;
-        },
-
-        _help_LoadAllUsers: {
-            description:"Loads the every user's data store for a namespace.",
-            arguments: [
-                {name:"namespace", type:"string", description:"The namespace."},
-                {name:"callback", type:"function(array of Catalog.Store objects)", description: "The result callback."}
-            ],
-            notes:"The resulting stores are not writeable; calling <code>set</code> on them will result in an error."
-        },
-        LoadAllUsers: function(namespace, callback) {
-            JsDbg.GetPersistentDataUsers(function (result) {
-                if (result.error) {
-                    callback(result);
-                } else {
-                    callback(result.users.map(function(username) { return new Store(namespace, username); }));
-                }
-            });
         },
     }
 })();

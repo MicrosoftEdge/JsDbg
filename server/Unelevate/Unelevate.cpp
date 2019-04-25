@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 // Unelevate.cpp : Defines the entry point for the console application.
 //
 // Source taken from:

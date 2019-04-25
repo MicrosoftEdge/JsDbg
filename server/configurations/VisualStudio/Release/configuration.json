@@ -1,4 +1,3 @@
 {
-    "persistent_store_directory": "C:\\jsdbg\\persistent",
-    "update_url": "C:\\jsdbg\\server\\JsDbg.VisualStudio\\update\\JsDbg.vsix"
+    "update_url": "https://jsdbg.blob.core.windows.net/launch-files/JsDbg.VisualStudio-Release.vsix"
 }

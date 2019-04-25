@@ -1,4 +1,12 @@
-﻿using System;
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -107,7 +115,7 @@ namespace JsDbg.Core {
         private const int StartPortNumber = 50000;
         private const int EndPortNumber = 50099;
 
-        public WebServer(IDebugger debugger, PersistentStore persistentStore, UserFeedback userFeedback, string extensionRoot) {
+        public WebServer(IDebugger debugger, PersistentStore persistentStore, string extensionRoot) {
             this.debugger = debugger;
             this.debugger.DebuggerChange += (sender, e) => { this.NotifyClientsOfDebuggerChange(e.Status); };
             this.debugger.DebuggerMessage += (sender, message) => {
@@ -115,7 +123,6 @@ namespace JsDbg.Core {
                 this.SendWebSocketMessage(String.Format("message:{0}", message));
             };
             this.persistentStore = persistentStore;
-            this.userFeedback = userFeedback;
             this.extensionRoot = extensionRoot;
             this.port = StartPortNumber;
             this.loadedExtensions = new List<JsDbgExtension>();
@@ -359,6 +366,9 @@ namespace JsDbg.Core {
                 case "typefields":
                     this.ServeTypeFields(query, respond, fail);
                     break;
+                case "teb":
+                    this.ServeTebAddress(query, respond, fail);
+                    break;
                 case "loadextension":
                     this.LoadExtension(query, respond, fail);
                     break;
@@ -376,13 +386,6 @@ namespace JsDbg.Core {
                         this.ServePersistentStorage(segments, context);
                         break;
                     }
-                case "feedback":
-                    if (context == null) {
-                        goto default;
-                    } else {
-                        this.ServeFeedbackRequest(segments, context);
-                        break;
-                    }
                 case "extensionpath":
                     if (context == null) {
                         goto default;
@@ -390,8 +393,25 @@ namespace JsDbg.Core {
                         this.ServeDefaultExtensionPath(segments, context);
                     }
                     break;
-                case "persistentstorageusers":
-                    this.ServePersistentStorageUsers(query, respond, fail);
+                case "attachedprocesses":
+                    this.ServeAttachedProcesses(query, respond, fail);
+                    break;
+                case "targetprocess":
+                    if (context == null) {
+                        goto default;
+                    } else {
+                        this.ServeTargetProcess(segments, context);
+                    }
+                    break;
+                case "currentprocessthreads":
+                    this.ServeCurrentProcessThreads(query, respond, fail);
+                    break;
+                case "targetthread":
+                    if (context == null) {
+                        goto default;
+                    } else {
+                        this.ServeTargetThread(segments, context);
+                    }
                     break;
                 default:
                     fail();
@@ -744,6 +764,7 @@ namespace JsDbg.Core {
         private async void ServeGlobalSymbol(NameValueCollection query, Action<string> respond, Action fail) {
             string module = query["module"];
             string symbol = query["symbol"];
+            string typeName = query["typeName"];
 
             if (module == null || symbol == null) {
                 fail();
@@ -751,7 +772,7 @@ namespace JsDbg.Core {
             }
             string responseString;
             try {
-                SSymbolResult result = await this.debugger.LookupGlobalSymbol(module, symbol);
+                SSymbolResult result = await this.debugger.LookupGlobalSymbol(module, symbol, typeName);
                 responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
             } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
@@ -941,6 +962,21 @@ namespace JsDbg.Core {
             }
 
             respond(responseString);
+        }
+
+        private async void ServeTebAddress(NameValueCollection query, Action<string> respond, Action fail) {
+            ulong tebAddress = await this.debugger.TebAddress();
+
+            if (tebAddress <= 0) {
+                respond(this.JSONError("Unable to access the TEB address."));
+            } else {
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(ulong));
+                using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                    serializer.WriteObject(memoryStream, tebAddress);
+                    string result = Encoding.Default.GetString(memoryStream.ToArray());
+                    respond(result);
+                }
+            }
         }
 
         private static DataContractJsonSerializer ExtensionSerializer = new DataContractJsonSerializer(typeof(JsDbgExtension));
@@ -1147,7 +1183,7 @@ namespace JsDbg.Core {
             foreach (JsDbgExtension extension in this.loadedExtensions) {
                 // Check if the extension is target specific and only serve the extension if one or more of the target modules are loaded.
                 bool serveExtension;
-                if (extension.targetModules != null) {
+                if (extension.targetModules != null && (extension.targetModules.Length > 0)) {
                     serveExtension = false;
 
                     foreach (string moduleName in extension.targetModules) {
@@ -1156,7 +1192,9 @@ namespace JsDbg.Core {
                             isModuleLoaded = moduleLoadStatus[moduleName];
                         } else {
                             try {
-                                await this.debugger.GetModuleForName(moduleName);
+                                if (!this.debugger.IsDebuggerBusy) {
+                                    await this.debugger.GetModuleForName(moduleName);
+                                }
                                 isModuleLoaded = true;
                             } catch (Exception) {
                                 isModuleLoaded = false;
@@ -1198,8 +1236,7 @@ namespace JsDbg.Core {
 
         private async void ServePersistentStorage(string[] segments, HttpListenerContext context) {
             if (context.Request.HttpMethod == "GET") {
-                string user = context.Request.QueryString["user"];
-                string result = await this.persistentStore.Get(user);
+                string result = await this.persistentStore.Get();
                 if (result != null) {
                     this.ServeUncachedString(String.Format("{{ \"data\": {0} }}", result), context);
                 } else {
@@ -1215,25 +1252,6 @@ namespace JsDbg.Core {
                     this.ServeUncachedString("{ \"success\": true }", context);
                 } else {
                     this.ServeUncachedString(this.JSONError("Unable to access the persistent store."), context);
-                }
-            } else {
-                this.ServeFailure(context);
-            }
-        }
-
-        private void ServeFeedbackRequest(string[] segments, HttpListenerContext context) {
-            if (context.Request.HttpMethod == "PUT") {
-                string data = this.ReadRequestBody(context);
-                if (data == null) {
-                    return;
-                }
-
-                try {
-                    this.userFeedback.RecordUserFeedback(data);
-                    this.ServeUncachedString("{ \"success\": true }", context);
-                } catch (Exception ex) {
-                    Console.Error.WriteLine("Saving feedback failed due to an exception: {0}", ex);
-                    this.ServeUncachedString("{ \"error\": \"Unable to record your feedback request due to an internal error.\" }", context);
                 }
             } else {
                 this.ServeFailure(context);
@@ -1280,18 +1298,93 @@ namespace JsDbg.Core {
             }
         }
 
-        private async void ServePersistentStorageUsers(NameValueCollection query, Action<string> respond, Action fail) {
-            string[] users = await this.persistentStore.GetUsers();
+        private async void ServeAttachedProcesses(NameValueCollection query, Action<string> respond, Action fail) {
+            uint[] processes = await this.debugger.GetAttachedProcesses();
 
-            if (users == null) {
-                respond(this.JSONError("Unable to access the persistent store."));
+            if (processes == null) {
+                respond(this.JSONError("Unable to access the debugger."));
             } else {
-                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(string[]));
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(uint[]));
                 using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
-                    serializer.WriteObject(memoryStream, users);
+                    serializer.WriteObject(memoryStream, processes);
                     string result = Encoding.Default.GetString(memoryStream.ToArray());
-                    respond(String.Format("{{ \"users\": {0} }}", result));
+                    respond(result);
                 }
+            }
+        }
+
+        private void ServeTargetProcess(string[] segments, HttpListenerContext context) {
+            if (context.Request.HttpMethod == "GET") {
+                uint targetProcess = this.debugger.TargetProcess;
+                if (targetProcess == 0) {
+                    this.ServeUncachedString(this.JSONError("Unable to retrieve the target process."), context);
+                } else {
+                    DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(int));
+                    using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                        serializer.WriteObject(memoryStream, targetProcess);
+                        string result = Encoding.Default.GetString(memoryStream.ToArray());
+                        this.ServeUncachedString(result, context);
+                    }
+                }
+            } else if (context.Request.HttpMethod == "PUT") {
+                string processId = this.ReadRequestBody(context);
+                if (processId == null) {
+                    return;
+                }
+
+                try {
+                    this.debugger.TargetProcess = UInt32.Parse(processId);
+                    this.ServeUncachedString("{ \"success\": true }", context);
+                } catch (Exception) {
+                    this.ServeUncachedString(this.JSONError("Unable to set the target process."), context);
+                }
+            } else {
+                this.ServeFailure(context);
+            }
+        }
+
+        private async void ServeCurrentProcessThreads(NameValueCollection query, Action<string> respond, Action fail) {
+            uint[] threads = await this.debugger.GetCurrentProcessThreads();
+
+            if (threads == null) {
+                respond(this.JSONError("Unable to access the debugger."));
+            } else {
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(uint[]));
+                using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                    serializer.WriteObject(memoryStream, threads);
+                    string result = Encoding.Default.GetString(memoryStream.ToArray());
+                    respond(result);
+                }
+            }
+        }
+
+        private void ServeTargetThread(string[] segments, HttpListenerContext context) {
+            if (context.Request.HttpMethod == "GET") {
+                uint targetThread = this.debugger.TargetThread;
+                if (targetThread == 0) {
+                    this.ServeUncachedString(this.JSONError("Unable to retrieve the target process."), context);
+                } else {
+                    DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(int));
+                    using (System.IO.MemoryStream memoryStream = new System.IO.MemoryStream()) {
+                        serializer.WriteObject(memoryStream, targetThread);
+                        string result = Encoding.Default.GetString(memoryStream.ToArray());
+                        this.ServeUncachedString(result, context);
+                    }
+                }
+            } else if (context.Request.HttpMethod == "PUT") {
+                string threadId = this.ReadRequestBody(context);
+                if (threadId == null) {
+                    return;
+                }
+
+                try {
+                    this.debugger.TargetThread = UInt32.Parse(threadId);
+                    this.ServeUncachedString("{ \"success\": true }", context);
+                } catch (Exception) {
+                    this.ServeUncachedString(this.JSONError("Unable to set the target process."), context);
+                }
+            } else {
+                this.ServeFailure(context);
             }
         }
 
@@ -1378,6 +1471,10 @@ namespace JsDbg.Core {
                 this.SendWebSocketMessage("detaching");
             } else if (status == DebuggerChangeEventArgs.DebuggerStatus.ChangingBitness) {
                 this.SendWebSocketMessage("bitnesschanged");
+            } else if (status == DebuggerChangeEventArgs.DebuggerStatus.ChangingThread) {
+                this.SendWebSocketMessage("threadchanged");
+            } else if (status == DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess) {
+                this.SendWebSocketMessage("processchanged");
             }
         }
 
@@ -1395,8 +1492,7 @@ namespace JsDbg.Core {
             }
         }
 
-        public bool IsListening
-        {
+        public bool IsListening {
             get { return this.httpListener != null && this.httpListener.IsListening; }
         }
 
@@ -1412,7 +1508,6 @@ namespace JsDbg.Core {
         private CancellationTokenSource cancellationSource;
         private IDebugger debugger;
         private PersistentStore persistentStore;
-        private UserFeedback userFeedback;
         private HashSet<WebSocket> openSockets;
         private List<JsDbgExtension> loadedExtensions;
         private Dictionary<string, JsDbgExtension> extensionsByName;

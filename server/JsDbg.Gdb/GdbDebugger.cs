@@ -190,7 +190,7 @@ namespace JsDbg.Gdb {
             return field;
         }
          
-        public async Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol) {
+        public async Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typename) {
             string pythonResult = await this.QueryDebuggerPython(String.Format("LookupGlobalSymbol(\"{0}\",\"{1}\")", module, symbol));
             // '{%s#%d' % (self.type, self.pointer)
 

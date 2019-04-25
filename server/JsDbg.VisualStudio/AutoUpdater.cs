@@ -1,4 +1,12 @@
-﻿using System;
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -24,11 +32,6 @@ namespace JsDbg.VisualStudio {
         }
 
         public static RestartReason CheckForUpdates(string identifier, string updateUrl) {
-            if (!FileExists(updateUrl)) {
-                // The server might be down.  Don't hang VS.
-                return RestartReason.None;
-            }
-
             IVsExtensionManager extensionManager = Package.GetGlobalService(typeof(SVsExtensionManager)) as IVsExtensionManager;
             IInstalledExtension installedExtension = extensionManager.GetInstalledExtension(identifier);
             if (installedExtension == null) {

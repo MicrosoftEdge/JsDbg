@@ -1,4 +1,12 @@
-﻿using System;
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -62,7 +70,8 @@ namespace JsDbg.Core {
         public int Offset;
     }
 
-    public struct SModule {
+    public struct SModule
+    {
         public string Name;
         public ulong BaseAddress;
     }
@@ -72,7 +81,9 @@ namespace JsDbg.Core {
             Break,
             Waiting,
             Detaching,
-            ChangingBitness
+            ChangingBitness,
+            ChangingThread,
+            ChangingProcess
         }
 
         public DebuggerChangeEventArgs(DebuggerStatus status) { Status = status; }
@@ -88,14 +99,20 @@ namespace JsDbg.Core {
         event DebuggerMessageEventHandler DebuggerMessage;
 
         void Dispose();
+        uint TargetProcess { get; set; }
+        Task<uint[]> GetAttachedProcesses();
+        uint TargetThread { get; set; }
+        Task<uint[]> GetCurrentProcessThreads();
         Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes);
         Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typeName);
+        bool IsDebuggerBusy { get; }
         bool IsPointer64Bit { get; }
+        Task<ulong> TebAddress();
         Task<bool> IsTypeEnum(string module, string type);
         Task<IEnumerable<SConstantResult>> LookupConstants(string module, string type, ulong constantValue);
         Task<SConstantResult> LookupConstant(string module, string type, string constantName);
         Task<SFieldResult> LookupField(string module, string typename, string fieldName);
-        Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol);
+        Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typeName);
         Task<SModule> GetModuleForName(string module);
         Task<IEnumerable<SStackFrame>> GetCallStack(int frameCount);
         Task<IEnumerable<SNamedSymbol>> GetSymbolsInStackFrame(ulong instructionAddress, ulong stackAddress, ulong frameAddress);

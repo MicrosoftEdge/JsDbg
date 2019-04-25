@@ -1,4 +1,12 @@
-﻿// Guids.cs
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+// Guids.cs
 // MUST match guids.h
 using System;
 

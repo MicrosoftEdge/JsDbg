@@ -1,4 +1,12 @@
-﻿using System;
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,7 +22,7 @@ namespace JsDbg.Windows.Dia {
 
             this.debuggerEngine.DebuggerChange += (sender, args) => { this.DebuggerChange?.Invoke(this, args); };
             this.debuggerEngine.DebuggerChange += (sender, args) => {
-                if (args.Status == DebuggerChangeEventArgs.DebuggerStatus.ChangingBitness || args.Status == DebuggerChangeEventArgs.DebuggerStatus.Detaching) {
+                if (args.Status == DebuggerChangeEventArgs.DebuggerStatus.ChangingBitness || args.Status == DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess || args.Status == DebuggerChangeEventArgs.DebuggerStatus.Detaching) {
                     this.ClearTypeCache();
                 }
             };
@@ -190,6 +198,24 @@ namespace JsDbg.Windows.Dia {
 
         public void Dispose() { }
 
+        public uint TargetProcess {
+            get { return this.debuggerEngine.TargetProcess; }
+            set { this.debuggerEngine.TargetProcess = value; }
+        }
+
+        public async Task<uint[]> GetAttachedProcesses() {
+            return await this.debuggerEngine.GetAttachedProcesses();
+        }
+
+        public uint TargetThread {
+            get { return this.debuggerEngine.TargetThread; }
+            set { this.debuggerEngine.TargetThread = value; }
+        }
+
+        public async Task<uint[]> GetCurrentProcessThreads() {
+            return await this.debuggerEngine.GetCurrentProcessThreads();
+        }
+
         public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
             return (await this.LoadType(module, typename)).Fields(includeBaseTypes);
         }
@@ -198,8 +224,16 @@ namespace JsDbg.Windows.Dia {
             return (await this.LoadType(module, typename)).BaseTypes;
         }
 
+        public bool IsDebuggerBusy {
+            get { return this.debuggerEngine.IsDebuggerBusy; }
+        }
+
         public bool IsPointer64Bit {
             get { return this.debuggerEngine.IsPointer64Bit; }
+        }
+
+        public Task<ulong> TebAddress() {
+            return this.debuggerEngine.TebAddress();
         }
 
         public async Task<bool> IsTypeEnum(string module, string typename) {
@@ -265,9 +299,7 @@ namespace JsDbg.Windows.Dia {
             return (await this.LoadType(module, typename)).Size;
         }
 
-        public async Task<SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName) {
-            SSymbolResult result = new SSymbolResult();
-
+        public async Task<SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName, string typeName) {
             Dia2Lib.IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(moduleName);
             if (session != null) {
                 // We have a DIA session, use that.
@@ -277,18 +309,26 @@ namespace JsDbg.Windows.Dia {
                     foreach (Dia2Lib.IDiaSymbol diaSymbol in symbols) {
                         if (((DiaHelpers.LocationType)diaSymbol.locationType) == DiaHelpers.LocationType.LocIsTLS) {
                             // For TLS-relative symbols, fall back to the debugger.
-                            return await this.debuggerEngine.LookupGlobalSymbol(moduleName, symbolName);
+                            return await this.debuggerEngine.LookupGlobalSymbol(moduleName, symbolName, typeName);
                         }
 
-                        result.Module = moduleName;
-                        result.Pointer = (await this.debuggerEngine.GetModuleForName(moduleName)).BaseAddress + diaSymbol.relativeVirtualAddress;
-                        result.Type = DiaHelpers.GetTypeName(diaSymbol.type);
-                        return result;
+                        string resultTypeName = DiaHelpers.GetTypeName(diaSymbol.type);
+                        if ((typeName == null) || resultTypeName.Equals(typeName)) {
+                            SSymbolResult result = new SSymbolResult();
+                            result.Module = moduleName;
+                            result.Pointer = (await this.debuggerEngine.GetModuleForName(moduleName)).BaseAddress + diaSymbol.relativeVirtualAddress;
+                            result.Type = resultTypeName;
+                            return result;
+                        }
                     }
                 } catch { }
-                throw new DebuggerException(String.Format("Invalid symbol: {0}!{1}", moduleName, symbolName));
+                if (typeName != null) {
+                    throw new DebuggerException(String.Format("No symbol {0}!{1} with type name {2}", moduleName, symbolName, typeName));
+                } else {
+                    throw new DebuggerException(String.Format("Invalid symbol: {0}!{1}", moduleName, symbolName));
+                }
             } else {
-                return await this.debuggerEngine.LookupGlobalSymbol(moduleName, symbolName);
+                return await this.debuggerEngine.LookupGlobalSymbol(moduleName, symbolName, typeName);
             }
         }
 

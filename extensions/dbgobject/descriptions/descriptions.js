@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 "use strict";
 
 Loader.OnLoad(function () {
@@ -93,7 +101,7 @@ Loader.OnLoad(function () {
             return null;
         });
     }
-    
+
     function getDefaultTypeDescription(dbgObject, element) {
         if (dbgObject.isNull()) {
             return Promise.resolve("nullptr");
@@ -103,24 +111,26 @@ Loader.OnLoad(function () {
         .then(function (customDescription) {
             var hasCustomDescription = customDescription != null;
             if (!hasCustomDescription) {
-                customDescription = function(x) { 
+                customDescription = function(x) {
                     // Default description: first try to get val(), then just provide the pointer with the type.
-                    if (x.type.equals("bool") || x.bitcount == 1) {
-                        return x.val()
-                        .then(function (value) {
-                            return value == 1 ? "true" : "false";
-                        });
-                    } else if (x.type.equals("wchar_t")) {
-                        if (x.wasDereferenced) {
-                            return x.string()
-                            .then(null, function() {
-                                return x.val().then(String.fromCharCode);
+                    if (x.type.isScalar()) {
+                        if (x.type.equals("bool") || x.bitcount == 1) {
+                            return x.val()
+                            .then(function (value) {
+                                return value == 1 ? "true" : "false";
                             });
+                        } else if (x.type.equals("wchar_t")) {
+                            if (x.wasDereferenced) {
+                                return x.string()
+                                .then(null, function() {
+                                    return x.val().then(String.fromCharCode);
+                                });
+                            } else {
+                                return x.val().then(String.fromCharCode);
+                            }
                         } else {
-                            return x.val().then(String.fromCharCode);
+                            return x.bigval().then(function (bigint) { return bigint.toString(); });
                         }
-                    } else if (x.type.isScalar()) {
-                        return x.bigval().then(function (bigint) { return bigint.toString(); }); 
                     } else if (x.type.isPointer()) {
                         return Promise.resolve(x.deref())
                         .then(function (dereferenced) {
@@ -156,7 +166,7 @@ Loader.OnLoad(function () {
                     } else {
                         return obj.ptr();
                     }
-                }); 
+                });
             }
 
             if (dbgObject.type.isArray()) {
@@ -186,10 +196,10 @@ Loader.OnLoad(function () {
         notes: function() {
             var html = "<p>Calling with no arguments will use the default description function. Type-specific description generators can be registered with <code>DbgObject.AddTypeDescription</code>.</p>";
             var loadedDescriptionTypes = registeredDescriptions.getAllTypes().map(function (type) {
-                if (DbgObjectType.is(type.type)) {
-                    return "<li>" + type.type.toString() + "</li>";
+                if (DbgObjectType.is(type)) {
+                    return "<li>" + type.toString() + "</li>";
                 } else {
-                    return "<li>Predicate: (" + type.type.toString() + ")</li>"
+                    return "<li>Predicate: (" + type.toString() + ")</li>"
                 }
             });
             return html + "Currently registered types with descriptions: <ul>" + loadedDescriptionTypes.join("") + "</ul>";

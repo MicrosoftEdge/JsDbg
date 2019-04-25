@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 //
 // mshtml.js
 // Peter Salas
@@ -823,8 +831,13 @@ var MSHTML = undefined;
                         return "::" + gcType.replace(/GC_/, "").toLowerCase();
                     });
                 } else {
-                    // Non-generic elements: just strip the tag identifier.
-                    return etagValue.substr("ETAG_".length).toLowerCase();
+                    var tag = etagValue.substr("ETAG_".length).toLowerCase();
+                    return treeNode.f("isMarkupTreeNode", "hasScriptableIdentity").val()
+                    .then((isMarkupTreeNode) => {
+                        return !isMarkupTreeNode ? ("::" + tag) : tag;
+                    }, () => {
+                        return tag;
+                    });
                 }
             })
             .then(function (tag) {
@@ -839,7 +852,7 @@ var MSHTML = undefined;
             })
         })
 
-        DbgObject.AddTypeDescription(function (type) { return type.module() == moduleName && type.name().match(/^_?(style[A-z0-9]+)$/); }, "CSS Value", true, function(enumObj) {
+        DbgObject.AddTypeDescription(function (type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^_?(style[A-z0-9]+)$/); }, "CSS Value", true, function(enumObj) {
             var enumString = enumObj.type.name().replace(/^_?(style[A-z0-9]+)$/, "$1");
             return Promise.resolve(enumObj.as("_" + enumString).constant())
             .then(
@@ -853,7 +866,7 @@ var MSHTML = undefined;
             )
         });
 
-        DbgObject.AddTypeDescription(function (type) { return type.module() == moduleName && type.name().match(/^(Tree|Layout).*::(.*Enum)$/); }, "Enum Value", true, function (enumObj) {
+        DbgObject.AddTypeDescription(function (type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^(Tree|Layout).*::(.*Enum)$/); }, "Enum Value", true, function (enumObj) {
             var enumString = enumObj.type.name().replace(/^(Tree|Layout).*::(.*Enum)$/, "$2_");
             return Promise.resolve(enumObj.constant())
                 .then(
@@ -1170,12 +1183,12 @@ var MSHTML = undefined;
             return refCount.f("_refCount").val();
         });
 
-        DbgObject.AddTypeDescription(function (type) { return type.module() == moduleName && type.name().match(/^TSmartPointer<.*>$/) != null; }, "Pointer", true, function (smartPointer) {
+        DbgObject.AddTypeDescription(function (type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^TSmartPointer<.*>$/) != null; }, "Pointer", true, function (smartPointer) {
             return smartPointer.f("m_pT").desc();
         })
 
         DbgObject.AddArrayField(
-            function (type) { return type.module() == moduleName && type.name().match(/^SArray<.*>$/) != null; },
+            function (type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^SArray<.*>$/) != null; },
             "Items",
             function (type) { return type.name().match(/^SArray<(.*)>$/)[1]; },
             function (array) {
@@ -1185,7 +1198,7 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            function (type) { return type.module() == moduleName && type.name().match(/^Microsoft::CFlat::Array<.*,1>$/) != null; },
+            function (type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^Microsoft::CFlat::Array<.*,1>$/) != null; },
             "Items",
             function (type) { return type.name().match(/^Microsoft::CFlat::Array<(.*),1>$/)[1]; },
             function (array) {
@@ -1198,7 +1211,7 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            function(type) { return type.module() == moduleName && type.name().match(/^Layout::.*PatchableArray<.*>$/) != null; },
+            function(type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^Layout::.*PatchableArray<.*>$/) != null; },
             "Items",
             function (type) { return type.name().match(/^Layout::.*PatchableArray<(.*)>$/)[1]; },
             function(array) {
@@ -1207,7 +1220,7 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            function(type) { return type.module() == moduleName && type.name().match(/^(Collections|CFlatRuntime)::SRawArray<.*>$/) != null; },
+            function(type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^(Collections|CFlatRuntime)::SRawArray<.*>$/) != null; },
             "Items",
             function(type) { return type.name().match(/^(Collections|CFlatRuntime)::SRawArray<(.*)>$/)[2]; },
             function(array) {
@@ -1216,7 +1229,7 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            function (type) { return type.module() == moduleName && type.name().match(/^Microsoft::CFlat::TrailingArrayField<.*>$/) != null; },
+            function (type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^Microsoft::CFlat::TrailingArrayField<.*>$/) != null; },
             "Items",
             function (type) { return type.name().match(/^Microsoft::CFlat::TrailingArrayField<(.*)>$/)[1]; },
             function (array) {
@@ -1229,7 +1242,7 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            function(type) { return type.module() == moduleName && type.name().match(/^CDataAry<.*>$/) != null; },
+            function(type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^CDataAry<.*>$/) != null; },
             "Items",
             function(type) {
                 return DbgObjectType(type.templateParameters()[0], type);
@@ -1240,7 +1253,7 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            function(type) { return type.module() == moduleName && type.name().match(/^CPtrAry<.*>$/) != null; },
+            function(type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^CPtrAry<.*>$/) != null; },
             "Items",
             function(type) {
                 return DbgObjectType(type.templateParameters()[0], type).dereferenced();
@@ -1264,9 +1277,9 @@ var MSHTML = undefined;
         }
 
         DbgObject.AddArrayField(
-            function (type) { return type.module() == moduleName && type.name().match(/^(Collections|Utilities)::SCircularBuffer<.*>$/) != null; },
+            function (type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^(Collections|Utilities)::SCircularBuffer<.*>$/) != null; },
             "Items",
-            function (type) { return type.module() == moduleName && type.name().match(/^(Collections|Utilities)::SCircularBuffer<(.*)>$/)[2]; },
+            function (type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^(Collections|Utilities)::SCircularBuffer<(.*)>$/)[2]; },
             function (buffer) {
                 return Promise.all([
                     buffer.f("items.m_pT").array("Items"),
@@ -1282,7 +1295,7 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            function (type) { return type.module() == moduleName && type.name().match(/^Collections::SGrowingArray<.*>$/) != null; },
+            function (type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^Collections::SGrowingArray<.*>$/) != null; },
             "Items",
             function (type) { return type.name().match(/^Collections::SGrowingArray<(.*)>$/)[1]; },
             function (growingArray) {
@@ -1291,7 +1304,7 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddArrayField(
-            function (type) { return type.module() == moduleName && type.name().match(/^Utilities::SGrowingArray<.*>$/) != null; },
+            function (type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^Utilities::SGrowingArray<.*>$/) != null; },
             "Items",
             function (type) { return type.name().match(/^Utilities::SGrowingArray<(.*)>$/)[1]; },
             function (growingArray) {
@@ -1327,16 +1340,10 @@ var MSHTML = undefined;
         }
 
         DbgObject.AddArrayField(
-            function(type) { return type.module() == moduleName && type.name().match(/^(CModernArray)<.*>$/) != null; },
+            function(type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^(CModernArray)<.*>$/) != null; },
             "Items",
             function(type) {
-                var matches = type.name().match(/^(CModernArray)<(.*)>$/);
-                var innerType = separateTemplateArguments(matches[2])[0];
-                if (innerType.name().match(/\*$/) != null) {
-                    return innerType.substr(0, innerType.length - 1).trim();
-                } else {
-                    return innerType;
-                }
+                return type.templateParameters()[0];
             },
             function (array) {
                 var innerType = separateTemplateArguments(array.type.name().match(/^(CModernArray)<(.*)>$/)[2])[0];
@@ -1346,7 +1353,7 @@ var MSHTML = undefined;
         )
 
         DbgObject.AddArrayField(
-            function (type) { return type.module() == moduleName && type.name().indexOf("CHtPvPv") == 0; },
+            function (type) { return type.moduleOrSyntheticName() == moduleName && type.name().indexOf("CHtPvPv") == 0; },
             "Items",
             mshtmlType("HashTableEntry"),
             function (ht) {
@@ -1363,7 +1370,7 @@ var MSHTML = undefined;
         );
 
         DbgObject.AddExtendedField(
-            function(type) { return type.module() == moduleName && type.name().match(/^PointerBitReuse<(.*)>$/) != null; },
+            function(type) { return type.moduleOrSyntheticName() == moduleName && type.name().match(/^PointerBitReuse<(.*)>$/) != null; },
             "Object",
             function (type) {
                 return type.templateParameters()[0];
@@ -1603,9 +1610,16 @@ var MSHTML = undefined;
                     .thenAll((previousCustomExternalObject, previousVarExtension) => {
                         return previousVarExtension.f("_subObjects")
                         .then((firstSubobjectOfPreviousVar) => {
-                            if (!firstSubobjectOfPreviousVar.isNull() && firstSubobjectOfPreviousVar.F("Var").F("Custom External Object").F("VarExtensionBase").F("VarExtension").equals(varExtension)) {
-                                // parent found
-                                return varExtension.f("_prev").F("Var").F("Custom External Object");
+                            if (!firstSubobjectOfPreviousVar.isNull()) {
+                                return firstSubobjectOfPreviousVar.F("Var").F("Custom External Object").F("VarExtensionBase").F("VarExtension")
+                                .then((varExtensionOfFirstSubobjectOfPreviousVar) => {
+                                    if (varExtensionOfFirstSubobjectOfPreviousVar.equals(varExtension)) {
+                                        // parent found
+                                        return varExtension.f("_prev").F("Var").F("Custom External Object");
+                                    } else {
+                                        return getSubobjectParentFromVarExtension(previousVarExtension);
+                                    }
+                                });
                             } else {
                                 return getSubobjectParentFromVarExtension(previousVarExtension);
                             }
@@ -1642,8 +1656,8 @@ var MSHTML = undefined;
                                         var varExtensionFieldsCount = (varExtensionFieldsSize / voidptrSize);
                                         var numInstanceSlots = varExtensionPointerCount - varExtensionFieldsCount;
                                         return firstInstanceSlot.array(numInstanceSlots)
-                                        .map((varAsVoid) => {
-                                            return varAsVoid.F("Var");
+                                        .map((varAsVoidPtr) => {
+                                            return varAsVoidPtr.deref().F("Var");
                                         });
                                     });
                                 } else {
@@ -1678,8 +1692,8 @@ var MSHTML = undefined;
             return varArray.f("_size").val()
             .then((size) => {
                 return varArray.f("_vars").array(size)
-                .map((varAsVoid) => {
-                    return varAsVoid.F("Var");
+                .map((varAsVoidPtr) => {
+                    return varAsVoidPtr.deref().F("Var");
                 });
             });
         });

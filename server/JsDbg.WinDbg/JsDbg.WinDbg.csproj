@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>JsDbg.WinDbg</RootNamespace>
     <AssemblyName>JsDbg</AssemblyName>
-    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <PlatformTarget>x86</PlatformTarget>
     <OutputPath>bin\$(Platform)\$(Configuration)\</OutputPath>
@@ -86,16 +86,16 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JsDbg.Core\JsDbg.Core.csproj">
-      <Project>{b4afac76-6d97-4b5a-9900-1f7d5baaecc7}</Project>
-      <Name>JsDbg.Core</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\JsDbg.Windows\JsDbg.Windows.csproj">
       <Project>{585cec7e-c788-4e43-bc35-fab4655c96f2}</Project>
-      <Name>JsDbg.Windows</Name>
+      <Name>JsDbg.Core</Name>
     </ProjectReference>
     <ProjectReference Include="..\JsDbg.Windows.Remoting\JsDbg.Windows.Remoting.csproj">
       <Project>{566a43bb-8d08-4af8-bc5a-95d08b38dadf}</Project>
       <Name>JsDbg.Windows.Remoting</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\JsDbg.Windows\JsDbg.Windows.csproj">
+      <Project>{cd5a9d9d-4a11-4786-bd6a-ac49919ab165}</Project>
+      <Name>JsDbg.Windows</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

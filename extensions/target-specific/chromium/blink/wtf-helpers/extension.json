@@ -1,0 +1,23 @@
+{
+    "name": "wtf-helpers",
+    "author": "Sanket Joshi",
+    "description": "Helper functions for debugging WTF types",
+    "headless": true,
+    "dependencies": [
+        "dbgobject",
+        "target-specific/chromium/chromium-helpers",
+        "whitespace-formatter"
+    ],
+    "includes": [
+        "wtf-helpers.js"
+    ],
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": [
+        "msedge",
+        "chrome",
+        "content_shell",
+        "browser_tests"
+    ]
+}

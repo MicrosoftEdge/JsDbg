@@ -1,4 +1,12 @@
-﻿using System;
+﻿//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,7 +26,19 @@ namespace JsDbg.Windows.Dia {
         
         DiaSessionLoader DiaLoader { get; }
 
+        bool IsDebuggerBusy { get; }
+
         bool IsPointer64Bit { get; }
+
+        uint TargetProcess { get; set; }
+
+        Task<uint[]> GetAttachedProcesses();
+
+        uint TargetThread { get; set; }
+
+        Task<uint[]> GetCurrentProcessThreads();
+
+        Task<ulong> TebAddress();
 
         Task<SModule> GetModuleForAddress(ulong address);
 
@@ -36,7 +56,7 @@ namespace JsDbg.Windows.Dia {
 
         Task<Type> GetTypeFromDebugger(string module, string typename);
 
-        Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol);
+        Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typeName);
 
         Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer);
 

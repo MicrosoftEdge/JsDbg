@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 "use strict";
 
 // jsdbg-toolbar.js
@@ -86,6 +94,70 @@ Loader.OnLoad(function () {
         ++queuedExtensionListUpdates;
     }
 
+    function updateProcessSelector() {
+        JsDbg.GetAttachedProcesses((processIds) => {
+            var processSelector = document.getElementById("processSelector");
+            var selectedProcessId = -1;
+            if (processSelector.selectedOptions.length != 0) {
+                console.assert(processSelector.selectedOptions.length == 1);
+                selectedProcessId = processSelector.selectedOptions[0].value;
+            }
+            processSelector.innerHTML = "";
+            processIds.forEach((processId) => {
+                var option = document.createElement("option");
+                option.append(processId);
+                option.setAttribute("label", processId + " (0x" + processId.toString(16) + ")");
+                if (processId == selectedProcessId) {
+                    option.setAttribute("selected", "true");
+                }
+                processSelector.appendChild(option);
+            });
+
+            JsDbg.GetTargetProcess((targetProcessId) => {
+                var optionToSelect = [...processSelector.options].filter((option) => (option.value == targetProcessId));
+                if (processSelector.selectedOptions.length != 0) {
+                    console.assert(processSelector.selectedOptions.length == 1);
+                    processSelector.selectedOptions[0].setAttribute("selected", "false");
+                }
+                if (optionToSelect.length == 1) {
+                    optionToSelect[0].setAttribute("selected", "true");
+                }
+            });
+        });
+    }
+
+    function updateThreadSelector() {
+        JsDbg.GetCurrentProcessThreads((threadIds) => {
+            var threadSelector = document.getElementById("threadSelector");
+            var selectedThreadId = -1;
+            if (threadSelector.selectedOptions.length != 0) {
+                console.assert(threadSelector.selectedOptions.length == 1);
+                selectedThreadId = threadSelector.selectedOptions[0].value;
+            }
+            threadSelector.innerHTML = "";
+            threadIds.forEach((threadId) => {
+                var option = document.createElement("option");
+                option.append(threadId);
+                option.setAttribute("label", threadId + " (0x" + threadId.toString(16) + ")");
+                if (threadId == selectedThreadId) {
+                    option.setAttribute("selected", "true");
+                }
+                threadSelector.appendChild(option);
+            });
+
+            JsDbg.GetTargetThread((targetThreadId) => {
+                var optionToSelect = [...threadSelector.options].filter((option) => (option.value == targetThreadId));
+                if (threadSelector.selectedOptions.length != 0) {
+                    console.assert(threadSelector.selectedOptions.length == 1);
+                    threadSelector.selectedOptions[0].setAttribute("selected", "false");
+                }
+                if (optionToSelect.length == 1) {
+                    optionToSelect[0].setAttribute("selected", "true");
+                }
+            });
+        });
+    }
+
     function buildToolbar() {
         // Insert the toolbar.
         var toolbar = document.createElement("div");
@@ -119,45 +191,35 @@ Loader.OnLoad(function () {
             toolbar.appendChild(aboutLink);
         }
 
-        var feedback = document.createElement("div");
-        feedback.classList.add("jsdbg-feedback-container");
+        var processSelectorPane = document.createElement("div");
+        processSelectorPane.classList.add("jsdbg-process-selector");
+        processSelectorPane.append("Current process: ");
 
-        var feedbackLink = document.createElement("a");
-        feedbackLink.setAttribute("href", "#feedback");
-        feedbackLink.appendChild(document.createTextNode("Send Feedback"));
-        feedbackLink.addEventListener("click", function (e) {
-            e.preventDefault();
-            feedback.classList.toggle("showing-pane");
-            feedbackPane.querySelector("textarea").focus();
-        })
-        feedback.appendChild(feedbackLink);
+        var processSelector = document.createElement("select");
+        processSelector.setAttribute("id", "processSelector");
+        processSelectorPane.appendChild(processSelector);
 
-        var feedbackPane = document.createElement("div");
-        feedbackPane.classList.add("jsdbg-feedback-pane");
-        feedbackPane.innerHTML = "<textarea placeholder=\"Please report any bugs, suggestions, or other feedback here.\"></textarea><br><button>Send Feedback</submit>";
+        processSelector.addEventListener("change", () => {
+            console.assert(processSelector.selectedOptions.length == 1)
+            JsDbg.SetTargetProcess(processSelector.selectedOptions[0].value);
+        }, false);
 
-        feedbackPane.querySelector("button").addEventListener("click", function() {
-            var feedbackMessage = feedbackPane.querySelector("textarea").value.trim();
-            if (feedbackMessage.length > 0) {
-                JsDbg.SendFeedback(feedbackMessage, function (result) {
-                    if (result.success) {
-                        feedbackPane.querySelector("textarea").value = "";
-                        feedback.classList.toggle("showing-pane");
-                        feedbackLink.textContent = "Thank you for your feedback!";
-                        setTimeout(function () {
-                            feedbackLink.textContent = "Send Feedback";
-                        }, 3000);
-                    } else {
-                        alert(result.error);
-                    }
-                })
-            } else {
-                feedback.classList.toggle("showing-pane");
-            }
-        })
-        feedback.appendChild(feedbackPane);
+        toolbar.appendChild(processSelectorPane);
 
-        toolbar.appendChild(feedback);
+        var threadSelectorPane = document.createElement("div");
+        threadSelectorPane.classList.add("jsdbg-thread-selector");
+        threadSelectorPane.append("Current thread: ");
+
+        var threadSelector = document.createElement("select");
+        threadSelector.setAttribute("id", "threadSelector");
+        threadSelectorPane.appendChild(threadSelector);
+
+        threadSelector.addEventListener("change", () => {
+            console.assert(threadSelector.selectedOptions.length == 1)
+            JsDbg.SetTargetThread(threadSelector.selectedOptions[0].value);
+        }, false);
+
+        toolbar.appendChild(threadSelectorPane);
 
         document.documentElement.insertBefore(toolbar, document.documentElement.firstChild);
         
@@ -170,7 +232,12 @@ Loader.OnLoad(function () {
 
     buildToolbar();
 
+    updateProcessSelector();
+    updateThreadSelector();
+
     JsDbg.RegisterOnBreakListener(function () {
         updateExtensionList();
+        updateProcessSelector();
+        updateThreadSelector();
     });
 })

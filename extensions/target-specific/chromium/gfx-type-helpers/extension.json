@@ -1,0 +1,19 @@
+{
+    "name": "gfx-type-helpers",
+    "author": "Daniel Libby",
+    "description": "Helper functions for visualizing gfx types",
+    "dependencies": [
+        "dbgobject",
+        "user-editable-functions",
+        "target-specific/chromium/chromium-helpers"
+    ],
+    "includes": ["gfx-type-helpers.js"],
+    "augments": ["dbgobject"],
+    "headless": true,
+    "targetModules": [
+        "msedge",
+        "chrome",
+        "content_shell",
+        "browser_tests"
+    ]
+}

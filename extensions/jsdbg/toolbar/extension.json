@@ -4,5 +4,5 @@
     "author": "Peter Salas",
     "description": "Implements the toolbar at the top of every page.",
     "includes": ["toolbar.js", "toolbar.css"],
-    "dependencies": ["jsdbg/core"]
+    "dependencies": ["jsdbg/core", "jsdbg/transport"]
 }

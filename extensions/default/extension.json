@@ -8,10 +8,12 @@
         "jsdbg",
         "jsdbg/tests",
         "wwwroot",
+        "examples",
         "extensions",
         "object-diff",
         "documentation",
         "tests",
-        "extensions-dashboard"
+        "extensions-dashboard",
+        "tree-extension-template"
     ]
 }

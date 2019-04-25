@@ -1,0 +1,6 @@
+{
+    "name": "Examples",
+    "author": "Sanket Joshi",
+    "description": "Example videos for developers to learn and contribute to JsDbg.",
+    "dependencies": ["catalog-viewer", "catalog"]
+}

@@ -1,3 +1,11 @@
+//--------------------------------------------------------------
+//
+//    MIT License
+//
+//    Copyright (c) Microsoft Corporation. All rights reserved.
+//
+//--------------------------------------------------------------
+
 "use strict";
 
 // jsdbg.js
@@ -72,6 +80,10 @@ Loader.OnLoad(function () {
             JsDbgTransport.InvalidateFullCache();
             fireListeners(debuggerBrokeListeners);
             fireListeners(memoryWriteListeners);
+        } else if ((message == "threadchanged") || (message == "processchanged")) {
+            JsDbgTransport.InvalidateFullCache();
+            fireListeners(debuggerBrokeListeners);
+            fireListeners(memoryWriteListeners);
         } else if (message.indexOf("message:") == 0) {
             JsDbgLoadingIndicator.ShowAmbientMessage(message.substr("message:".length));
         } else {
@@ -143,6 +155,68 @@ Loader.OnLoad(function () {
         },
         SetExtensionPath: function(path, callback) {
             JsDbgTransport.JsonRequest("/jsdbg-server/extensionpath", callback, JsDbgTransport.CacheType.Uncached, "PUT", path);
+        },
+
+        _help_GetAttachedProcesses: {
+            description: "Gets the list of processes the debugger is attached to.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        GetAttachedProcesses: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/attachedprocesses", callback, JsDbgTransport.CacheType.Uncached, "GET");
+        },
+
+        _help_GetTargetProcess: {
+            description: "Gets the process that is being actively debugged.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        GetTargetProcess: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/targetprocess", callback, JsDbgTransport.CacheType.Uncached, "GET");
+        },
+
+        _help_SetTargetProcess: {
+            description: "Sets the process in the debugger.",
+            arguments: [
+                {name:"processId", type:"integer", description:"Id of the process to set."},
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        SetTargetProcess: function(processId, callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/targetprocess", callback, JsDbgTransport.CacheType.Uncached, "PUT", processId);
+        },
+
+        _help_GetCurrentProcessThreads: {
+            description: "Gets the list of threads for the process that is being actively debugged.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        GetCurrentProcessThreads: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/currentprocessthreads", callback, JsDbgTransport.CacheType.Uncached, "GET");
+        },
+
+        _help_GetTargetThread: {
+            description: "Gets the thread that is being actively debugged.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        GetTargetThread: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/targetthread", callback, JsDbgTransport.CacheType.Uncached, "GET");
+        },
+
+        _help_SetTargetThread: {
+            description: "Sets the thread in the debugger.",
+            arguments: [
+                {name:"threadId", type:"integer", description:"Id of the thread to set."},
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        SetTargetThread: function(threadId, callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/targetthread", callback, JsDbgTransport.CacheType.Uncached, "PUT", threadId);
         },
 
         _help_LookupTypeSize: {
@@ -306,6 +380,16 @@ Loader.OnLoad(function () {
             JsDbgTransport.JsonRequest("/jsdbg-server/array?type=" + esc(sizeName) + "&pointer=" + esc(pointer) + "&length=" + count, callback, JsDbgTransport.CacheType.TransientCache);
         },
 
+        _help_LookupTebAddress: {
+            description: "Gets the address of the thread environment block (TEB) for the current thread.",
+            arguments: [
+                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
+            ]
+        },
+        LookupTebAddress: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/teb", callback, JsDbgTransport.CacheType.Uncached);
+        },
+
         _help_LookupSymbolName: {
             description: "Identifies a symbol associated with a given pointer (e.g. vtable pointer).",
             arguments: [
@@ -329,7 +413,7 @@ Loader.OnLoad(function () {
             JsDbgTransport.JsonRequest("/jsdbg-server/isenum?module=" + esc(module) + "&type=" + esc(type), callback, JsDbgTransport.CacheType.Cached);
         },
 
-        
+
         _help_LookupConstantName: {
             description: "Looks up the name of a given constant (i.e. an enum value).",
             arguments: [
@@ -361,11 +445,16 @@ Loader.OnLoad(function () {
             arguments: [
                 {name:"module", type:"string", description:"The module containing the symbol."},
                 {name:"symbol", type:"string", description:"The symbol to evaluate."},
+                {name:"typeName", type:"string", description: "The type name of the symbol to look up."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        LookupGlobalSymbol: function(module, symbol, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol), callback, JsDbgTransport.CacheType.Cached);
+        LookupGlobalSymbol: function(module, symbol, typeName, callback) {
+            if (typeName) {
+                JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol) + "&typeName=" + esc(typeName), callback, JsDbgTransport.CacheType.Cached);
+            } else {
+                JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol), callback, JsDbgTransport.CacheType.Cached);
+            }
         },
 
         _help_GetCallStack: {
@@ -393,14 +482,13 @@ Loader.OnLoad(function () {
         },
 
         _help_GetPersistentData: {
-            description: "Gets the persistent data associated with the current user or a specified user.",
+            description: "Gets the persistent data associated with the current user.",
             arguments: [
-                {name:"user", type:"string", description:"(optional) The user whose data should be retrieved."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        GetPersistentData: function(user, callback) {
-            JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorage" + (user ? "?user=" + esc(user) : ""), callback, JsDbgTransport.CacheType.Uncached, "GET");
+        GetPersistentData: function(callback) {
+            JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorage", callback, JsDbgTransport.CacheType.Uncached, "GET");
         },
 
         _help_SetPersistentData: {
@@ -413,33 +501,6 @@ Loader.OnLoad(function () {
         SetPersistentData: function(data, callback) {
             var value = JSON.stringify(data);
             JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorage", callback, JsDbgTransport.CacheType.Uncached, "PUT", value);
-        },
-
-        _help_GetPersistentDataUsers: {
-            description: "Gets a collection of users with persistent data stored.",
-            arguments: [
-                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
-            ]
-        },
-        GetPersistentDataUsers: function(callback) {
-            JsDbgTransport.JsonRequest("/jsdbg-server/persistentstorageusers", callback, JsDbgTransport.CacheType.Uncached);
-        },
-
-        _help_SendFeedback: {
-            description: "Sends feedback for JsDbg.",
-            arguments: [
-                {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
-            ]
-        },
-        SendFeedback: function (message, callback) {
-            // Include some diagnostics data as well.
-            var feedbackObject = {
-                userAgent: window.navigator.userAgent,
-                extension: Loader.GetCurrentExtension,
-                message: message
-            };
-
-            JsDbgTransport.JsonRequest("/jsdbg-server/feedback", callback, JsDbgTransport.CacheType.Uncached, "PUT", JSON.stringify(feedbackObject, null, '  '));
         },
 
         _help_RegisterOnBreakListener: {
