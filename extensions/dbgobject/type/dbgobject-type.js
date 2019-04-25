@@ -79,8 +79,8 @@ Loader.OnLoad(function () {
     }
 
     dbgObjectType.prototype.isUnsigned = function() {
-        // Treat "char" as unsigned.
-        return this.name().indexOf("unsigned ") == this.name() == "char";
+        // Treat "char"s as unsigned.
+        return this.name().startsWith("unsigned ") || this.name().includes("char");
     }
 
     dbgObjectType.prototype.fullName = function() {
