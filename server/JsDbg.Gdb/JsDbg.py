@@ -32,8 +32,7 @@ class JsDbg:
         homeDir = os.path.expanduser("~")
         execPath = homeDir + "/JsDbg/server/JsDbg.Gdb/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb"
         extensionsPath = homeDir + "/JsDbg/extensions"
-        persistentStorePath = homeDir + "/JsDbg/persistent"
-        self.proc = subprocess.Popen([execPath, extensionsPath, persistentStorePath], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.proc = subprocess.Popen([execPath, extensionsPath], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         def stderrThreadProc():
             # Echo stderr from the subprocess, if showStderr is set
