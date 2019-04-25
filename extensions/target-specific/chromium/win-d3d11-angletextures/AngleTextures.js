@@ -19,9 +19,29 @@ Loader.OnLoad(function () {
       return DbgObject.NULL;
     },
     GetRoots: function () {
-      return DbgObject.global("libGLESv2", "gSingleThreadedContext");
+      return DbgObject.global("libGLESv2", "gSingleThreadedContext").catch((error)=>{
+        var errorMessage = ErrorMessages.CreateErrorsList(error) +
+                    ErrorMessages.CreateErrorReasonsList("Extension works in windows only and when Angle uses D3D11 backend.", ErrorMessages.SymbolsUnavailable);
+        return Promise.reject(errorMessage);
+      });
     },
     ShowTextures: function (glContext) {
+      document.getElementById("glContext").appendChild(DbgObjectInspector.Inspect(glContext, glContext.ptr()));
+      glContext.deref()
+        .f("mDisplay")
+        .f("mImplementation")
+        .vcast()
+        .f("mRenderer")
+        .vcast()
+        .then((rendererD3D) => {
+          rendererD3D.f("mDevice").then((d3dDevice) => {
+            document.getElementById("d3dDevice").appendChild(DbgObjectInspector.Inspect(d3dDevice, d3dDevice.ptr()));
+          });
+          rendererD3D.f("mDeviceContext").then((d3dContext) => {
+            document.getElementById("d3dContext").appendChild(DbgObjectInspector.Inspect(d3dContext, d3dContext.ptr()));
+          });
+        });
+      
       glContext.deref()
         .f("mState")
         .f("mTextureManager")
@@ -69,7 +89,18 @@ Loader.OnLoad(function () {
               });              
             });
           });
-        });    
+          objectMap.f("mHashedResources").f("_List").f("_Mypair").f("_Myval2").f("_Mysize").val().then((hashTableSize)=>{
+            if (hashTableSize == 0)
+            {
+              var row = document.createElement("tr");
+              var cell1 = document.createElement("td");
+              cell1.setAttribute("COLSPAN", "5");
+              cell1.appendChild(document.createTextNode("Plus " + hashTableSize + " textures stored in a hashtable."));
+              row.appendChild(cell1);     
+              textureTable.appendChild(row); 
+            }
+          });
+        });            
     },
     DefaultTypes: []
   };  

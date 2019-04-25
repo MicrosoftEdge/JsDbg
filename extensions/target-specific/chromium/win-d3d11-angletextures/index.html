@@ -1,0 +1,77 @@
+<!--
+    MIT License
+
+    Copyright (c) Microsoft Corporation. All rights reserved.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Inspect Compositor Frame</title>
+    <script type="text/javascript" src="/jsdbg/loader.js"></script>
+    <script type="text/javascript">
+        Loader.OnPageReady(() => {            
+            AngleTextures.GetRoots().then((context) => {   
+                document.getElementById("tables").className = "show";              
+                AngleTextures.ShowTextures(context) 
+            }, 
+            function (error) {
+                var rootsError = document.getElementById("rootsError");
+                rootsError.className = "error show";
+                rootsError.innerHTML = error;
+            });
+        });
+    </script>
+    <style>
+        td
+        {
+            padding:5px;
+        }
+        .show
+        {
+            display:block;
+        }
+        .hide
+        {
+            display:none;
+        }
+        .error
+        {
+            background-color: orange;
+            width:600px;
+            font-size:1.25em;
+            padding:20px;
+            border:1px solid red;
+            margin:20px;
+        }
+        button
+        {
+            vertical-align: bottom;
+        }
+        button div
+        {
+            transform: rotate(110deg);
+        }
+    </style>
+</head>
+<body>
+    <div id="rootsError" class="hide" >
+        This extension works only on Windows when Angle uses a D3D11 backend.
+        Unable to find Angle Context in Process. 
+    </div>
+    <div id="tables" class="hide">
+        <h2>Device Info</h2>
+        <table id="infoTable" border=1>
+            <tr><th>glContext</th><td id="glContext"></td></tr>
+            <tr><th>ID3D11Device</th><td id="d3dDevice"></td></tr>
+            <tr><th>ID3D11DeviceContext</th><td id="d3dContext"></td></tr>
+        </table>
+        <h2>Resource Table <button onclick="location.reload()"><div>&#x21bb;</div></button></h2>
+        
+        <table id="textureTable" border=1>
+            <tr><th>id</th><th>glTexture</th><th>width</th><th>height</th><th>ID3D11Resource</th></tr>
+        </table>
+    </div>
+</body>
+</html>

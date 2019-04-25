@@ -10,7 +10,7 @@
         "target-specific/chromium/gfx-type-helpers",
         "target-specific/chromium/cclayertree",
         "target-specific/chromium/compositorframe",
-        "target-specific/chromium/angletextures"
+        "target-specific/chromium/win-d3d11-angletextures"
     ],
     "targetModules": [
         "msedge",
