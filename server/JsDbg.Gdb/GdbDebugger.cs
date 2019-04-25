@@ -8,8 +8,7 @@ namespace JsDbg.Gdb {
     class GdbDebugger : IDebugger {
 
         public GdbDebugger() {
-            // Assume 64-bit until we get a response from the debugger
-            IsPointer64Bit = true;
+            OutputDataReceived += HandleGdbEvent;
         }
 
 
@@ -34,6 +33,27 @@ namespace JsDbg.Gdb {
                 }
                 this.OutputDataReceived?.Invoke(this, response);
             }
+        }
+
+        void NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus status) {
+            this.DebuggerChange?.Invoke(this, new DebuggerChangeEventArgs(status));
+        }
+
+        void HandleGdbEvent(object sender, string ev) {
+            if (ev[0] != '%')
+                return;
+
+            DebuggerChangeEventArgs.DebuggerStatus oldStatus = debuggerStatus;
+
+            if (ev == "%cont")
+                debuggerStatus = DebuggerChangeEventArgs.DebuggerStatus.Waiting;
+            else if (ev == "%stop")
+                debuggerStatus = DebuggerChangeEventArgs.DebuggerStatus.Break;
+            else if (ev == "%exit")
+                debuggerStatus = DebuggerChangeEventArgs.DebuggerStatus.Detaching;
+
+            if (debuggerStatus != oldStatus)
+                NotifyDebuggerChange(debuggerStatus);
         }
 
         public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
@@ -444,9 +464,11 @@ namespace JsDbg.Gdb {
             return response;
         }
 
-        private bool isPointer64Bit;
+        // Assume 64-bit until we get a response from the debugger
+        private bool isPointer64Bit = true;
         private uint queryTag = 1;
-        private uint varTag = 1;
+        private DebuggerChangeEventArgs.DebuggerStatus debuggerStatus =
+            DebuggerChangeEventArgs.DebuggerStatus.Break;
 
         private delegate void PythonResponseEventHandler(object sender, string e);
         private event PythonResponseEventHandler OutputDataReceived;
