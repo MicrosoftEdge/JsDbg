@@ -21,7 +21,13 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("WTF::StringImpl"), "Text", true, UserEditableFunctions.Create((wtfStringImpl) => {
-        return !wtfStringImpl.isNull() ? wtfStringImpl.idx(1).as("char", /*disregardSize*/true).string(wtfStringImpl.f("length_")) : "";
+        if (!wtfStringImpl.isNull()) {
+            return wtfStringImpl.f("is_8bit_").val()
+            .then((is8bit) => wtfStringImpl.idx(1).as(is8bit ? "char" : "char16_t", /*disregardSize*/true))
+            .then((firstChar) => firstChar.string(wtfStringImpl.f("length_")));
+        } else {
+            return "";
+        }
     }));
 
     DbgObject.AddArrayField(
