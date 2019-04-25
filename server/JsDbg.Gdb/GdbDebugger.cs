@@ -410,6 +410,13 @@ namespace JsDbg.Gdb {
             string response = await this.QueryDebuggerPython(String.Format("WriteMemoryBytes({0},\"{1}\")", pointer, hexString));
         }
 
+        public async Task<uint[]> GetAttachedProcesses() { return new uint[0]; }
+        public async Task<uint[]> GetCurrentProcessThreads() { return new uint[0]; }
+        public async Task<ulong> TebAddress() { return 0; }
+        public uint TargetProcess { get { return 0; } set {  } }
+        public uint TargetThread { get { return 0; } set {  } }
+        public bool IsDebuggerBusy { get { return false; } }
+
         // Return a string which can be interpreted as the output of a python script
         // e.g. the string might be the literal characters
         // "[1, 2, 3]\n"
