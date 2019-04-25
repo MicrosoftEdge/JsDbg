@@ -11,13 +11,6 @@
 var AngleTextures = undefined;
 Loader.OnLoad(function () {
   AngleTextures = {
-    InterpretAddress: function (address) {
-      var voidObj = DbgObject.create("ntdll!void", address);
-      if (!voidObj.isNull()) {
-        return voidObj.as("libGLESv2!gl::Context");
-      }
-      return DbgObject.NULL;
-    },
     GetRoots: function () {
       return DbgObject.global("libGLESv2", "gSingleThreadedContext").catch((error)=>{
         var errorMessage = ErrorMessages.CreateErrorsList(error) +
