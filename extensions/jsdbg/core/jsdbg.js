@@ -446,15 +446,18 @@ Loader.OnLoad(function () {
                 {name:"module", type:"string", description:"The module containing the symbol."},
                 {name:"symbol", type:"string", description:"The symbol to evaluate."},
                 {name:"typeName", type:"string", description: "The type name of the symbol to look up."},
+                {name:"namespace", type:"string", description: "The namespace the symbol is in. Required on some platforms."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        LookupGlobalSymbol: function(module, symbol, typeName, callback) {
-            if (typeName) {
-                JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol) + "&typeName=" + esc(typeName), callback, JsDbgTransport.CacheType.Cached);
-            } else {
-                JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol), callback, JsDbgTransport.CacheType.Cached);
-            }
+        LookupGlobalSymbol: function(module, symbol, typeName, namespace, callback) {
+            var typenameStr = "";
+            if (typeName)
+                typenameStr = "&typeName=" + esc(typename);
+            var namespaceStr = "";
+            if (namespace)
+                namespaceStr = "&namespace=" + esc(namespace);
+            JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol) + typenameStr + namespaceStr, callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_GetCallStack: {

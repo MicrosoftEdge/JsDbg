@@ -764,6 +764,7 @@ namespace JsDbg.Core {
             string module = query["module"];
             string symbol = query["symbol"];
             string typeName = query["typeName"];
+            string nameSpace = query["namespace"];
 
             if (module == null || symbol == null) {
                 fail();
@@ -771,7 +772,7 @@ namespace JsDbg.Core {
             }
             string responseString;
             try {
-                SSymbolResult result = await this.debugger.LookupGlobalSymbol(module, symbol, typeName);
+                SSymbolResult result = await this.debugger.LookupGlobalSymbol(module, symbol, typeName, nameSpace);
                 responseString = String.Format("{{ \"pointer\": {0}, \"module\": \"{1}\", \"type\": \"{2}\" }}", result.Pointer, result.Module, result.Type);
             } catch (DebuggerException ex) {
                 responseString = ex.JSONError;
