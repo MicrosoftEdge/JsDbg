@@ -90,7 +90,7 @@ Loader.OnLoad(function () {
             });
           });
           objectMap.f("mHashedResources").f("_List").f("_Mypair").f("_Myval2").f("_Mysize").val().then((hashTableSize)=>{
-            if (hashTableSize == 0)
+            if (hashTableSize != 0)
             {
               var row = document.createElement("tr");
               var cell1 = document.createElement("td");
