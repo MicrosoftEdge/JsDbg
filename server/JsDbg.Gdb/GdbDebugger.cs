@@ -24,6 +24,12 @@ namespace JsDbg.Gdb {
             LookupTypeSize("", "void*").ContinueWith((task) => {
                 IsPointer64Bit = task.Result == 8 ? true : false;
             });
+            QueryDebuggerPython("GetTargetProcess()").ContinueWith((task) => {
+                this.targetProcess = UInt32.Parse(task.Result);
+            });
+            QueryDebuggerPython("GetTargetThread()").ContinueWith((task) => {
+                this.targetThread = UInt32.Parse(task.Result);
+            });
 
             while(true) {
                 // Pump messages from python back to any waiting handlers
@@ -54,6 +60,17 @@ namespace JsDbg.Gdb {
 
             if (debuggerStatus != oldStatus)
                 NotifyDebuggerChange(debuggerStatus);
+
+            // Now check for process/thread events
+            string processChange = "%proc ";
+            string threadChange = "%thread ";
+            if (ev.StartsWith(processChange)) {
+                this.targetProcess = UInt32.Parse(ev.Substring(processChange.Length));
+                NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingProcess);
+            } else if (ev.StartsWith(threadChange)) {
+                this.targetThread = UInt32.Parse(ev.Substring(threadChange.Length));
+                NotifyDebuggerChange(DebuggerChangeEventArgs.DebuggerStatus.ChangingThread);
+            }
         }
 
         public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
@@ -437,11 +454,53 @@ namespace JsDbg.Gdb {
             string response = await this.QueryDebuggerPython(String.Format("WriteMemoryBytes({0},\"{1}\")", pointer, hexString));
         }
 
-        public async Task<uint[]> GetAttachedProcesses() { return new uint[0]; }
-        public async Task<uint[]> GetCurrentProcessThreads() { return new uint[0]; }
+        public List<uint> ParsePythonArrayToIntegers(string response) {
+            List<uint> result = new List<uint>();
+            // [1, 2, 3]
+            Debug.Assert(response[0] == '[');
+            int index = 1;
+            while (index != response.Length - 1) {
+                int endIndex = response.IndexOf(',', index);
+                if (endIndex == -1)
+                    endIndex = response.Length - 1;
+                result.Add(UInt32.Parse(response.Substring(index, endIndex - index)));
+
+                index = endIndex;
+                if (response[index] == ',') {
+                    ++index;
+                    Debug.Assert(response[index] == ' ');
+                    ++index;
+                }
+            }
+            return result;
+        }
+
+        public async Task<uint[]> GetAttachedProcesses() {
+            string response = await this.QueryDebuggerPython("GetAttachedProcesses()");
+            return ParsePythonArrayToIntegers(response).ToArray();
+        }
+
+        public async Task<uint[]> GetCurrentProcessThreads() {
+            string response = await this.QueryDebuggerPython("GetCurrentProcessThreads()");
+            return ParsePythonArrayToIntegers(response).ToArray();
+        }
         public async Task<ulong> TebAddress() { return 0; }
-        public uint TargetProcess { get { return 0; } set {  } }
-        public uint TargetThread { get { return 0; } set {  } }
+        public uint TargetProcess {
+            get {
+                return this.targetProcess;
+            }
+            set {
+                this.QueryDebuggerPython(String.Format("SetTargetProcess({0})", value));
+            }
+        }
+        public uint TargetThread {
+            get {
+                return this.targetThread;
+            }
+            set {
+                this.QueryDebuggerPython(String.Format("SetTargetThread({0})", value));
+            }
+        }
         public bool IsDebuggerBusy { get { return false; } }
 
         // Return a string which can be interpreted as the output of a python script
@@ -476,6 +535,8 @@ namespace JsDbg.Gdb {
         private uint queryTag = 1;
         private DebuggerChangeEventArgs.DebuggerStatus debuggerStatus =
             DebuggerChangeEventArgs.DebuggerStatus.Break;
+        private uint targetProcess = 0;
+        private uint targetThread = 0;
 
         private delegate void PythonResponseEventHandler(object sender, string e);
         private event PythonResponseEventHandler OutputDataReceived;

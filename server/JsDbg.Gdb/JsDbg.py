@@ -6,7 +6,9 @@ import binascii
 import os.path
 
 jsdbg = None
-            
+last_pid = None
+last_tid = None
+
 class JsDbg:
     class JsDbgGdbRequest:
         def __init__(self, request, responseStream, verbose):
@@ -339,11 +341,57 @@ def WriteMemoryBytes(pointer, hexString):
     byteString = bytes.fromhex(hexString)
     inferior.write_memory(pointer, byteString)
 
+def GetAttachedProcesses():
+    return [inferior.pid for inferior in gdb.inferiors()]
+
+def GetCurrentProcessThreads():
+    return [thread.ptid[2] or thread.ptid[1] for thread in gdb.selected_inferior().threads()]
+
+def GetTargetProcess():
+    return gdb.selected_inferior().pid
+
+def GetTargetThread():
+    thread = gdb.selected_thread()
+    return thread.ptid[2] or thread.ptid[1]
+
+def SetTargetProcess(pid):
+    match = [i for i in gdb.inferiors() if i.pid == pid]
+    if not match:
+        raise ValueError('No such process %i' % (pid))
+    # Last thread seems to be the main thread, switch to that
+    threads = match[0].threads()[-1].switch()
+
+def SetTargetThread(tid):
+    match = [t for t in gdb.selected_inferior().threads() if t.ptid[2] == tid or t.ptid[1] == tid]
+    if not match:
+        raise ValueError('No such thread %i' % (pid))
+    match[0].switch()
+
 def EnsureJsDbg():
     global jsdbg
     if not jsdbg:
         jsdbg = JsDbg()
     return jsdbg
+
+def CheckForProcessAndThreadChange():
+    global last_tid
+    global last_pid
+    global jsdbg
+    try:
+        current_process = GetTargetProcess()
+    except:
+        current_process = None
+    try:
+        current_thread = GetTargetThread()
+    except:
+        current_thread = None
+
+    if last_pid != current_process and jsdbg:
+        jsdbg.SendGdbEvent('proc %i' % (current_process))
+    if last_tid != current_thread and jsdbg:
+        jsdbg.SendGdbEvent('thread %i' % (current_thread))
+    last_pid = current_process
+    last_tid = current_thread
 
 def StoppedHandler(ev):
     global jsdbg
@@ -352,6 +400,10 @@ def StoppedHandler(ev):
 
 def ContHandler(ev):
     global jsdbg
+    global last_tid
+    # This may be the initial "run"; send a notification if so
+    if not last_tid:
+        CheckForProcessAndThreadChange()
     if jsdbg:
         jsdbg.SendGdbEvent('cont')
 
@@ -360,13 +412,13 @@ def ExitHandler(ev):
     if jsdbg:
         jsdbg.SendGdbEvent('exit')
 
-# TODO: Also support events for thread and process switching,
-# probably using gdb.before_prompt. See also
-# https://sourceware.org/bugzilla/show_bug.cgi?id=24482
+def PromptHandler():
+    CheckForProcessAndThreadChange()
 
 gdb.events.stop.connect(StoppedHandler)
 gdb.events.cont.connect(ContHandler)
 gdb.events.exited.connect(ExitHandler)
+gdb.events.before_prompt.connect(PromptHandler)
 
 class JsDbgCmd(gdb.Command):
   """Runs JsDbg."""
