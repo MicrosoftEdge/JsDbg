@@ -156,6 +156,15 @@ class SConstantResult:
         return '{%s#%d}' % (self.name, self.value)
 
 
+class SModule:
+    def __init__(self, name, baseAddress):
+        self.name = name
+        self.baseAddress = baseAddress
+
+    def __repr__(self):
+        return '{%s#%d}' % (self.name, self.baseAddress)
+
+
 def GetAllFields(module, type, includeBaseTypes):
     t = gdb.lookup_type(type)
     fields = t.fields()
@@ -228,6 +237,21 @@ def LookupGlobalSymbol(module, symbol):
     # https://sourceware.org/bugzilla/show_bug.cgi?id=24474
     (sym, _) = gdb.lookup_symbol(symbol)
     return SSymbolResult(sym)
+
+
+def GetModuleForName(module):
+  objfile = None
+  try:
+    objfile = gdb.lookup_objfile(module)
+  except ValueError:
+    # Try libFOO.so
+    objfile = gdb.lookup_objfile('lib' + module + '.so')
+  if objfile:
+    # Python has no API to find the base address
+    # https://sourceware.org/bugzilla/show_bug.cgi?id=24481
+    return SModule(module, 0)
+  return None
+
 
 def GetCallStack(numFrames):
     frame = gdb.newest_frame()

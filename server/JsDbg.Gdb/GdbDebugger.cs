@@ -229,9 +229,16 @@ namespace JsDbg.Gdb {
         }
         
         public async Task<SModule> GetModuleForName(string module) {
+            string pythonResult = await this.QueryDebuggerPython(String.Format("GetModuleForName(\"{0}\")", module));
+
+            Debug.Assert(pythonResult[0] == '{');
+            int fieldEndIndex = pythonResult.IndexOf('}');
+            string fieldString = pythonResult.Substring(1, fieldEndIndex-1);
+
+            string[] properties = fieldString.Split("#");
             SModule result = new SModule();
-            result.Name = module;
-            result.BaseAddress = 0; // TODO
+            result.Name = properties[0];
+            result.BaseAddress = UInt64.Parse(properties[1]);
             return result;
         }
         
