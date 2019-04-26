@@ -230,8 +230,13 @@ namespace JsDbg.Gdb {
             return field;
         }
          
-        public async Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typename) {
-            string pythonResult = await this.QueryDebuggerPython(String.Format("LookupGlobalSymbol(\"{0}\",\"{1}\")", module, symbol));
+        public async Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typename, string nameSpace) {
+            // TODO: Support the typename parameter for disambiguating symbols.
+            string symbolName = "";
+            if (!String.IsNullOrEmpty(nameSpace))
+                symbolName = nameSpace + "::";
+            symbolName += symbol;
+            string pythonResult = await this.QueryDebuggerPython(String.Format("LookupGlobalSymbol(\"{0}\",\"{1}\")", module, symbolName));
             // '{%s#%d' % (self.type, self.pointer)
 
             if (pythonResult == "None")

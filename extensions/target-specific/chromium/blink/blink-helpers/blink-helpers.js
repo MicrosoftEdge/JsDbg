@@ -558,7 +558,7 @@ Loader.OnLoad(function() {
             description: "Returns (a promise to) a collection of documents for all web frames in the current renderer process."
         },
         GetDocuments: () => {
-            return DbgObject.global(Chromium.RendererProcessSyntheticModuleName, "g_frame_map")
+            return DbgObject.global(Chromium.RendererProcessSyntheticModuleName, "g_frame_map", undefined, "content::(anonymous namespace)")
             .then((frameMap) => Promise.map(frameMap.F("Object").array("Keys"), (webFramePointer) => webFramePointer.deref()))
             .then((webFrames) => {
                 // Put the main frame (frame with a null parent) at the front of the array.
