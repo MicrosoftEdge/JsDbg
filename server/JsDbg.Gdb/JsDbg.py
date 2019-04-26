@@ -101,7 +101,7 @@ class SFieldResult:
         self.fieldName = field.name
         pointer_depth = 0
         t = field.type.strip_typedefs()
-        while t.code == gdb.TYPE_CODE_PTR or field.type.code == gdb.TYPE_CODE_ARRAY:
+        while t.code == gdb.TYPE_CODE_PTR or t.code == gdb.TYPE_CODE_ARRAY:
             pointer_depth = pointer_depth + 1
             t = t.target()
 
