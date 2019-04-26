@@ -216,8 +216,7 @@ namespace JsDbg.Windows.Dia {
             return await this.debuggerEngine.GetCurrentProcessThreads();
         }
 
-        public Task Continue()
-        {
+        public Task Continue() {
             return this.debuggerEngine.Continue();
         }
 
@@ -306,6 +305,7 @@ namespace JsDbg.Windows.Dia {
 
         public async Task<SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName, string typeName, string nameSpace) {
             // The nameSpace is not needed to lookup global symbols with DIA.
+
             Dia2Lib.IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(moduleName);
             if (session != null) {
                 // We have a DIA session, use that.
