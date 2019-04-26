@@ -35,7 +35,7 @@ Loader.OnLoad(function() {
             // (the renderViewImplPointer) in a given renderer process. Once this
             // map is better understood, we may want to add sorting functionlity
             // to have the 'most important' layer tree host be the first entry.
-            return DbgObject.global(Chromium.RendererProcessSyntheticModuleName, "g_view_map")
+            return DbgObject.global(Chromium.RendererProcessSyntheticModuleName, "g_view_map", undefined, "content")
             .then((viewMap) => {
                 return Promise.map(viewMap.F("Object").array("Values"), renderViewImplPointer => renderViewImplPointer.deref().f("render_widget_", "").f("layer_tree_view_").F("Object").f("layer_tree_host_").F("Object"));
             })
