@@ -4,6 +4,7 @@ import subprocess
 import threading
 import binascii
 import os.path
+import re
 
 jsdbg = None
 last_pid = None
@@ -327,8 +328,16 @@ def LookupConstant(module, typename, constantName):
     return str(integral_val)
 
 def LookupSymbolName(pointer):
+    module = gdb.solib_name(pointer)
+    if not module:
+        # If it exists, it's in the main binary
+        module = gdb.current_progspace().filename
+    # First, we strip out the path to the module
+    module = module[module.rfind("/") + 1:]
+    # Then, we remove the lib prefix and .so / .so.1.2 suffix, if present.
+    module = re.match("^(lib)?(.*?)(.so)?[.0-9]*$", module).groups()[1]
     val = gdb.parse_and_eval("(void*)%d" % pointer)
-    return str(val)
+    return "%s!%s" % (module, str(val))
 
 def ReadMemoryBytes(pointer, size):
     inferior = gdb.selected_inferior()

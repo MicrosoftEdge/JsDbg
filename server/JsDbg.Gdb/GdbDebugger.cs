@@ -373,11 +373,13 @@ namespace JsDbg.Gdb {
             // which has the same informationas -var-create
 
             string response = await this.QueryDebuggerPython(String.Format("LookupSymbolName({0})",pointer));
-            // '0x4004f1 <twiddle<int []>(int)+17>'
+            // module!'0x4004f1 <twiddle<int []>(int)+17>'
             // Symbol should be between the first '<' and the last '+', and the displacement is between the last '+' and the last '>'
 
             SSymbolNameAndDisplacement result = new SSymbolNameAndDisplacement();
-            result.Module = "N/A";
+
+            int firstExclamation = response.IndexOf('!');
+            result.Module = response.Substring(0, firstExclamation);
 
             int firstLess = response.IndexOf('<')+1;
             int lastPlus = response.LastIndexOf('+');
