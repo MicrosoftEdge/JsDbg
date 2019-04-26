@@ -209,6 +209,9 @@ namespace JsDbg.Gdb {
             string pythonResult = await this.QueryDebuggerPython(String.Format("LookupField(\"{0}\",\"{1}\", \"{2}\")", module, typename, fieldName));
             // '{%d#%d#%d#%d#%s#%s}' % (self.offset, self.size, self.bitOffset, self.bitCount, self.fieldName, self.typeName)
 
+            if (pythonResult == "None")
+                throw new DebuggerException(String.Format("No field {0} in type {1}!{2}", fieldName, module, typename));
+
             Debug.Assert(pythonResult[0] == '{');
             int fieldEndIndex = pythonResult.IndexOf('}');
             string fieldString = pythonResult.Substring(1, fieldEndIndex-1);
@@ -230,6 +233,9 @@ namespace JsDbg.Gdb {
         public async Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typename) {
             string pythonResult = await this.QueryDebuggerPython(String.Format("LookupGlobalSymbol(\"{0}\",\"{1}\")", module, symbol));
             // '{%s#%d' % (self.type, self.pointer)
+
+            if (pythonResult == "None")
+                throw new DebuggerException(String.Format("Global symbol {0}!{1} with type {2} not found", module, symbol, typename));
 
             Debug.Assert(pythonResult[0] == '{');
             int fieldEndIndex = pythonResult.IndexOf('}');
