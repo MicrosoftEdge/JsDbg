@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsDbg.Windows.Remoting", "J
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsDbg.Windows", "JsDbg.Windows\JsDbg.Windows.csproj", "{CD5A9D9D-4A11-4786-BD6A-AC49919AB165}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsDbg.Gdb", "JsDbg.Gdb\JsDbg.Gdb.csproj", "{8DCE3997-1478-4B4E-B03B-6A1F1DE105B2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -106,6 +108,12 @@ Global
 		{CD5A9D9D-4A11-4786-BD6A-AC49919AB165}.Deploy|Any CPU.Build.0 = Release|x86
 		{CD5A9D9D-4A11-4786-BD6A-AC49919AB165}.Release|Any CPU.ActiveCfg = Release|x86
 		{CD5A9D9D-4A11-4786-BD6A-AC49919AB165}.Release|Any CPU.Build.0 = Release|x86
+		{8DCE3997-1478-4B4E-B03B-6A1F1DE105B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DCE3997-1478-4B4E-B03B-6A1F1DE105B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DCE3997-1478-4B4E-B03B-6A1F1DE105B2}.Deploy|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DCE3997-1478-4B4E-B03B-6A1F1DE105B2}.Deploy|Any CPU.Build.0 = Debug|Any CPU
+		{8DCE3997-1478-4B4E-B03B-6A1F1DE105B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DCE3997-1478-4B4E-B03B-6A1F1DE105B2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
