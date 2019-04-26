@@ -453,7 +453,7 @@ Loader.OnLoad(function () {
         LookupGlobalSymbol: function(module, symbol, typeName, namespace, callback) {
             var typenameStr = "";
             if (typeName)
-                typenameStr = "&typeName=" + esc(typename);
+                typenameStr = "&typeName=" + esc(typeName);
             var namespaceStr = "";
             if (namespace)
                 namespaceStr = "&namespace=" + esc(namespace);
