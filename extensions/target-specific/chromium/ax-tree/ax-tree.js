@@ -23,7 +23,8 @@ Loader.OnLoad(function() {
             // g_ax_tree_id_map was replaced by a specialized AXTreeManagerMap. Check for both in case an older
             // build or crash dump is inspected.
             managersPromise = Promise.any([
-                DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "instance", "base::NoDestructor<ui::AXTreeManagerMap>")
+                DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "instance", "base::NoDestructor<ui::AXTreeManagerMap>",
+                    "ui::AXTreeManagerMap::GetInstance()")
                     .F("Object")
                     .f("map_")
                     .f("_List")

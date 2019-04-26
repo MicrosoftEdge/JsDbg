@@ -122,12 +122,12 @@ Loader.OnLoad(function() {
             {name:"moduleName", type:"string", description:"The name of the module containing the symbol."},
             {name:"symbol", type:"string", description:"The global symbol to lookup."},
             {name: "typeName", type:"string", description: "(optional) The type name of the symbol to look up."},
-            {name: "namespace", type:"string", description: "(optional) The namespace of the symbol to look up. Required on some platforms."}
+            {name: "scope", type:"string", description: "(optional) The scope of the symbol to look up (namespace, outer class, etc.). Required on some platforms."}
         ]
     }
-    DbgObject.global = function(moduleName, symbol, typeName, namespace) {
+    DbgObject.global = function(moduleName, symbol, typeName, scope) {
         return new PromisedDbgObject(
-            moduleBasedLookup(moduleName, JsDbgPromise.LookupGlobalSymbol, symbol, typeName, namespace)
+            moduleBasedLookup(moduleName, JsDbgPromise.LookupGlobalSymbol, symbol, typeName, scope)
             .then(function(result) {
                 return DbgObject.create(DbgObjectType(result.module, result.type), result.pointer);
             })
