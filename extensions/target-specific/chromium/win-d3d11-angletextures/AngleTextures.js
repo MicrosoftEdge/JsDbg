@@ -8,6 +8,26 @@
 
 "use strict";
 
+function CopyTextToClipBoard(event)
+{
+  var data = event.target.parentElement.querySelector(".object-ptr").innerText;
+  data = data.trim();
+  data = data.replace("`","");  
+  var copyText = document.getElementById("clipboardSource");
+  clipboardSource.setAttribute("value", data);
+  copyText.select();
+  document.execCommand("copy");
+}
+
+function AddCopyButton(element)
+{
+    var copyIcon = document.createElement("button");
+    copyIcon.innerHTML = "&#x2398";
+    copyIcon.onclick = CopyTextToClipBoard;
+    copyIcon.className = "copyIcon"
+    element.appendChild(copyIcon);
+}
+
 var AngleTextures = undefined;
 Loader.OnLoad(function () {
   AngleTextures = {
@@ -29,9 +49,11 @@ Loader.OnLoad(function () {
         .then((rendererD3D) => {
           rendererD3D.f("mDevice").then((d3dDevice) => {
             document.getElementById("d3dDevice").appendChild(DbgObjectInspector.Inspect(d3dDevice, d3dDevice.ptr()));
+            AddCopyButton(document.getElementById("d3dDevice"));
           });
           rendererD3D.f("mDeviceContext").then((d3dContext) => {
             document.getElementById("d3dContext").appendChild(DbgObjectInspector.Inspect(d3dContext, d3dContext.ptr()));
+            AddCopyButton(document.getElementById("d3dContext"));
           });
         });
       
@@ -72,7 +94,10 @@ Loader.OnLoad(function () {
 
                       var cell5 = document.createElement("td");                    
                       row.appendChild(cell5);
-                      texStorage.f("mTexture").f("mData").f("_Ptr").f("object").then((r)=>{cell5.appendChild(DbgObjectInspector.Inspect(r, r.ptr()))});
+                      texStorage.f("mTexture").f("mData").f("_Ptr").f("object").then((r)=>{
+                        cell5.appendChild(DbgObjectInspector.Inspect(r, r.ptr())); 
+                        AddCopyButton(cell5);
+                      });                      
                     }});
                     textureTable.appendChild(row);              
                   }

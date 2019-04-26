@@ -5,10 +5,11 @@
      Copyright (c) Microsoft Corporation. All rights reserved.
 
   --------------------------------------------------------------*/
-
 td
 {
     padding:5px;
+    position: relative;
+    padding-right:20px;
 }
 .show
 {
@@ -34,4 +35,17 @@ button
 button div
 {
     transform: rotate(110deg);
+}
+.copyIcon
+{
+    font-weight: bold;    
+    padding:1px;
+    position: absolute;
+    right:2px;
+    top:2px;
+}
+.offScreen
+{
+    position: absolute;
+    top:-200px;
 }
