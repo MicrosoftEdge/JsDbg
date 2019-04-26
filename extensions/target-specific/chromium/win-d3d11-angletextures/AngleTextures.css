@@ -1,0 +1,37 @@
+/*--------------------------------------------------------------
+
+     MIT License
+
+     Copyright (c) Microsoft Corporation. All rights reserved.
+
+  --------------------------------------------------------------*/
+
+td
+{
+    padding:5px;
+}
+.show
+{
+    display:block;
+}
+.hide
+{
+    display:none;
+}
+.error
+{
+    background-color: orange;
+    width:600px;
+    font-size:1.25em;
+    padding:20px;
+    border:1px solid red;
+    margin:20px;
+}
+button
+{
+    vertical-align: bottom;
+}
+button div
+{
+    transform: rotate(110deg);
+}

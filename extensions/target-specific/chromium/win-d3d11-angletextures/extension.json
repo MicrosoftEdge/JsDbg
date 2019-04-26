@@ -13,7 +13,8 @@
         "target-specific/stl-helpers"
     ],
     "includes": [
-        "angletextures.js"
+        "angletextures.js",
+        "dbgobject-tree.css"
     ],
     "augments": [
         "dbgobject"
