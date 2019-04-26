@@ -238,6 +238,8 @@ def LookupGlobalSymbol(module, symbol):
     # with local linkage, such as those in an anonymous namespace.
     # https://sourceware.org/bugzilla/show_bug.cgi?id=24474
     (sym, _) = gdb.lookup_symbol(symbol)
+    if sym is None:
+        return None
     return SSymbolResult(sym)
 
 
