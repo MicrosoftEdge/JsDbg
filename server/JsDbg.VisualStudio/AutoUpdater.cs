@@ -32,6 +32,7 @@ namespace JsDbg.VisualStudio {
         }
 
         public static RestartReason CheckForUpdates(string identifier, string updateUrl) {
+            IVsExtensionManager extensionManager = Package.GetGlobalService(typeof(SVsExtensionManager)) as IVsExtensionManager;
             IInstalledExtension installedExtension = extensionManager.GetInstalledExtension(identifier);
             if (installedExtension == null) {
                 throw new Exception(String.Format("Unable to find extension: {0}", identifier));
