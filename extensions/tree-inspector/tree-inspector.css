@@ -87,3 +87,11 @@
 .popup-message-container .buttons {
     text-align: right;
 }
+
+.hide {
+    visibility: hidden;
+}
+
+.show {
+    visibility: visible;
+}

@@ -222,7 +222,7 @@ Loader.OnLoad(function () {
         toolbar.appendChild(threadSelectorPane);
 
         var continueExecution = document.createElement("button");
-        continueExecution.setAttribute("id", "continueExection");
+        continueExecution.setAttribute("id", "continueExecution");
         continueExecution.innerHTML = "&#x25b6;";
         toolbar.appendChild(continueExecution);
 
