@@ -77,10 +77,12 @@ namespace JsDbg.WinDbg {
 
         public Task Continue()
         {
-            System.Diagnostics.Debug.WriteLine("Executing command: g");
-            this.control.Execute(OutputControl.Ignore, "g", ExecuteOptions.NotLogged);
-            System.Diagnostics.Debug.WriteLine("Done executing g.");
-            return Task.CompletedTask;
+            return this.runner.AttemptOperation<Task>(() => {
+                System.Diagnostics.Debug.WriteLine("Executing command: g");
+                this.control.Execute(OutputControl.Ignore, "g", ExecuteOptions.NotLogged);
+                System.Diagnostics.Debug.WriteLine("Done executing g.");
+                return Task.CompletedTask;
+            }, "Unable to continue debugger.");
         }
 
         public Task<Core.SModule> GetModuleForAddress(ulong address) {

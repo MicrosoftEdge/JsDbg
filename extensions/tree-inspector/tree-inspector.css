@@ -95,3 +95,7 @@
 .show {
     visibility: visible;
 }
+
+.leftPad {
+    padding-left: 5px;
+}

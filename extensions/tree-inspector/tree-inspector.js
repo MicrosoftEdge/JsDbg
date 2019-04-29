@@ -61,10 +61,10 @@ var TreeInspector = (function() {
         if (value) {
             this.refreshIfNecessary();
             this.setNotifyOnBreak(false);
-            this.refreshOnBreakAndContinueGroupElement.className = "show";
+            this.refreshOnBreakAndContinueGroupElement.className = "show leftPad";
         } else {
             this.setNotifyOnBreak(true);
-            this.refreshOnBreakAndContinueGroupElement.className = "hide";
+            this.refreshOnBreakAndContinueGroupElement.className = "hide leftPad";
         }
     }
 
@@ -413,8 +413,8 @@ var TreeInspector = (function() {
         updateCheckboxControl.appendChild(createElement("label", "Update When Debugger Breaks", {
             "for": id("RefreshOnBreak")
         }));
-        this.refreshOnBreakAndContinueGroupElement = createElement("span", null, { 
-            class: (this.refreshOnBreak ? "show":"hide"), 
+        this.refreshOnBreakAndContinueGroupElement = createElement("nobr", null, { 
+            class: (this.refreshOnBreak ? "show leftPad":"hide leftPad"), 
             id: id("RefreshOnBreakAndContinueGroup") 
         });
         this.refreshOnBreakAndContinueGroupElement.appendChild(createElement("input", null, {
