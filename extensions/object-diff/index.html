@@ -120,7 +120,7 @@
 
             return Promise.all([field.value.hasDefaultDescription(), field.value.isTypeWithFields()])
             .thenAll(function (hasDefaultDescription, hasFields) {
-                var isArray = field.value.isArray();
+                var isArray = field.value.type.isArray();
 
                 if (hasDefaultDescription) {
                     // Assume that the default description is sufficient to represent the differences.
