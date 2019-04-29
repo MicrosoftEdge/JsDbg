@@ -490,6 +490,16 @@ Loader.OnLoad(function() {
             .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
     }));
 
+    // NGLogicalSize is the old name for LogicalSize
+    DbgObject.AddTypeDescription(
+        (type) => type.name().match(/^blink::(NG)?LogicalSize$/),
+        "Size",
+        true,
+        UserEditableFunctions.Create((size) => {
+            return Promise.all([size.f("inline_size").val(), size.f("block_size").val()])
+            .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
+    }));
+
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::LayoutPoint"), "Point", true, UserEditableFunctions.Create((point) => {
         return Promise.all([point.f("x_").val(), point.f("y_").val()])
         .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
@@ -503,6 +513,21 @@ Loader.OnLoad(function() {
         UserEditableFunctions.Create((offset) => {
             return Promise.all([offset.f("left").val(), offset.f("top").val()])
             .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
+    }));
+
+    // NGLogicalOffset is the old name for LogicalOffset
+    DbgObject.AddTypeDescription(
+        (type) => type.name().match(/^blink::(NG)?LogicalOffset$/),
+        "offset",
+        true,
+        UserEditableFunctions.Create((offset) => {
+            return Promise.all([offset.f("inline_offset").val(), offset.f("block_offset").val()])
+            .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
+    }));
+
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::NGBfcOffset"), "Offset", true, UserEditableFunctions.Create((offset) => {
+        return Promise.all([offset.f("line_offset").val(), offset.f("block_offset").val()])
+        .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Length"), "Length", true, UserEditableFunctions.Create((dbgObject) => {
@@ -557,6 +582,18 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "type_", "blink::NGPhysicalFragment::NGFragmentType");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "style_variant_", "blink::NGStyleVariant");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "line_orientation_", "blink::NGLineOrientation");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGLayoutResult"), "status_", "blink::NGLayoutResult::NGLayoutResultStatus");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGConstraintSpace::Bitfields"), "writing_mode", "blink::WritingMode");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGConstraintSpace::Bitfields"), "direction", "blink::TextDirection");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGConstraintSpace::Bitfields"), "table_cell_child_layout_phase", "blink::NGTableCellChildLayoutPhase");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGConstraintSpace::Bitfields"), "percentage_inline_storage", "blink::NGPercentageStorage");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGConstraintSpace::Bitfields"), "percentage_block_storage", "blink::NGPercentageStorage");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGConstraintSpace::Bitfields"), "replaced_percentage_block_storage", "blink::NGPercentageStorage");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGBaselineRequest"), "algorithm_type_", "blink::NGBaselineAlgorithmType");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGBaselineRequest"), "baseline_type_", "blink::FontBaseline");
 
     BlinkHelpers = {
         _help : {
