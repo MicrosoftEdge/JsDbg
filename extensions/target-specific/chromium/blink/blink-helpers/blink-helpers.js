@@ -480,9 +480,14 @@ Loader.OnLoad(function() {
         .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
     }));
 
-    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::NGPhysicalSize"), "Size", true, UserEditableFunctions.Create((size) => {
-        return Promise.all([size.f("width").val(), size.f("height").val()])
-        .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
+    // NGPhysicalSize is the old name for PhysicalSize
+    DbgObject.AddTypeDescription(
+        (type) => type.name().match(/^blink::(NG)?PhysicalSize$/),
+        "Size",
+        true,
+        UserEditableFunctions.Create((size) => {
+            return Promise.all([size.f("width").val(), size.f("height").val()])
+            .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::LayoutPoint"), "Point", true, UserEditableFunctions.Create((point) => {
@@ -490,9 +495,14 @@ Loader.OnLoad(function() {
         .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
     }));
 
-    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::NGPhysicalOffset"), "offset", true, UserEditableFunctions.Create((offset) => {
-        return Promise.all([offset.f("left").val(), offset.f("top").val()])
-        .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
+    // NGPhysicalOffset is the old name for PhysicalOffset
+    DbgObject.AddTypeDescription(
+        (type) => type.name().match(/^blink::(NG)?PhysicalOffset$/),
+        "offset",
+        true,
+        UserEditableFunctions.Create((offset) => {
+            return Promise.all([offset.f("left").val(), offset.f("top").val()])
+            .thenAll((first, second) => `{${layoutValueToPx(first)}, ${layoutValueToPx(second)}}`);
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Length"), "Length", true, UserEditableFunctions.Create((dbgObject) => {
