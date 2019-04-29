@@ -1,0 +1,28 @@
+{
+    "name": "WinD3D11AngleTextures",
+    "author": "Sushanth Rajasankar (sushraja)",
+    "description": "View gl resource id => DX texture pointers table on windows when Angle uses a D3d11 backend.",
+    "dependencies": [
+        "dbgobject",
+        "dbgobject-inspector",
+        "user-editable-functions",
+        "error-messages",
+        "target-specific/chromium/blink/blink-helpers",
+        "target-specific/chromium/blink/wtf-helpers",
+        "target-specific/chromium/chromium-helpers",
+        "target-specific/stl-helpers"
+    ],
+    "includes": [
+        "angletextures.js",
+        "AngleTextures.css"
+    ],
+    "augments": [
+        "dbgobject"
+    ],
+    "targetModules": [
+        "msedge",
+        "chrome",
+        "content_shell",
+        "browser_tests"
+    ]
+}
