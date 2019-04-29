@@ -29,8 +29,8 @@ class JsDbg:
             self.responseStream.flush()
 
     def __init__(self):
-        self.showStderr = False
-        self.verbose = True
+        self.showStderr = True
+        self.verbose = False
         # TODO: assume that jsdbg is installed in "~/.jsdbg/" or some other known location?
         homeDir = os.path.expanduser("~")
         execPath = homeDir + "/JsDbg/server/JsDbg.Gdb/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb"
