@@ -1300,7 +1300,13 @@ namespace JsDbg.Core {
         }
 
         private async void ServeAttachedProcesses(NameValueCollection query, Action<string> respond, Action fail) {
-            uint[] processes = await this.debugger.GetAttachedProcesses();
+            uint[] processes;
+            try {
+                processes = await this.debugger.GetAttachedProcesses();
+            } catch (DebuggerException ex) {
+                respond(ex.JSONError);
+                return;
+            }
 
             if (processes == null) {
                 respond(this.JSONError("Unable to access the debugger."));
@@ -1345,7 +1351,13 @@ namespace JsDbg.Core {
         }
 
         private async void ServeCurrentProcessThreads(NameValueCollection query, Action<string> respond, Action fail) {
-            uint[] threads = await this.debugger.GetCurrentProcessThreads();
+            uint[] threads;
+            try {
+                threads = await this.debugger.GetCurrentProcessThreads();
+            } catch (DebuggerException ex) {
+                respond(ex.JSONError);
+                return;
+            }
 
             if (threads == null) {
                 respond(this.JSONError("Unable to access the debugger."));

@@ -13,6 +13,13 @@ DbgObject.AddExtendedField(
     (uniquePtr) => uniquePtr.f("_Mypair._Myval2")
 );
 
+DbgObject.AddExtendedField(
+    (type) => type.name().match(/^std::__Cr::unique_ptr<.*>$/) != null,
+    "Object",
+    (type) => type.templateParameters()[0],
+    (uniquePtr) => uniquePtr.f("__ptr.__value")
+);
+
 DbgObject.AddArrayField(
     (type) => {
         return type.name().match(/^std::vector<(.*)>$/) != null;
