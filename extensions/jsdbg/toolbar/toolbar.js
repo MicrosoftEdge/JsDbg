@@ -221,6 +221,15 @@ Loader.OnLoad(function () {
 
         toolbar.appendChild(threadSelectorPane);
 
+        var continueExecution = document.createElement("button");
+        continueExecution.setAttribute("id", "continueExecution");
+        continueExecution.innerHTML = "&#x25b6;";
+        toolbar.appendChild(continueExecution);
+
+        continueExecution.addEventListener("click", () => {
+            JsDbg.Continue();
+        }, false);
+
         document.documentElement.insertBefore(toolbar, document.documentElement.firstChild);
         
         updateExtensionList();

@@ -516,6 +516,14 @@ Loader.OnLoad(function () {
             debuggerBrokeListeners.push(callback);
         },
 
+        _help_Continue: {
+            description: "The debugger continues from the break point.",
+            arguments: []
+        },
+        Continue: function() {
+            JsDbgTransport.JsonRequest("/jsdbg-server/continue");
+        },
+
         _help_RegisterOnMemoryWriteListener: {
             description: "Registers a callback to be fired whenever JsDbg writes to memory.",
             arguments: [

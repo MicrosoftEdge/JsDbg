@@ -17,6 +17,7 @@ var TreeInspector = (function() {
         this.expandTreeAutomatically = (window.sessionStorage.getItem(id("FullyExpand")) !== "false");
 
         this.refreshOnBreak = (window.sessionStorage.getItem(id("RefreshOnBreak")) === "true");
+        this.refreshOnBreakAndContinueEnabled = false;
         this.notifyOnBreak = !this.refreshOnBreak;
         this.debuggerHasRunSinceLastRefresh = false;
         var that = this;
@@ -42,6 +43,7 @@ var TreeInspector = (function() {
         this.treeDefinition = treeDefinition;
         this.dbgObjectRenderer = dbgObjectRenderer;
         this.currentOperation = Promise.resolve(true);
+        this.refreshOnBreakAndContinueGroupElement = null;
 
         window.addEventListener("beforeunload", function() {
             window.name = "";
@@ -59,9 +61,15 @@ var TreeInspector = (function() {
         if (value) {
             this.refreshIfNecessary();
             this.setNotifyOnBreak(false);
+            this.refreshOnBreakAndContinueGroupElement.className = "show leftPad";
         } else {
             this.setNotifyOnBreak(true);
+            this.refreshOnBreakAndContinueGroupElement.className = "hide leftPad";
         }
+    }
+
+    TreeInspectorUIController.prototype.setRefreshOnBreakAndContinue = function(value) {
+        this.refreshOnBreakAndContinueEnabled = value;        
     }
 
     TreeInspectorUIController.prototype.setNotifyOnBreak = function(value) {
@@ -96,6 +104,12 @@ var TreeInspector = (function() {
             .then(function () {
                 if (emphasisNodePtr != null) {
                     that.emphasizeNode(emphasisNodePtr, that.treeRoot, that.treeReader);
+                }                
+            })
+            .then(function () {
+                if (that.refreshOnBreak && that.refreshOnBreakAndContinueEnabled)
+                {
+                    JsDbg.Continue();
                 }
             })
             .catch(function(error) {
@@ -399,6 +413,23 @@ var TreeInspector = (function() {
         updateCheckboxControl.appendChild(createElement("label", "Update When Debugger Breaks", {
             "for": id("RefreshOnBreak")
         }));
+        this.refreshOnBreakAndContinueGroupElement = createElement("nobr", null, { 
+            class: (this.refreshOnBreak ? "show leftPad":"hide leftPad"), 
+            id: id("RefreshOnBreakAndContinueGroup") 
+        });
+        this.refreshOnBreakAndContinueGroupElement.appendChild(createElement("input", null, {
+            name: "refreshOnBreakAndContinue",
+            id: id("RefreshOnBreakAndContinue"),
+            type: "checkbox",
+        }, {
+            "change": function (e) {
+                that.setRefreshOnBreakAndContinue(e.target.checked);
+            }
+        }));
+        this.refreshOnBreakAndContinueGroupElement.appendChild(createElement("label", "Continue execution", {
+            "for": id("refreshOnBreakAndContinue")
+        }));
+        updateCheckboxControl.appendChild(this.refreshOnBreakAndContinueGroupElement);
 
         topPane.appendChild(createElement("div", "Click a node to show its children.  Ctrl-Click to expand or collapse a subtree."));
 

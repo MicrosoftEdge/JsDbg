@@ -116,6 +116,27 @@ namespace JsDbg.VisualStudio {
             return null;
         }
 
+        public void Continue()
+        {
+            if (this.EnsureDebuggerService())
+            {
+                DBGMODE[] mode = new DBGMODE[1];
+                // Only continue when broken in.
+                if ((this.vsDebuggerService.GetMode(mode) == 0) && (mode[0] == DBGMODE.DBGMODE_Break))
+                {
+                    Guid startCmdGroup;
+                    uint startCmdId;
+                    IVsCmdNameMapping vsCmdNameMapping = Microsoft.VisualStudio.Shell.Package.GetGlobalService(typeof(SVsCmdNameMapping)) as IVsCmdNameMapping;
+                    vsCmdNameMapping.MapNameToGUIDID("Debug.Start", out startCmdGroup, out startCmdId);
+                    Microsoft.VisualStudio.Shell.OleMenuCommandService commandService = new Microsoft.VisualStudio.Shell.OleMenuCommandService(Microsoft.VisualStudio.Shell.ServiceProvider.GlobalProvider);
+                    if (!commandService.GlobalInvoke(new CommandID(startCmdGroup, (int)startCmdId)))
+                    {
+                        throw new DebuggerException("Unable to continue debugging.");
+                    }
+                }
+            }
+        }
+
         public uint TargetProcessSystemId {
             get { return this.targetProcessSystemId; }
             set { this.targetProcessSystemId = value; }
