@@ -1,5 +1,5 @@
 {
-    "name": "win-d3d11-angletextures",
+    "name": "WinD3D11AngleTextures",
     "author": "Sushanth Rajasankar (sushraja)",
     "description": "View gl resource id => DX texture pointers table on windows when Angle uses a D3d11 backend.",
     "dependencies": [
