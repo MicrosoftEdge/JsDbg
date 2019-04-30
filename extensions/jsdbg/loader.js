@@ -104,6 +104,7 @@ var Loader = undefined;
         script.type = "text/javascript";
         addPendingResource();
         script.addEventListener("load", pendingResourceFinished);
+        script.addEventListener("error", pendingResourceFinished);
         document.querySelector("head").appendChild(script);
     }
 
