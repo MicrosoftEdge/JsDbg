@@ -165,6 +165,10 @@ All extensions have a similar make-up [see [anatomy of an extension](#anatomy-of
 
 If you wish to write a new JsDbg extension, please start by filing an issue and connecting with the JsDbg maintainers.
 
+#### Instructional videos
+
+There are several instructional videos on writing new JsDbg extensions and helper fields. These can be found in [JsDbg videos](./VIDEOS.md) or directly on the [JsDbg YouTube channel](https://www.youtube.com/channel/UCoiLqbrK3Q_EwPT6d0NyC5Q).
+
 #### Debugging JsDbg extensions
 
 Because JsDbg extensions are web-based, they can be debugged using common web debugging tools like F12.
