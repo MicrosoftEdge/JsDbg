@@ -21,13 +21,16 @@ namespace JsDbg.Gdb {
         }
 
         public async Task Run() {
-            LookupTypeSize("", "void*").ContinueWith((task) => {
+            // We only assign this to a Task to avoid a compiler warning.
+            // We intentionally do not await them because we want execution to
+            // continue to the ReadLine loop.
+            Task t = LookupTypeSize("", "void*").ContinueWith((task) => {
                 IsPointer64Bit = task.Result == 8 ? true : false;
             });
-            QueryDebuggerPython("GetTargetProcess()").ContinueWith((task) => {
+            t = QueryDebuggerPython("GetTargetProcess()").ContinueWith((task) => {
                 this.targetProcess = UInt32.Parse(task.Result);
             });
-            QueryDebuggerPython("GetTargetThread()").ContinueWith((task) => {
+            t = QueryDebuggerPython("GetTargetThread()").ContinueWith((task) => {
                 this.targetThread = UInt32.Parse(task.Result);
             });
 
@@ -507,7 +510,7 @@ namespace JsDbg.Gdb {
                 return this.targetProcess;
             }
             set {
-                this.QueryDebuggerPython(String.Format("SetTargetProcess({0})", value));
+                Task t = this.QueryDebuggerPython(String.Format("SetTargetProcess({0})", value));
             }
         }
         public uint TargetThread {
@@ -515,7 +518,7 @@ namespace JsDbg.Gdb {
                 return this.targetThread;
             }
             set {
-                this.QueryDebuggerPython(String.Format("SetTargetThread({0})", value));
+                Task t = this.QueryDebuggerPython(String.Format("SetTargetThread({0})", value));
             }
         }
         public bool IsDebuggerBusy { get { return false; } }
