@@ -167,7 +167,7 @@ If you wish to write a new JsDbg extension, please start by filing an issue and 
 
 #### Instructional videos
 
-There are several instructional videos on writing new JsDbg extensions and helper fields. These can be found in [JsDbg videos](./VIDEOS.md) or directly on the [JsDbg YouTube channel](https://www.youtube.com/channel/UCoiLqbrK3Q_EwPT6d0NyC5Q).
+There are several instructional videos on writing new JsDbg extensions and helper fields. These can be found in [JsDbg videos](./docs/VIDEOS.md) or directly on the [JsDbg YouTube channel](https://www.youtube.com/channel/UCoiLqbrK3Q_EwPT6d0NyC5Q).
 
 #### Debugging JsDbg extensions
 
