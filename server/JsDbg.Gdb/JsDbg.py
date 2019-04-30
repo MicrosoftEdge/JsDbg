@@ -255,6 +255,11 @@ def GetModuleForName(module):
     # Python has no API to find the base address
     # https://sourceware.org/bugzilla/show_bug.cgi?id=24481
     return SModule(module, 0)
+  # If we are running under rr, it renames (hardlinks) the executable to
+  # mmap_hardlink_N_foo; allow for that.
+  matches = re.match("^.*/mmap_hardlink_[0-9]+_(.*)$", gdb.current_progspace().filename)
+  if matches and matches.groups()[0] == module:
+    return SModule(module, 0)
   return None
 
 
