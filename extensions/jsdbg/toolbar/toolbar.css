@@ -85,5 +85,10 @@ html {
     text-decoration: underline;
 }
 
+#continueExecution
+{
+    color: green;
+}
+
 /* Z-ordering */
 .jsdbg-extensions-pane { z-index:100; }

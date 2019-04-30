@@ -8,7 +8,6 @@
         "jsdbg",
         "jsdbg/tests",
         "wwwroot",
-        "examples",
         "extensions",
         "object-diff",
         "documentation",

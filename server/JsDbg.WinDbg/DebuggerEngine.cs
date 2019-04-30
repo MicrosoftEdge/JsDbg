@@ -75,6 +75,16 @@ namespace JsDbg.WinDbg {
             return await this.runner.GetCurrentProcessThreads();
         }
 
+        public Task Continue()
+        {
+            return this.runner.AttemptOperation<Task>(() => {
+                System.Diagnostics.Debug.WriteLine("Executing command: g");
+                this.control.Execute(OutputControl.Ignore, "g", ExecuteOptions.NotLogged);
+                System.Diagnostics.Debug.WriteLine("Done executing g.");
+                return Task.CompletedTask;
+            }, "Unable to continue debugger.");
+        }
+
         public Task<Core.SModule> GetModuleForAddress(ulong address) {
             return this.runner.AttemptOperation<Core.SModule>(() => {
                 Core.SModule result = new Core.SModule();

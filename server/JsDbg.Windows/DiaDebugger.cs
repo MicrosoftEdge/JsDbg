@@ -216,6 +216,10 @@ namespace JsDbg.Windows.Dia {
             return await this.debuggerEngine.GetCurrentProcessThreads();
         }
 
+        public Task Continue() {
+            return this.debuggerEngine.Continue();
+        }
+
         public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
             return (await this.LoadType(module, typename)).Fields(includeBaseTypes);
         }

@@ -38,6 +38,8 @@ namespace JsDbg.Windows.Dia {
 
         Task<uint[]> GetCurrentProcessThreads();
 
+        Task Continue();
+
         Task<ulong> TebAddress();
 
         Task<SModule> GetModuleForAddress(ulong address);
