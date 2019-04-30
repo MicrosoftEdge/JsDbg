@@ -13,7 +13,7 @@
         "target-specific/stl-helpers"
     ],
     "includes": [
-        "angletextures.js",
+        "AngleTextures.js",
         "AngleTextures.css"
     ],
     "augments": [
