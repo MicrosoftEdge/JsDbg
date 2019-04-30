@@ -41,7 +41,7 @@ JsDbg currently supports WinDbg and the Visual Studio debugger on Windows. Suppo
 
 ## Using JsDbg extensions
 
-There are many different ways browser developers can incorporate JsDbg extensions into their debugging workflow. See [JsDbg features](./FEATURES.md) for details about popular features in JsDbg.
+There are many different ways browser developers can incorporate JsDbg extensions into their debugging workflow. See [JsDbg features](FEATURES.md) for details about popular features in JsDbg.
 
 # Contributing
 
@@ -53,7 +53,7 @@ When you submit a pull request, a CLA-bot will automatically determine whether y
 a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
 provided by the bot. You will only need to do this once across all repos using our CLA.
 
-See [Contributing to JsDbg](./CONTRIBUTING.md) for more details about contributing to this project.
+See [Contributing to JsDbg](CONTRIBUTING.md) for more details about contributing to this project.
 
 # Code of Conduct
 
