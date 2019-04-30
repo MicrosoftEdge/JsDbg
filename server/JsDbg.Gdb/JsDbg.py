@@ -168,6 +168,10 @@ class SModule:
         return '{%s#%d}' % (self.name, self.baseAddress)
 
 
+def ExecuteGdbCommand(cmd):
+    gdb.execute(cmd)
+
+
 def GetAllFields(module, type, includeBaseTypes):
     t = gdb.lookup_type(type)
     fields = t.fields()
