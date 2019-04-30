@@ -74,6 +74,7 @@ namespace JsDbg.Gdb {
         }
 
         public async Task Continue() {
+            await this.QueryDebuggerPython("ExecuteGdbCommand(\"continue\")");
         }
 
         public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
