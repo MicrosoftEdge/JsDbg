@@ -22,6 +22,8 @@ namespace JsDbg.Gdb
             PersistentStore persistentStore = new PersistentStore();
 
             using (WebServer webServer = new WebServer(debugger, persistentStore, extensionsDirectory)) {
+                // Turn off printing of debugger messages, because they fill up the gdb console too quick.
+                webServer.PrintDebuggerMessages = false;
                 webServer.LoadExtension("default");
 
                 try {
