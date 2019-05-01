@@ -51,8 +51,10 @@ After you are able to successfully build JsDbg, please follow the steps below to
 
 3. Configure the JsDbg VS extension to work with the [Visual Studio Experimental Instance](https://docs.microsoft.com/en-us/visualstudio/extensibility/the-experimental-instance), if you have not already done so. To do this, please follow the steps below.
       1. Open the `JsDbg.VisualStudio` project properties by pressing `Alt+Enter` or right-click on the `JsDbg.VisualStudio` project in Solution Explorer and then click `Properties`.
-      2. Navigate to the `Debug` pane and look for the `Command line arguments` text box under `Start options`.
-      3. Add the string `/RootSuffix Exp` as a command line argument.
+      2. Navigate to the `Debug` pane.
+      3. Check the checkbox next to `Start external program` under `Start action`.
+      4. Enter the path to your local copy of `devenv.exe`, which should be located under `Common7\IDE\` in your VS installation folder.
+      5. Add the string `/RootSuffix Exp` to the `Command line arguments` text box under `Start options`.
 
 4. Launch `JsDbg.VisualStudio` by pressing `F5` or `Debug -> Start Debugging` or the `Start` button on the Standard toolbar. You should see the Visual Studio Experimental Instance launch.
 
