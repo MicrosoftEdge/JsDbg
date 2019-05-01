@@ -48,6 +48,10 @@ class JsDbg:
                     print("JsDbg [message]: " + val)
                 elif self.showStderr:
                     print("JsDbg: " + val)
+            # If we get here, the server exited
+            print("JsDbg: server exited or crashed. To restart, type 'jsdbg'.")
+            global jsdbg
+            jsdbg = None
 
         def mainThreadProc():
             # Handle the main interaction loop between jsdbg and python
