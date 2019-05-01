@@ -48,6 +48,10 @@ namespace JsDbg.Gdb {
             this.DebuggerChange?.Invoke(this, new DebuggerChangeEventArgs(status));
         }
 
+        void NotifyDebuggerMessage(string message) {
+            this.DebuggerMessage?.Invoke(this, message);
+        }
+
         void HandleGdbEvent(object sender, string ev) {
             if (ev[0] != '%')
                 return;
@@ -81,6 +85,8 @@ namespace JsDbg.Gdb {
         }
 
         public async Task<IEnumerable<SFieldResult>> GetAllFields(string module, string typename, bool includeBaseTypes) {
+            NotifyDebuggerMessage(String.Format("Looking up fields for {0}...", typename));
+
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetAllFields(\"{0}\",\"{1}\",{2})",module, typename, includeBaseTypes ? "True" : "False"));
 
             List<SFieldResult> result = new List<SFieldResult>();
@@ -119,6 +125,8 @@ namespace JsDbg.Gdb {
         }
 
         public async Task<IEnumerable<SBaseTypeResult>> GetBaseTypes(string module, string typeName) {
+            NotifyDebuggerMessage(String.Format("Looking up base types for {0}...", typeName));
+
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetBaseTypes(\"{0}\",\"{1}\")", module, typeName));
 
             List<SBaseTypeResult> result = new List<SBaseTypeResult>();
@@ -169,6 +177,8 @@ namespace JsDbg.Gdb {
         }
         
         public async Task<IEnumerable<SConstantResult>> LookupConstants(string module, string type, ulong constantValue) {
+            NotifyDebuggerMessage(String.Format("Looking up name for {0}({1})...", type, constantValue));
+
             string pythonResult = await this.QueryDebuggerPython(String.Format("LookupConstants(\"{0}\", \"{1}\", {2})", module, type, constantValue));
 
             List<SConstantResult> result = new List<SConstantResult>();
@@ -204,6 +214,8 @@ namespace JsDbg.Gdb {
         }
         
         public async Task<SConstantResult> LookupConstant(string module, string type, string constantName) {
+            NotifyDebuggerMessage(String.Format("Looking up value for constant {0}...", constantName));
+
             string response = await this.QueryDebuggerPython(String.Format("LookupConstant(\"{0}\",\"{1}\",\"{2}\")", module, type == null ? "None" : type , constantName));
 
             SConstantResult result = new SConstantResult();
@@ -213,6 +225,8 @@ namespace JsDbg.Gdb {
         }
         
         public async Task<SFieldResult> LookupField(string module, string typename, string fieldName) {
+            NotifyDebuggerMessage(String.Format("Looking up field {0}::{1}...", typename, fieldName));
+
             string pythonResult = await this.QueryDebuggerPython(String.Format("LookupField(\"{0}\",\"{1}\", \"{2}\")", module, typename, fieldName));
             // '{%d#%d#%d#%d#%s#%s}' % (self.offset, self.size, self.bitOffset, self.bitCount, self.fieldName, self.typeName)
 
@@ -238,6 +252,8 @@ namespace JsDbg.Gdb {
         }
          
         public async Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typename, string scope) {
+            NotifyDebuggerMessage(String.Format("Looking up value of global {0}...", symbol));
+
             // For GDB, we use scope instead of typename to disambiguate globals.
             string symbolName = "";
             if (!String.IsNullOrEmpty(scope))
@@ -278,6 +294,8 @@ namespace JsDbg.Gdb {
         }
         
         public async Task<IEnumerable<SStackFrame>> GetCallStack(int frameCount) {
+            NotifyDebuggerMessage("Getting call stack...");
+
             // -stack-list-frames doesn't allow accessing the frame pointer and the stakc pointer. Have to use python
             //string queryResult = await this.QueryDebugger("-stack-list-frames");
             // ^done,stack=[frame={level="0",addr="0x00000000004004d4",func="twiddle",file="foo.cc",fullname="/mnt/e/z/foo.cc",line="32"},frame={level="1",addr="0x0000000000400504",func="main",file="foo.cc",fullname="/mnt/e/z/foo.cc",line="39"}]
@@ -322,6 +340,8 @@ namespace JsDbg.Gdb {
         }
         
         public async Task<IEnumerable<SNamedSymbol>> GetSymbolsInStackFrame(ulong instructionAddress, ulong stackAddress, ulong frameAddress) {
+            NotifyDebuggerMessage("Getting symbols in call stack...");
+
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetSymbolsInStackFrame({0},{1},{2})", instructionAddress, stackAddress, frameAddress));
             
 
@@ -360,6 +380,8 @@ namespace JsDbg.Gdb {
         }
         
         public async Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer) {
+            NotifyDebuggerMessage(String.Format("Looking up symbol at 0x{0:x}...", pointer));
+
             // Rant:
             // GDB knows how to do this interactively:
             //   (gdb) info symbol 0x60102c
@@ -429,6 +451,8 @@ namespace JsDbg.Gdb {
         }
         
         public async Task<uint> LookupTypeSize(string module, string typename) {
+            NotifyDebuggerMessage(String.Format("Looking up sizeof({0})...", typename));
+
             string pythonResponse = await this.QueryDebuggerPython(String.Format("LookupTypeSize(\"{0}\",\"{1}\")", module, typename));
 
             return UInt32.Parse(pythonResponse);
@@ -436,6 +460,8 @@ namespace JsDbg.Gdb {
         
         public async Task<T[]> ReadArray<T>(ulong pointer, ulong count) where T : struct {
             int size = (int)(count * (uint)System.Runtime.InteropServices.Marshal.SizeOf(typeof(T)));
+
+            NotifyDebuggerMessage(String.Format("Reading {0} bytes at 0x{1:x}...", size, pointer));
 
             string response = await this.QueryDebuggerPython(String.Format("ReadMemoryBytes({0},{1})", pointer, size));
             // Response will be hex encoding of the memory
