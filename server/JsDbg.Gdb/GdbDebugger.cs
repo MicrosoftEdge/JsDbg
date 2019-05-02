@@ -343,7 +343,8 @@ namespace JsDbg.Gdb {
             NotifyDebuggerMessage("Getting symbols in call stack...");
 
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetSymbolsInStackFrame({0},{1},{2})", instructionAddress, stackAddress, frameAddress));
-            
+            if (pythonResult == "None")
+                throw new DebuggerException("Can't find stack frame");
 
             List<SNamedSymbol> result = new List<SNamedSymbol>();
 
