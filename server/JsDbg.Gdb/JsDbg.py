@@ -295,6 +295,7 @@ def GetSymbolsInStackFrame(instructionAddress, stackAddress, frameAddress):
             block = block.superblock
         
         return [SNamedSymbol(s, frame) for s in syms]
+    return None
 
 def LookupTypeSize(module, typename):
     typename = typename.strip()
