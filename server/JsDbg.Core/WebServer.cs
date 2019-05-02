@@ -303,7 +303,9 @@ namespace JsDbg.Core {
             try {
                 using (Stream fileStream = this.fileCache.ReadFile(filePath)) {
                     response.AddHeader("Cache-Control", "no-cache");
-                    response.ContentType = System.Web.MimeMapping.GetMimeMapping(filePath);
+                    if (MimeMappings.TryGetContentType(filePath, out string contentType)) {
+                        response.ContentType = contentType;
+                    }
                     response.ContentLength64 = fileStream.Length;
                     fileStream.CopyTo(response.OutputStream);
                     response.OutputStream.Close();
