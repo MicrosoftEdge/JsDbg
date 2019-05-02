@@ -119,7 +119,8 @@ namespace JsDbg.Core {
             this.debugger = debugger;
             this.debugger.DebuggerChange += (sender, e) => { this.NotifyClientsOfDebuggerChange(e.Status); };
             this.debugger.DebuggerMessage += (sender, message) => {
-                Console.Error.WriteLine(message);
+                if (this.PrintDebuggerMessages)
+                    Console.Error.WriteLine(message);
                 this.SendWebSocketMessage(String.Format("message:{0}", message));
             };
             this.persistentStore = persistentStore;
@@ -1521,6 +1522,11 @@ namespace JsDbg.Core {
             get { return this.httpListener != null && this.httpListener.IsListening; }
         }
 
+        public bool PrintDebuggerMessages {
+            get { return this.printDebuggerMessages; }
+            set { this.printDebuggerMessages = value; }
+        }
+
         #region IDisposable Members
 
         public void Dispose() {
@@ -1540,5 +1546,6 @@ namespace JsDbg.Core {
         private string extensionRoot;
         private int port;
         private ulong requestCounter;
+        private bool printDebuggerMessages = true;
     }
 }
