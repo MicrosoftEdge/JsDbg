@@ -355,6 +355,7 @@ namespace JsDbg.Gdb {
             while(pythonResult[index] != ']') {
                 // '{%s#%d#%s}' % (self.name, self.symbolResult.pointer, s.symbolResult.type)
                 Debug.Assert(pythonResult[index] == '{');
+                ++index;
 
                 int symEndIndex = pythonResult.IndexOf('}', index);
                 string symString = pythonResult.Substring(index, symEndIndex - index);
