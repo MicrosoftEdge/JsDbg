@@ -531,7 +531,9 @@ namespace JsDbg.Gdb {
             string response = await this.QueryDebuggerPython("GetCurrentProcessThreads()");
             return ParsePythonArrayToIntegers(response).ToArray();
         }
-        public async Task<ulong> TebAddress() { return 0; }
+
+        public Task<ulong> TebAddress() { return Task.FromResult(0UL); }
+
         public uint TargetProcess {
             get {
                 return this.targetProcess;
