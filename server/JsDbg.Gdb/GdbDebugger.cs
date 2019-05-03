@@ -304,11 +304,11 @@ namespace JsDbg.Gdb {
             // NOTE that quotes can also appear in filenames, but they will be \ escaped
 
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetCallStack({0})", frameCount));
-            
 
             List<SStackFrame> result = new List<SStackFrame>();
 
-            int index = 1; // Skip initial '"' character
+            // TODO: Refactor this list parsing to share code with GetAllFields
+            int index = 0;
             Debug.Assert(pythonResult[index] == '[');
             ++index;
             while(pythonResult[index] != ']') {
@@ -348,7 +348,8 @@ namespace JsDbg.Gdb {
 
             List<SNamedSymbol> result = new List<SNamedSymbol>();
 
-            int index = 1;
+            // TODO: Refactor this list parsing to share code with GetAllFields
+            int index = 0;
             Debug.Assert(pythonResult[index] == '[');
             ++index;
             while(pythonResult[index] != ']') {
