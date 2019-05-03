@@ -13,7 +13,7 @@
 }
 
 .tall-node-container .node {
-    font-family:Consolas;
+    font-family:Consolas, monospace;
     font-size:9pt;
     margin-left:2em;
     position:relative;
