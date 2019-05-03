@@ -94,6 +94,19 @@ def DebuggerQuery(tag, command):
         return "%d!%s" % (tag, str(err[1]))
 
 
+def FormatType(symbol_type):
+        pointer_depth = 0
+        t = symbol_type.strip_typedefs()
+        while t.code == gdb.TYPE_CODE_PTR or t.code == gdb.TYPE_CODE_ARRAY:
+            pointer_depth = pointer_depth + 1
+            t = t.target()
+
+        if (t.code == gdb.TYPE_CODE_FUNC):
+            # No good way to interop a function pointer back to python; lie and say it's a void*
+            return "void *"
+        else:
+            return t.name + "*" * pointer_depth
+
 
 class SFieldResult:
     # extra_bitoffset allows handling anonymous unions correctly
@@ -103,18 +116,8 @@ class SFieldResult:
         self.bitCount = field.bitsize
         self.size = field.type.sizeof
         self.fieldName = field.name
-        pointer_depth = 0
-        t = field.type.strip_typedefs()
-        while t.code == gdb.TYPE_CODE_PTR or t.code == gdb.TYPE_CODE_ARRAY:
-            pointer_depth = pointer_depth + 1
-            t = t.target()
+        self.typeName = FormatType(field.type)
 
-        if (t.code == gdb.TYPE_CODE_FUNC):
-            # No good way to interop a function pointer back to python; lie and say it's a void*
-            self.typeName = "void *"
-        else:
-            self.typeName = t.name + "*" * pointer_depth
-    
     def __repr__(self):
         return '{%d#%d#%d#%d#%s#%s}' % (self.offset, self.size, self.bitOffset, self.bitCount, self.fieldName, self.typeName)
 
@@ -128,9 +131,13 @@ class SBaseTypeResult:
         return '{%s#%s#%d}' % (self.module, self.typeName, self.offset)
 
 class SSymbolResult:
-    def __init__(self, symbol):
-        self.type = symbol.type.strip_typedefs().name
-        self.pointer = symbol.value().address.reinterpret_cast(gdb.lookup_type("unsigned long long"))
+    def __init__(self, symbol, frame=None):
+        self.type = FormatType(symbol.type)
+        if frame:
+            value = symbol.value(frame)
+        else:
+            value = symbol.value()
+        self.pointer = value.address.reinterpret_cast(gdb.lookup_type("unsigned long long"))
     
     def __repr__(self):
         return '{%s#%d}' % (self.type, self.pointer)
@@ -148,10 +155,10 @@ class SStackFrame:
 class SNamedSymbol:
     def __init__(self, symbol, frame):
         self.name = symbol.name
-        self.symbolResult = SSymbolResult(symbol.value(frame))
+        self.symbolResult = SSymbolResult(symbol, frame)
     
     def __repr__(self):
-        return '{%s#%d#%s}' % (self.name, self.symbolResult.pointer, s.symbolResult.type)
+        return '{%s#%d#%s}' % (self.name, self.symbolResult.pointer, self.symbolResult.type)
 
 
 class SConstantResult:
