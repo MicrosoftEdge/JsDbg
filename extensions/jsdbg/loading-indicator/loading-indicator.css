@@ -58,7 +58,7 @@
 }
 
 code {
-    font-family:Consolas;
+    font-family:Consolas, monospace;
 }
 
 /* Z-ordering */

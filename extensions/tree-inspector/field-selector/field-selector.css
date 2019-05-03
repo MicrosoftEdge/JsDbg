@@ -48,7 +48,7 @@
 
 .field-selection .type-name::before {
     content:"v";
-    font-family:Consolas;
+    font-family:Consolas, monospace;
     margin-right:5px;
 }
 
