@@ -31,10 +31,16 @@ class JsDbg:
     def __init__(self):
         self.showStderr = True
         self.verbose = False
-        # TODO: assume that jsdbg is installed in "~/.jsdbg/" or some other known location?
         homeDir = os.path.expanduser("~")
-        execPath = homeDir + "/JsDbg/server/JsDbg.Gdb/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb"
-        extensionsPath = homeDir + "/JsDbg/extensions"
+        # Check if the binary exists in ~/jsdbg (e.g. the user extracted
+        # the package from create_package.sh in ~)
+        if os.path.exists(homeDir + "/jsdbg/JsDbg.Gdb"):
+            execPath = homeDir + "/jsdbg/JsDbg.Gdb"
+            extensionsPath = homeDir + "/jsdbg/extensions"
+        else:
+            # Assume a development environment with the git repository in ~/JsDbg
+            execPath = homeDir + "/JsDbg/server/JsDbg.Gdb/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb"
+            extensionsPath = homeDir + "/JsDbg/extensions"
         self.proc = subprocess.Popen([execPath, extensionsPath], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         def stderrThreadProc():
