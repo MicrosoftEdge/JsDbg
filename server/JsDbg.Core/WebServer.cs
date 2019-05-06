@@ -130,6 +130,7 @@ namespace JsDbg.Core {
             this.extensionsByName = new Dictionary<string, JsDbgExtension>();
             this.cancellationSource = new CancellationTokenSource();
             this.openSockets = new HashSet<WebSocket>();
+            this.fileCache = new FileCache();
         }
 
         private void CreateHttpListener() {
@@ -301,7 +302,7 @@ namespace JsDbg.Core {
             }
 
             try {
-                using (Stream fileStream = File.OpenRead(filePath)) {
+                using (Stream fileStream = this.fileCache.ReadFile(filePath)) {
                     response.AddHeader("Cache-Control", "no-cache");
                     if (MimeMappings.TryGetContentType(filePath, out string contentType)) {
                         response.ContentType = contentType;
@@ -1002,10 +1003,12 @@ namespace JsDbg.Core {
             if (this.LoadExtensionAndDependenciesHelper(extensionPath, extensionsToLoad, failedExtensions, out extensionName)) {
                 // Listen for file changes on the newly loaded extensions.
                 foreach (JsDbgExtension extensionToLoad in extensionsToLoad) {
-                    extensionToLoad.Watcher = new FileSystemWatcher(extensionToLoad.path, "extension.json");
-                    extensionToLoad.Watcher.NotifyFilter = NotifyFilters.LastWrite;
-                    extensionToLoad.Watcher.Changed += ExtensionChanged;
-                    extensionToLoad.Watcher.EnableRaisingEvents = true;
+                    if (!FileCache.PathIsNetworkPath(extensionToLoad.path)) {
+                        extensionToLoad.Watcher = new FileSystemWatcher(extensionToLoad.path, "extension.json");
+                        extensionToLoad.Watcher.NotifyFilter = NotifyFilters.LastWrite;
+                        extensionToLoad.Watcher.Changed += ExtensionChanged;
+                        extensionToLoad.Watcher.EnableRaisingEvents = true;
+                    }
                     this.loadedExtensions.Add(extensionToLoad);
                     this.extensionsByName.Add(extensionToLoad.name.ToLowerInvariant(), extensionToLoad);
                 }
@@ -1536,6 +1539,7 @@ namespace JsDbg.Core {
         private CancellationTokenSource cancellationSource;
         private IDebugger debugger;
         private PersistentStore persistentStore;
+        private FileCache fileCache;
         private HashSet<WebSocket> openSockets;
         private List<JsDbgExtension> loadedExtensions;
         private Dictionary<string, JsDbgExtension> extensionsByName;
