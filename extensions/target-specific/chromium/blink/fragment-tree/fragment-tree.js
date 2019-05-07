@@ -38,7 +38,14 @@ Loader.OnLoad(function() {
                     return Promise.reject(errorMessage);
                 } else {
                     // We have to get the child of the root layout object (the LayoutView) because LayoutView never has a fragment,
-                    return Promise.map(documents, (document) => document.F("node_layout_data_").f("layout_object_").vcast().f("children_.first_child_").vcast().f("cached_layout_result_.ptr_.physical_fragment_.ptr_"));
+                    let rootObjectsPromise = Promise.map(documents,
+                        (document) => document.F("node_layout_data_").f("layout_object_").vcast())
+                        .then((array) => array.filter((layout_object) => !layout_object.isNull()));
+                    let firstChildrenPromise = Promise.map(rootObjectsPromise,
+                        (layout_object) => layout_object.f("children_.first_child_").vcast())
+                        .then((array) => array.filter((layout_object) => !layout_object.isNull()));
+                    return Promise.map(firstChildrenPromise,
+                        (layout_object) => layout_object.f("cached_layout_result_.ptr_.physical_fragment_.ptr_"));
                 }
             }, (error) => {
                 var errorMessage = ErrorMessages.CreateErrorsList(error) +
