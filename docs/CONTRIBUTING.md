@@ -15,6 +15,8 @@ The JsDbg source can be obtained from the [JsDbg repository on GitHub](https://a
 
 ### Building JsDbg
 
+#### Windows
+
 Once you have cloned the JsDbg repository, please follow the steps below to build the JsDbg source code.
 
 1. Open `jsdbg.sln` in Visual Studio 2017. The solution file is located in the `server` directory.
@@ -22,6 +24,21 @@ Once you have cloned the JsDbg repository, please follow the steps below to buil
 2. Build the solution by pressing `F6` or `Build -> Build Solution`.
       * Common build errors and fixes:
          * Missing Windows 10 SDK error - install the correct SDK version (should be specified in the error message) and rebuild the solution.
+
+#### Linux
+
+1. Get the [x64 .NET Core SDK binary](https://dotnet.microsoft.com/download) (click the x64 link in the left column in the table at the bottom). If you extract this into a different directory than `~/dotnet`, adjust the instructions below (and if you want to use `create_package.sh`, adjust the path to dotnet in this script).
+2. To build the server, run `~/dotnet/dotnet publish -c Release -r linux-x64` from the `server/JsDbg.Gdb` directory.
+3. The command will tell you where the output is; it should be in `bin/Release/netcoreapp2.1/linux-x64/publish` under the JsDbg.Gdb directory.
+4. Add the following code to your `~/.gdbinit`:
+```
+python
+import sys
+sys.path.insert(0, "<your home directory>/JsDbg/server/JsDbg.Gdb")
+import JsDbg
+end
+```
+5. If you cloned into `~/JsDbg` it should find the binary and extensions directory automatically; otherwise you will have to edit `JsDbg.py` and update the path in the `execPath` and `extensionsPath` variables in the `__init__` function of `JsDbg`.
 
 ### Running JsDbg
 
@@ -65,6 +82,22 @@ After you are able to successfully build JsDbg, please follow the steps below to
 7. Launch JsDbg by clicking the `JS` icon on the Debug toolbar or `Tools -> Launch JsDbg`. (Make sure you do this from the VS Experimental Instance and not the main copy of VS.)
 
 8. The JsDbg server will launch and prompt you to select a browser. If the debugger is attached to one browser, it is recommended that you choose a different browser for JsDbg.
+
+#### GDB
+
+1. Make sure you have added JsDbg to your `.gdbinit` as described in the Linux build instructions above.
+
+2. Type `jsdbg` at the gdb prompt to run it. It will automatically open a browser tab for JsDbg.
+
+3. Extensions should be automatically reloaded when you edit the source file; no need to restart the server. You can also reload the Python script without restarting if needed by entering the following code at the GDB prompt:
+```
+python
+import importlib
+importlib.reload(JsDbg)
+```
+
+4. For debugging JsDbg itself, you may want to set verbose to true, either by editing `JsDbg.py` or running `python JsDbg.jsdbg.verbose = True` at the gdb prompt.
+
 
 ## Components within JsDbg
 
