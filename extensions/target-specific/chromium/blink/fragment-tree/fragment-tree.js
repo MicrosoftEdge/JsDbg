@@ -27,16 +27,22 @@ Loader.OnLoad(function() {
             }
         },
         GetRoots: function() {
-            return BlinkHelpers.GetDocuments()
-            .then((documents) => {
-                if (documents.length == 0) {
-                    var errorMessage = ErrorMessages.CreateErrorsList("No documents found.") +
-                        ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"),
-                            "The debuggee has been broken into prior to <i>g_frame_map</i> being populated.",
-                            ErrorMessages.SymbolsUnavailable) +
-                        "You may still specify a blink::NGPhysicalFragment explicitly.";
+            return DbgObject.global(Chromium.RendererProcessSyntheticModuleName, "is_layout_ng_enabled_", "bool", "blink::RuntimeEnabledFeatures").val().then((isLayoutNGEnabled) => {
+                if (!isLayoutNGEnabled) {
+                    var errorMessage = ErrorMessages.CreateErrorsList("LayoutNG is disabled.") +
+                        ErrorMessages.CreateErrorReasonsList(
+                            "Enable LayoutNG in chrome://flags or run with --enable-blink-features=LayoutNG");
                     return Promise.reject(errorMessage);
-                } else {
+                }
+                return BlinkHelpers.GetDocuments().then((documents) => {
+                    if (documents.length == 0) {
+                        var errorMessage = ErrorMessages.CreateErrorsList("No documents found.") +
+                            ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"),
+                                "The debuggee has been broken into prior to <i>g_frame_map</i> being populated.",
+                                ErrorMessages.SymbolsUnavailable) +
+                            "You may still specify a blink::NGPhysicalFragment explicitly.";
+                        return Promise.reject(errorMessage);
+                    }
                     // We have to get the child of the root layout object (the LayoutView) because LayoutView never has a fragment.
                     // All documents have a LayoutView, so we don't have to nullcheck that.
                     let firstChildrenPromise = Promise.map(documents,
@@ -44,11 +50,11 @@ Loader.OnLoad(function() {
                         .then((array) => array.filter((layout_object) => !layout_object.isNull()));
                     return Promise.map(firstChildrenPromise,
                         (layout_object) => layout_object.f("cached_layout_result_.ptr_.physical_fragment_.ptr_"));
-                }
-            }, (error) => {
-                var errorMessage = ErrorMessages.CreateErrorsList(error) +
-                    ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"), ErrorMessages.SymbolsUnavailable);
-                return Promise.reject(errorMessage);
+                }, (error) => {
+                    var errorMessage = ErrorMessages.CreateErrorsList(error) +
+                        ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"), ErrorMessages.SymbolsUnavailable);
+                    return Promise.reject(errorMessage);
+                });
             });
         },
         DefaultTypes: [Chromium.RendererProcessType("blink::NGPhysicalFragment")]
