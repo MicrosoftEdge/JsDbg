@@ -16,7 +16,7 @@ class JsDbg:
             self.request = request
             self.responseStream = responseStream
             self.verbose = verbose
-        
+
         def __call__(self):
             # TODO: wait until at a breakpoint?
             # Need to look at GDB events in python, track "stop" and "cont" evens
@@ -65,7 +65,7 @@ class JsDbg:
                 request = self.proc.stdout.readline()
                 if not request:
                     continue
-                
+
                 request = request.decode("utf-8").strip()
                 if self.verbose:
                     print("JsDbg [posting command]: " + request)
@@ -132,7 +132,7 @@ class SBaseTypeResult:
         self.module = module
         self.typeName = typeName
         self.offset = offset
-    
+
     def __repr__(self):
         return '{%s#%s#%d}' % (self.module, self.typeName, self.offset)
 
@@ -144,7 +144,7 @@ class SSymbolResult:
         else:
             value = symbol.value()
         self.pointer = value.address.reinterpret_cast(gdb.lookup_type("unsigned long long"))
-    
+
     def __repr__(self):
         return '{%s#%d}' % (self.type, self.pointer)
 
@@ -153,7 +153,7 @@ class SStackFrame:
         self.instructionAddress = frame.pc()
         self.stackAddress = frame.read_register("sp")
         self.frameAddress = frame.read_register("rbp") # TODO: or ebp?
-    
+
     def __repr__(self):
         return '{%d#%d#%d}' % (self.instructionAddress, self.stackAddress, self.frameAddress)
 
@@ -162,7 +162,7 @@ class SNamedSymbol:
     def __init__(self, symbol, frame):
         self.name = symbol.name
         self.symbolResult = SSymbolResult(symbol, frame)
-    
+
     def __repr__(self):
         return '{%s#%d#%s}' % (self.name, self.symbolResult.pointer, self.symbolResult.type)
 
@@ -198,7 +198,7 @@ def GetAllFields(module, type, includeBaseTypes):
             if not includeBaseTypes:
                 continue
             fields += field.type.fields()
-        
+
         if not hasattr(field, 'bitpos'):
             # Field is static
             continue
@@ -212,7 +212,7 @@ def GetAllFields(module, type, includeBaseTypes):
             continue
 
         resultFields.append(SFieldResult(field))
-    
+
     return resultFields
 
 def GetBaseTypes(module, type):
@@ -229,7 +229,7 @@ def GetBaseTypes(module, type):
             continue
         resultFields.append(SBaseTypeResult(module, field.type.name, field.bitpos / 8))
         resultFields.extend(GetBaseTypes(module, field.type.name))
-    
+
     return resultFields
 
 def IsTypeEnum(module, type):
@@ -299,14 +299,14 @@ def GetSymbolsInStackFrame(instructionAddress, stackAddress, frameAddress):
 
     while frame and not (frame.pc() == gdb.Value(instructionAddress) and frame.read_register('sp') == gdb.Value(stackAddress)):
         frame = frame.older()
-    
+
     if frame:
         block = frame.block()
         syms = []
         while block and not block.is_global and not block.is_static:
             syms = syms + [s for s in block if s.addr_class != gdb.SYMBOL_LOC_TYPEDEF]
             block = block.superblock
-        
+
         return [SNamedSymbol(s, frame) for s in syms]
     return None
 

@@ -160,11 +160,11 @@ namespace JsDbg.Gdb {
             return result;
         }
 
-        public bool IsPointer64Bit { 
+        public bool IsPointer64Bit {
             get {
                 return this.isPointer64Bit;
             }
-            
+
             private set {
                 this.isPointer64Bit = value;
             }
@@ -175,7 +175,7 @@ namespace JsDbg.Gdb {
             // Check for "True" or "False"
             return pythonResult[0] == 'T';
         }
-        
+
         public async Task<IEnumerable<SConstantResult>> LookupConstants(string module, string type, ulong constantValue) {
             NotifyDebuggerMessage(String.Format("Looking up name for {0}({1})...", type, constantValue));
 
@@ -212,7 +212,7 @@ namespace JsDbg.Gdb {
 
             return result;
         }
-        
+
         public async Task<SConstantResult> LookupConstant(string module, string type, string constantName) {
             NotifyDebuggerMessage(String.Format("Looking up value for constant {0}...", constantName));
 
@@ -223,7 +223,7 @@ namespace JsDbg.Gdb {
             result.Value = UInt64.Parse(response);
             return result;
         }
-        
+
         public async Task<SFieldResult> LookupField(string module, string typename, string fieldName) {
             NotifyDebuggerMessage(String.Format("Looking up field {0}::{1}...", typename, fieldName));
 
@@ -250,7 +250,7 @@ namespace JsDbg.Gdb {
 
             return field;
         }
-         
+
         public async Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typename, string scope) {
             NotifyDebuggerMessage(String.Format("Looking up value of global {0}...", symbol));
 
@@ -278,7 +278,7 @@ namespace JsDbg.Gdb {
 
             return result;
         }
-        
+
         public async Task<SModule> GetModuleForName(string module) {
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetModuleForName(\"{0}\")", module));
 
@@ -292,7 +292,7 @@ namespace JsDbg.Gdb {
             result.BaseAddress = UInt64.Parse(properties[1]);
             return result;
         }
-        
+
         public async Task<IEnumerable<SStackFrame>> GetCallStack(int frameCount) {
             NotifyDebuggerMessage("Getting call stack...");
 
@@ -327,7 +327,7 @@ namespace JsDbg.Gdb {
                 frame.FrameAddress = UInt64.Parse(properties[2]);
 
                 result.Add(frame);
-                
+
                 index = stackEndIndex + 1;
                 if (pythonResult[index] == ',') {
                     ++index;
@@ -338,7 +338,7 @@ namespace JsDbg.Gdb {
 
             return result;
         }
-        
+
         public async Task<IEnumerable<SNamedSymbol>> GetSymbolsInStackFrame(ulong instructionAddress, ulong stackAddress, ulong frameAddress) {
             NotifyDebuggerMessage("Getting symbols in call stack...");
 
@@ -381,7 +381,7 @@ namespace JsDbg.Gdb {
 
             return result;
         }
-        
+
         public async Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer) {
             NotifyDebuggerMessage(String.Format("Looking up symbol at 0x{0:x}...", pointer));
 
@@ -398,7 +398,7 @@ namespace JsDbg.Gdb {
             // or
             // 1. in python, get the global block,
             // 2. iterate all variables,
-            // 3. get their size (from the type) 
+            // 3. get their size (from the type)
             // 4. get their address (from the value)
             // 5. see if the given address falls within this symbol.
 
@@ -452,7 +452,7 @@ namespace JsDbg.Gdb {
 
             return result;
         }
-        
+
         public async Task<uint> LookupTypeSize(string module, string typename) {
             NotifyDebuggerMessage(String.Format("Looking up sizeof({0})...", typename));
 
@@ -460,7 +460,7 @@ namespace JsDbg.Gdb {
 
             return UInt32.Parse(pythonResponse);
         }
-        
+
         public async Task<T[]> ReadArray<T>(ulong pointer, ulong count) where T : struct {
             int size = (int)(count * (uint)System.Runtime.InteropServices.Marshal.SizeOf(typeof(T)));
 
@@ -484,12 +484,12 @@ namespace JsDbg.Gdb {
 
             return result;
         }
-        
+
         public async Task<T> ReadMemory<T>(ulong pointer) where T : struct {
             T[] result = await this.ReadArray<T>(pointer, 1);
             return result[0];
         }
-        
+
         public async Task WriteMemory<T>(ulong pointer, T value) where T : struct {
             int size = System.Runtime.InteropServices.Marshal.SizeOf(typeof(T));
             byte[] bytes = new byte[size];
