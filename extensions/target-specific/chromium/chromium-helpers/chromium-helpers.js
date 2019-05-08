@@ -92,7 +92,7 @@ var Chromium = null;
             _help_MultiProcessModules: {
                 description: "List of modules used in multiple Chromium processes.",
             },
-            MultiProcessModules: ["msedge_child", "chrome_child", "content", "content_shell", "browser_tests"],
+            MultiProcessModules: ["msedge_child", "chrome_child", "content", "content_shell", "browser_tests", "content_browsertests"],
         };
 
         function setTargetProcess(targetProcessName) {
