@@ -27,8 +27,7 @@ Loader.OnLoad(function() {
                     "ui::AXTreeManagerMap::GetInstance()")
                     .F("Object")
                     .f("map_")
-                    .f("_List")
-                    .array("Elements")
+                    .array("Pairs")
                     .f("second"),
                 DbgObject.global(Chromium.BrowserProcessSyntheticModuleName, "g_ax_tree_id_map")
                     .F("Object")

@@ -33,6 +33,28 @@ DbgObject.AddArrayField(
     }
 );
 
+DbgObject.AddArrayField(
+    (type) => {
+        return type.name().match(/^std::__Cr::vector<(.*)>$/) != null;
+    },
+    "Elements",
+    (type) => {
+        return type.templateParameters()[0];
+    },
+    (vector) => {
+        return vector.f("__begin_").array(vector.desc("Size"));
+    }
+);
+
+function computeVectorSize(firstElement, lastElement, elementSize) {
+    if (!firstElement.isNull()) {
+        console.assert(!lastElement.isNull());
+        return lastElement.pointerValue().minus(firstElement.pointerValue()).divide(elementSize);
+    } else {
+        return 0;
+    }
+}
+
 DbgObject.AddTypeDescription(
     (type) => {
         return type.name().match(/^std::vector<(.*)>$/) != null;
@@ -42,14 +64,19 @@ DbgObject.AddTypeDescription(
     (vector) => {
         vector = vector.f("_Mypair._Myval2", "");
         return Promise.all([vector.f("_Myfirst"), vector.f("_Mylast"), vector.f("_Myfirst").size()])
-        .thenAll((firstElement, lastElement, elementSize) => {
-            if (!firstElement.isNull()) {
-                console.assert(!lastElement.isNull());
-                return lastElement.pointerValue().minus(firstElement.pointerValue()).divide(elementSize);
-            } else {
-                return 0;
-            }
-        });
+        .thenAll(computeVectorSize);
+    }
+);
+
+DbgObject.AddTypeDescription(
+    (type) => {
+        return type.name().match(/^std::__Cr::vector<(.*)>$/) != null;
+    },
+    "Size",
+    false,
+    (vector) => {
+        return Promise.all([vector.f("__begin_"), vector.f("__end_"), vector.f("__begin_").size()])
+        .thenAll(computeVectorSize);
     }
 );
 
@@ -150,6 +177,26 @@ function inOrderTraversal(rootNodeOrPromise, leftField, rightField, valueField, 
         }
     });
 }
+
+DbgObject.AddArrayField(
+    (type) => type.name().match(/^std::__Cr::unordered_map<(.*)>$/) != null,
+    "Pairs",
+    (type) => {
+        var allocator = type.templateParameters()[4];
+        var pair = new DbgObjectType(allocator, type).templateParameters()[0];
+        return new DbgObjectType(pair, type);
+    },
+    (map) => {
+        return map.f("__table_").then((table) => {
+            var fromType = map.type.templateParameters()[0];
+            var toType = map.type.templateParameters()[1];
+            var nodeTypeName = `std::__Cr::__hash_node<std::__Cr::__hash_value_type<${fromType}, ${toType}>, void*>`;
+            var nodeType = DbgObjectType(nodeTypeName, table.type);
+            return map.f("__table_.__p1_.__value_.__next_").list("__next_").map(
+                (elem) => elem.as(nodeType).f("__value_.__cc"));
+        });
+    }
+);
 
 DbgObject.AddArrayField(
     (type) => type.name().match(/^std::unordered_map<(.*)>$/) != null,
