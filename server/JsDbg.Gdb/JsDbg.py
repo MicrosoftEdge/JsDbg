@@ -5,6 +5,7 @@ import threading
 import binascii
 import os.path
 import re
+import webbrowser
 
 jsdbg = None
 last_pid = None
@@ -183,6 +184,11 @@ class SModule:
 
     def __repr__(self):
         return '{%s#%d}' % (self.name, self.baseAddress)
+
+
+def ServerStarted(url):
+    print('Opening browser for %s' % (url))
+    webbrowser.open_new_tab(url)
 
 
 def ExecuteGdbCommand(cmd):

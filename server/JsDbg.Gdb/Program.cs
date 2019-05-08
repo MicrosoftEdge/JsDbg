@@ -32,7 +32,7 @@ namespace JsDbg.Gdb
                     });
 
                     // Run the debugger.  If the debugger ends, kill the web server.
-                    debugger.Run().ContinueWith((Task result) => {
+                    debugger.Run(webServer.Url).ContinueWith((Task result) => {
                         webServer.Abort();
                     });
 
