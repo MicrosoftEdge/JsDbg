@@ -20,11 +20,12 @@ namespace JsDbg.Gdb {
 
         }
 
-        public async Task Run() {
+        public async Task Run(string url) {
             // We only assign this to a Task to avoid a compiler warning.
             // We intentionally do not await them because we want execution to
             // continue to the ReadLine loop.
-            Task t = LookupTypeSize("", "void*").ContinueWith((task) => {
+            Task t = QueryDebuggerPython(String.Format("ServerStarted(\"{0}\")", url));
+            t = LookupTypeSize("", "void*").ContinueWith((task) => {
                 IsPointer64Bit = task.Result == 8 ? true : false;
             });
             t = QueryDebuggerPython("GetTargetProcess()").ContinueWith((task) => {
