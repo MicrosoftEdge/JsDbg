@@ -189,6 +189,8 @@ class SModule:
 
 def ServerStarted(url):
     print('Opening browser for %s' % (url))
+    print('If you are debugging the default browser, manually open the URL in a')
+    print('different browser.')
     webbrowser.open_new_tab(url)
 
 
