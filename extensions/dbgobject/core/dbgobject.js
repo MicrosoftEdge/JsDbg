@@ -185,13 +185,14 @@ Loader.OnLoad(function() {
         description: "Looks up the symbolic name of an address (e.g. vtable pointer, function pointer).",
         returns: "The name of the symbol.",
         arguments: [
-            {name:"address", type:"number", description:"The address to resolve."}
+            {name:"address", type:"number", description:"The address to resolve."},
+            {name:"ignoreDisplacement", type:"bool", description:"If true, return the symbol name even if the address does not point to the beginning of the symbol."}
         ]
     }
-    DbgObject.symbol = function(address) {
+    DbgObject.symbol = function(address, ignoreDisplacement) {
         return JsDbgPromise.LookupSymbolName(address)
         .then(function (result) {
-            if (result.displacement == 0) {
+            if (result.displacement == 0 || ignoreDisplacement) {
                 return result.module + "!" + result.name;
             } else {
                 throw new Error("The address 0x" + address.toString(16) + " is not a valid symbol address.");
@@ -910,7 +911,9 @@ Loader.OnLoad(function() {
 
         // Lookup the symbol at that value...
         .then(function(result) {
-            return DbgObject.symbol(result);
+            // On Linux, with multiple inheritance, vtable pointers can point into the middle if the vtable symbol.
+            // So we pass true to ignore a nonzero displacement.
+            return DbgObject.symbol(result, true);
         })
         .then(function(vtableSymbol) {
             if (vtableSymbol.indexOf("::`vftable'") < 0) {
