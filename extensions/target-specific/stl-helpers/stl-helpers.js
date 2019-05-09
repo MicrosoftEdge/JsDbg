@@ -260,7 +260,27 @@ DbgObject.AddTypeDescription(
 );
 
 DbgObject.AddTypeDescription(
-    (type) => type.name().match(/^std::pair<.*>$/) != null,
+    (type) => type.name().match(/^std::__(Cr|1)::basic_string<.*>$/) != null,
+    "Text",
+    true,
+    (str) => {
+        var ss = str.f("__r_.__value_.__s");
+        var shortMask = DbgObject.constantValue(str.type, "__short_mask");
+        var size = ss.f("__size_").uval();
+        return Promise.all([ss, shortMask, size]).thenAll((ss, shortMask, size) => {
+            if ((size & shortMask) == 0) {
+                var len = (shortMask == 1) ? size >> 1 : size;
+                return ss.f("__data_").string(len);
+            } else {
+                var sl = str.f("__r_.__value_.__l");
+                return sl.f("__data_").string(sl.f("__size_"));
+            }
+        });
+    }
+);
+
+DbgObject.AddTypeDescription(
+    (type) => type.name().match(/^std::(__(Cr|1)::)?pair<.*>$/) != null,
     "Pair",
     true,
     (pair) => Promise.all([pair.f("first").desc(), pair.f("second").desc()]).thenAll((first, second) => `{${first}, ${second}}`)
