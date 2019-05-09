@@ -101,18 +101,19 @@ def DebuggerQuery(tag, command):
         return "%d!%s" % (tag, str(err[1]))
 
 
-def FormatType(symbol_type):
-        pointer_depth = 0
-        t = symbol_type.strip_typedefs()
-        while t.code == gdb.TYPE_CODE_PTR or t.code == gdb.TYPE_CODE_ARRAY:
-            pointer_depth = pointer_depth + 1
-            t = t.target()
+def IsFunctionPointer(t):
+    while t.code == gdb.TYPE_CODE_PTR or t.code == gdb.TYPE_CODE_ARRAY:
+        t = t.target()
+    return t.code == gdb.TYPE_CODE_FUNC
 
-        if (t.code == gdb.TYPE_CODE_FUNC):
-            # No good way to interop a function pointer back to python; lie and say it's a void*
-            return "void *"
-        else:
-            return t.name + "*" * pointer_depth
+
+def FormatType(symbol_type):
+    t = symbol_type.strip_typedefs()
+    if IsFunctionPointer(t):
+        # No good way to interop a function pointer back to python; lie and say it's a void*
+        return "void *"
+    else:
+        return str(t)
 
 
 class SFieldResult:
