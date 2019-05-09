@@ -55,6 +55,10 @@ Loader.OnLoad(function() {
                         ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"), ErrorMessages.SymbolsUnavailable);
                     return Promise.reject(errorMessage);
                 });
+            }, (error) => {
+                var errorMessage = ErrorMessages.CreateErrorsList(error) +
+                    ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"), ErrorMessages.SymbolsUnavailable);
+                return Promise.reject(errorMessage);
             });
         },
         DefaultTypes: [Chromium.RendererProcessType("blink::NGPhysicalFragment")]
