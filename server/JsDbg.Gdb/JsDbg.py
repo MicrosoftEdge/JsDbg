@@ -215,11 +215,12 @@ def GetAllFields(module, type, includeBaseTypes):
             continue
 
         if not field.name:
-            if field.type.code != gdb.TYPE_CODE_UNION:
+            if field.type.code != gdb.TYPE_CODE_UNION and field.type.code != gdb.TYPE_CODE_STRUCT:
                 # Don't know how to handle this
                 continue
 
-            resultFields.extend([SFieldResult(f, field.bitpos) for f in field.type.fields()])
+            resultFields.extend([SFieldResult(f, field.bitpos)
+                for f in field.type.fields() if not f.is_base_class])
             continue
 
         resultFields.append(SFieldResult(field))
@@ -255,13 +256,14 @@ def LookupField(module, type, field):
         if match:
             return SFieldResult(match[0])
 
-        # Handle anonymous unions. They are a bit tricky because we have
-        # to recurse into their fields but keep track of their offset.
-        unions = [u for u in fields if not u.name and u.type.code == gdb.TYPE_CODE_UNION]
-        for union in unions:
-            for f in union.type.fields():
+        # Handle anonymous unions and structs. They are a bit tricky because we
+        # have to recurse into their fields but keep track of their offset.
+        containers = [c for c in fields if not c.name and
+          (c.type.code == gdb.TYPE_CODE_UNION or c.type.code == gdb.TYPE_CODE_STRUCT)]
+        for container in containers:
+            for f in container.type.fields():
                 if f.name == field:
-                    return SFieldResult(f, union.bitpos)
+                    return SFieldResult(f, container.bitpos)
 
         match = filter(lambda x: x.is_base_class, fields)
         fields = [f for m in match for f in m.type.fields()]
