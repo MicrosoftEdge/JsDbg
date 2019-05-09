@@ -210,6 +210,10 @@ def GetAllFields(module, type, includeBaseTypes):
             # Field is static
             continue
 
+        if field.artificial:
+            # e.g. _vptr$OwnerTree
+            continue
+
         if not field.name:
             if field.type.code != gdb.TYPE_CODE_UNION:
                 # Don't know how to handle this
