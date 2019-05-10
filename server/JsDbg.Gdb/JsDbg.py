@@ -19,7 +19,6 @@ class JsDbg:
             self.verbose = verbose
 
         def __call__(self):
-            # TODO: wait until at a breakpoint?
             # Need to look at GDB events in python, track "stop" and "cont" evens
             if self.verbose:
                 print("JsDbg [received command]: " + self.request)

@@ -443,12 +443,11 @@ namespace JsDbg.Gdb {
             if (result.Name.StartsWith("vtable for ")) {
                 result.Name = result.Name.Substring("vtable for ".Length) + "::`vftable'";
                 ulong pointer_size = IsPointer64Bit ? 8UL : 4UL;
-                if (result.Displacement == 2 * pointer_size) {
-                    // First two words of the vtable are reserved for RTTI.
-                    // http://refspecs.linuxbase.org/cxxabi-1.83.html#rtti-layout
-                    // TODO: Should we subtract 2*pointer_size from all vtable references?
-                    result.Displacement = 0;
-                }
+                // First two words of the vtable are reserved for RTTI.
+                // http://refspecs.linuxbase.org/cxxabi-1.83.html#rtti-layout
+                // For compatibility with Visual Studio, we pretend that the vtable
+                // starts with the first function pointer.
+                result.Displacement -= 2 * pointer_size;
             }
 
             return result;
