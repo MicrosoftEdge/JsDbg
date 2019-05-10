@@ -14,7 +14,7 @@ DbgObject.AddExtendedField(
 );
 
 DbgObject.AddExtendedField(
-    (type) => type.name().match(/^std::__Cr::unique_ptr<.*>$/) != null,
+    (type) => type.name().match(/^std::__(Cr|1)::unique_ptr<.*>$/) != null,
     "Object",
     (type) => type.templateParameters()[0],
     (uniquePtr) => uniquePtr.f("__ptr_.__value_")
@@ -35,7 +35,7 @@ DbgObject.AddArrayField(
 
 DbgObject.AddArrayField(
     (type) => {
-        return type.name().match(/^std::__Cr::vector<(.*)>$/) != null;
+        return type.name().match(/^std::__(Cr|1)::vector<(.*)>$/) != null;
     },
     "Elements",
     (type) => {
@@ -70,7 +70,7 @@ DbgObject.AddTypeDescription(
 
 DbgObject.AddTypeDescription(
     (type) => {
-        return type.name().match(/^std::__Cr::vector<(.*)>$/) != null;
+        return type.name().match(/^std::__(Cr|1)::vector<(.*)>$/) != null;
     },
     "Size",
     false,
@@ -120,7 +120,7 @@ DbgObject.AddArrayField(
 
 DbgObject.AddArrayField(
     (type) => {
-        return type.name().match(/^std::__Cr::map<(.*)>$/) != null;
+        return type.name().match(/^std::__(Cr|1)::map<(.*)>$/) != null;
     },
     "Pairs",
     (type) => {
@@ -131,7 +131,8 @@ DbgObject.AddArrayField(
     (map) => map.f("__tree_").then((tree) => {
         var fromType = map.type.templateParameters()[0];
         var toType = map.type.templateParameters()[1];
-        var nodeTypeName = `std::__Cr::__tree_node<std::__Cr::__value_type<${fromType}, ${toType}>, void*>`;
+        var prefix = map.type.name().match(/^std::(__[a-zA-Z0-9]+)/)[0];
+        var nodeTypeName = `${prefix}::__tree_node<${prefix}::__value_type<${fromType}, ${toType}>, void*>`;
         var nodeType = new DbgObjectType(nodeTypeName, tree.type);
         return tree.f("__pair3_.__value_").val().then((size) => {
             return Promise.map(tree.f("__begin_node_").as(nodeType).list(nextRbTreeNode, null, size), (node) => {
@@ -179,7 +180,7 @@ function inOrderTraversal(rootNodeOrPromise, leftField, rightField, valueField, 
 }
 
 DbgObject.AddArrayField(
-    (type) => type.name().match(/^std::__Cr::unordered_map<(.*)>$/) != null,
+    (type) => type.name().match(/^std::__(Cr|1)::unordered_map<(.*)>$/) != null,
     "Pairs",
     (type) => {
         var allocator = type.templateParameters()[4];
@@ -190,7 +191,8 @@ DbgObject.AddArrayField(
         return map.f("__table_").then((table) => {
             var fromType = map.type.templateParameters()[0];
             var toType = map.type.templateParameters()[1];
-            var nodeTypeName = `std::__Cr::__hash_node<std::__Cr::__hash_value_type<${fromType}, ${toType}>, void*>`;
+            var prefix = map.type.name().match(/^std::(__[a-zA-Z0-9]+)/)[0];
+            var nodeTypeName = `${prefix}::__hash_node<${prefix}::__hash_value_type<${fromType}, ${toType}>, void*>`;
             var nodeType = DbgObjectType(nodeTypeName, table.type);
             return map.f("__table_.__p1_.__value_.__next_").list("__next_").map(
                 (elem) => elem.as(nodeType).f("__value_.__cc"));
@@ -207,7 +209,7 @@ DbgObject.AddArrayField(
 
 DbgObject.AddArrayField(
     (type) => {
-        return type.name().match(/^std::(__Cr::)?map<(.*)>$/) != null;
+        return type.name().match(/^std::(__(Cr|1)::)?map<(.*)>$/) != null;
     },
     "Keys",
     (type) => {
@@ -220,7 +222,7 @@ DbgObject.AddArrayField(
 
 DbgObject.AddArrayField(
     (type) => {
-        return type.name().match(/^std::(__Cr::)?map<(.*)>$/) != null;
+        return type.name().match(/^std::(__(Cr|1)::)?map<(.*)>$/) != null;
     },
     "Values",
     (type) => {
@@ -233,7 +235,7 @@ DbgObject.AddArrayField(
 
 DbgObject.AddTypeDescription(
     (type) => {
-        return type.name().match(/^std::(__Cr::)?map<(.*)>$/) != null;
+        return type.name().match(/^std::(__(Cr|1)::)?map<(.*)>$/) != null;
     },
     "Size",
     false,
