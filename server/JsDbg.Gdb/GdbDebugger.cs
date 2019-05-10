@@ -410,7 +410,7 @@ namespace JsDbg.Gdb {
             // '0x4004f1 <twiddle<int []>(int)+17>'
             // which has the same informationas -var-create
 
-            string response = await this.QueryDebuggerPython(String.Format("LookupSymbolName({0})",pointer));
+            string response = await this.QueryDebuggerPython(String.Format("LookupSymbolName(0x{0:x})",pointer));
             // module!'0x4004f1 <twiddle<int []>(int)+17>'
             // Symbol should be between the first '<' and the last '+', and the displacement is between the last '+' and the last '>'
 
@@ -423,7 +423,7 @@ namespace JsDbg.Gdb {
             int lastPlus = response.LastIndexOf('+');
             int lastGreater = response.LastIndexOf('>');
             if (firstLess < 0 || lastGreater < 0) {
-                throw new DebuggerException(String.Format("Address {0} is not a symbol", pointer));
+                throw new DebuggerException(String.Format("Address 0x{0:x} is not a symbol", pointer));
             }
             Debug.Assert(firstLess < lastGreater);
 
@@ -467,7 +467,7 @@ namespace JsDbg.Gdb {
 
             NotifyDebuggerMessage(String.Format("Reading {0} bytes at 0x{1:x}...", size, pointer));
 
-            string response = await this.QueryDebuggerPython(String.Format("ReadMemoryBytes({0},{1})", pointer, size));
+            string response = await this.QueryDebuggerPython(String.Format("ReadMemoryBytes(0x{0:x},{1})", pointer, size));
             // Response will be hex encoding of the memory
 
             if (response.Length != 2* size) {
@@ -501,7 +501,7 @@ namespace JsDbg.Gdb {
             // bytes is now a buffer of bytes we wish to write
             string hexString = BitConverter.ToString(bytes).Replace("-", string.Empty);
 
-            string response = await this.QueryDebuggerPython(String.Format("WriteMemoryBytes({0},\"{1}\")", pointer, hexString));
+            string response = await this.QueryDebuggerPython(String.Format("WriteMemoryBytes(0x{0:x},\"{1}\")", pointer, hexString));
         }
 
         public List<uint> ParsePythonArrayToIntegers(string response) {
