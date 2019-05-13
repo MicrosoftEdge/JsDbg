@@ -81,6 +81,30 @@ namespace JsDbg.Gdb {
             }
         }
 
+        // Input: [{foo#bar}, {foo2#bar2}, ..,]
+        // Output: List containing "foo#bar", "foo2#bar2", ...
+        List<string> ParsePythonObjectArrayToStrings(string pythonResult) {
+            List<string> result = new List<string>();
+
+            int index = 0;
+            Debug.Assert(pythonResult[index] == '[');
+            ++index;
+            while(pythonResult[index] != ']') {
+                Debug.Assert(pythonResult[index] == '{');
+                ++index;
+                int fieldEndIndex = pythonResult.IndexOf('}',index);
+                result.Add(pythonResult.Substring(index, fieldEndIndex-index));
+
+                index = fieldEndIndex+1;
+                if (pythonResult[index] == ',') {
+                    ++index;
+                    Debug.Assert(pythonResult[index] == ' ');
+                    ++index;
+                }
+            }
+            return result;
+        }
+
         public async Task Continue() {
             await this.QueryDebuggerPython("ExecuteGdbCommand(\"continue\")");
         }
@@ -90,18 +114,11 @@ namespace JsDbg.Gdb {
 
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetAllFields(\"{0}\",\"{1}\",{2})",module, typename, includeBaseTypes ? "True" : "False"));
 
+            List<string> objects = ParsePythonObjectArrayToStrings(pythonResult);
             List<SFieldResult> result = new List<SFieldResult>();
 
-            int index = 0;
-            Debug.Assert(pythonResult[index] == '[');
-            ++index;
-            while(pythonResult[index] != ']') {
+            foreach (string fieldString in objects) {
                 // '{%d#%d#%d#%d#%s#%s}' % (self.offset, self.size, self.bitOffset, self.bitCount, self.fieldName, self.typeName)
-                Debug.Assert(pythonResult[index] == '{');
-                ++index;
-                int fieldEndIndex = pythonResult.IndexOf('}',index);
-                string fieldString = pythonResult.Substring(index, fieldEndIndex-index);
-
                 string[] properties = fieldString.Split('#');
                 Debug.Assert(properties.Length == 6);
                 SFieldResult field = new SFieldResult();
@@ -113,13 +130,6 @@ namespace JsDbg.Gdb {
                 field.TypeName = properties[5];
                 field.Module = module;
                 result.Add(field);
-
-                index = fieldEndIndex+1;
-                if (pythonResult[index] == ',') {
-                    ++index;
-                    Debug.Assert(pythonResult[index] == ' ');
-                    ++index;
-                }
             }
 
             return result;
@@ -130,17 +140,10 @@ namespace JsDbg.Gdb {
 
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetBaseTypes(\"{0}\",\"{1}\")", module, typeName));
 
+            List<string> objects = ParsePythonObjectArrayToStrings(pythonResult);
             List<SBaseTypeResult> result = new List<SBaseTypeResult>();
-            int index = 0;
-            Debug.Assert(pythonResult[index] == '[');
-            ++index;
-            while(pythonResult[index] != ']') {
+            foreach (string fieldString in objects) {
                 // return '{%s#%s#%d}' % (self.module, self.typeName, self.offset)
-                Debug.Assert(pythonResult[index] == '{');
-                ++index;
-                int fieldEndIndex = pythonResult.IndexOf('}',index);
-                string fieldString = pythonResult.Substring(index, fieldEndIndex - index);
-
                 string[] properties = fieldString.Split('#');
                 Debug.Assert(properties.Length == 3);
                 SBaseTypeResult field = new SBaseTypeResult();
@@ -149,13 +152,6 @@ namespace JsDbg.Gdb {
                 field.Offset = Int32.Parse(properties[2]);
 
                 result.Add(field);
-
-                index = fieldEndIndex + 1;
-                if (pythonResult[index] == ',') {
-                    ++index;
-                    Debug.Assert(pythonResult[index] == ' ');
-                    ++index;
-                }
             }
 
             return result;
@@ -182,33 +178,17 @@ namespace JsDbg.Gdb {
 
             string pythonResult = await this.QueryDebuggerPython(String.Format("LookupConstants(\"{0}\", \"{1}\", {2})", module, type, constantValue));
 
+            List<string> objects = ParsePythonObjectArrayToStrings(pythonResult);
             List<SConstantResult> result = new List<SConstantResult>();
 
-            // TODO: Refactor this list parsing to share code with GetAllFields
-            // [{...}, {...}]
-            int index = 0;
-            Debug.Assert(pythonResult[index] == '[');
-            ++index;
-            while(pythonResult[index] != ']') {
+            foreach (string fieldString in objects) {
                 // '{%s#%d}' % (self.name, self.value)
-                Debug.Assert(pythonResult[index] == '{');
-                ++index;
-                int fieldEndIndex = pythonResult.IndexOf('}',index);
-                string fieldString = pythonResult.Substring(index, fieldEndIndex-index);
-
                 string[] properties = fieldString.Split('#');
                 Debug.Assert(properties.Length == 2);
                 SConstantResult field = new SConstantResult();
                 field.ConstantName = properties[0];
                 field.Value = UInt64.Parse(properties[1]);
                 result.Add(field);
-
-                index = fieldEndIndex+1;
-                if (pythonResult[index] == ',') {
-                    ++index;
-                    Debug.Assert(pythonResult[index] == ' ');
-                    ++index;
-                }
             }
 
             return result;
@@ -306,20 +286,11 @@ namespace JsDbg.Gdb {
 
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetCallStack({0})", frameCount));
 
+            List<string> objects = ParsePythonObjectArrayToStrings(pythonResult);
             List<SStackFrame> result = new List<SStackFrame>();
 
-            // TODO: Refactor this list parsing to share code with GetAllFields
-            int index = 0;
-            Debug.Assert(pythonResult[index] == '[');
-            ++index;
-            while(pythonResult[index] != ']') {
+            foreach (string stackString in objects) {
                 // '{%d#%d#%d}' % (self.instructionAddress, self.stackAddress, self.frameAddress)
-                Debug.Assert(pythonResult[index] == '{');
-                ++index;
-
-                int stackEndIndex = pythonResult.IndexOf('}',index);
-                string stackString = pythonResult.Substring(index, stackEndIndex - index);
-
                 string[] properties = stackString.Split("#");
                 Debug.Assert(properties.Length == 3);
                 SStackFrame frame = new SStackFrame();
@@ -328,13 +299,6 @@ namespace JsDbg.Gdb {
                 frame.FrameAddress = UInt64.Parse(properties[2]);
 
                 result.Add(frame);
-
-                index = stackEndIndex + 1;
-                if (pythonResult[index] == ',') {
-                    ++index;
-                    Debug.Assert(pythonResult[index] == ' ');
-                    ++index;
-                }
             }
 
             return result;
@@ -347,20 +311,11 @@ namespace JsDbg.Gdb {
             if (pythonResult == "None")
                 throw new DebuggerException("Can't find stack frame");
 
+            List<string> objects = ParsePythonObjectArrayToStrings(pythonResult);
             List<SNamedSymbol> result = new List<SNamedSymbol>();
 
-            // TODO: Refactor this list parsing to share code with GetAllFields
-            int index = 0;
-            Debug.Assert(pythonResult[index] == '[');
-            ++index;
-            while(pythonResult[index] != ']') {
+            foreach (string symString in objects) {
                 // '{%s#%d#%s}' % (self.name, self.symbolResult.pointer, s.symbolResult.type)
-                Debug.Assert(pythonResult[index] == '{');
-                ++index;
-
-                int symEndIndex = pythonResult.IndexOf('}', index);
-                string symString = pythonResult.Substring(index, symEndIndex - index);
-
                 string[] properties = symString.Split("#");
                 Debug.Assert(properties.Length == 3);
                 SNamedSymbol sym = new SNamedSymbol();
@@ -371,13 +326,6 @@ namespace JsDbg.Gdb {
                 sym.Symbol.Type = properties[2];
 
                 result.Add(sym);
-
-                index = symEndIndex + 1;
-                if (pythonResult[index] == ',') {
-                    ++index;
-                    Debug.Assert(pythonResult[index] == ' ');
-                    ++index;
-                }
             }
 
             return result;
