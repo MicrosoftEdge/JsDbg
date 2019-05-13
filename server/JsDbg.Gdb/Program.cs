@@ -27,6 +27,10 @@ namespace JsDbg.Gdb
                 webServer.LoadExtension("default");
 
                 try {
+                    // Because Ctrl+C is used by GDB to break into the program,
+                    // we should not exit the server when that happens.
+                    Console.CancelKeyPress += (sender, eventArgs) => { eventArgs.Cancel = true; };
+
                     var serverTask = webServer.Listen().ContinueWith(async (Task result) => {
                         await Task.Delay(500);
                     });
