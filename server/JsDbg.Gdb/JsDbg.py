@@ -115,6 +115,14 @@ def FormatType(symbol_type):
         return str(t)
 
 
+# Input is /foo/bar/libfoo.so, or /foo/bar/some_executable
+def FormatModule(module):
+    # First, we strip out the path to the module
+    module = module[module.rfind("/") + 1:]
+    # Then, we remove the lib prefix and .so / .so.1.2 suffix, if present.
+    return re.match("^(lib)?(.*?)(.so)?[.0-9]*$", module).groups()[1]
+
+
 class SFieldResult:
     # extra_bitoffset allows handling anonymous unions correctly
     def __init__(self, field, extra_bitoffset=0):
@@ -376,12 +384,20 @@ def LookupSymbolName(pointer):
     if not module:
         # If it exists, it's in the main binary
         module = gdb.current_progspace().filename
-    # First, we strip out the path to the module
-    module = module[module.rfind("/") + 1:]
-    # Then, we remove the lib prefix and .so / .so.1.2 suffix, if present.
-    module = re.match("^(lib)?(.*?)(.so)?[.0-9]*$", module).groups()[1]
+    module = FormatModule(module)
+
     val = gdb.parse_and_eval("(void*)%d" % pointer)
-    return "%s!%s" % (module, str(val))
+    # Result looks like: '0x4004f1 <twiddle<int []>(int)+17>'
+    # If not found, just looks like '0x4004f1'
+    symbol_and_offset = re.search('<(.+)>$', str(val))
+    if symbol_and_offset is None:
+        return None
+    groups = re.fullmatch("(.*?)(\\+([0-9]+))?", symbol_and_offset.groups()[0]).groups()
+    symbol = groups[0]
+    offset = 0
+    if groups[2]:
+        offset = int(groups[2])
+    return "%s#%s#%d" % (module, symbol, offset)
 
 def ReadMemoryBytes(pointer, size):
     inferior = gdb.selected_inferior()
