@@ -228,7 +228,9 @@ def GetAllFields(module, type, includeBaseTypes):
 
     return resultFields
 
-def GetBaseTypes(module, type):
+# extra_bitoffset is used when we call this function recursively in multiple
+# inheritance cases.
+def GetBaseTypes(module, type, extra_bitoffset=0):
     try:
         t = gdb.lookup_type(type)
         fields = t.fields()
@@ -240,8 +242,8 @@ def GetBaseTypes(module, type):
     for field in fields:
         if not field.is_base_class:
             continue
-        resultFields.append(SBaseTypeResult(module, field.type.name, field.bitpos / 8))
-        resultFields.extend(GetBaseTypes(module, field.type.name))
+        resultFields.append(SBaseTypeResult(module, field.type.name, (extra_bitoffset + field.bitpos) / 8))
+        resultFields.extend(GetBaseTypes(module, field.type.name, extra_bitoffset + field.bitpos))
 
     return resultFields
 
