@@ -153,7 +153,7 @@ class SStackFrame:
     def __init__(self, frame):
         self.instructionAddress = frame.pc()
         self.stackAddress = frame.read_register("sp")
-        self.frameAddress = frame.read_register("rbp") # TODO: or ebp?
+        self.frameAddress = frame.read_register("fp")
 
     def __repr__(self):
         return '{%d#%d#%d}' % (self.instructionAddress, self.stackAddress, self.frameAddress)
