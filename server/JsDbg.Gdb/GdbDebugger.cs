@@ -386,59 +386,17 @@ namespace JsDbg.Gdb {
         public async Task<SSymbolNameAndDisplacement> LookupSymbolName(ulong pointer) {
             NotifyDebuggerMessage(String.Format("Looking up symbol at 0x{0:x}...", pointer));
 
-            // Rant:
-            // GDB knows how to do this interactively:
-            //   (gdb) info symbol 0x60102c
-            //   gfoo in section .bss of /mnt/e/z/a.out
-            // AND in the past the MI has supported -symbol-info-symbol <address>
-            // BUT no more.
-            // I see 3 options to pry this information out of gdb:
-            // -interpreter-exec console "info symbol <address>"
-            // or
-            // -var-create v * "(void*)<address>"
-            // or
-            // 1. in python, get the global block,
-            // 2. iterate all variables,
-            // 3. get their size (from the type)
-            // 4. get their address (from the value)
-            // 5. see if the given address falls within this symbol.
-
-            // None of these options are great, but -var-create seems to be the simplest to parse
-
-            // When switching to python:
-            // v = gdb.parse_and_eval("(void*) 0x..."); str(v) produces something like
-            // '0x4004f1 <twiddle<int []>(int)+17>'
-            // which has the same informationas -var-create
-
             string response = await this.QueryDebuggerPython(String.Format("LookupSymbolName(0x{0:x})",pointer));
-            // module!'0x4004f1 <twiddle<int []>(int)+17>'
-            // Symbol should be between the first '<' and the last '+', and the displacement is between the last '+' and the last '>'
 
-            SSymbolNameAndDisplacement result = new SSymbolNameAndDisplacement();
-
-            int firstExclamation = response.IndexOf('!');
-            result.Module = response.Substring(0, firstExclamation);
-
-            int firstLess = response.IndexOf('<')+1;
-            int lastPlus = response.LastIndexOf('+');
-            int lastGreater = response.LastIndexOf('>');
-            if (firstLess < 0 || lastGreater < 0) {
+            if (response == "None")
                 throw new DebuggerException(String.Format("Address 0x{0:x} is not a symbol", pointer));
-            }
-            Debug.Assert(firstLess < lastGreater);
 
-            if (lastPlus >= 0) {
-                Debug.Assert(firstLess < lastPlus && lastPlus < lastGreater);
-                string symName = response.Substring(firstLess, lastPlus - firstLess);
-                result.Name = symName;
-                string displacement = response.Substring(lastPlus+1, lastGreater - (lastPlus+1));
-                result.Displacement = UInt64.Parse(displacement);
-            } else {
-                string symName = response.Substring(firstLess, lastGreater - firstLess);
-                result.Name = symName;
-                result.Displacement = 0;
-            }
-
+            // "%s#%s#%d" % (module, symbol, offset)
+            string[] properties = response.Split("#");
+            SSymbolNameAndDisplacement result = new SSymbolNameAndDisplacement();
+            result.Module = properties[0];
+            result.Name = properties[1];
+            result.Displacement = UInt64.Parse(properties[2]);
 
             if (result.Name.StartsWith("vtable for ")) {
                 result.Name = result.Name.Substring("vtable for ".Length) + "::`vftable'";
