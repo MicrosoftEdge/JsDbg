@@ -126,8 +126,18 @@ def FormatModule(module):
 class SFieldResult:
     # extra_bitoffset allows handling anonymous unions correctly
     def __init__(self, field, extra_bitoffset=0):
-        self.bitOffset = (field.bitpos + extra_bitoffset) % 8 if hasattr(field, 'bitpos') else -1
-        self.offset = (field.bitpos + extra_bitoffset) / 8 if hasattr(field, 'bitpos') else -1
+        if hasattr(field, 'bitpos'):
+            # If this is a bitfield, we adjust offset and bitOffset to be aligned
+            # according to type.sizeof, because JsDbg's memory cache does not
+            # handle unaligned loads.
+            # Otherwise we assume the compiler aligned it correctly.
+            bitpos = field.bitpos + extra_bitoffset
+            bitsize = field.type.sizeof * 8 if field.bitsize else 8
+            self.bitOffset = bitpos % bitsize
+            self.offset = (bitpos - self.bitOffset) / 8
+        else:
+            self.bitOffset = -1
+            self.offset = -1
         self.bitCount = field.bitsize
         self.size = field.type.sizeof
         self.fieldName = field.name
