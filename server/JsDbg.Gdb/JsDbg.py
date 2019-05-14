@@ -31,16 +31,15 @@ class JsDbg:
     def __init__(self):
         self.showStderr = True
         self.verbose = False
-        homeDir = os.path.expanduser("~")
-        # Check if the binary exists in ~/jsdbg (e.g. the user extracted
-        # the package from create_package.sh in ~)
-        if os.path.exists(homeDir + "/jsdbg/JsDbg.Gdb"):
-            execPath = homeDir + "/jsdbg/JsDbg.Gdb"
-            extensionsPath = homeDir + "/jsdbg/extensions"
+        rootDir = os.path.dirname(os.path.abspath(__file__))
+        # Check if the binary and extensions exist next to this script.
+        if os.path.exists(rootDir + "/JsDbg.Gdb") and os.path.exists(rootDir + "/extensions"):
+            execPath = rootDir + "/JsDbg.Gdb"
+            extensionsPath = rootDir + "/extensions"
         else:
-            # Assume a development environment with the git repository in ~/JsDbg
-            execPath = homeDir + "/JsDbg/server/JsDbg.Gdb/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb"
-            extensionsPath = homeDir + "/JsDbg/extensions"
+            # Assume we're in a checkout.
+            execPath = rootDir + "/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb"
+            extensionsPath = rootDir + "/../../extensions"
         self.proc = subprocess.Popen([execPath, extensionsPath], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         def stderrThreadProc():

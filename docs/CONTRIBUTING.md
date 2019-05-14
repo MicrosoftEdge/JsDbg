@@ -38,7 +38,6 @@ sys.path.insert(0, "<your home directory>/JsDbg/server/JsDbg.Gdb")
 import JsDbg
 end
 ```
-5. If you cloned into `~/JsDbg` it should find the binary and extensions directory automatically; otherwise you will have to edit `JsDbg.py` and update the path in the `execPath` and `extensionsPath` variables in the `__init__` function of `JsDbg`.
 
 ### Running JsDbg
 
