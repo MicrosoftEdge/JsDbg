@@ -82,7 +82,7 @@ var Chromium = null;
             _help_BrowserProcessEquivalentModules: {
                 description: "List of modules used in the Chromium browser process.",
             },
-            BrowserProcessEquivalentModules: ["msedge", "accessibility", "chrome"],
+            BrowserProcessEquivalentModules: ["accessibility"],
 
             _help_GpuProcessEquivalentModules: {
                 description: "List of modules used in the Chromium gpu process.",
@@ -92,7 +92,8 @@ var Chromium = null;
             _help_MultiProcessModules: {
                 description: "List of modules used in multiple Chromium processes.",
             },
-            MultiProcessModules: ["msedge_child", "chrome_child", "content", "content_shell", "browser_tests", "content_browsertests"],
+            // chrome_child and msedge_child are only used on Windows, so chrome and msedge are in here as well.
+            MultiProcessModules: ["msedge_child", "chrome_child", "content", "content_shell", "browser_tests", "content_browsertests", "chrome", "msedge"],
         };
 
         function setTargetProcess(targetProcessName) {
@@ -109,9 +110,9 @@ var Chromium = null;
                         console.assert(false);
                     }
                 }
-    
+
                 currentTargetProcessName = targetProcessName;
-    
+
                 if (currentTargetProcessName) {
                     if (currentTargetProcessName == Chromium.BrowserProcessName) {
                         SyntheticModules.AddEquivalentModules(Chromium.BrowserProcessSyntheticModuleName, ...Chromium.MultiProcessModules);
