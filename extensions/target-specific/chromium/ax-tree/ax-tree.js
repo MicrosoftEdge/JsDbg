@@ -75,7 +75,7 @@ Loader.OnLoad(function() {
             .then(null, (error) => {
                 var errorMessage = ErrorMessages.CreateErrorsList(error) +
                     ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium browser process"),
-                    "Browser accessibility settings (chrome://accessibility) have not been set.",
+                    "'Native accessibility API support' and 'Web accessibility' settings have not been set in chrome://accessibility.",
                     ErrorMessages.SymbolsUnavailable);
                 return Promise.reject(errorMessage);
             });
