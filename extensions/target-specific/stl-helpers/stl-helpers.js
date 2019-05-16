@@ -131,9 +131,11 @@ DbgObject.AddArrayField(
     (map) => map.f("__tree_").then((tree) => {
         var fromType = map.type.templateParameters()[0];
         var toType = map.type.templateParameters()[1];
-        const is_cr_prefix = map.type._name.indexOf("__Cr") !== -1;
+        var is_cr_prefix = map.type._name.indexOf("__Cr") !== -1;
         var parameter_separator = is_cr_prefix ? ' ' : '';
-        var nodeTypeName = `std::__(Cr|1)::__tree_node<std::__(Cr|1)::__value_type<${fromType},${parameter_separator}${toType}>,${parameter_separator}void*>`;
+        var pointer_separator = is_cr_prefix ? '' : ' ';
+        var prefix = map.type.name().match(/^std::(__[a-zA-Z0-9]+)/)[0];
+        var nodeTypeName = `${prefix}::__tree_node<${prefix}::__value_type<${fromType},${parameter_separator}${toType}>,${parameter_separator}void${pointer_separator}*>`;
         var nodeType = new DbgObjectType(nodeTypeName, tree.type);
         return tree.f("__pair3_.__value_").val().then((size) => {
             return Promise.map(tree.f("__begin_node_").as(nodeType).list(nextRbTreeNode, null, size), (node) => {
@@ -193,10 +195,10 @@ DbgObject.AddArrayField(
             var fromType = map.type.templateParameters()[0];
             var toType = map.type.templateParameters()[1];
             const is_cr_prefix = table.type._name.indexOf("__Cr") !== -1;
-            var stl_prefix = is_cr_prefix ? 'Cr' : '1';
             var pointer_separator = is_cr_prefix ? '' : ' ';
             var parameter_separator = is_cr_prefix ? ' ' : '';
-            var nodeTypeName = `std::__${stl_prefix}::__hash_node<std::__${stl_prefix}::__hash_value_type<${fromType},${parameter_separator}${toType}>,${parameter_separator}void${pointer_separator}*>`;
+            var prefix = map.type.name().match(/^std::(__[a-zA-Z0-9]+)/)[0];
+            var nodeTypeName = `${prefix}::__hash_node<${prefix}::__hash_value_type<${fromType},${parameter_separator}${toType}>,${parameter_separator}void${pointer_separator}*>`;
             var nodeType = DbgObjectType(nodeTypeName, table.type);
             return map.f("__table_.__p1_.__value_.__next_").list("__next_").map(
                 (elem) => elem.as(nodeType).f("__value_.__cc"));
