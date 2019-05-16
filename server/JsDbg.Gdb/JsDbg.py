@@ -422,13 +422,14 @@ def WriteMemoryBytes(pointer, hexString):
     inferior.write_memory(pointer, byteString)
 
 def GetAttachedProcesses():
-    return [inferior.pid for inferior in gdb.inferiors()]
+    processes = ', '.join(["%d" % (inferior.pid) for inferior in gdb.inferiors()])
+    return '[%s]' % (processes)
 
 def GetCurrentProcessThreads():
     return [thread.ptid[2] or thread.ptid[1] for thread in gdb.selected_inferior().threads()]
 
 def GetTargetProcess():
-    return gdb.selected_inferior().pid
+    return "%d" % (gdb.selected_inferior().pid)
 
 def GetTargetThread():
     thread = gdb.selected_thread()
