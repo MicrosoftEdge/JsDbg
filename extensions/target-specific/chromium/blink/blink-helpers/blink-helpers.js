@@ -340,6 +340,10 @@ Loader.OnLoad(function() {
         return layoutObjectChildList.f("first_child_").list("next_").vcast();
     }));
 
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::LayoutObject"), "Layer", Chromium.RendererProcessType("blink::PaintLayer"), UserEditableFunctions.Create((layoutObject) => {
+        return layoutObject.f("fragment_.rare_data_").F("Object").f("layer").F("Object")
+    }));
+
     DbgObject.AddArrayField(
         (type) => type.name().match(/^blink::InlineBoxList<(.*)>$/) != null,
         "entries_",
