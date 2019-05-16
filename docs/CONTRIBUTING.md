@@ -8,7 +8,7 @@ Thank you for your interest in contributing to JsDbg! Code contributations, as w
 
 * [Git](https://git-scm.com/)
 * [GitHub account](https://github.com/join)
-* [Visual Studio (VS) 2017](https://visualstudio.microsoft.com/downloads/)
+* [Visual Studio (VS) 2017 or 2019](https://visualstudio.microsoft.com/downloads/)
 
 ### Getting the source
 The JsDbg source can be obtained from the [JsDbg repository on GitHub](https://aka.ms/jsdbg). The URL for cloning the repository is: `https://github.com/MicrosoftEdge/JsDbg.git`.
