@@ -50,6 +50,10 @@ Loader.OnLoad(function() {
         return address.mod(PAGE_SIZE).divide(size);
     }
 
+    function isUnaligned(address, size) {
+        return !address.mod(size).isZero();
+    }
+
     function Uint64Viewer(arrayBuffer) {
         this.view = new Uint32Array(arrayBuffer);
         this.length = this.view.length / 2;
@@ -149,7 +153,10 @@ Loader.OnLoad(function() {
         address = new PointerMath.Pointer(address).value();
 
         var viewer = getArrayViewer(size, isUnsigned, isFloat);
-        if (!loadPage(getPage(address), viewer, function(view) {
+        // Typed arrays do not support unaligned memory access. For simplicity,
+        // we just bypass the cache in those cases.
+        if (isUnaligned(address, size) ||
+            !loadPage(getPage(address), viewer, function(view) {
                 if (view.error) {
                     // Got an error, fallback to an uncached read.
                     JsDbg.ReadNumber(address, size, isUnsigned, isFloat, callback);
@@ -203,7 +210,10 @@ Loader.OnLoad(function() {
 
         var viewer = getArrayViewer(itemSize, isUnsigned, isFloat);
         var pagesToRequest = calculatePagesForArray(address, itemSize, count);
-        var canUseCache = requestPages(pagesToRequest, viewer, function (views) {
+        // Typed arrays do not support unaligned memory access. For simplicity,
+        // we just bypass the cache in those cases.
+        var canUseCache = !isUnaligned(address, itemSize) &&
+            requestPages(pagesToRequest, viewer, function (views) {
             // All the pages that the array spans have been loaded in.
             var result = [];
 
