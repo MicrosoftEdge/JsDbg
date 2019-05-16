@@ -245,24 +245,34 @@ def GetAllFields(module, type, includeBaseTypes):
 
     return resultFields
 
+
 # extra_bitoffset is used when we call this function recursively in multiple
 # inheritance cases.
-def GetBaseTypes(module, type, extra_bitoffset=0):
+def GetBaseTypesFromGdbType(module, type, extra_bitoffset=0):
     try:
-        t = gdb.lookup_type(type)
-        fields = t.fields()
+        fields = type.fields()
     except:
-        # Type is a base type?
-        return [SBaseTypeResult(module, type, 0)]
+        # Type does not have fields (not a struct/class/union)
+        return [SBaseTypeResult(module, type.name, 0)]
 
     resultFields = []
     for field in fields:
         if not field.is_base_class:
             continue
         resultFields.append(SBaseTypeResult(module, field.type.name, (extra_bitoffset + field.bitpos) / 8))
-        resultFields.extend(GetBaseTypes(module, field.type.name, extra_bitoffset + field.bitpos))
+        resultFields.extend(GetBaseTypesFromGdbType(module, field.type, extra_bitoffset + field.bitpos))
 
     return resultFields
+
+
+def GetBaseTypes(module, type_name):
+    try:
+        t = gdb.lookup_type(type_name)
+    except:
+        # Type is a base type?
+        return [SBaseTypeResult(module, type_name, 0)]
+
+    return GetBaseTypesFromGdbType(module, t)
 
 def IsTypeEnum(module, type):
     t = gdb.lookup_type(type)
