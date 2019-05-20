@@ -32,6 +32,7 @@ namespace JsDbg.WinDbg {
             string remoteString;
             if (args.Length < 1 || args[0] == "/ask") {
                 // A debugger string wasn't specified.  Prompt for a debug string instead.
+                Console.WriteLine("You can run the following command to create a remote debugging server in WinDbg: '.server npipe:pipe=jsdbg'");
                 Console.Write("Please specify a debug remote string (e.g. npipe:Pipe=foo,Server=bar):");
                 remoteString = Console.ReadLine().Trim();
 
