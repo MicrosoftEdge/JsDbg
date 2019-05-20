@@ -73,7 +73,7 @@ Loader.OnLoad(function() {
     });
 
     NGPhysicalFragmentTree.Renderer.addNameRenderer(Chromium.RendererProcessType("blink::NGLinkStorage"), (storage) => {
-        return storage.f("offset").desc().then((offset) => `NGLinkStorage (offset ${offset})`);
+        return storage.f("offset").desc().then((offset) => `<span style="color: grey;">NGLinkStorage (offset ${offset})<span>`);
     });
 
     DbgObject.AddAction(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "NGPhysicalFragmentTree", (fragment) => {
