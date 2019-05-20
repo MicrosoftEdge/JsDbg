@@ -32,6 +32,9 @@ namespace JsDbg.VisualStudio {
         }
 
         public static RestartReason CheckForUpdates(string identifier, string updateUrl) {
+            // Don't check for updates on non-DEPLOY builds; the URLs don't work and it seems
+            // undesirable anyway.
+#if DEPLOY
             IVsExtensionManager extensionManager = Package.GetGlobalService(typeof(SVsExtensionManager)) as IVsExtensionManager;
             IInstalledExtension installedExtension = extensionManager.GetInstalledExtension(identifier);
             if (installedExtension == null) {
@@ -63,7 +66,7 @@ namespace JsDbg.VisualStudio {
                     throw;
                 }
             }
-
+#endif
             return RestartReason.None;
         }
 
