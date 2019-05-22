@@ -68,12 +68,14 @@ Loader.OnLoad(function() {
         return fragment.array("children_");
     });
 
-    NGPhysicalFragmentTree.Tree.addChildren(Chromium.RendererProcessType("blink::NGLinkStorage"), (link) => {
+    // NGLinkStorage is the old name for NGLink
+    NGPhysicalFragmentTree.Tree.addChildren((type) => type.name().match(/^blink::NGLink(Storage)?$/), (link) => {
         return fragmentToConcreteType(link.f("fragment"));
     });
 
-    NGPhysicalFragmentTree.Renderer.addNameRenderer(Chromium.RendererProcessType("blink::NGLinkStorage"), (storage) => {
-        return storage.f("offset").desc().then((offset) => `<span style="color: grey;">NGLinkStorage (offset ${offset})<span>`);
+    // NGLinkStorage is the old name for NGLink
+    NGPhysicalFragmentTree.Renderer.addNameRenderer((type) => type.name().match(/^blink::NGLink(Storage)?$/), (link) => {
+        return link.f("offset").desc().then((offset) => `<span style="color: grey;">${link.type.name()} (offset ${offset})</span>`);
     });
 
     DbgObject.AddAction(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "NGPhysicalFragmentTree", (fragment) => {
