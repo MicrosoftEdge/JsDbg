@@ -575,7 +575,17 @@ Loader.OnLoad(function() {
       });
     }));
 
-    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "children_", Chromium.RendererProcessType("blink::NGLinkStorage"), UserEditableFunctions.Create((fragment) => {
+    DbgObject.AddArrayField(
+        Chromium.RendererProcessType("blink::NGPhysicalFragment"),
+        "children_",
+        (type) => {
+            // Older builds use NGLinkStorage, newer builds use NGLink -- so
+            // just get the actual type of the field, similar to stl-helpers.js
+            var box_type = new DbgObjectType("blink::NGPhysicalBoxFragment", type);
+            var dummyFragment = DbgObject.create(box_type, 0);
+            return dummyFragment.f("buffer_").then((buf) => buf.type);
+        },
+        UserEditableFunctions.Create((fragment) => {
         return fragment.F("[as container fragment]").then((container) => {
             if (!container.isNull())
                 return container.f("buffer_").array(container.f("num_children_"));
