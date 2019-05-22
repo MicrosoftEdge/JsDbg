@@ -60,7 +60,8 @@ Loader.OnLoad(function() {
         arguments: [
             {name:"typeOrFn", type:"DbgObjectType/function(DbgObjectType) -> bool", description: "The type to extend (or a predicate that matches the type to extend)."},
             {name:"name", type:"string", description:"The name of the array."},
-            {name:"resultingTypeOrFn", type:"DbgObjectType/function(DbgObjectType) -> string", description: "The type of the items in the resulting array."},
+            {name:"resultingTypeOrFn", type:"DbgObjectType/function(DbgObjectType) -> string/DbgObjectType",
+             description: "The type of the items in the resulting array. If this is a function, it will be given the actual DbgObjectType of the container and needs to return the type or typename of the elements of the array."},
             {name:"getter", type:"function(DbgObject) -> (promised) array of DbgObjects", description: "A function that retrieves the array."}
         ]
     }
