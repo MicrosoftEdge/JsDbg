@@ -26,7 +26,8 @@ Loader.OnLoad(function () {
 
         // Normalize type name.
         this._name = name.trim();  // strip outer whitespace
-        this._name = this._name.replace(/^const\s+/, "");  // remove leading "const" and whitespace
+        this._name = this._name.replace(/&/g, "*"); // treat references like pointers
+        this._name = this._name.replace(/^((const|volatile)\s+)+/g, "");  // remove leading "const" and whitespace
         this._name = this._name.replace(/\s+const$/, "");  // remove trailing "const" and whitespace
         this._name = this._name.replace(/(?:\s+const)?\s+(?=\*+$)/, "");  // remove whitespace and possible "const" before any "*"s
 
