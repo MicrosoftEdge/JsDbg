@@ -23,23 +23,7 @@ Loader.OnLoad(function() {
             }
         },
         GetRoots: function() {
-            return BlinkHelpers.GetDocuments()
-            .then((documents) => {
-                if (documents.length == 0) {
-                    var errorMessage = ErrorMessages.CreateErrorsList("No documents found.") +
-                        ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"),
-                            "The debuggee has been broken into prior to <i>g_frame_map</i> being populated.",
-                            ErrorMessages.SymbolsUnavailable) +
-                        "You may still specify a blink::LayoutObject explicitly.";
-                    return Promise.reject(errorMessage);
-                } else {
-                    return Promise.map(documents, (document) => document.F("node_layout_data_").f("layout_object_").vcast());
-                }
-            }, (error) => {
-                var errorMessage = ErrorMessages.CreateErrorsList(error) +
-                    ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"), ErrorMessages.SymbolsUnavailable);
-                return Promise.reject(errorMessage);
-            });
+            return BlinkHelpers.GetRootLayoutObjects("blink::LayoutObject");
         },
         DefaultTypes: [Chromium.RendererProcessType("blink::LayoutObject")]
     };

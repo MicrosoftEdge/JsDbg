@@ -344,6 +344,10 @@ Loader.OnLoad(function() {
         return layoutObject.f("fragment_.rare_data_").F("Object").f("layer").F("Object")
     }));
 
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::LayoutBox"), "NGPhysicalFragment", Chromium.RendererProcessType("blink::NGPhysicalFragment"), UserEditableFunctions.Create((layoutBox) => {
+        return layoutBox.f("cached_layout_result_.ptr_.physical_fragment_.ptr_");
+    }));
+
     DbgObject.AddArrayField(
         (type) => type.name().match(/^blink::InlineBoxList<(.*)>$/) != null,
         "entries_",
@@ -630,6 +634,25 @@ Loader.OnLoad(function() {
             })
             .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_.raw_").f("dom_window_.raw_").F("document")))
             .then((sortedDocuments) => Promise.filter(sortedDocuments, (document) => !document.isNull()))
+        },
+        GetRootLayoutObjects: (...typenames_for_error) => {
+            return BlinkHelpers.GetDocuments()
+            .then((documents) => {
+                if (documents.length == 0) {
+                    var errorMessage = ErrorMessages.CreateErrorsList("No documents found.") +
+                        ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"),
+                            "The debuggee has been broken into prior to <i>g_frame_map</i> being populated.",
+                            ErrorMessages.SymbolsUnavailable) +
+                        `You may still specify a ${typenames_for_error.join(' or ')} explicitly.`;
+                    return Promise.reject(errorMessage);
+                } else {
+                    return Promise.map(documents, (document) => document.F("node_layout_data_").f("layout_object_").vcast());
+                }
+            }, (error) => {
+                var errorMessage = ErrorMessages.CreateErrorsList(error) +
+                    ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"), ErrorMessages.SymbolsUnavailable);
+                return Promise.reject(errorMessage);
+            });
         },
     };
 
