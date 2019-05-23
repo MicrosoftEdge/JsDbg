@@ -21,7 +21,7 @@ Loader.OnLoad(function() {
     function renderDbgObject(object, renderer) {
         return Promise.all([renderer.createRepresentation(object, null, [], true), object.actions()])
         .thenAll(function (container, actions) {
-            actions.forEach(function (action) { 
+            actions.forEach(function (action) {
                 if (typeof action.action == "string") {
                     var link = document.createElement("a");
                     link.className = "action-button";
@@ -99,8 +99,7 @@ Loader.OnLoad(function() {
                 frame.locals.forEach(function (value, key) {
                     var renderer = new DbgObjectTree.DbgObjectRenderer();
                     renderer.addNameRenderer(
-                        value.module,
-                        function() { return true; },
+                        value.type,
                         function (object) {
                             return key;
                         }
