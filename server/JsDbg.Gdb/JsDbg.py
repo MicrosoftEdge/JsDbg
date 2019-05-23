@@ -344,7 +344,11 @@ def GetSymbolsInStackFrame(instructionAddress, stackAddress, frameAddress):
         frame = frame.older()
 
     if frame:
-        block = frame.block()
+        try:
+            block = frame.block()
+        except:
+            # We are probably missing symbols for this frame.
+            return []
         syms = []
         while block and not block.is_global and not block.is_static:
             syms = syms + [s for s in block if s.addr_class != gdb.SYMBOL_LOC_TYPEDEF]
