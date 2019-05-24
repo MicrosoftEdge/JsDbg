@@ -17,7 +17,7 @@ JsDbg currently supports WinDbg and the Visual Studio debugger on Windows. Suppo
 
 ### Usage
 
-1. Attach WinDbg to the desired Microsoft Edge or Chromium process.
+1. Attach WinDbg to a running process or memory dump of Microsoft Edge/Chromium.
 
 2. In the WinDbg command window, run `!jsdbg.jsdbg`, or `.load jsdbg.dll` followed by `!jsdbg`.
 
@@ -31,7 +31,7 @@ JsDbg currently supports WinDbg and the Visual Studio debugger on Windows. Suppo
 
 ### Usage
 
-1. Attach the VS debugger to the desired Microsoft Edge or Chromium process.
+1. Attach the VS debugger to a running process or memory dump of Microsoft Edge/Chromium.
 
 2. Break into the running process using the `Pause` icon on the Debug toolbar, or `Debug -> Break All`.
 
