@@ -38,9 +38,9 @@ Loader.OnLoad(function() {
                 .thenAll(function (frameNames, locals) {
                     return frameNames.map(function (frame, i) {
                         return {
-                            module: DbgObject.NormalizeModule(frame.module),
-                            method: frame.name,
-                            offset: frame.displacement,
+                            module: frame ? frame.module : "??",
+                            method: frame ? frame.name : "??",
+                            offset: frame ? frame.displacement : 0,
                             instructionAddress: stackFrames[i].instructionAddress,
                             stackAddress: stackFrames[i].stackAddress,
                             frameAddress: stackFrames[i].frameAddress,
