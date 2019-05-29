@@ -330,6 +330,64 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::HTMLInputElement"), "value", false, UserEditableFunctions.Create((inputElement) => {
+        return inputElement.f("input_type_.raw_").desc("value_mode_")
+        .then((valueMode) => {
+            switch (valueMode) {
+                case "filename":
+                    return "";
+                case "default":
+                case "default/on":
+                    return Promise.filter(inputElement.array("attributes_"), (attribute) => {
+                        return attribute.f("name_").desc()
+                        .then((attributeName) => (attributeName == "value"));
+                    })
+                    .then((attribute) => {
+                        if (attribute.length > 0) {
+                            console.assert(attribute.length == 1);
+                            return attribute[0].f("value_")
+                            .then((valueAttr) => ((valueMode === "default") || !valueAttr.isNull()) ? valueAttr.desc() : "on");
+                        } else {
+                            return (valueMode === "default") ? "" : "on";
+                        }
+                    });
+                case "value":
+                    return inputElement.f("non_attribute_value_").desc();
+                default:
+                    throw new Error("Unexpected value mode.");
+            }
+        });
+    }));
+
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::InputType"), "value_mode_", false, UserEditableFunctions.Create((inputType) => {
+        return Promise.any([inputType.dcast(Chromium.RendererProcessType("blink::BaseButtonInputType")),
+                            inputType.dcast(Chromium.RendererProcessType("blink::BaseCheckableInputType")),
+                            inputType.dcast(Chromium.RendererProcessType("blink::BaseTemporalInputType")),
+                            inputType.dcast(Chromium.RendererProcessType("blink::ColorInputType")),
+                            inputType.dcast(Chromium.RendererProcessType("blink::FileInputType")),
+                            inputType.dcast(Chromium.RendererProcessType("blink::HiddenInputType")),
+                            inputType.dcast(Chromium.RendererProcessType("blink::RangeInputType")),
+                            inputType.dcast(Chromium.RendererProcessType("blink::TextFieldInputType"))])
+        .then((dcastedInputType) => {
+            switch (dcastedInputType.type.name().replace(/^(blink::)/, "")) {
+                case "BaseButtonInputType":
+                case "HiddenInputType":
+                    return "default";
+                case "BaseCheckableInputType":
+                    return "default/on";
+                case "BaseTemporalInputType":
+                case "ColorInputType":
+                case "RangeInputType":
+                case "TextFieldInputType":
+                    return "value";
+                case "FileInputType":
+                    return "filename";
+                default:
+                    throw new Error("Unexpected input type.");
+            }
+        });
+    }));
+
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutObject"), "child_objects_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((layoutObject) => {
         return layoutObject.vcast().f("children_")
         .then((layoutObjectChildList) => layoutObjectChildList.array("entries_"),
@@ -341,7 +399,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::LayoutObject"), "Layer", Chromium.RendererProcessType("blink::PaintLayer"), UserEditableFunctions.Create((layoutObject) => {
-        return layoutObject.f("fragment_.rare_data_").F("Object").f("layer").F("Object")
+        return layoutObject.f("fragment_.rare_data_").F("Object").f("layer").F("Object");
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::LayoutBox"), "NGPhysicalFragment", Chromium.RendererProcessType("blink::NGPhysicalFragment"), UserEditableFunctions.Create((layoutBox) => {
