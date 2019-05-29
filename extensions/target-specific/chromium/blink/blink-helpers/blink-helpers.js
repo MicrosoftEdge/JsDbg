@@ -388,6 +388,16 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::ColorInputType"), "color_", false, UserEditableFunctions.Create((colorInputType) => {
+        return colorInputType.f("element_.raw_").desc("value")
+        .then((hexValue) => {
+            var colorValue = parseInt(hexValue.substr(1), 16);
+            var rgbChannels = [(colorValue >> 16) & 0xFF, (colorValue >> 8) & 0xFF, colorValue & 0xFF];
+            var rgbString = "rgb(" + rgbChannels[0].toString() + ", " + rgbChannels[1].toString() + ", " + rgbChannels[2].toString() + ")";
+            return "<div style='display:inline-block;border:thin solid black;width:2ex;height:1ex;background-color:" + rgbString + ";'></div> " + rgbString;
+        });
+    }));
+
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutObject"), "child_objects_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((layoutObject) => {
         return layoutObject.vcast().f("children_")
         .then((layoutObjectChildList) => layoutObjectChildList.array("entries_"),
