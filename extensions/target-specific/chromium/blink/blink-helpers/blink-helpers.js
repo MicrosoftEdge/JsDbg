@@ -331,7 +331,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::HTMLInputElement"), "value", false, UserEditableFunctions.Create((inputElement) => {
-        return inputElement.f("input_type_.raw_").desc("value_mode_")
+        return inputElement.F("specialized_input_type_").desc("value_mode_")
         .then((valueMode) => {
             switch (valueMode) {
                 case "filename":
@@ -359,34 +359,18 @@ Loader.OnLoad(function() {
         });
     }));
 
-    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::InputType"), "value_mode_", false, UserEditableFunctions.Create((inputType) => {
-        return Promise.any([inputType.dcast(Chromium.RendererProcessType("blink::BaseButtonInputType")),
-                            inputType.dcast(Chromium.RendererProcessType("blink::BaseCheckableInputType")),
-                            inputType.dcast(Chromium.RendererProcessType("blink::BaseTemporalInputType")),
-                            inputType.dcast(Chromium.RendererProcessType("blink::ColorInputType")),
-                            inputType.dcast(Chromium.RendererProcessType("blink::FileInputType")),
-                            inputType.dcast(Chromium.RendererProcessType("blink::HiddenInputType")),
-                            inputType.dcast(Chromium.RendererProcessType("blink::RangeInputType")),
-                            inputType.dcast(Chromium.RendererProcessType("blink::TextFieldInputType"))])
-        .then((dcastedInputType) => {
-            switch (dcastedInputType.type.name().replace(/^(blink::)/, "")) {
-                case "BaseButtonInputType":
-                case "HiddenInputType":
-                    return "default";
-                case "BaseCheckableInputType":
-                    return "default/on";
-                case "BaseTemporalInputType":
-                case "ColorInputType":
-                case "RangeInputType":
-                case "TextFieldInputType":
-                    return "value";
-                case "FileInputType":
-                    return "filename";
-                default:
-                    throw new Error("Unexpected input type.");
-            }
-        });
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::HTMLInputElement"), "specialized_input_type_", Chromium.RendererProcessType("blink::InputType"), UserEditableFunctions.Create((inputElement) => {
+        return inputElement.f("input_type_.raw_").vcast();
     }));
+
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::BaseButtonInputType"), "value_mode_", false, () => "default");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::BaseCheckableInputType"), "value_mode_", false, () => "default/on");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::BaseTemporalInputType"), "value_mode_", false, () => "value");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::ColorInputType"), "value_mode_", false, () => "value");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::FileInputType"), "value_mode_", false, () => "filename");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::HiddenInputType"), "value_mode_", false, () => "default");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::RangeInputType"), "value_mode_", false, () => "value");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::TextFieldInputType"), "value_mode_", false, () => "value");
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::ColorInputType"), "color_", false, UserEditableFunctions.Create((colorInputType) => {
         return colorInputType.f("element_.raw_").desc("value")
