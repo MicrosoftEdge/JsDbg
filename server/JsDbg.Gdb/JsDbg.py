@@ -309,10 +309,10 @@ def LookupGlobalSymbol(module, symbol):
 
 
 def GetModuleForName(module):
-  # If we are running under rr, it renames (hardlinks) the executable to
-  # mmap_hardlink_N_foo; allow for that.
-  matches = re.match("^.*/mmap_hardlink_[0-9]+_(.*)$", gdb.current_progspace().filename)
-  if matches and matches.groups()[0] == module:
+  # If we are running under rr, it renames/hardlinks/copies the executable to
+  # a different name; allow for that.
+  matches = re.match("^.*/mmap_(hardlink|pack)_[0-9]+_(.*)$", gdb.current_progspace().filename)
+  if matches and matches.groups()[1] == module:
     return SModule(module, 0)
 
   objfile = None
