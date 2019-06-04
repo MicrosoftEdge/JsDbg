@@ -317,13 +317,13 @@ namespace JsDbg.Gdb {
             foreach (string symString in objects) {
                 // '{%s#%d#%s}' % (self.name, self.symbolResult.pointer, s.symbolResult.type)
                 string[] properties = symString.Split("#");
-                Debug.Assert(properties.Length == 3);
+                Debug.Assert(properties.Length == 4);
                 SNamedSymbol sym = new SNamedSymbol();
-                sym.Name = properties[0];
+                sym.Name = properties[1];
                 sym.Symbol = new SSymbolResult();
-                sym.Symbol.Pointer = UInt64.Parse(properties[1]);
-                sym.Symbol.Module = "N/A";
-                sym.Symbol.Type = properties[2];
+                sym.Symbol.Pointer = UInt64.Parse(properties[2]);
+                sym.Symbol.Module = properties[0];
+                sym.Symbol.Type = properties[3];
 
                 result.Add(sym);
             }

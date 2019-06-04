@@ -122,6 +122,14 @@ def FormatModule(module):
     return re.match("^(lib)?(.*?)(.so)?[.0-9]*$", module).groups()[1]
 
 
+def ModuleForAddress(pointer):
+    module = gdb.solib_name(pointer)
+    if not module:
+        # If it exists, it's in the main binary
+        module = gdb.current_progspace().filename
+    return FormatModule(module)
+
+
 class SFieldResult:
     # extra_bitoffset allows handling anonymous unions correctly
     def __init__(self, field, extra_bitoffset=0):
@@ -180,9 +188,10 @@ class SNamedSymbol:
     def __init__(self, symbol, frame):
         self.name = symbol.name
         self.symbolResult = SSymbolResult(symbol, frame)
+        self.module = ModuleForAddress(frame.pc())
 
     def __repr__(self):
-        return '{%s#%d#%s}' % (self.name, self.symbolResult.pointer, self.symbolResult.type)
+        return '{%s#%s#%d#%s}' % (self.module, self.name, self.symbolResult.pointer, self.symbolResult.type)
 
 
 class SConstantResult:
@@ -403,12 +412,7 @@ def LookupConstant(module, typename, constantName):
     return str(integral_val)
 
 def LookupSymbolName(pointer):
-    module = gdb.solib_name(pointer)
-    if not module:
-        # If it exists, it's in the main binary
-        module = gdb.current_progspace().filename
-    module = FormatModule(module)
-
+    module = ModuleForAddress(pointer)
     val = gdb.parse_and_eval("(void*)%d" % pointer)
     # Result looks like: '0x4004f1 <twiddle<int []>(int)+17>'
     # If not found, just looks like '0x4004f1'
