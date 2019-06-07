@@ -111,7 +111,8 @@ def FormatType(symbol_type):
         # No good way to interop a function pointer back to python; lie and say it's a void*
         return "void *"
     else:
-        return str(t)
+        typename = str(t)
+        return re.sub(r'^(class|struct|enum|union) ', '', typename)
 
 
 # Input is /foo/bar/libfoo.so, or /foo/bar/some_executable
