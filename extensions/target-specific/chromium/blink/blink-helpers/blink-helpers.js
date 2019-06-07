@@ -330,6 +330,58 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::HTMLInputElement"), "value", false, UserEditableFunctions.Create((inputElement) => {
+        return inputElement.F("specialized_input_type_").desc("value_mode_")
+        .then((valueMode) => {
+            switch (valueMode) {
+                case "filename":
+                    return "";
+                case "default":
+                case "default/on":
+                    return Promise.filter(inputElement.array("attributes_"), (attribute) => {
+                        return attribute.f("name_").desc()
+                        .then((attributeName) => (attributeName == "value"));
+                    })
+                    .then((attribute) => {
+                        if (attribute.length > 0) {
+                            console.assert(attribute.length == 1);
+                            return attribute[0].f("value_")
+                            .then((valueAttr) => ((valueMode === "default") || !valueAttr.isNull()) ? valueAttr.desc() : "on");
+                        } else {
+                            return (valueMode === "default") ? "" : "on";
+                        }
+                    });
+                case "value":
+                    return inputElement.f("non_attribute_value_").desc();
+                default:
+                    throw new Error("Unexpected value mode.");
+            }
+        });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::HTMLInputElement"), "specialized_input_type_", Chromium.RendererProcessType("blink::InputType"), UserEditableFunctions.Create((inputElement) => {
+        return inputElement.f("input_type_.raw_").vcast();
+    }));
+
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::BaseButtonInputType"), "value_mode_", false, () => "default");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::BaseCheckableInputType"), "value_mode_", false, () => "default/on");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::BaseTemporalInputType"), "value_mode_", false, () => "value");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::ColorInputType"), "value_mode_", false, () => "value");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::FileInputType"), "value_mode_", false, () => "filename");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::HiddenInputType"), "value_mode_", false, () => "default");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::RangeInputType"), "value_mode_", false, () => "value");
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::TextFieldInputType"), "value_mode_", false, () => "value");
+
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::ColorInputType"), "color_", false, UserEditableFunctions.Create((colorInputType) => {
+        return colorInputType.f("element_.raw_").desc("value")
+        .then((hexValue) => {
+            var colorValue = parseInt(hexValue.substr(1), 16);
+            var rgbChannels = [(colorValue >> 16) & 0xFF, (colorValue >> 8) & 0xFF, colorValue & 0xFF];
+            var rgbString = "rgb(" + rgbChannels[0].toString() + ", " + rgbChannels[1].toString() + ", " + rgbChannels[2].toString() + ")";
+            return "<div style='display:inline-block;border:thin solid black;width:2ex;height:1ex;background-color:" + rgbString + ";'></div> " + rgbString;
+        });
+    }));
+
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutObject"), "child_objects_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((layoutObject) => {
         return layoutObject.vcast().f("children_")
         .then((layoutObjectChildList) => layoutObjectChildList.array("entries_"),
@@ -341,7 +393,11 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::LayoutObject"), "Layer", Chromium.RendererProcessType("blink::PaintLayer"), UserEditableFunctions.Create((layoutObject) => {
-        return layoutObject.f("fragment_.rare_data_").F("Object").f("layer").F("Object")
+        return layoutObject.f("fragment_.rare_data_").F("Object").f("layer").F("Object");
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::LayoutBox"), "NGPhysicalFragment", Chromium.RendererProcessType("blink::NGPhysicalFragment"), UserEditableFunctions.Create((layoutBox) => {
+        return layoutBox.f("cached_layout_result_.ptr_.physical_fragment_.ptr_");
     }));
 
     DbgObject.AddArrayField(
@@ -575,7 +631,17 @@ Loader.OnLoad(function() {
       });
     }));
 
-    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "children_", Chromium.RendererProcessType("blink::NGLinkStorage"), UserEditableFunctions.Create((fragment) => {
+    DbgObject.AddArrayField(
+        Chromium.RendererProcessType("blink::NGPhysicalFragment"),
+        "children_",
+        (type) => {
+            // Older builds use NGLinkStorage, newer builds use NGLink -- so
+            // just get the actual type of the field, similar to stl-helpers.js
+            var box_type = new DbgObjectType("blink::NGPhysicalBoxFragment", type);
+            var dummyFragment = DbgObject.create(box_type, 0);
+            return dummyFragment.f("buffer_").then((buf) => buf.type);
+        },
+        UserEditableFunctions.Create((fragment) => {
         return fragment.F("[as container fragment]").then((container) => {
             if (!container.isNull())
                 return container.f("buffer_").array(container.f("num_children_"));
@@ -620,6 +686,25 @@ Loader.OnLoad(function() {
             })
             .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_.raw_").f("dom_window_.raw_").F("document")))
             .then((sortedDocuments) => Promise.filter(sortedDocuments, (document) => !document.isNull()))
+        },
+        GetRootLayoutObjects: (...typenames_for_error) => {
+            return BlinkHelpers.GetDocuments()
+            .then((documents) => {
+                if (documents.length == 0) {
+                    var errorMessage = ErrorMessages.CreateErrorsList("No documents found.") +
+                        ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"),
+                            "The debuggee has been broken into prior to <i>g_frame_map</i> being populated.",
+                            ErrorMessages.SymbolsUnavailable) +
+                        `You may still specify a ${typenames_for_error.join(' or ')} explicitly.`;
+                    return Promise.reject(errorMessage);
+                } else {
+                    return Promise.map(documents, (document) => document.F("node_layout_data_").f("layout_object_").vcast());
+                }
+            }, (error) => {
+                var errorMessage = ErrorMessages.CreateErrorsList(error) +
+                    ErrorMessages.CreateErrorReasonsList(ErrorMessages.WrongDebuggee("the Chromium renderer process"), ErrorMessages.SymbolsUnavailable);
+                return Promise.reject(errorMessage);
+            });
         },
     };
 
