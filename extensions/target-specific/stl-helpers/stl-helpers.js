@@ -192,8 +192,9 @@ DbgObject.AddArrayField(
             var toType = map.type.templateParameters()[1];
             const is_cr_prefix = table.type._name.indexOf("__Cr") !== -1;
             var stl_prefix = is_cr_prefix ? 'Cr' : '1';
-            var separator = is_cr_prefix ? '' : ' ';
-            var nodeTypeName = `std::__${stl_prefix}::__hash_node<std::__${stl_prefix}::__hash_value_type<${fromType},${toType}>,void${separator}*>`;
+            var pointer_separator = is_cr_prefix ? '' : ' ';
+            var parameter_separator = is_cr_prefix ? ' ' : '';
+            var nodeTypeName = `std::__${stl_prefix}::__hash_node<std::__${stl_prefix}::__hash_value_type<${fromType},${parameter_separator}${toType}>,${parameter_separator}void${pointer_separator}*>`;
             var nodeType = DbgObjectType(nodeTypeName, table.type);
             return map.f("__table_.__p1_.__value_.__next_").list("__next_").map(
                 (elem) => elem.as(nodeType).f("__value_.__cc"));
