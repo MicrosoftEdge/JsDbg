@@ -198,6 +198,13 @@ DbgObject.AddArrayField(
             var pointer_separator = is_cr_prefix ? '' : ' ';
             var parameter_separator = is_cr_prefix ? ' ' : '';
             var prefix = map.type.name().match(/^std::(__[a-zA-Z0-9]+)/)[0];
+<<<<<<< HEAD
+=======
+            const is_cr_prefix = map.type._name.indexOf("__Cr") !== -1;
+            const stl_prefix = is_cr_prefix ? 'Cr' : '1';
+            const pointer_separator = is_cr_prefix ? '' : ' ';
+            const parameter_separator = is_cr_prefix ? ' ' : '';
+>>>>>>> Fixing merge conflicts
             var nodeTypeName = `${prefix}::__hash_node<${prefix}::__hash_value_type<${fromType},${parameter_separator}${toType}>,${parameter_separator}void${pointer_separator}*>`;
             var nodeType = DbgObjectType(nodeTypeName, table.type);
             return map.f("__table_.__p1_.__value_.__next_").list("__next_").map(
