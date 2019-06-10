@@ -132,7 +132,7 @@ DbgObject.AddArrayField(
         var fromType = map.type.templateParameters()[0];
         var toType = map.type.templateParameters()[1];
         var prefix = map.type.name().match(/^std::(__[a-zA-Z0-9]+)/)[0];
-        var nodeTypeName = `${prefix}::__tree_node<${prefix}::__value_type<${fromType}, ${toType}>, void*>`;
+        var nodeTypeName = `${prefix}::__tree_node<${prefix}::__value_type<${fromType},${toType}>,void *>`;
         var nodeType = new DbgObjectType(nodeTypeName, tree.type);
         return tree.f("__pair3_.__value_").val().then((size) => {
             return Promise.map(tree.f("__begin_node_").as(nodeType).list(nextRbTreeNode, null, size), (node) => {
@@ -192,7 +192,7 @@ DbgObject.AddArrayField(
             var fromType = map.type.templateParameters()[0];
             var toType = map.type.templateParameters()[1];
             var prefix = map.type.name().match(/^std::(__[a-zA-Z0-9]+)/)[0];
-            var nodeTypeName = `${prefix}::__hash_node<${prefix}::__hash_value_type<${fromType}, ${toType}>, void*>`;
+            var nodeTypeName = `${prefix}::__hash_node<${prefix}::__hash_value_type<${fromType},${toType}>,void *>`;
             var nodeType = DbgObjectType(nodeTypeName, table.type);
             return map.f("__table_.__p1_.__value_.__next_").list("__next_").map(
                 (elem) => elem.as(nodeType).f("__value_.__cc"));
@@ -285,5 +285,5 @@ DbgObject.AddTypeDescription(
     (type) => type.name().match(/^std::(__(Cr|1)::)?pair<.*>$/) != null,
     "Pair",
     true,
-    (pair) => Promise.all([pair.f("first").desc(), pair.f("second").desc()]).thenAll((first, second) => `{${first}, ${second}}`)
+    (pair) => Promise.all([pair.f("first").desc(), pair.f("second").desc()]).thenAll((first, second) => `{${first},${second}}`)
 );
