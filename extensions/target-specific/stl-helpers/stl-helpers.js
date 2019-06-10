@@ -131,7 +131,9 @@ DbgObject.AddArrayField(
     (map) => map.f("__tree_").then((tree) => {
         var fromType = map.type.templateParameters()[0];
         var toType = map.type.templateParameters()[1];
-        var nodeTypeName = `std::__(Cr|1)::__tree_node<std::__(Cr|1)::__value_type<${fromType},${toType}>,void*>`;
+        const is_cr_prefix = map.type._name.indexOf("__Cr") !== -1;
+        var parameter_separator = is_cr_prefix ? ' ' : '';
+        var nodeTypeName = `std::__(Cr|1)::__tree_node<std::__(Cr|1)::__value_type<${fromType},${parameter_separator}${toType}>,${parameter_separator}void*>`;
         var nodeType = new DbgObjectType(nodeTypeName, tree.type);
         return tree.f("__pair3_.__value_").val().then((size) => {
             return Promise.map(tree.f("__begin_node_").as(nodeType).list(nextRbTreeNode, null, size), (node) => {
