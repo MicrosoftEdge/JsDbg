@@ -32,14 +32,30 @@ class JsDbg:
         self.showStderr = True
         self.verbose = False
         rootDir = os.path.dirname(os.path.abspath(__file__))
-        # Check if the binary and extensions exist next to this script.
-        if os.path.exists(rootDir + "/JsDbg.Gdb") and os.path.exists(rootDir + "/extensions"):
-            execPath = rootDir + "/JsDbg.Gdb"
-            extensionsPath = rootDir + "/extensions"
-        else:
-            # Assume we're in a checkout.
-            execPath = rootDir + "/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb"
-            extensionsPath = rootDir + "/../../extensions"
+        extensionSearchPath = [
+          rootDir + "/extensions", # from "make package"
+          rootDir + "/../../jsdbg/extensions", # inside a checkout or from "make install"
+        ]
+        execSearchPath = [
+          rootDir + "/JsDbg.Gdb", # from "make package"
+          rootDir + "/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb", # in a checkout
+          rootDir + "/../../../lib/jsdbg/JsDbg.Gdb" # from make install
+        ]
+        extensionsPath = None
+        for path in extensionSearchPath:
+          if os.path.exists(path):
+            extensionsPath = path
+            break
+        execPath = None
+        for path in execSearchPath:
+          if os.path.exists(path):
+            execPath = path
+            break
+        if not extensionsPath:
+            raise Exception("Can't find JsDbg extensions")
+        if not execPath:
+            raise Exception("Can't find JsDbg.Gdb binary")
+
         self.proc = subprocess.Popen([execPath, extensionsPath], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         def stderrThreadProc():
