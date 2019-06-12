@@ -28,14 +28,14 @@ Once you have cloned the JsDbg repository, please follow the steps below to buil
 
 #### Linux
 
-1. Get the [x64 .NET Core SDK binary](https://dotnet.microsoft.com/download) (click the x64 link in the left column in the table at the bottom). If you extract this into a different directory than `~/dotnet`, adjust the instructions below (and if you want to use `create_package.sh`, adjust the path to dotnet in this script).
-2. To build the server, run `~/dotnet/dotnet publish -c Release -r linux-x64` from the `server/JsDbg.Gdb` directory.
-3. The command will tell you where the output is; it should be in `bin/Release/netcoreapp2.1/linux-x64/publish` under the JsDbg.Gdb directory.
-4. Add the following code to your `~/.gdbinit`:
+1. Get the [x64 .NET Core SDK binary](https://dotnet.microsoft.com/download) (click the x64 link in the left column in the table at the bottom).
+2. To build the server, run `make`. If you extracted `dotnet` into a different directory than `~/dotnet`, you need to instead run `make DOTNET=/path/to/your/dotnet/binary`. Alternatively, run `make install` (with DOTNET= as appropriate).
+3. Add the following code to your `~/.gdbinit`:
 ```
 python
 import sys
-sys.path.insert(0, "<your home directory>/JsDbg/server/JsDbg.Gdb")
+# If you ran "make install" above, use /usr/local/share/gdb/python as the path below
+sys.path.insert(0, "<path to your JsDbg checkout>/server/JsDbg.Gdb")
 import JsDbg
 end
 ```
@@ -96,7 +96,7 @@ import importlib
 importlib.reload(JsDbg)
 ```
 
-4. For debugging JsDbg itself, you may want to set verbose to true, either by editing `JsDbg.py` or running `python JsDbg.jsdbg.verbose = True` at the gdb prompt.
+4. For debugging JsDbg itself, you may want to set verbose to True, either by editing `JsDbg.py` or running `python JsDbg.jsdbg.verbose = True` at the gdb prompt.
 
 
 ## Components within JsDbg
