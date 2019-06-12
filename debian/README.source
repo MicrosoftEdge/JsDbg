@@ -1,0 +1,9 @@
+jsdbg for Debian
+---------------
+
+Run "make deb" in the root directory to create a debian package.
+You may have to "git clean -d" first.
+
+
+ -- Christian Biesinger <cbiesinger@google.com>  Tue, 11 Jun 2019 19:42:54 -0500
+
