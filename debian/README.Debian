@@ -1,0 +1,9 @@
+jsdbg for Debian
+---------------
+
+To use, just type "jsdbg" while at a gdb prompt.
+
+See https://github.com/MicrosoftEdge/JsDbg/blob/master/docs/FEATURES.md
+for more information.
+
+ -- Christian Biesinger <cbiesinger@google.com>  Tue, 11 Jun 2019 19:42:54 -0500

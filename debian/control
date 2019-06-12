@@ -1,0 +1,17 @@
+Source: jsdbg
+Section: devel
+Priority: optional
+Maintainer: Christian Biesinger <cbiesinger@google.com>
+Build-Depends: debhelper (>= 10), dotnet-sdk-2.2
+Standards-Version: 4.1.2
+Homepage: https://github.com/MicrosoftEdge/JsDbg
+Vcs-Git: https://github.com/MicrosoftEdge/JsDbg
+Vcs-Browser: https://github.com/MicrosoftEdge/JsDbg
+
+Package: jsdbg
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Recommends: gdb
+Description: Browser-based debugger extensions
+ Extends GDB with a `jsdbg' command that lets you visualize datastructures
+ in a browser and can be extended using JavaScript.
