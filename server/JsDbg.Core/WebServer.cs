@@ -225,10 +225,12 @@ namespace JsDbg.Core {
                         }
                     } catch (HttpListenerException listenerException) {
                         Console.Error.WriteLine("HttpListenerException during request handling: {0}", listenerException.Message);
+                        Console.Error.WriteLine("Stack Trace:\n{0}\n", listenerException.StackTrace);
                     }
                 }
             } catch (Exception ex) {
                 Console.Error.WriteLine("Unhandled exception during request handling: {0}", ex.Message);
+                Console.Error.WriteLine("Stack Trace:\n{0}\n", ex.StackTrace);
             }
         }
 
@@ -238,6 +240,7 @@ namespace JsDbg.Core {
                 context.Response.OutputStream.Close();
             } catch (Exception exception) {
                 Console.Error.WriteLine("Network Exception: {0}", exception.Message);
+                Console.Error.WriteLine("Stack Trace:\n{0}\n", exception.StackTrace);
             }
         }
 
@@ -255,6 +258,7 @@ namespace JsDbg.Core {
                 context.Response.OutputStream.Close();
             } catch (Exception exception) {
                 Console.Error.WriteLine("Network Exception: {0}", exception.Message);
+                Console.Error.WriteLine("Stack Trace:\n{0}\n", exception.StackTrace);
             }
         }
 
@@ -1238,6 +1242,7 @@ namespace JsDbg.Core {
                 return data;
             } catch (Exception exception) {
                 Console.Error.WriteLine("Network Exception: {0}", exception.Message);
+                Console.Error.WriteLine("Stack Trace:\n{0}\n", exception.StackTrace);
                 return null;
             }
         }
