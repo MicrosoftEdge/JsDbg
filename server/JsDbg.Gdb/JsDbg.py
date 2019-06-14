@@ -8,6 +8,7 @@ import re
 import webbrowser
 
 jsdbg = None
+jsdbg_url = None
 last_pid = None
 last_tid = None
 
@@ -56,7 +57,9 @@ class JsDbg:
             # If we get here, the server exited
             print("JsDbg: server exited or crashed. To restart, type 'jsdbg'.")
             global jsdbg
+            global jsdbg_url
             jsdbg = None
+            jsdbg_url = None
 
         def mainThreadProc():
             # Handle the main interaction loop between jsdbg and python
@@ -214,6 +217,8 @@ class SModule:
 
 
 def ServerStarted(url):
+    global jsdbg_url
+    jsdbg_url = url
     print('Opening browser for %s' % (url))
     print('If you are debugging the default browser, manually open the URL in a')
     print('different browser.')
@@ -467,12 +472,6 @@ def SetTargetThread(tid):
         raise ValueError('No such thread %i' % (pid))
     match[0].switch()
 
-def EnsureJsDbg():
-    global jsdbg
-    if not jsdbg:
-        jsdbg = JsDbg()
-    return jsdbg
-
 def CheckForProcessAndThreadChange():
     global last_tid
     global last_pid
@@ -527,6 +526,11 @@ class JsDbgCmd(gdb.Command):
     super(JsDbgCmd, self).__init__("jsdbg", gdb.COMMAND_USER)
 
   def invoke(self, arg, from_tty):
-    EnsureJsDbg()
+    global jsdbg
+    global jsdbg_url
+    if not jsdbg:
+        jsdbg = JsDbg()
+    else:
+        ServerStarted(jsdbg_url)
 
 JsDbgCmd()
