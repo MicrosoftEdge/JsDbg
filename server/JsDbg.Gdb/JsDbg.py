@@ -35,7 +35,8 @@ class JsDbg:
         rootDir = os.path.dirname(os.path.abspath(__file__))
         extensionSearchPath = [
           rootDir + "/extensions", # from "make package"
-          rootDir + "/../../jsdbg/extensions", # inside a checkout or from "make install"
+          rootDir + "/../../extensions", # inside a checkout
+          rootDir + "/../../jsdbg/extensions", # from "make install"
         ]
         execSearchPath = [
           rootDir + "/JsDbg.Gdb", # from "make package"
