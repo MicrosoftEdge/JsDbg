@@ -132,7 +132,7 @@ def FormatType(symbol_type):
         return "void *"
     else:
         typename = str(t)
-        return re.sub(r'^(class|struct|enum|union) ', '', typename)
+        return re.sub(r'(class|struct|enum|union) ', '', typename)
 
 
 # Input is /foo/bar/libfoo.so, or /foo/bar/some_executable
