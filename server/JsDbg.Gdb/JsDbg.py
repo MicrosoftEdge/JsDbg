@@ -442,7 +442,7 @@ def LookupSymbolName(pointer):
     symbol_and_offset = re.search('<(.+)>$', str(val))
     if symbol_and_offset is None:
         return None
-    groups = re.fullmatch("(.*?)(\\+([0-9]+))?", symbol_and_offset.groups()[0]).groups()
+    groups = re.match("^(.*?)(\\+([0-9]+))?$", symbol_and_offset.groups()[0]).groups()
     symbol = groups[0]
     offset = 0
     if groups[2]:
