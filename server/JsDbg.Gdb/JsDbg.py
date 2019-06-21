@@ -503,7 +503,7 @@ def CheckForProcessAndThreadChange():
         current_thread = None
 
     if last_pid != current_process and jsdbg:
-        jsdbg.SendGdbEvent('proc %i' % (current_process))
+        jsdbg.SendGdbEvent('proc %s' % (current_process))
     if last_tid != current_thread and jsdbg:
         jsdbg.SendGdbEvent('thread %i' % (current_thread))
     last_pid = current_process
