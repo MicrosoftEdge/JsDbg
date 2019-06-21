@@ -18,7 +18,7 @@ install: all
 	install -m 644 $(filter-out %createdump %.so, $(BINDEPS)) $(DESTDIR)$(PREFIX)/lib/jsdbg
 	install -m 755 -s $(PUBLISH)/JsDbg.Gdb $(DESTDIR)$(PREFIX)/lib/jsdbg
 	install -d $(DESTDIR)$(PREFIX)/share/jsdbg/extensions
-	cp -r -t $(DESTDIR)$(PREFIX)/share/jsdbg/extensions ../../extensions
+	cp -r -t $(DESTDIR)$(PREFIX)/share/jsdbg/extensions ../../extensions/*
 
 package: all
 	@echo 'Creating jsdbg.tar.bz2'
