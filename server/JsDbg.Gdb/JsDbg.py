@@ -417,19 +417,17 @@ def LookupConstants(module, type, value):
 
 def LookupConstant(module, typename, constantName):
     if typename:
-        try:
-            val = gdb.parse_and_eval("%s::%s" %(typename, constantName))
-        except:
-            # Try without the enum name, if it's not an enum class
-            if ("::" in typename):
-                typename = typename[:typename.rfind("::")]
-            else:
-                typename = ""
-            val = gdb.parse_and_eval("%s::%s" %(typename, constantName))
+        type = gdb.lookup_type(typename)
+        # Values in enum classes are stored as type::eFoo;
+        # regular enums as just eFoo.
+        matches = [f for f in type.fields() if f.name.endswith("::" + constantName) or f.name == constantName]
+        if matches and hasattr(matches[0], 'enumval'):
+            return str(matches[0].enumval)
+
+        # For non-enums, try another way
+        val = gdb.parse_and_eval("%s::%s" % (typename, constantName))
     else:
         val = gdb.parse_and_eval("%s" % constantName)
-    # If it is an enum, we could go via type->fields->enumval
-    # seems more consistent to just cast to a sufficiently big integral value
 
     integral_val = val.cast(gdb.lookup_type("unsigned long long"))
     return str(integral_val)
