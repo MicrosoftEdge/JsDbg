@@ -529,10 +529,13 @@ def ExitHandler(ev):
 def PromptHandler():
     CheckForProcessAndThreadChange()
 
-gdb.events.stop.connect(StoppedHandler)
-gdb.events.cont.connect(ContHandler)
-gdb.events.exited.connect(ExitHandler)
-gdb.events.before_prompt.connect(PromptHandler)
+# To allow for easier unittesting, check if we have an events attribute
+if hasattr(gdb, 'events'):
+    gdb.events.stop.connect(StoppedHandler)
+    gdb.events.cont.connect(ContHandler)
+    gdb.events.exited.connect(ExitHandler)
+    gdb.events.before_prompt.connect(PromptHandler)
+
 
 class JsDbgCmd(gdb.Command):
   """Runs JsDbg."""
