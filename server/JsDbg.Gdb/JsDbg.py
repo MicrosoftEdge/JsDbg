@@ -38,10 +38,14 @@ class JsDbg:
           rootDir + "/../../extensions", # inside a checkout
           rootDir + "/../../jsdbg/extensions", # from "make install"
         ]
+        # The non-.DLL entries are for "standalone" builds; the DLL ones are
+        # non-standalone and need to be run via the dotnet binary.
         execSearchPath = [
           rootDir + "/JsDbg.Gdb", # from "make package"
           rootDir + "/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb", # in a checkout
-          rootDir + "/../../../lib/jsdbg/JsDbg.Gdb" # from make install
+          rootDir + "/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb.dll", # in a checkout
+          rootDir + "/../../../lib/jsdbg/JsDbg.Gdb", # from make install
+          rootDir + "/../../../lib/jsdbg/JsDbg.Gdb.dll" # from make install
         ]
         extensionsPath = None
         for path in extensionSearchPath:
@@ -58,7 +62,10 @@ class JsDbg:
         if not execPath:
             raise Exception("Can't find JsDbg.Gdb binary")
 
-        self.proc = subprocess.Popen([execPath, extensionsPath], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cmdline = [execPath, extensionsPath]
+        if execPath.endswith(".dll"):
+            cmdline = ["dotnet"] + cmdline
+        self.proc = subprocess.Popen(cmdline, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
         def stderrThreadProc():
             # Echo stderr from the subprocess, if showStderr is set
