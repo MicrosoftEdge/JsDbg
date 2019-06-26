@@ -20,7 +20,9 @@ class TestJsDbg(unittest.TestCase):
         self.assertEqual(JsDbg.FormatModule('/foo/libFoo.so'), 'Foo')
         self.assertEqual(JsDbg.FormatModule('/foo/libFoo.so.1'), 'Foo')
         self.assertEqual(JsDbg.FormatModule('/foo/libFoo.so.1.2.3'), 'Foo')
+        self.assertEqual(JsDbg.FormatModule('/foo/mmap_pack_12_libFoo.so.1.2.3'), 'Foo')
         self.assertEqual(JsDbg.FormatModule('/foo/chrome'), 'chrome')
+        self.assertEqual(JsDbg.FormatModule('mmap_hardlink_0_chrome'), 'chrome')
 
 if __name__ == '__main__':
     unittest.main()
