@@ -140,7 +140,8 @@ def FormatModule(module):
     # First, we strip out the path to the module
     module = module[module.rfind("/") + 1:]
     # Then, we remove the lib prefix and .so / .so.1.2 suffix, if present.
-    return re.match("^(lib)?(.*?)(.so)?[.0-9]*$", module).groups()[1]
+    # Also remove any prefix added my rr -- mmap_pack_123_ or mmap_hardlink_123_.
+    return re.match("^(mmap_(pack|hardlink)_[0-9]+_)?(lib)?(.*?)(.so)?[.0-9]*$", module).groups()[3]
 
 
 def ModuleForAddress(pointer):
@@ -341,23 +342,12 @@ def LookupGlobalSymbol(module, symbol):
 
 
 def GetModuleForName(module):
-  # If we are running under rr, it renames/hardlinks/copies the executable to
-  # a different name; allow for that.
-  matches = re.match("^.*/mmap_(hardlink|pack)_[0-9]+_(.*)$", gdb.current_progspace().filename)
-  if matches and matches.groups()[1] == module:
-    return SModule(module, 0)
-
-  objfile = None
-  try:
-    objfile = gdb.lookup_objfile(module)
-  except ValueError:
-    # Try libFOO.so
-    objfile = gdb.lookup_objfile('lib' + module + '.so')
-  if objfile:
-    # Python has no API to find the base address
-    # https://sourceware.org/bugzilla/show_bug.cgi?id=24481
-    return SModule(module, 0)
-  return None
+    for objfile in gdb.objfiles():
+        if FormatModule(objfile.filename) == module:
+            # Python has no API to find the base address
+            # https://sourceware.org/bugzilla/show_bug.cgi?id=24481
+            return SModule(module, 0)
+    return None
 
 
 def GetCallStack(numFrames):
