@@ -42,8 +42,8 @@ class JsDbg:
         # non-standalone and need to be run via the dotnet binary.
         execSearchPath = [
           rootDir + "/JsDbg.Gdb", # from "make package"
-          rootDir + "/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb", # in a checkout
-          rootDir + "/bin/Release/netcoreapp2.1/linux-x64/publish/JsDbg.Gdb.dll", # in a checkout
+          rootDir + "/out/JsDbg.Gdb", # in a checkout
+          rootDir + "/out/JsDbg.Gdb.dll", # in a checkout
           rootDir + "/../../../lib/jsdbg/JsDbg.Gdb", # from make install
           rootDir + "/../../../lib/jsdbg/JsDbg.Gdb.dll" # from make install
         ]
