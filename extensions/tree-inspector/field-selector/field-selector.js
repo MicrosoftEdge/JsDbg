@@ -174,7 +174,7 @@ var FieldSelector = (function() {
         } else {
             this.typeListContainer.appendChild(newTypeContainer);
         }
-        
+
         var that = this;
         var enabledPaths = this.checkedFields.getEnabledPaths(type);
         return Promise.map(enabledPaths, function (path) { return explorer.enableField(path, /*context*/true); })
@@ -325,8 +325,16 @@ var FieldSelector = (function() {
     FieldSelectorController.prototype._createRenderer = function(field) {
         function insertFieldList(names, container) {
             var fieldList = document.createElement("span");
+            fieldList.classList.add("var-path");
             container.appendChild(fieldList);
-            fieldList.textContent = names.join(".") + ":";
+            if (names.length > 1) {
+                var pathPrefix = names.slice(0, -1);
+                var pathPrefixList = document.createElement("span");
+                fieldList.appendChild(pathPrefixList);
+                pathPrefixList.classList.add("var-path-prefix");
+                pathPrefixList.textContent = pathPrefix.join(".") + ".";
+            }
+            fieldList.appendChild(document.createTextNode(names[names.length - 1] + ":"));
         }
 
         return function (dbgObject, element) {
@@ -334,8 +342,8 @@ var FieldSelector = (function() {
             .then(function() {
                 var valueContainer = document.createElement("span");
                 return DbgObject.render(
-                    field.getter(dbgObject), 
-                    valueContainer, 
+                    field.getter(dbgObject),
+                    valueContainer,
                     function (dbgObject) {
                         if (dbgObject.type.isArray()) {
                             return dbgObject.array();
