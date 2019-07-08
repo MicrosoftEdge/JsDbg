@@ -7,7 +7,8 @@ PUBLISH_SC=out_sa
 BINDEPS=$(filter-out %extensions %JsDbg.py %JsDbg.Gdb, $(wildcard $(PUBLISH)/*))
 
 all:
-	$(DOTNET) publish -c Release -o $(PUBLISH)
+	$(DOTNET) restore $(RESTOREFLAGS)
+	$(DOTNET) publish -c Release --no-restore -o $(PUBLISH)
 
 clean:
 	rm -rf bin obj $(PUBLISH) $(PUBLISH_SC) ../JsDbg.Core/bin ../JsDbg.Core/obj jsdbg.tar.bz2 *.pyc __pycache__

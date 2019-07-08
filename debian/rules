@@ -20,8 +20,8 @@ export DOTNET_CLI_HOME := $(shell pwd)
 	dh $@
 
 override_dh_auto_build:
-	dh_auto_build -- DOTNET=/usr/bin/dotnet
+	dh_auto_build -- DOTNET=/usr/bin/dotnet RESTOREFLAGS="-s /usr/share/dotnet/sdk/NuGetFallbackFolder"
 
 override_dh_auto_install:
-	dh_auto_install -- PREFIX=/usr DOTNET=/usr/bin/dotnet
+	dh_auto_install -- PREFIX=/usr DOTNET=/usr/bin/dotnet RESTOREFLAGS="-s /usr/share/dotnet/sdk/NuGetFallbackFolder"
 
