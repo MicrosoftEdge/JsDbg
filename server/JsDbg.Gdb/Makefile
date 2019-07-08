@@ -10,7 +10,7 @@ all:
 	$(DOTNET) publish -c Release -o $(PUBLISH)
 
 clean:
-	rm -rf bin obj $(PUBLISH) $(PUBLISH_SC) ../JsDbg.Core/bin ../JsDbg.Core/obj jsdbg.tar.bz2
+	rm -rf bin obj $(PUBLISH) $(PUBLISH_SC) ../JsDbg.Core/bin ../JsDbg.Core/obj jsdbg.tar.bz2 *.pyc __pycache__
 
 install: all
 	install -D -m 644 JsDbg.py $(DESTDIR)$(PREFIX)/share/gdb/python/JsDbg.py
