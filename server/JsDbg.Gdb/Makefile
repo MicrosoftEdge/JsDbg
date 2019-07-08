@@ -1,15 +1,15 @@
 PREFIX=/usr/local
 DOTNET=$(HOME)/dotnet/dotnet
 
-PUBLISH=bin/Release/netcoreapp2.1/linux-x64/publish
+PUBLISH=out
 
 BINDEPS=$(filter-out %extensions %JsDbg.py %JsDbg.Gdb, $(wildcard $(PUBLISH)/*))
 
 all:
-	$(DOTNET) publish -c Release -r linux-x64 --self-contained
+	$(DOTNET) publish -c Release -r linux-x64 --self-contained -o out
 
 clean:
-	rm -rf bin obj ../JsDbg.Core/bin ../JsDbg.Core/obj jsdbg.tar.bz2
+	rm -rf bin obj out ../JsDbg.Core/bin ../JsDbg.Core/obj jsdbg.tar.bz2
 
 install: all
 	install -D -m 644 JsDbg.py $(DESTDIR)$(PREFIX)/share/gdb/python/JsDbg.py
