@@ -83,7 +83,7 @@ namespace JsDbg.Gdb {
 
         // Input: [{foo#bar}, {foo2#bar2}, ..,]
         // Output: List containing "foo#bar", "foo2#bar2", ...
-        List<string> ParsePythonObjectArrayToStrings(string pythonResult) {
+        static public List<string> ParsePythonObjectArrayToStrings(string pythonResult) {
             List<string> result = new List<string>();
 
             int index = 0;

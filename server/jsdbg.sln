@@ -37,6 +37,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsDbg.Windows", "JsDbg.Wind
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsDbg.Gdb", "JsDbg.Gdb\JsDbg.Gdb.csproj", "{8DCE3997-1478-4B4E-B03B-6A1F1DE105B2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JsDbg.Gdb.Tests", "JsDbg.Gdb.Tests\JsDbg.Gdb.Tests.csproj", "{F29C63DB-9211-4ED7-B12A-BBF26E72FA56}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -114,6 +116,12 @@ Global
 		{8DCE3997-1478-4B4E-B03B-6A1F1DE105B2}.Deploy|Any CPU.Build.0 = Debug|Any CPU
 		{8DCE3997-1478-4B4E-B03B-6A1F1DE105B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8DCE3997-1478-4B4E-B03B-6A1F1DE105B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F29C63DB-9211-4ED7-B12A-BBF26E72FA56}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F29C63DB-9211-4ED7-B12A-BBF26E72FA56}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F29C63DB-9211-4ED7-B12A-BBF26E72FA56}.Deploy|Any CPU.ActiveCfg = Debug|Any CPU
+		{F29C63DB-9211-4ED7-B12A-BBF26E72FA56}.Deploy|Any CPU.Build.0 = Debug|Any CPU
+		{F29C63DB-9211-4ED7-B12A-BBF26E72FA56}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F29C63DB-9211-4ED7-B12A-BBF26E72FA56}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
