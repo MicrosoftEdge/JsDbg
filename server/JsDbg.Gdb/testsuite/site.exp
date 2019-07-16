@@ -1,0 +1,28 @@
+set tool jsdbg
+
+set timeout 3
+
+set gdb_prompt "(gdb) "
+set decimal "\[0-9\]+"
+set match ""
+
+proc test { passcond msg } {
+  global gdb_prompt
+  global match
+
+  expect {
+    -re "$passcond" {
+      pass "$msg"
+      set match $expect_out(0,string)
+    }
+    Error {
+      fail "$msg - Error"
+    }
+    $gdb_prompt {
+      fail "$msg - output doesn't match"
+    }
+    timeout {
+      unresolved "$msg - timeout"
+    }
+  }
+}
