@@ -1,0 +1,11 @@
+To run these tests, first install dejagnu: https://www.gnu.org/software/dejagnu/
+You can install it using "apt-get install dejagnu" or "yum install dejagnu".
+
+Then run "runtest" in this directory.
+
+If tests fail, look at "jsdbg.log" for details, or run "runtest -v -v -v"
+for more verbose output, or run "runtest --debug" and check dbg.log for
+more details.
+
+See also the Dejagnu manual here:
+https://www.gnu.org/software/dejagnu/manual/index.html

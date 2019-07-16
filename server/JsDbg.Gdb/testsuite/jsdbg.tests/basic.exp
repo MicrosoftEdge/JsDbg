@@ -1,0 +1,108 @@
+spawn ./rungdb.sh
+
+expect $gdb_prompt
+send "break main\n"
+expect $gdb_prompt
+send "run\n"
+expect $gdb_prompt
+
+send "python print(JsDbg.LookupGlobalSymbol('test_program', 'global_var'))\n"
+test "{int#$decimal}" "LookupGlobalSymbol"
+regexp $decimal $match pointer
+expect $gdb_prompt
+
+send "python print(JsDbg.ModuleForAddress($pointer))\n"
+test "test_program" "ModuleForAddress"
+expect $gdb_prompt
+
+send "python print(JsDbg.GetAllFields('test_program', 'Class', True))\n"
+test "\[\{0#4#0#0#Base#Base}, \{4#4#0#0#member_#int}, \{0#4#0#0#base_member_#int}]" "GetAllFields"
+expect $gdb_prompt
+
+send "python print(JsDbg.GetBaseTypes('test_program', 'Class'))\n"
+test "\[\{test_program#Base#0}]" "GetBaseTypes"
+expect $gdb_prompt
+
+send "python print(JsDbg.IsTypeEnum('test_program', 'Class'))\n"
+test "False" "IsTypeEnum 1"
+expect $gdb_prompt
+
+send "python print(JsDbg.IsTypeEnum('test_program', 'Enum'))\n"
+test "True" "IsTypeEnum 2"
+expect $gdb_prompt
+
+send "python print(JsDbg.LookupField('test_program', 'Class', 'member_'))\n"
+test "\\{4#4#0#0#member_#int}" "LookupField"
+expect $gdb_prompt
+
+send "python print(JsDbg.GetModuleForName('test_program'))\n"
+test "{test_program#0}" "GetModuleForName"
+expect $gdb_prompt
+
+send "python print(JsDbg.GetCallStack(1))\n"
+test "{$decimal#$decimal#$decimal}" "GetCallStack"
+regexp "($decimal)#($decimal)#($decimal)" $match full_match pc sp fp
+expect $gdb_prompt
+
+send "python print(JsDbg.GetSymbolsInStackFrame($pc, $sp, $fp))\n"
+test "\[\{test_program#c#$decimal#Class}, \{test_program#e#$decimal#Enum}]" "GetSymbolsInStackFrame"
+expect $gdb_prompt
+
+send "python print(JsDbg.LookupTypeSize('test_program', 'int'))\n"
+test "4" "LookupTypeSize"
+expect $gdb_prompt
+
+send "python print(JsDbg.LookupConstants('test_program', 'Enum', 1))\n"
+test "\[\{EFirst#1}]" "LookupConstants"
+expect $gdb_prompt
+
+send "python print(JsDbg.LookupConstant('test_program', 'Enum', 'EFirst'))\n"
+test "1" "LookupConstant"
+expect $gdb_prompt
+
+send "python print(JsDbg.LookupSymbolName($pointer))\n"
+test "test_program#global_var#0" "LookupSymbolName"
+expect $gdb_prompt
+
+send "python print(JsDbg.ReadMemoryBytes($pointer, 4))\n"
+test "2a000000" "ReadMemoryBytes"
+expect $gdb_prompt
+
+send "python print(JsDbg.GetAttachedProcesses())\n"
+test "\\\[$decimal]" "GetAttachedProcesses"
+regexp $decimal $match process
+expect $gdb_prompt
+
+send "python print(JsDbg.GetCurrentProcessThreads())\n"
+test "\\\[$decimal]" "GetCurrentProcessThreads"
+regexp $decimal $match thread
+expect $gdb_prompt
+
+send "python print(JsDbg.GetTargetProcess())\n"
+test "$process" "GetTargetProcess"
+expect $gdb_prompt
+
+send "python print(JsDbg.GetTargetThread())\n"
+test "$thread" "GetTargetThread"
+expect $gdb_prompt
+
+send "python JsDbg.SetTargetProcess($process)\n"
+expect {
+  "Error" { fail "SetTargetProcess - Error" }
+  $gdb_prompt {}
+}
+
+send "python JsDbg.SetTargetThread($thread)\n"
+expect {
+  "Error" { fail "SetTargetThread - Error" }
+  $gdb_prompt {}
+}
+
+send "python JsDbg.WriteMemoryBytes($pointer, '10000000')\n"
+expect {
+  "Error" { fail "WriteMemoryBytes - Error" }
+  $gdb_prompt {}
+}
+send "python print(JsDbg.ReadMemoryBytes($pointer, 4))\n"
+test "10000000" "ReadMemoryBytes after write"
+expect $gdb_prompt
