@@ -21,6 +21,7 @@ install: all
 	cp -r -t $(DESTDIR)$(PREFIX)/share/jsdbg/extensions ../../extensions/*
 
 bin/test_program: testsuite/test_program.cc
+	mkdir -p bin
 	$(CXX) $^ -o $@ -g
 
 # We don't want users of the tarball to require a dotnet install, so
