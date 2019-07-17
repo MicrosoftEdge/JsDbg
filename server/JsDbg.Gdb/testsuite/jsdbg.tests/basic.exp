@@ -45,7 +45,7 @@ regexp "($decimal)#($decimal)#($decimal)" $match full_match pc sp fp
 expect $gdb_prompt
 
 send "python print(JsDbg.GetSymbolsInStackFrame($pc, $sp, $fp))\n"
-test "\[\{test_program#c#$decimal#Class}, \{test_program#e#$decimal#Enum}]" "GetSymbolsInStackFrame"
+test "\[\{test_program#c#$decimal#Class}]" "GetSymbolsInStackFrame"
 expect $gdb_prompt
 
 send "python print(JsDbg.LookupTypeSize('test_program', 'int'))\n"

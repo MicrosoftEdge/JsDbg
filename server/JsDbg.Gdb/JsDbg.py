@@ -383,7 +383,7 @@ def GetSymbolsInStackFrame(instructionAddress, stackAddress, frameAddress):
             syms = syms + [s for s in block if s.addr_class != gdb.SYMBOL_LOC_TYPEDEF]
             block = block.superblock
 
-        return [SNamedSymbol(s, frame) for s in syms]
+        return [SNamedSymbol(s, frame) for s in syms if s.value(frame).address is not None]
     return None
 
 def LookupTypeSize(module, typename):
