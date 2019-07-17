@@ -454,7 +454,7 @@ def ReadMemoryBytes(pointer, size):
 
 def WriteMemoryBytes(pointer, hexString):
     inferior = gdb.selected_inferior()
-    byteString = bytes.fromhex(hexString)
+    byteString = binascii.unhexlify(hexString)
     inferior.write_memory(pointer, byteString)
 
 def GetAttachedProcesses():
