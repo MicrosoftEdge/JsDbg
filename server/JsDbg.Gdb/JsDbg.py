@@ -6,11 +6,58 @@ import binascii
 import os.path
 import re
 import webbrowser
+import JsDbgTypes
 
 jsdbg = None
 jsdbg_url = None
 last_pid = None
 last_tid = None
+
+
+class GdbFieldResult(JsDbgTypes.SFieldResult):
+    # extra_bitoffset allows handling anonymous unions correctly
+    def __init__(self, field, extra_bitoffset=0):
+        if hasattr(field, 'bitpos'):
+            # If this is a bitfield, we adjust offset and bitOffset to be aligned
+            # according to type.sizeof, because JsDbg's memory cache does not
+            # handle unaligned loads.
+            # Otherwise we assume the compiler aligned it correctly.
+            bitpos = field.bitpos + extra_bitoffset
+            bitsize = field.type.sizeof * 8 if field.bitsize else 8
+
+            bitOffset = bitpos % bitsize
+            offset = (bitpos - bitOffset) / 8
+        else:
+            bitOffset = -1
+            offset = -1
+        super(GdbFieldResult, self).__init__(
+            offset, field.type.sizeof, bitOffset, field.bitsize, field.name,
+            FormatType(field.type))
+
+
+class GdbStackFrame(JsDbgTypes.SStackFrame):
+    def __init__(self, frame):
+        super(GdbStackFrame, self).__init__(
+            frame.pc(), frame.read_register("sp"), frame.read_register("fp"))
+
+
+class GdbSymbolResult(JsDbgTypes.SSymbolResult):
+    def __init__(self, symbol, frame=None):
+        type = FormatType(symbol.type)
+        if frame:
+            value = symbol.value(frame)
+        else:
+            value = symbol.value()
+        pointer = value.address.reinterpret_cast(gdb.lookup_type("unsigned long long"))
+        super(GdbSymbolResult, self).__init__(type, pointer)
+
+
+class GdbNamedSymbol(JsDbgTypes.SNamedSymbol):
+    def __init__(self, symbol, frame):
+        super(GdbNamedSymbol, self).__init__(
+            ModuleForAddress(frame.pc()), symbol.name,
+            GdbSymbolResult(symbol, frame))
+
 
 class JsDbg:
     class JsDbgGdbRequest:
@@ -158,89 +205,6 @@ def ModuleForAddress(pointer):
         module = gdb.current_progspace().filename
     return FormatModule(module)
 
-
-class SFieldResult:
-    # extra_bitoffset allows handling anonymous unions correctly
-    def __init__(self, field, extra_bitoffset=0):
-        if hasattr(field, 'bitpos'):
-            # If this is a bitfield, we adjust offset and bitOffset to be aligned
-            # according to type.sizeof, because JsDbg's memory cache does not
-            # handle unaligned loads.
-            # Otherwise we assume the compiler aligned it correctly.
-            bitpos = field.bitpos + extra_bitoffset
-            bitsize = field.type.sizeof * 8 if field.bitsize else 8
-            self.bitOffset = bitpos % bitsize
-            self.offset = (bitpos - self.bitOffset) / 8
-        else:
-            self.bitOffset = -1
-            self.offset = -1
-        self.bitCount = field.bitsize
-        self.size = field.type.sizeof
-        self.fieldName = field.name
-        self.typeName = FormatType(field.type)
-
-    def __repr__(self):
-        return '{%d#%d#%d#%d#%s#%s}' % (self.offset, self.size, self.bitOffset, self.bitCount, self.fieldName, self.typeName)
-
-class SBaseTypeResult:
-    def __init__(self, module, typeName, offset):
-        self.module = module
-        self.typeName = typeName
-        self.offset = offset
-
-    def __repr__(self):
-        return '{%s#%s#%d}' % (self.module, self.typeName, self.offset)
-
-class SSymbolResult:
-    def __init__(self, symbol, frame=None):
-        self.type = FormatType(symbol.type)
-        if frame:
-            value = symbol.value(frame)
-        else:
-            value = symbol.value()
-        self.pointer = value.address.reinterpret_cast(gdb.lookup_type("unsigned long long"))
-
-    def __repr__(self):
-        return '{%s#%d}' % (self.type, self.pointer)
-
-class SStackFrame:
-    def __init__(self, frame):
-        self.instructionAddress = frame.pc()
-        self.stackAddress = frame.read_register("sp")
-        self.frameAddress = frame.read_register("fp")
-
-    def __repr__(self):
-        return '{%d#%d#%d}' % (self.instructionAddress, self.stackAddress, self.frameAddress)
-
-
-class SNamedSymbol:
-    def __init__(self, symbol, frame):
-        self.name = symbol.name
-        self.symbolResult = SSymbolResult(symbol, frame)
-        self.module = ModuleForAddress(frame.pc())
-
-    def __repr__(self):
-        return '{%s#%s#%d#%s}' % (self.module, self.name, self.symbolResult.pointer, self.symbolResult.type)
-
-
-class SConstantResult:
-    def __init__(self, name, value):
-        self.name = name
-        self.value = value
-
-    def __repr__(self):
-        return '{%s#%d}' % (self.name, self.value)
-
-
-class SModule:
-    def __init__(self, name, baseAddress):
-        self.name = name
-        self.baseAddress = baseAddress
-
-    def __repr__(self):
-        return '{%s#%d}' % (self.name, self.baseAddress)
-
-
 def ServerStarted(url):
     global jsdbg_url
     jsdbg_url = url
@@ -277,11 +241,11 @@ def GetAllFields(module, type, includeBaseTypes):
                 # Don't know how to handle this
                 continue
 
-            resultFields.extend([SFieldResult(f, field.bitpos)
+            resultFields.extend([GdbFieldResult(f, field.bitpos)
                 for f in field.type.fields() if not f.is_base_class])
             continue
 
-        resultFields.append(SFieldResult(field))
+        resultFields.append(GdbFieldResult(field))
 
     return resultFields
 
@@ -293,14 +257,16 @@ def GetBaseTypesFromGdbType(module, type, extra_bitoffset=0):
         fields = type.fields()
     except:
         # Type does not have fields (not a struct/class/union)
-        return [SBaseTypeResult(module, type.name, 0)]
+        return [JsDbgTypes.SBaseTypeResult(module, type.name, 0)]
 
     resultFields = []
     for field in fields:
         if not field.is_base_class:
             continue
-        resultFields.append(SBaseTypeResult(module, field.type.name, (extra_bitoffset + field.bitpos) / 8))
-        resultFields.extend(GetBaseTypesFromGdbType(module, field.type, extra_bitoffset + field.bitpos))
+        resultFields.append(JsDbgTypes.SBaseTypeResult(
+            module, field.type.name, (extra_bitoffset + field.bitpos) / 8))
+        resultFields.extend(GetBaseTypesFromGdbType(
+            module, field.type, extra_bitoffset + field.bitpos))
 
     return resultFields
 
@@ -310,7 +276,7 @@ def GetBaseTypes(module, type_name):
         t = gdb.lookup_type(type_name)
     except:
         # Type is a base type?
-        return [SBaseTypeResult(module, type_name, 0)]
+        return [JsDbgTypes.BaseTypeResult(module, type_name, 0)]
 
     return GetBaseTypesFromGdbType(module, t)
 
@@ -324,7 +290,7 @@ def LookupField(module, type, field):
     while fields:
         match = list(filter(lambda x: x.name == field, fields))
         if match:
-            return SFieldResult(match[0])
+            return GdbFieldResult(match[0])
 
         # Handle anonymous unions and structs. They are a bit tricky because we
         # have to recurse into their fields but keep track of their offset.
@@ -333,7 +299,7 @@ def LookupField(module, type, field):
         for container in containers:
             for f in container.type.fields():
                 if f.name == field:
-                    return SFieldResult(f, container.bitpos)
+                    return GdbFieldResult(f, container.bitpos)
 
         match = filter(lambda x: x.is_base_class, fields)
         fields = [f for m in match for f in m.type.fields()]
@@ -345,7 +311,7 @@ def LookupGlobalSymbol(module, symbol):
     (sym, _) = gdb.lookup_symbol(symbol)
     if sym is None:
         return None
-    return SSymbolResult(sym)
+    return GdbSymbolResult(sym)
 
 
 def GetModuleForName(module):
@@ -353,7 +319,7 @@ def GetModuleForName(module):
         if FormatModule(objfile.filename) == module:
             # Python has no API to find the base address
             # https://sourceware.org/bugzilla/show_bug.cgi?id=24481
-            return SModule(module, 0)
+            return JsDbgTypes.SModule(module, 0)
     return None
 
 
@@ -361,7 +327,7 @@ def GetCallStack(numFrames):
     frame = gdb.newest_frame()
     frames = []
     while frame and numFrames > 0:
-        frames.append(SStackFrame(frame))
+        frames.append(GdbStackFrame(frame))
         numFrames = numFrames - 1
         frame = frame.older()
     return frames
@@ -383,7 +349,7 @@ def GetSymbolsInStackFrame(instructionAddress, stackAddress, frameAddress):
             syms = syms + [s for s in block if s.addr_class != gdb.SYMBOL_LOC_TYPEDEF]
             block = block.superblock
 
-        return [SNamedSymbol(s, frame) for s in syms if s.value(frame).address is not None]
+        return [GdbNamedSymbol(s, frame) for s in syms if s.value(frame).address is not None]
     return None
 
 def LookupTypeSize(module, typename):
@@ -408,7 +374,7 @@ def LookupConstants(module, type, value):
         # "Value" part.
         name = f.name
         name = name[name.rfind("::") + 2:]
-        values.append(SConstantResult(name, f.enumval))
+        values.append(JsDbgTypes.SConstantResult(name, f.enumval))
     return values
 
 
