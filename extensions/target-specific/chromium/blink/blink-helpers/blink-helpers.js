@@ -359,6 +359,30 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::HTMLInputElement"), "page_popup_", Chromium.RendererProcessType("blink::PagePopup"), UserEditableFunctions.Create((inputElement) => {
+        return inputElement.F("specialized_input_type_")
+        .then((specializedInputType) => Promise.all([specializedInputType.dcast(Chromium.RendererProcessType("blink::BaseTemporalInputType")),
+                                                     specializedInputType.dcast(Chromium.RendererProcessType("blink::ColorInputType"))]))
+        .thenAll((baseTemporalInputType, colorInputType) => {
+            if (!baseTemporalInputType.isNull()) {
+                return inputElement.F("shadowRoot").array("child_nodes_").dcast(Chromium.RendererProcessType("blink::PickerIndicatorElement")).filter((pickerIndicatorElement) => !pickerIndicatorElement.isNull())
+                .then((pickerIndicatorElement) => {
+                    console.assert(pickerIndicatorElement.length == 1);
+                    return pickerIndicatorElement[0].f("chooser_.raw_").vcast();
+                });
+            } else if (!colorInputType.isNull()) {
+                return colorInputType.f("chooser_.raw_").vcast();
+            } else {
+                return DbgObject.NULL;
+            }
+        })
+        .then((vcastedChooser) => !vcastedChooser.isNull() ? vcastedChooser.f("popup_").vcast() : DbgObject.NULL)
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::WebPagePopupImpl"), "document_", Chromium.RendererProcessType("blink::HTMLDocument"), UserEditableFunctions.Create((webPagePopupImpl) => {
+        return webPagePopupImpl.f("page_.raw_").f("main_frame_.raw_").dcast(Chromium.RendererProcessType("blink::LocalFrame")).f("dom_window_.raw_").F("document").vcast();
+    }));
+
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::HTMLInputElement"), "specialized_input_type_", Chromium.RendererProcessType("blink::InputType"), UserEditableFunctions.Create((inputElement) => {
         return inputElement.f("input_type_.raw_").vcast();
     }));
