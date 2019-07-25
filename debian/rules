@@ -5,7 +5,9 @@ export DH_VERBOSE = 1
 
 
 # see FEATURE AREAS in dpkg-buildflags(1)
-#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# The tests don't work with the automated builder
+export DEB_BUILD_OPTIONS = nocheck
 
 # see ENVIRONMENT in dpkg-buildflags(1)
 # package maintainers to append CFLAGS
