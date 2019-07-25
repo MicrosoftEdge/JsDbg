@@ -28,8 +28,8 @@ Once you have cloned the JsDbg repository, please follow the steps below to buil
 
 #### Linux
 
-1. Get the [x64 .NET Core SDK binary](https://dotnet.microsoft.com/download) (click the x64 link in the left column in the table at the bottom).
-2. To build the server, run `make`. If you extracted `dotnet` into a different directory than `~/dotnet`, you need to instead run `make DOTNET=/path/to/your/dotnet/binary`. Alternatively, run `make install` (with DOTNET= as appropriate).
+1. Get the [x64 .NET Core SDK binary](https://dotnet.microsoft.com/download) (click the x64 link in the left column in the table at the bottom). If you don't install it as a package, make sure to add the directory to your $PATH (e.g. `export PATH=$PATH:$HOME/dotnet`)
+2. To build the server, run `make`. Alternatively, run `make install`.
 3. Add the following code to your `~/.gdbinit`:
 ```
 python
