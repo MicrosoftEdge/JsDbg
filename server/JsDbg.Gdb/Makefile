@@ -1,5 +1,5 @@
 PREFIX=/usr/local
-DOTNET=$(HOME)/dotnet/dotnet
+DOTNET=dotnet
 
 PUBLISH=out
 PUBLISH_SC=out_sa
