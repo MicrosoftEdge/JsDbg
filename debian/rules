@@ -3,18 +3,6 @@
 # output every command that modifies files on the build system.
 export DH_VERBOSE = 1
 
-
-# see FEATURE AREAS in dpkg-buildflags(1)
-
-# The tests don't work with the automated builder
-export DEB_BUILD_OPTIONS = nocheck
-
-# see ENVIRONMENT in dpkg-buildflags(1)
-# package maintainers to append CFLAGS
-#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
-# package maintainers to append LDFLAGS
-#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
-
 export DOTNET_CLI_TELEMETRY_OPTOUT = 1
 export DOTNET_CLI_HOME := $(shell pwd)
 export RESTOREFLAGS := -s /usr/share/dotnet/sdk/NuGetFallbackFolder
