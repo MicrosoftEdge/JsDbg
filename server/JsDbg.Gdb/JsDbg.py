@@ -76,9 +76,9 @@ class JsDbg:
             self.responseStream.write(response.encode("utf-8"))
             self.responseStream.flush()
 
-    def __init__(self):
+    def __init__(self, verbose):
         self.showStderr = True
-        self.verbose = False
+        self.verbose = verbose
         rootDir = os.path.dirname(os.path.abspath(__file__))
         extensionSearchPath = [
           rootDir + "/extensions", # from "make package"
@@ -500,6 +500,28 @@ if hasattr(gdb, 'events'):
     gdb.events.before_prompt.connect(PromptHandler)
 
 
+class VerboseParam(gdb.Parameter):
+    """
+When enabled, all JsDbg commands get printed to stdout as they are executed.
+Only useful for debugging JsDbg itself."""
+    set_doc = 'Sets whether to show verbose output from JsDbg'
+    show_doc = 'Shows the current setting for jsdbg-verbose'
+    def __init__(self):
+        super(VerboseParam, self).__init__("jsdbg-verbose",
+            gdb.COMMAND_MAINTENANCE, gdb.PARAM_BOOLEAN)
+
+    def get_set_string(self):
+        global jsdbg
+        jsdbg.verbose = self.value
+        if self.value:
+            return 'Showing verbose JsDbg output'
+        else:
+            return 'Not showing verbose JsDbg output'
+    def get_show_string(self, svalue):
+        return 'jsdbg-verbose is ' + svalue
+
+verbose_param = VerboseParam()
+
 class JsDbgCmd(gdb.Command):
   """Runs JsDbg."""
 
@@ -510,7 +532,7 @@ class JsDbgCmd(gdb.Command):
     global jsdbg
     global jsdbg_url
     if not jsdbg:
-        jsdbg = JsDbg()
+        jsdbg = JsDbg(verbose_param.value)
     else:
         ServerStarted(jsdbg_url)
 
