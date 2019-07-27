@@ -1,11 +1,9 @@
 import gdb
 import sys
-import subprocess
-import threading
 import binascii
-import os.path
 import re
 import webbrowser
+import JsDbgBase
 import JsDbgTypes
 
 jsdbg = None
@@ -59,110 +57,6 @@ class GdbNamedSymbol(JsDbgTypes.SNamedSymbol):
             GdbSymbolResult(symbol, frame))
 
 
-class JsDbg:
-    class JsDbgGdbRequest:
-        def __init__(self, request, responseStream, verbose):
-            self.request = request
-            self.responseStream = responseStream
-            self.verbose = verbose
-
-        def __call__(self):
-            # Need to look at GDB events in python, track "stop" and "cont" evens
-            if self.verbose:
-                print("JsDbg [received command]: " + self.request)
-            response = eval(self.request) + "\n"
-            if self.verbose:
-                print("JsDbg [sending response]: " + response.strip())
-            self.responseStream.write(response.encode("utf-8"))
-            self.responseStream.flush()
-
-    def __init__(self, verbose):
-        self.showStderr = True
-        self.verbose = verbose
-        rootDir = os.path.dirname(os.path.abspath(__file__))
-        extensionSearchPath = [
-          rootDir + "/extensions", # from "make package"
-          rootDir + "/../../extensions", # inside a checkout
-          rootDir + "/../../jsdbg/extensions", # from "make install"
-        ]
-        # The non-.DLL entries are for "standalone" builds; the DLL ones are
-        # non-standalone and need to be run via the dotnet binary.
-        execSearchPath = [
-          rootDir + "/JsDbg.Gdb", # from "make package"
-          rootDir + "/out/JsDbg.Gdb", # in a checkout
-          rootDir + "/out/JsDbg.Gdb.dll", # in a checkout
-          rootDir + "/../../../lib/jsdbg/JsDbg.Gdb", # from make install
-          rootDir + "/../../../lib/jsdbg/JsDbg.Gdb.dll" # from make install
-        ]
-        extensionsPath = None
-        for path in extensionSearchPath:
-          if os.path.exists(path):
-            extensionsPath = path
-            break
-        execPath = None
-        for path in execSearchPath:
-          if os.path.exists(path):
-            execPath = path
-            break
-        if not extensionsPath:
-            raise Exception("Can't find JsDbg extensions")
-        if not execPath:
-            raise Exception("Can't find JsDbg.Gdb binary")
-
-        cmdline = [execPath, extensionsPath]
-        if execPath.endswith(".dll"):
-            cmdline = ["dotnet"] + cmdline
-        self.proc = subprocess.Popen(cmdline, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-        def stderrThreadProc():
-            # Echo stderr from the subprocess, if showStderr is set
-            while(self.proc.poll() == None):
-                val = self.proc.stderr.readline()
-                if not val:
-                    continue
-                val = val.strip().decode("utf-8")
-                if self.verbose:
-                    print("JsDbg [message]: " + val)
-                elif self.showStderr:
-                    print("JsDbg: " + val)
-            # If we get here, the server exited
-            print("JsDbg: server exited or crashed. To restart, type 'jsdbg'.")
-            global jsdbg
-            global jsdbg_url
-            jsdbg = None
-            jsdbg_url = None
-
-        def mainThreadProc():
-            # Handle the main interaction loop between jsdbg and python
-            while(self.proc.poll() == None):
-                request = self.proc.stdout.readline()
-                if not request:
-                    continue
-
-                request = request.decode("utf-8").strip()
-                if self.verbose:
-                    print("JsDbg [posting command]: " + request)
-                # gdb does not allow multithreaded requests
-                # Anything going to gdb from another thread must go through gdb.post_event
-                gdb.post_event(self.JsDbgGdbRequest(request, self.proc.stdin, self.verbose))
-                # The response will asynchronously be sent back on the response stream
-
-        # Mark threads as daemon threads so they don't block exiting.
-        self.stderrThread = threading.Thread(target=stderrThreadProc)
-        self.stderrThread.daemon = True
-        self.mainThread = threading.Thread(target=mainThreadProc)
-        self.mainThread.daemon = True
-        self.stderrThread.start()
-        self.mainThread.start()
-
-    def SendGdbEvent(self, event):
-        response = '%' + event + '\n';
-        if self.verbose:
-            print("JsDbg [sending event]: " + response)
-        self.proc.stdin.write(response.encode("utf-8"))
-        self.proc.stdin.flush()
-
-
 def DebuggerQuery(tag, command):
     # pi exec('print(\\'{0}~\\' + str({1}))')
     try:
@@ -189,21 +83,12 @@ def FormatType(symbol_type):
         return re.sub(r'(class|struct|enum|union) ', '', typename)
 
 
-# Input is /foo/bar/libfoo.so, or /foo/bar/some_executable
-def FormatModule(module):
-    # First, we strip out the path to the module
-    module = module[module.rfind("/") + 1:]
-    # Then, we remove the lib prefix and .so / .so.1.2 suffix, if present.
-    # Also remove any prefix added my rr -- mmap_pack_123_ or mmap_hardlink_123_.
-    return re.match("^(mmap_(pack|hardlink)_[0-9]+_)?(lib)?(.*?)(.so)?[.0-9]*$", module).groups()[3]
-
-
 def ModuleForAddress(pointer):
     module = gdb.solib_name(pointer)
     if not module:
         # If it exists, it's in the main binary
         module = gdb.current_progspace().filename
-    return FormatModule(module)
+    return JsDbgBase.FormatModule(module)
 
 def ServerStarted(url):
     global jsdbg_url
@@ -213,6 +98,13 @@ def ServerStarted(url):
     print('different browser.')
     webbrowser.open_new_tab(url)
 
+
+def ServerExited():
+    print("JsDbg: server exited or crashed. To restart, type 'jsdbg'.")
+    global jsdbg
+    global jsdbg_url
+    jsdbg = None
+    jsdbg_url = None
 
 def ExecuteGdbCommand(cmd):
     gdb.execute(cmd)
@@ -316,7 +208,7 @@ def LookupGlobalSymbol(module, symbol):
 
 def GetModuleForName(module):
     for objfile in gdb.objfiles():
-        if FormatModule(objfile.filename) == module:
+        if JsDbgBase.FormatModule(objfile.filename) == module:
             # Python has no API to find the base address
             # https://sourceware.org/bugzilla/show_bug.cgi?id=24481
             return JsDbgTypes.SModule(module, 0)
@@ -464,16 +356,16 @@ def CheckForProcessAndThreadChange():
         current_thread = None
 
     if last_pid != current_process and jsdbg:
-        jsdbg.SendGdbEvent('proc %s' % (current_process))
+        jsdbg.SendEvent('proc %s' % (current_process))
     if last_tid != current_thread and jsdbg:
-        jsdbg.SendGdbEvent('thread %i' % (current_thread))
+        jsdbg.SendEvent('thread %i' % (current_thread))
     last_pid = current_process
     last_tid = current_thread
 
 def StoppedHandler(ev):
     global jsdbg
     if jsdbg:
-        jsdbg.SendGdbEvent('stop')
+        jsdbg.SendEvent('stop')
 
 def ContHandler(ev):
     global jsdbg
@@ -482,12 +374,12 @@ def ContHandler(ev):
     if not last_tid:
         CheckForProcessAndThreadChange()
     if jsdbg:
-        jsdbg.SendGdbEvent('cont')
+        jsdbg.SendEvent('cont')
 
 def ExitHandler(ev):
     global jsdbg
     if jsdbg:
-        jsdbg.SendGdbEvent('exit')
+        jsdbg.SendEvent('exit')
 
 def PromptHandler():
     CheckForProcessAndThreadChange()
@@ -532,7 +424,9 @@ class JsDbgCmd(gdb.Command):
     global jsdbg
     global jsdbg_url
     if not jsdbg:
-        jsdbg = JsDbg(verbose_param.value)
+        jsdbg = JsDbgBase.JsDbg(
+            sys.modules[__name__], gdb.post_event, ServerExited,
+            verbose_param.value)
     else:
         ServerStarted(jsdbg_url)
 

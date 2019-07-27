@@ -30,6 +30,8 @@ check: bin/test_program
 	@# so if $(RESTOREFLAGS) is set, just skip this test.
 	if test x"$(RESTOREFLAGS)" = x; then cd ../JsDbg.Gdb.Tests && $(DOTNET) restore $(RESTOREFLAGS) && $(DOTNET) test --no-restore; fi
 	cd testsuite && runtest
+	python JsDbgBase_test.py
+	python3 JsDbgBase_test.py
 	python JsDbg_test.py
 	python3 JsDbg_test.py
 
