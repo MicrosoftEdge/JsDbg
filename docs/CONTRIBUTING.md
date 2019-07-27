@@ -96,7 +96,7 @@ import importlib
 importlib.reload(JsDbg)
 ```
 
-4. For debugging JsDbg itself, you may want to set verbose to True, either by editing `JsDbg.py` or running `python JsDbg.jsdbg.verbose = True` at the gdb prompt.
+4. For debugging JsDbg itself, you may want to `set jsdbg-verbose on` at the GDB prompt. (Due to a [GDB bug](https://sourceware.org/bugzilla/show_bug.cgi?id=24796), you probably want to combine this with `set pagination off`).
 
 
 ## Components within JsDbg
