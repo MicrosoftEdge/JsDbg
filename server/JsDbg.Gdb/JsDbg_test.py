@@ -23,13 +23,10 @@ import JsDbg
 
 class TestJsDbg(unittest.TestCase):
 
-    def test_FormatModule(self):
-        self.assertEqual(JsDbg.FormatModule('/foo/libFoo.so'), 'Foo')
-        self.assertEqual(JsDbg.FormatModule('/foo/libFoo.so.1'), 'Foo')
-        self.assertEqual(JsDbg.FormatModule('/foo/libFoo.so.1.2.3'), 'Foo')
-        self.assertEqual(JsDbg.FormatModule('/foo/mmap_pack_12_libFoo.so.1.2.3'), 'Foo')
-        self.assertEqual(JsDbg.FormatModule('/foo/chrome'), 'chrome')
-        self.assertEqual(JsDbg.FormatModule('mmap_hardlink_0_chrome'), 'chrome')
+    def test_Parse(self):
+        # At this point, this test just tests that Python can parse JsDbg.py
+        # We rely on the dejagnu-based tests to ensure functionality for now.
+        pass
 
 if __name__ == '__main__':
     unittest.main()
