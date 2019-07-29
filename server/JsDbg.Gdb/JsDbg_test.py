@@ -6,9 +6,16 @@ import unittest
 
 class GdbModule(object):
     COMMAND_USER = 1
+    COMMAND_MAINTENANCE = 2
+
+    PARAM_BOOLEAN = 1
 
     class Command(object):
         def __init__(self, name, type):
+            pass
+
+    class Parameter(object):
+        def __init__(self, name, cmd_class, type):
             pass
 
 sys.modules['gdb'] = GdbModule
