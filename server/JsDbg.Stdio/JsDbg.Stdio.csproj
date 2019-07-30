@@ -14,15 +14,12 @@
       <Link>extensions\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="JsDbg.py">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>
     <RuntimeHostConfigurationOption Include="System.Globalization.Invariant" Value="true" />
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
-      <_Parameter1>JsDbg.Gdb.Tests</_Parameter1>
+      <_Parameter1>JsDbg.Stdio.Tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
 </Project>

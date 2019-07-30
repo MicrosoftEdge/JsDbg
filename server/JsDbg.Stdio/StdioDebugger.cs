@@ -4,10 +4,10 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using JsDbg.Core;
 
-namespace JsDbg.Gdb {
-    class GdbDebugger : IDebugger {
+namespace JsDbg.Stdio {
+    class StdioDebugger : IDebugger {
 
-        public GdbDebugger() {
+        public StdioDebugger() {
             OutputDataReceived += HandleGdbEvent;
         }
 
