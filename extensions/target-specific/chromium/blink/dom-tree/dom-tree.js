@@ -117,6 +117,29 @@ Loader.OnLoad(function() {
         });
     });
 
+    DOMTree.Tree.addChildren(Chromium.RendererProcessType("blink::HTMLInputElement"), (inputElement) => {
+        return inputElement.F("page_popup_").F("document_")
+        .then ((popupDocument) => {
+            if (!popupDocument.isNull()) {
+                return Promise.all([
+                    {
+                        customStyles : () => {
+                            return ["alt-child-container"];
+                        },
+                        toString : () => {
+                            return "<span style='color:grey'>" + "Popup Document" + "</span>";
+                        },
+                        getChildren : () => {
+                            return [popupDocument];
+                        }
+                    }
+                ]);
+            } else {
+                return [];
+            }
+        });
+    });
+
     DOMTree.Renderer.addNameRenderer(Chromium.RendererProcessType("blink::Document"), function (document) {
         return Promise.all([document.vcast(), document.desc("URL")])
         .thenAll((vcastedDocument, url) => {
