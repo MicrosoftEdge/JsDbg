@@ -4,7 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using JsDbg.Core;
 
-namespace JsDbg.Gdb
+namespace JsDbg.Stdio
 {
     class Program
     {
@@ -16,8 +16,10 @@ namespace JsDbg.Gdb
 
             string extensionsDirectory = args[0];
 
-            // Inversion of control: Assume that this process has been started by python, stdio talks back to python and can ask it to do things.
-            GdbDebugger debugger = new GdbDebugger();
+            // This process has been started by python, stdio talks back to python and asks it
+            // to look up type data, read memory, etc. It also receives events from Python
+            // (e.g. program hit a break point).
+            StdioDebugger debugger = new StdioDebugger();
 
             PersistentStore persistentStore = new PersistentStore();
 

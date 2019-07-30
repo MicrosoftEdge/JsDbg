@@ -1,8 +1,11 @@
 import gdb
 import sys
 import binascii
+import os.path
 import re
 import webbrowser
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)) + "/../JsDbg.Stdio")
 import JsDbgBase
 import JsDbgTypes
 

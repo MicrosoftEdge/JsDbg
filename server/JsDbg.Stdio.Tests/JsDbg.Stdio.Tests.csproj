@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\JsDbg.Gdb\JsDbg.Gdb.csproj" />
+    <ProjectReference Include="..\JsDbg.Stdio\JsDbg.Stdio.csproj" />
   </ItemGroup>
 
   <ItemGroup>

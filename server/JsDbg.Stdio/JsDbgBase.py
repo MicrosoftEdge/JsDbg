@@ -49,11 +49,11 @@ class JsDbg:
         # The non-.DLL entries are for "standalone" builds; the DLL ones are
         # non-standalone and need to be run via the dotnet binary.
         execSearchPath = [
-          rootDir + "/JsDbg.Gdb", # from "make package"
-          rootDir + "/out/JsDbg.Gdb", # in a checkout
-          rootDir + "/out/JsDbg.Gdb.dll", # in a checkout
-          rootDir + "/../../../lib/jsdbg/JsDbg.Gdb", # from make install
-          rootDir + "/../../../lib/jsdbg/JsDbg.Gdb.dll" # from make install
+          rootDir + "/JsDbg.Stdio", # from "make package"
+          rootDir + "/../JsDbg.Gdb/out/JsDbg.Stdio", # in a checkout
+          rootDir + "/../JsDbg.Gdb/out/JsDbg.Stdio.dll", # in a checkout
+          rootDir + "/../../../lib/jsdbg/JsDbg.Stdio", # from make install
+          rootDir + "/../../../lib/jsdbg/JsDbg.Stdio.dll" # from make install
         ]
         extensionsPath = None
         for path in extensionSearchPath:
@@ -68,11 +68,13 @@ class JsDbg:
         if not extensionsPath:
             raise Exception("Can't find JsDbg extensions")
         if not execPath:
-            raise Exception("Can't find JsDbg.Gdb binary")
+            raise Exception("Can't find JsDbg.Stdio binary")
 
         cmdline = [execPath, extensionsPath]
         if execPath.endswith(".dll"):
             cmdline = ["dotnet"] + cmdline
+        if self.verbose:
+            print('Running %s' % cmdline)
         self.proc = subprocess.Popen(cmdline, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
