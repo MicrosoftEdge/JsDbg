@@ -65,3 +65,12 @@ class SModule(object):
 
     def __repr__(self):
         return '{%s#%d}' % (self.name, self.baseAddress)
+
+class SSymbolNameAndDisplacement(object):
+    def __init__(self, module, name, displacement):
+        self.module = module
+        self.name = name
+        self.displacement = displacement
+
+    def __repr__(self):
+        return '{%s#%s#%d}' % (self.module, self.name, self.displacement)
