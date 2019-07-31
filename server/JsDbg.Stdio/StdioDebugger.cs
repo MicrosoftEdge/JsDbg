@@ -339,8 +339,10 @@ namespace JsDbg.Stdio {
             if (response == "None")
                 throw new DebuggerException(String.Format("Address 0x{0:x} is not a symbol", pointer));
 
-            // "%s#%s#%d" % (module, symbol, offset)
-            string[] properties = response.Split("#");
+            // "{%s#%s#%d}" % (module, symbol, offset)
+            Debug.Assert(response[0] == '{');
+            Debug.Assert(response[response.Length - 1] == '}');
+            string[] properties = response.Substring(1, response.Length - 2).Split("#");
             SSymbolNameAndDisplacement result = new SSymbolNameAndDisplacement();
             result.Module = properties[0];
             result.Name = properties[1];

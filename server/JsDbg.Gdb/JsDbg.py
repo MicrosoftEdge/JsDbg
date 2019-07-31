@@ -303,7 +303,7 @@ def LookupSymbolName(pointer):
     offset = 0
     if groups[2]:
         offset = int(groups[2])
-    return "%s#%s#%d" % (module, symbol, offset)
+    return JsDbgTypes.SSymbolNameAndDisplacement(module, symbol, offset)
 
 def ReadMemoryBytes(pointer, size):
     inferior = gdb.selected_inferior()

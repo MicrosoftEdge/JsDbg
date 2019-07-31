@@ -61,7 +61,7 @@ test "1" "LookupConstant"
 expect $gdb_prompt
 
 send "python print(JsDbg.LookupSymbolName($pointer))\n"
-test "test_program#global_var#0" "LookupSymbolName"
+test "{test_program#global_var#0}" "LookupSymbolName"
 expect $gdb_prompt
 
 send "python print(JsDbg.ReadMemoryBytes($pointer, 4))\n"
