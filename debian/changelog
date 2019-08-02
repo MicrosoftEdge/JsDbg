@@ -1,11 +1,11 @@
-jsdbg (0.8.9-1) unstable; urgency=medium
+jsdbg (0.9.0) unstable; urgency=medium
 
   * Update extensions
   * Fix bugs in reading local variables and in writing memory
 
  -- Christian Biesinger <cbiesinger@google.com>  Tue, 30 Jul 2019 18:21:00 -0500
 
-jsdbg (0.8.9-1) unstable; urgency=medium
+jsdbg (0.8.9) unstable; urgency=medium
 
   * Initial release
 
