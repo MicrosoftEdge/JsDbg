@@ -45,7 +45,7 @@ dist:
 	cd ../JsDbg.Stdio && $(DOTNET) publish -c Release -r linux-x64 --self-contained -o $(PUBLISH_SC)
 	cp $(PYTHON_FILES) $(PUBLISH_SC)
 	@echo 'Creating jsdbg-gdb.tar.bz2'
-	@tar --transform="s#$(PUBLISH_SC_REL)#jsdbg#" -c -j -f jsdbg-gdb.tar.bz2 $(PUBLISH_SC_REL)
+	@tar --transform="s#$(PUBLISH_SC_REL)#jsdbg-gdb#" -c -j -f jsdbg-gdb.tar.bz2 $(PUBLISH_SC_REL)
 
 .PHONY: clean install all package
 
