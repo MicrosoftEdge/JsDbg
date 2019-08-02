@@ -113,6 +113,8 @@ namespace JsDbg.Stdio {
             NotifyDebuggerMessage(String.Format("Looking up fields for {0}...", typename));
 
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetAllFields(\"{0}\",\"{1}\",{2})",module, typename, includeBaseTypes ? "True" : "False"));
+            if (pythonResult == "None")
+                throw new DebuggerException(String.Format("No type {0}!{1}", module, typename));
 
             List<string> objects = ParsePythonObjectArrayToStrings(pythonResult);
             List<SFieldResult> result = new List<SFieldResult>();
@@ -139,6 +141,8 @@ namespace JsDbg.Stdio {
             NotifyDebuggerMessage(String.Format("Looking up base types for {0}...", typeName));
 
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetBaseTypes(\"{0}\",\"{1}\")", module, typeName));
+            if (pythonResult == "None")
+                throw new DebuggerException(String.Format("No type {0}!{1}", module, typeName));
 
             List<string> objects = ParsePythonObjectArrayToStrings(pythonResult);
             List<SBaseTypeResult> result = new List<SBaseTypeResult>();
@@ -177,6 +181,8 @@ namespace JsDbg.Stdio {
             NotifyDebuggerMessage(String.Format("Looking up name for {0}({1})...", type, constantValue));
 
             string pythonResult = await this.QueryDebuggerPython(String.Format("LookupConstants(\"{0}\", \"{1}\", {2})", module, type, constantValue));
+            if (pythonResult == "None")
+                throw new DebuggerException(String.Format("Error looking up constant value {0} on {1}!{2}", constantValue, module, type));
 
             List<string> objects = ParsePythonObjectArrayToStrings(pythonResult);
             List<SConstantResult> result = new List<SConstantResult>();
@@ -198,6 +204,8 @@ namespace JsDbg.Stdio {
             NotifyDebuggerMessage(String.Format("Looking up value for constant {0}...", constantName));
 
             string response = await this.QueryDebuggerPython(String.Format("LookupConstant(\"{0}\",\"{1}\",\"{2}\")", module, type == null ? "None" : type , constantName));
+            if (response == "None")
+                throw new DebuggerException(String.Format("Error looking up constant {0} on {1}!{2}", constantName, module, type));
 
             SConstantResult result = new SConstantResult();
             result.ConstantName = constantName;
@@ -262,6 +270,8 @@ namespace JsDbg.Stdio {
 
         public async Task<SModule> GetModuleForName(string module) {
             string pythonResult = await this.QueryDebuggerPython(String.Format("GetModuleForName(\"{0}\")", module));
+            if (pythonResult == "None")
+                throw new DebuggerException(String.Format("No module {0}", module));
 
             Debug.Assert(pythonResult[0] == '{');
             int fieldEndIndex = pythonResult.IndexOf('}');
@@ -335,7 +345,6 @@ namespace JsDbg.Stdio {
             NotifyDebuggerMessage(String.Format("Looking up symbol at 0x{0:x}...", pointer));
 
             string response = await this.QueryDebuggerPython(String.Format("LookupSymbolName(0x{0:x})",pointer));
-
             if (response == "None")
                 throw new DebuggerException(String.Format("Address 0x{0:x} is not a symbol", pointer));
 
@@ -365,6 +374,8 @@ namespace JsDbg.Stdio {
             NotifyDebuggerMessage(String.Format("Looking up sizeof({0})...", typename));
 
             string pythonResponse = await this.QueryDebuggerPython(String.Format("LookupTypeSize(\"{0}\",\"{1}\")", module, typename));
+            if (pythonResponse == "None")
+                throw new DebuggerException(String.Format("No type {0}!{1}", module, typename));
 
             return UInt32.Parse(pythonResponse);
         }

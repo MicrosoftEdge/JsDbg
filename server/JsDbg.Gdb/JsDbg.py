@@ -60,6 +60,42 @@ class GdbNamedSymbol(JsDbgTypes.SNamedSymbol):
             GdbSymbolResult(symbol, frame))
 
 
+def FindObjfileForName(name):
+    for objfile in gdb.objfiles():
+        if JsDbgBase.FormatModule(objfile.filename) == name:
+            return objfile
+    return None
+
+
+def FindGdbSymbol(module, symbol):
+    objfile = FindObjfileForName(module)
+    if objfile is None:
+        return None
+    # GDB 8.4 and later let us look up symbols per-objfile; use that if
+    # possible. Also, only 8.4 and later let us look for symbols with static
+    # linkage. So in older versions we have to use gdb.lookup_symbol.
+    if hasattr(objfile, 'lookup_static_symbol'):
+        # We try static first, because in practice most of the symbols we look
+        # up here are static (or in an anonymous namespace, which is equivalent)
+        sym = objfile.lookup_static_symbol(symbol)
+        if sym is None:
+            sym = objfile.lookup_global_symbol(symbol)
+    else:
+        (sym, _) = gdb.lookup_symbol(symbol)
+    return sym
+
+
+def FindGdbType(module, type_name):
+    # Types are also symbols, so we just look them up as symbols. This is
+    # what GDB does internally.
+    type_symbol = FindGdbSymbol(module, type_name)
+    if type_symbol is None:
+        return None
+    if type_symbol.addr_class != gdb.SYMBOL_LOC_TYPEDEF:
+        return None
+    return type_symbol.type
+
+
 def DebuggerQuery(tag, command):
     # pi exec('print(\\'{0}~\\' + str({1}))')
     try:
@@ -114,7 +150,10 @@ def ExecuteGdbCommand(cmd):
 
 
 def GetAllFields(module, type, includeBaseTypes):
-    t = gdb.lookup_type(type)
+    t = FindGdbType(module, type)
+    if t is None:
+        return None
+
     fields = t.fields()
     resultFields = []
     for field in fields:
@@ -167,20 +206,24 @@ def GetBaseTypesFromGdbType(module, type, extra_bitoffset=0):
 
 
 def GetBaseTypes(module, type_name):
-    try:
-        t = gdb.lookup_type(type_name)
-    except:
+    t = FindGdbType(module, type_name)
+    if t is None:
         # Type is a base type?
-        return [JsDbgTypes.BaseTypeResult(module, type_name, 0)]
+        return [JsDbgTypes.SBaseTypeResult(module, type_name, 0)]
 
     return GetBaseTypesFromGdbType(module, t)
 
 def IsTypeEnum(module, type):
-    t = gdb.lookup_type(type)
+    t = FindGdbType(module, type)
+    if t is None:
+        return False
     return t.code == gdb.TYPE_CODE_ENUM
 
 def LookupField(module, type, field):
-    t = gdb.lookup_type(type)
+    t = FindGdbType(module, type)
+    if t is None:
+        return None
+
     fields = t.fields()
     while fields:
         match = list(filter(lambda x: x.name == field, fields))
@@ -200,21 +243,18 @@ def LookupField(module, type, field):
         fields = [f for m in match for f in m.type.fields()]
 
 def LookupGlobalSymbol(module, symbol):
-    # We can't use lookup_global_symbol because that does not work for symbols
-    # with local linkage, such as those in an anonymous namespace.
-    # https://sourceware.org/bugzilla/show_bug.cgi?id=24474
-    (sym, _) = gdb.lookup_symbol(symbol)
+    sym = FindGdbSymbol(module, symbol)
     if sym is None:
         return None
     return GdbSymbolResult(sym)
 
 
 def GetModuleForName(module):
-    for objfile in gdb.objfiles():
-        if JsDbgBase.FormatModule(objfile.filename) == module:
-            # Python has no API to find the base address
-            # https://sourceware.org/bugzilla/show_bug.cgi?id=24481
-            return JsDbgTypes.SModule(module, 0)
+    objfile = FindObjfileForName(module)
+    if objfile:
+        # Python has no API to find the base address
+        # https://sourceware.org/bugzilla/show_bug.cgi?id=24481
+        return JsDbgTypes.SModule(module, 0)
     return None
 
 
@@ -252,12 +292,16 @@ def LookupTypeSize(module, typename):
     if (typename.endswith("*")):
         t = gdb.lookup_type("void")
         return t.reference().sizeof
-    t = gdb.lookup_type(typename)
+    t = FindGdbType(module, typename)
+    if t is None:
+        return None
     return t.sizeof
 
 
 def LookupConstants(module, type, value):
-    type = gdb.lookup_type(type)
+    type = FindGdbType(module, type)
+    if type is None:
+        return None
     if type.code != gdb.TYPE_CODE_ENUM:
         return None
     values = []
@@ -275,7 +319,9 @@ def LookupConstants(module, type, value):
 
 def LookupConstant(module, typename, constantName):
     if typename:
-        type = gdb.lookup_type(typename)
+        type = FindGdbType(module, typename)
+        if type is None:
+            return None
         # Values in enum classes are stored as type::eFoo;
         # regular enums as just eFoo.
         matches = [f for f in type.fields() if f.name.endswith("::" + constantName) or f.name == constantName]
