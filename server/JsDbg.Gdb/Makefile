@@ -1,6 +1,7 @@
 PREFIX=/usr/local
 DOTNET=dotnet
 
+SHELL := /bin/bash
 PUBLISH := $(shell pwd)/out
 PUBLISH_SC_REL := out_sa
 PUBLISH_SC := $(shell pwd)/$(PUBLISH_SC_REL)
