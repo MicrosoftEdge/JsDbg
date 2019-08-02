@@ -8,10 +8,12 @@ Homepage: https://github.com/MicrosoftEdge/JsDbg
 Vcs-Git: https://github.com/MicrosoftEdge/JsDbg
 Vcs-Browser: https://github.com/MicrosoftEdge/JsDbg
 
-Package: jsdbg
+Package: jsdbg-gdb
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}, dotnet-runtime-2.2
 Recommends: gdb
+Replaces: jsdbg
+Breaks: jsdbg
 Description: Browser-based debugger extensions
  Extends GDB with a `jsdbg' command that lets you visualize datastructures
  in a browser and can be extended using JavaScript.

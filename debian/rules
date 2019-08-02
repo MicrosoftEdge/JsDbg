@@ -13,3 +13,5 @@ export RESTOREFLAGS := -s /usr/share/dotnet/sdk/NuGetFallbackFolder
 override_dh_auto_install:
 	dh_auto_install -- PREFIX=/usr
 
+override_dh_builddeb:
+	dh_builddeb $(BUILDPACKAGE_OPTS)
