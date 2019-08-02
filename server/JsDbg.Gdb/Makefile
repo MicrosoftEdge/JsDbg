@@ -7,15 +7,17 @@ PUBLISH_SC := $(shell pwd)/$(PUBLISH_SC_REL)
 
 BINDEPS=$(filter-out %extensions %JsDbg.py %JsDbg.Gdb, $(wildcard $(PUBLISH)/*))
 
+PYTHON_FILES=JsDbg.py ../JsDbg.Stdio/JsDbg{Base,Types}.py
+
 all: bin/test_program
 	cd ../JsDbg.Stdio && $(DOTNET) restore $(RESTOREFLAGS)
 	cd ../JsDbg.Stdio && $(DOTNET) publish -c Release --no-restore -o $(PUBLISH)
 
 clean:
-	rm -rf bin $(PUBLISH) $(PUBLISH_SC) ../JsDbg.{Core,Stdio,Stdio.Tests}/{bin,obj} jsdbg.tar.bz2 {.,../JsDbg.Stdio}/{*.pyc,__pycache__}
+	rm -rf bin $(PUBLISH) $(PUBLISH_SC) ../JsDbg.{Core,Stdio,Stdio.Tests}/{bin,obj} jsdbg-gdb.tar.bz2 {.,../JsDbg.Stdio}/{*.pyc,__pycache__}
 
 install: all
-	install -D -m 644 JsDbg.py $(DESTDIR)$(PREFIX)/share/gdb/python/JsDbg.py
+	install -D -m 644 $(PYTHON_FILES) --target-directory=$(DESTDIR)$(PREFIX)/share/gdb/python
 	install -d $(DESTDIR)$(PREFIX)/lib/jsdbg
 	install -m 644 $(BINDEPS) $(DESTDIR)$(PREFIX)/lib/jsdbg
 	install -d $(DESTDIR)$(PREFIX)/share/jsdbg/extensions
@@ -40,7 +42,7 @@ check: bin/test_program
 # let's build a self-contained binary.
 dist:
 	cd ../JsDbg.Stdio && $(DOTNET) publish -c Release -r linux-x64 --self-contained -o $(PUBLISH_SC)
-	cp JsDbg.py $(PUBLISH_SC)
+	cp $(PYTHON_FILES) $(PUBLISH_SC)
 	@echo 'Creating jsdbg-gdb.tar.bz2'
 	@tar --transform="s#$(PUBLISH_SC_REL)#jsdbg#" -c -j -f jsdbg-gdb.tar.bz2 $(PUBLISH_SC_REL)
 
