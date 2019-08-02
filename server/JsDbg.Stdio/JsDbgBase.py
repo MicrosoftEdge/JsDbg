@@ -42,14 +42,14 @@ class JsDbg:
         self.verbose = verbose
         rootDir = os.path.dirname(os.path.abspath(__file__))
         extensionSearchPath = [
-          rootDir + "/extensions", # from "make package"
+          rootDir + "/extensions", # from "make dist"
           rootDir + "/../../extensions", # inside a checkout
           rootDir + "/../../jsdbg/extensions", # from "make install"
         ]
         # The non-.DLL entries are for "standalone" builds; the DLL ones are
         # non-standalone and need to be run via the dotnet binary.
         execSearchPath = [
-          rootDir + "/JsDbg.Stdio", # from "make package"
+          rootDir + "/JsDbg.Stdio", # from "make dist"
           rootDir + "/../JsDbg.Gdb/out/JsDbg.Stdio", # in a checkout
           rootDir + "/../JsDbg.Gdb/out/JsDbg.Stdio.dll", # in a checkout
           rootDir + "/../../../lib/jsdbg/JsDbg.Stdio", # from make install

@@ -2,7 +2,8 @@ PREFIX=/usr/local
 DOTNET=dotnet
 
 PUBLISH := $(shell pwd)/out
-PUBLISH_SC := $(shell pwd)/out_sa
+PUBLISH_SC_REL := out_sa
+PUBLISH_SC := $(shell pwd)/$(PUBLISH_SC_REL)
 
 BINDEPS=$(filter-out %extensions %JsDbg.py %JsDbg.Gdb, $(wildcard $(PUBLISH)/*))
 
@@ -37,11 +38,11 @@ check: bin/test_program
 
 # We don't want users of the tarball to require a dotnet install, so
 # let's build a self-contained binary.
-package:
-	$(DOTNET) publish -c Release -r linux-x64 --self-contained -o $(PUBLISH_SC)
+dist:
+	cd ../JsDbg.Stdio && $(DOTNET) publish -c Release -r linux-x64 --self-contained -o $(PUBLISH_SC)
 	cp JsDbg.py $(PUBLISH_SC)
 	@echo 'Creating jsdbg.tar.bz2'
-	@tar --transform="s#$(PUBLISH_SC)#jsdbg#" -c -j -f jsdbg.tar.bz2 $(PUBLISH_SC)
+	@tar --transform="s#$(PUBLISH_SC_REL)#jsdbg#" -c -j -f jsdbg.tar.bz2 $(PUBLISH_SC_REL)
 
 .PHONY: clean install all package
 
