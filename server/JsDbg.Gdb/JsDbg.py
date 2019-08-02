@@ -407,7 +407,10 @@ Only useful for debugging JsDbg itself."""
 
     def get_set_string(self):
         global jsdbg
-        jsdbg.verbose = self.value
+        if jsdbg is not None:
+            # If JsDbg is already running, update its verbosity.
+            # Otherwise, we'll pass this value to it when we start it.
+            jsdbg.verbose = self.value
         if self.value:
             return 'Showing verbose JsDbg output'
         else:
