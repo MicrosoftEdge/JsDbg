@@ -38,6 +38,7 @@ class JsDbg:
     def __init__(self, module, post_event_func, server_exited_func, verbose):
         self.module = module
         self.post_event_func = post_event_func
+        self.server_exited_func = server_exited_func
         self.showStderr = True
         self.verbose = verbose
         rootDir = os.path.dirname(os.path.abspath(__file__))
