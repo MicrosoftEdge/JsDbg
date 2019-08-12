@@ -70,6 +70,14 @@ import JsDbg
 end
 ```
 
+### Updating
+
+There is currently no autoupdate on the GDB version of JsDbg, so you have to
+download and install a new version manually. Just follow the installation
+instructions again (except for the .gdbinit part).
+
+Last update of the GDB packages: Aug 12th, 2019.
+
 ### Usage
 
 1. Run GDB for your program as usual.
