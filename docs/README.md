@@ -5,7 +5,7 @@ JsDbg is a tool that provides browser developers with a web-based platform for n
 
 ## Supported debuggers and platforms
 
-JsDbg currently supports WinDbg and the Visual Studio debugger on Windows. Support for additional debuggers (ex. GDB) and platforms (ex. MacOS) will be available in the future. If you wish to use JsDbg with a debugger that is currently unsupported, please file an issue (or upvote an existing one) to track your request.
+JsDbg currently supports WinDbg and the Visual Studio debugger on Windows, and GDB on Linux. Support for additional debuggers (ex. LLDB) and platforms (ex. MacOS) will be available in the future. If you wish to use JsDbg with a debugger that is currently unsupported, please file an issue (or upvote an existing one) to track your request.
 
 ## JsDbg for WinDbg
 
@@ -38,6 +38,43 @@ JsDbg currently supports WinDbg and the Visual Studio debugger on Windows. Suppo
 3. Launch JsDbg by clicking the `JS` icon on the Debug toolbar, or `Tools -> Launch JsDbg`.
 
 4. The JsDbg server will launch and prompt you to select a browser. If the debugger is attached to one browser, it is recommended that you choose a different browser for JsDbg.
+
+## JsDbg for GDB
+
+### Setup (.deb package)
+
+If using Debian or Ubuntu, you can install JsDbg as a .deb package:
+
+1. Install the .NET Core Runtime using the instructions from [here](https://dotnet.microsoft.com/download).
+
+2. Download [jsdbg-gdb.deb](https://aka.ms/jsdbg-gdb-deb).
+
+3. Run `apt install ./jsdbg-gdb.deb`.
+
+### Setup (.tar.bz2)
+
+For other distributions, you can download a precompiled .tar.bz2. You do not
+need to install the .NET Core Runtime for this version.
+
+1. Download [jsdbg-gdb.tar.bz2](https://aka.ms/jsdbg-gdb).
+
+2. Extract the file somewhere, e.g. in your home directory: `cd ~ && tar xjf ~/Downloads/jsdbg-gdb.tar.bz2`
+
+3. Add the following snippet to your `~/.gdbinit` file:
+
+```
+python
+import sys
+sys.path.insert(0, "<path where you extracted the .tar.bz2>/jsdbg-gdb")
+import JsDbg
+end
+```
+
+### Usage
+
+1. Run GDB for your program as usual.
+
+2. Type `jsdbg` at the GDB prompt to launch the server and open a browser window.
 
 ## Using JsDbg extensions
 
