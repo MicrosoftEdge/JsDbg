@@ -113,7 +113,17 @@ def IsFunctionPointer(t):
 
 
 def FormatType(symbol_type):
-    t = symbol_type.strip_typedefs()
+    # The type may be a typedef to an anonymous union (e.g.
+    # base::internal::LockImpl::NativeHandle). In that case, keep the
+    # typedef name so we have *some* name to refer to this type.
+    # (This is only an issue with clang,
+    # https://bugs.llvm.org/show_bug.cgi?id=43054)
+    stripped = symbol_type.strip_typedefs()
+    if stripped.name:
+        t = stripped
+    else:
+        t = symbol_type
+
     if IsFunctionPointer(t):
         # No good way to interop a function pointer back to python; lie and say it's a void*
         return "void *"
