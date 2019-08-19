@@ -154,8 +154,15 @@ def GetAllFields(module, type, includeBaseTypes):
     if t is None:
         return None
 
-    fields = t.fields()
     resultFields = []
+
+    try:
+        fields = t.fields()
+    except:
+        # If this is a type that has no fields, return instead of throwing
+        # an exception (e.g. 'char').
+        return resultFields
+
     for field in fields:
         if field.is_base_class:
             if not includeBaseTypes:
