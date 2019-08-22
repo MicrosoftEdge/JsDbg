@@ -119,7 +119,8 @@ def FormatType(symbol_type):
     # (This is only an issue with clang,
     # https://bugs.llvm.org/show_bug.cgi?id=43054)
     stripped = symbol_type.strip_typedefs()
-    if stripped.name:
+    if stripped.name or (stripped.code != gdb.TYPE_CODE_STRUCT and
+                         stripped.code != gdb.TYPE_CODE_UNION):
         t = stripped
     else:
         t = symbol_type

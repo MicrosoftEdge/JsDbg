@@ -6,6 +6,12 @@ expect $gdb_prompt
 send "run\n"
 expect $gdb_prompt
 
+# Some tests for FormatType
+send "python print(JsDbg.FormatType(gdb.lookup_type('IntPointer')))\n"
+test "int \\\*" "Test that we strip typedefs from pointer types"
+expect $gdb_prompt
+
+# Tests for the IDebugger implementation
 send "python print(JsDbg.LookupGlobalSymbol('test_program', 'global_var'))\n"
 test "{int#$decimal}" "LookupGlobalSymbol"
 regexp $decimal $match pointer
