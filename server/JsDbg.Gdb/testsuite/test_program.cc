@@ -1,5 +1,8 @@
 int global_var = 42;
 
+typedef int* IntPointer;
+IntPointer ip;
+
 class Base {
   int base_member_;
 };
