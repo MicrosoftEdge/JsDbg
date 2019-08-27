@@ -23,7 +23,7 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("WTF::StringImpl"), "Text", true, UserEditableFunctions.Create((wtfStringImpl) => {
         if (!wtfStringImpl.isNull()) {
             return wtfStringImpl.f("is_8bit_").val()
-            .then((is8bit) => wtfStringImpl.idx(1).as(is8bit ? "char" : "char16_t", /*disregardSize*/true))
+            .then((is8bit) => wtfStringImpl.idx(1).as(is8bit ? "LChar" : "UChar", /*disregardSize*/true))
             .then((firstChar) => firstChar.string(wtfStringImpl.f("length_")));
         } else {
             return "";
