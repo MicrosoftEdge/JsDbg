@@ -37,7 +37,12 @@ Loader.OnLoad(function() {
             // to have the 'most important' layer tree host be the first entry.
             return DbgObject.global(Chromium.RendererProcessSyntheticModuleName, "g_view_map", undefined, "content")
             .then((viewMap) => {
-                return Promise.map(viewMap.F("Object").array("Values"), renderViewImplPointer => renderViewImplPointer.deref().f("render_widget_", "").f("layer_tree_view_").F("Object").f("layer_tree_host_").F("Object"));
+                return Promise.map(viewMap.F("Object").array("Values"), renderViewImplPointer => renderViewImplPointer.deref().f("render_widget_", "")
+                .then((layerTreeViewOwnerOrUniquePtr) => {
+                    return layerTreeViewOwnerOrUniquePtr.F("Object")
+                    .then(null, () => layerTreeViewOwnerOrUniquePtr);
+                })
+                .then((layerTreeViewOwner) => layerTreeViewOwner.f("layer_tree_view_").F("Object").f("layer_tree_host_").F("Object")))
             })
             .then(null, (error) => {
                 var errorMessage = ErrorMessages.CreateErrorsList(error) +
