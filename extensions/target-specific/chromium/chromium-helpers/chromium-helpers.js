@@ -93,7 +93,7 @@ var Chromium = null;
                 description: "List of modules used in multiple Chromium processes.",
             },
             // chrome_child and msedge_child are only used on Windows, so chrome and msedge are in here as well.
-            MultiProcessModules: ["msedge_child", "chrome_child", "content", "content_shell", "browser_tests", "content_browsertests", "chrome", "msedge"],
+            MultiProcessModules: ["msedge_child", "chrome_child", "content", "content_shell", "blink_unittests", "browser_tests", "content_browsertests", "chrome", "msedge"],
         };
 
         function setTargetProcess(targetProcessName) {

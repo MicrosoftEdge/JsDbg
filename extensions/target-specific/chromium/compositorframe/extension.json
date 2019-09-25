@@ -20,6 +20,7 @@
         "msedge",
         "chrome",
         "content_shell",
+        "blink_unittests",
         "browser_tests",
         "content_browsertests"
     ]
