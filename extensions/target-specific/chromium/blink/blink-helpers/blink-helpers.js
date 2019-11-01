@@ -406,6 +406,10 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::LayoutText"), "Text", false, UserEditableFunctions.Create((layoutText) => {
+        return layoutText.f("text_").desc("Text").then(WhitespaceFormatter.CreateFormattedText);
+    }));
+
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutObject"), "child_objects_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((layoutObject) => {
         return layoutObject.vcast().f("children_")
         .then((layoutObjectChildList) => layoutObjectChildList.array("entries_"),
