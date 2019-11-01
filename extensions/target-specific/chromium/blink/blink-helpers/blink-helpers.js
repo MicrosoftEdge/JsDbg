@@ -428,7 +428,7 @@ Loader.OnLoad(function() {
         (type) => type.name().match(/^blink::InlineBoxList<(.*)>$/) != null,
         "entries_",
         (type) => type.templateParameters()[0],
-        (inlineBoxList) => inlineBoxList.f("first_").list("next_text_box_");
+        (inlineBoxList) => inlineBoxList.f("first_").list("next_text_box_")
     );
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Color"), "Color", true, UserEditableFunctions.Create((color) => {
