@@ -553,6 +553,11 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::StyleContentAlignmentData"), "distribution_", "blink::ContentDistributionType");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::StyleContentAlignmentData"), "overflow_", "blink::OverflowAlignment");
 
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::IntSize"), "Size", true, UserEditableFunctions.Create((size) => {
+        return Promise.all([size.f("width_").val(), size.f("height_").val()])
+        .thenAll((width, height) => `{${width}, ${height}}`);
+    }));
+
     function layoutValueToPx(layout_unit) {
       // kFixedPointDenominator is not present in the PDBs, so we define it here.
       const kFixedPointDenominator = 64;
