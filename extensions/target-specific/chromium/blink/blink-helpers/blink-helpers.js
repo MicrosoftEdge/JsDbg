@@ -553,6 +553,11 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::StyleContentAlignmentData"), "distribution_", "blink::ContentDistributionType");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::StyleContentAlignmentData"), "overflow_", "blink::OverflowAlignment");
 
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::IntPoint"), "Point", true, UserEditableFunctions.Create((point) => {
+        return Promise.all([point.f("x_").val(), point.f("y_").val()])
+        .thenAll((first, second) => `{${first}, ${second}}`);
+    }));
+
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::IntSize"), "Size", true, UserEditableFunctions.Create((size) => {
         return Promise.all([size.f("width_").val(), size.f("height_").val()])
         .thenAll((width, height) => `{${width}, ${height}}`);
