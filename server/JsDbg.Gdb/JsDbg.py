@@ -456,7 +456,9 @@ if hasattr(gdb, 'events'):
     gdb.events.stop.connect(StoppedHandler)
     gdb.events.cont.connect(ContHandler)
     gdb.events.exited.connect(ExitHandler)
-    gdb.events.before_prompt.connect(PromptHandler)
+    # before_prompt is only supported on GDB 8.0 and above.
+    if hasattr(gdb.events, 'before_prompt'):
+      gdb.events.before_prompt.connect(PromptHandler)
 
 
 class VerboseParam(gdb.Parameter):
