@@ -90,7 +90,7 @@ Loader.OnLoad(function() {
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "node_layout_data_", Chromium.RendererProcessType("blink::NodeRenderingData"), UserEditableFunctions.Create((node) => {
         return node.F("rare_data_")
         .then((nodeRareData) => (!nodeRareData.isNull() ? nodeRareData : node.f("data_")))
-        .then((nodeData) => nodeData.f("node_layout_data_"));
+        .then((nodeData) => nodeData.f("node_layout_data_").f("raw_", ""));
     }));
 
     function getCollectionFromOwnerNode(node, collectionTypeOrPromise) {
