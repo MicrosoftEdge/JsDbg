@@ -7,6 +7,7 @@
         "dbgobject-inspector",
         "user-editable-functions",
         "error-messages",
+        "target-specific/base-container-helpers",
         "target-specific/chromium/blink/blink-helpers",
         "target-specific/chromium/blink/wtf-helpers",
         "target-specific/chromium/chromium-helpers",

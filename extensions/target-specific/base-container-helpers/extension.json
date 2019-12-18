@@ -1,0 +1,8 @@
+{
+    "name": "base-container-helpers",
+    "author": "Sanket Joshi",
+    "description": "Helper functions for debugging base container types",
+    "includes": ["base-container-helpers.js"],
+    "augments": ["dbgobject"],
+    "headless": true
+}

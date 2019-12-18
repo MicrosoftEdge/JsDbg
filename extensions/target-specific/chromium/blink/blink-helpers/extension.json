@@ -5,6 +5,7 @@
     "headless": true,
     "dependencies": [
         "dbgobject",
+        "target-specific/base-container-helpers",
         "target-specific/chromium/chromium-helpers",
         "target-specific/chromium/blink/wtf-helpers",
         "target-specific/stl-helpers"

@@ -6,6 +6,7 @@
         "dbgobject",
         "error-messages",
         "tree-inspector",
+        "target-specific/base-container-helpers",
         "target-specific/chromium/chromium-helpers",
         "target-specific/stl-helpers"
     ],

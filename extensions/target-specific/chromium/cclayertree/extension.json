@@ -6,6 +6,7 @@
         "dbgobject",
         "user-editable-functions",
         "tree-inspector",
+        "target-specific/base-container-helpers",
         "target-specific/stl-helpers",
         "target-specific/chromium/chromium-helpers",
         "target-specific/chromium/gfx-type-helpers"
