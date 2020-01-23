@@ -697,7 +697,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::NGPhysicalTextFragment"), "Text", false, UserEditableFunctions.Create((textFragment) => {
-        return Promise.all([textFragment.f("text_").desc(), textFragment.f("start_offset_").val(), textFragment.f("end_offset_").val()])
+        return Promise.all([textFragment.f("text_").desc(), textFragment.f("text_offset_.start", "start_offset_").val(), textFragment.f("text_offset_.end", "end_offset_").val()])
         .thenAll((textString, startOffset, endOffset) => WhitespaceFormatter.CreateFormattedText(textString.substring(startOffset, endOffset)));
     }));
 
