@@ -441,6 +441,10 @@ Loader.OnLoad(function() {
         return lineBoxList.f("first_").list("next_line_box_");
     }));
 
+    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::InlineFlowBox"), "children_", Chromium.RendererProcessType("blink::InlineBox"), UserEditableFunctions.Create((inlineFlowBox) => {
+        return inlineFlowBox.f("first_child_").list("next_");
+    }));
+
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Color"), "Color", true, UserEditableFunctions.Create((color) => {
         return color.f("color_").val()
         .then((colorValue) => {
