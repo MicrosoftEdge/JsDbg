@@ -433,12 +433,13 @@ Loader.OnLoad(function() {
         return layoutBox.f("cached_layout_result_.ptr_.physical_fragment_.ptr_");
     }));
 
-    DbgObject.AddArrayField(
-        (type) => type.name().match(/^blink::InlineBoxList<(.*)>$/) != null,
-        "entries_",
-        (type) => type.templateParameters()[0],
-        (inlineBoxList) => inlineBoxList.f("first_").list("next_text_box_")
-    );
+    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::InlineTextBoxList"), "entries_", Chromium.RendererProcessType("blink::InlineTextBox"), UserEditableFunctions.Create((inlineTextBoxList) => {
+        return inlineTextBoxList.f("first_").list("next_text_box_");
+    }));
+
+    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LineBoxList"), "entries_", Chromium.RendererProcessType("blink::InlineFlowBox"), UserEditableFunctions.Create((lineBoxList) => {
+        return lineBoxList.f("first_").list("next_line_box_");
+    }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Color"), "Color", true, UserEditableFunctions.Create((color) => {
         return color.f("color_").val()
