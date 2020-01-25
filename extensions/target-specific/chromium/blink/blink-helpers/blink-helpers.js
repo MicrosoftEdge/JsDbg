@@ -410,6 +410,11 @@ Loader.OnLoad(function() {
         return layoutText.f("text_").desc("Text").then(WhitespaceFormatter.CreateFormattedText);
     }));
 
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::InlineTextBox"), "Text", false, UserEditableFunctions.Create((inlineTextBox) => {
+        return Promise.all([inlineTextBox.f("line_layout_item_").f("layout_object_").vcast().f("text_").desc("Text"), inlineTextBox.f("start_").val(), inlineTextBox.f("len_").val()])
+        .thenAll((text, start, length) => WhitespaceFormatter.CreateFormattedText(text.substr(start, length)));
+    }));
+
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutObject"), "child_objects_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((layoutObject) => {
         return layoutObject.vcast().f("children_")
         .then((layoutObjectChildList) => layoutObjectChildList.array("entries_"),
