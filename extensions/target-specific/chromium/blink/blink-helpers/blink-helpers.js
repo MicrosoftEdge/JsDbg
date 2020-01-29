@@ -415,6 +415,22 @@ Loader.OnLoad(function() {
         .thenAll((text, start, length) => WhitespaceFormatter.CreateFormattedText(text.substr(start, length)));
     }));
 
+    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutText"), "text_fragments_", Chromium.RendererProcessType("blink::NGPhysicalTextFragment"), UserEditableFunctions.Create((layoutText) => {
+        return layoutText.f("bitfields_").f("is_in_layout_ng_inline_formatting_context_").val()
+        .then((isInLayoutNGInlineFormattingContext) => {
+            if (isInLayoutNGInlineFormattingContext) {
+                return Promise.map(layoutText.f("first_paint_fragment_").list("next_for_same_layout_object_").vcast(), (paintFragment) => paintFragment.f("physical_fragment_.ptr_").F("[as text fragment]"));
+            } else {
+                return [];
+            }
+        });
+    }));
+
+    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutText"), "text_boxes_", Chromium.RendererProcessType("blink::InlineTextBox"), UserEditableFunctions.Create((layoutText) => {
+        return layoutText.f("bitfields_").f("is_in_layout_ng_inline_formatting_context_").val()
+        .then((isInLayoutNGInlineFormattingContext) => isInLayoutNGInlineFormattingContext ? [] : layoutText.f("text_boxes_").array("entries_"));
+    }));
+
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutObject"), "child_objects_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((layoutObject) => {
         return layoutObject.vcast().f("children_")
         .then((layoutObjectChildList) => layoutObjectChildList.array("entries_"),
