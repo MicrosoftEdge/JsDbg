@@ -47,7 +47,7 @@ Loader.OnLoad(function() {
         .thenAll((nodeFlags, hasRareDataFlag) => {
             var nodeHasRareData = nodeFlags & hasRareDataFlag;
             if (nodeHasRareData) {
-                return node.f("data_").f("rare_data_").as(Chromium.RendererProcessType("blink::NodeRareData"));
+                return node.f("data_").f("rare_data_", "").f("raw_", "").as(Chromium.RendererProcessType("blink::NodeRareData"));
             } else {
                 return DbgObject.NULL;
             }
@@ -90,7 +90,7 @@ Loader.OnLoad(function() {
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "node_layout_data_", Chromium.RendererProcessType("blink::NodeRenderingData"), UserEditableFunctions.Create((node) => {
         return node.F("rare_data_")
         .then((nodeRareData) => (!nodeRareData.isNull() ? nodeRareData : node.f("data_")))
-        .then((nodeData) => nodeData.f("node_layout_data_").f("raw_", ""));
+        .then((nodeData) => nodeData.f("node_layout_data_", "").f("raw_", "").as(Chromium.RendererProcessType("blink::NodeRenderingData")));
     }));
 
     function getCollectionFromOwnerNode(node, collectionTypeOrPromise) {
