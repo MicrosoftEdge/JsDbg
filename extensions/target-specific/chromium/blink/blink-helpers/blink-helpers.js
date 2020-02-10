@@ -445,8 +445,10 @@ Loader.OnLoad(function() {
         return layoutObject.f("fragment_.rare_data_").F("Object").f("layer").F("Object");
     }));
 
-    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::LayoutBox"), "NGPhysicalFragment", Chromium.RendererProcessType("blink::NGPhysicalFragment"), UserEditableFunctions.Create((layoutBox) => {
-        return layoutBox.f("cached_layout_result_.ptr_.physical_fragment_.ptr_");
+    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutBox"), "physical_fragments_", Chromium.RendererProcessType("blink::NGPhysicalFragment"), UserEditableFunctions.Create((layoutBox) => {
+        return layoutBox.f("cached_layout_result_.ptr_")
+        .then((layoutResult) => [layoutResult], () => layoutBox.f("layout_results_").array("Elements"))
+        .then((layoutResults) => Promise.map(layoutResults, (layoutResult) => layoutResult.f("ptr_").f("physical_fragment_.ptr_")));
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::InlineTextBoxList"), "entries_", Chromium.RendererProcessType("blink::InlineTextBox"), UserEditableFunctions.Create((inlineTextBoxList) => {
