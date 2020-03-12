@@ -501,5 +501,6 @@ class JsDbgCmd(gdb.Command):
             verbose_param.value)
     else:
         ServerStarted(jsdbg_url)
+    self.dont_repeat()
 
 JsDbgCmd()
