@@ -143,11 +143,15 @@ def ModuleForAddress(pointer):
 def ServerStarted(url):
     global jsdbg_url
     jsdbg_url = url
-    print('Opening browser for %s' % (url))
-    print('If you are debugging the default browser, manually open the URL in a')
-    print('different browser.')
-    webbrowser.open_new_tab(url)
-
+    if os.getenv('DISPLAY'):
+      print('Opening browser for %s' % (url))
+      print('If you are debugging the default browser, manually open the URL in a')
+      print('different browser.')
+      webbrowser.open_new_tab(url)
+    else:
+      print('Not opening browser because $DISPLAY is not set.')
+      print('Please load %s in a browser yourself.' % (url))
+      print('To set up SSH port forwarding: <Enter> ~C -L <port>:localhost:<port>')
 
 def ServerExited():
     print("JsDbg: server exited or crashed. To restart, type 'jsdbg'.")
