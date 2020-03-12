@@ -14,6 +14,9 @@ class GdbModule(object):
         def __init__(self, name, type):
             pass
 
+        def dont_repeat(self):
+            pass
+
     class Parameter(object):
         def __init__(self, name, cmd_class, type):
             pass
