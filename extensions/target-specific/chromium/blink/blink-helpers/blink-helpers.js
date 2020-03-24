@@ -66,7 +66,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::ElementData"), "unique_element_data_", Chromium.RendererProcessType("blink::UniqueElementData"), UserEditableFunctions.Create((elementData) => {
-        return elementData.f("is_unique_").val()
+        return isElementDataUnique(elementData)
         .then((isUnique) => {
             if (isUnique) {
                 return elementData.as(Chromium.RendererProcessType("blink::UniqueElementData"));
@@ -77,7 +77,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::ElementData"), "shareable_element_data_", Chromium.RendererProcessType("blink::ShareableElementData"), UserEditableFunctions.Create((elementData) => {
-        return elementData.f("is_unique_").val()
+        return isElementDataUnique(elementData)
         .then((isUnique) => {
             if (!isUnique) {
                 return elementData.as(Chromium.RendererProcessType("blink::ShareableElementData"));
@@ -86,6 +86,14 @@ Loader.OnLoad(function() {
             }
         });
     }));
+
+    function isElementDataUnique(elementData) {
+        return elementData.f("is_unique_").val()
+        .then(null, () => {
+            return elementData.f("bit_field_").val()
+            .then((bitFieldsVal) => bitFieldsVal & 1);
+        });
+    }
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "node_layout_data_", Chromium.RendererProcessType("blink::NodeRenderingData"), UserEditableFunctions.Create((node) => {
         return node.F("rare_data_")
@@ -246,6 +254,7 @@ Loader.OnLoad(function() {
             if (!elementData.isNull()) {
                 return Promise.all([elementData.F("unique_element_data_"), elementData.F("shareable_element_data_")])
                 .thenAll((uniqueElementData, shareableElementData) => {
+                    debugger;
                     if (!uniqueElementData.isNull()) {
                         return uniqueElementData.f("attribute_vector_").array("Elements");
                     } else {
