@@ -56,6 +56,10 @@ Loader.OnLoad(function() {
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NodeRareData"), "element_rare_data_", Chromium.RendererProcessType("blink::ElementRareData"), UserEditableFunctions.Create((nodeRareData) => {
         return nodeRareData.f("is_element_rare_data_").val()
+        .then(null, () => {
+            return nodeRareData.f("bit_field_")
+            .then((bitFieldVal) => bitFieldVal & (1 << 16));
+        })
         .then((isElementRareData) => {
             if (isElementRareData) {
                 return nodeRareData.as(Chromium.RendererProcessType("blink::ElementRareData"));
