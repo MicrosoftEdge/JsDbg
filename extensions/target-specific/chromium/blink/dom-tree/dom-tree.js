@@ -153,6 +153,15 @@ Loader.OnLoad(function() {
         });
     });
 
+    DOMTree.Renderer.addNameRenderer(Chromium.RendererProcessType("blink::Element"), function (element) {
+        return Promise.all([element.vcast(), element.desc("tagName")])
+        .thenAll((vcastedElement, tagName) => {
+            var typeNameParts = vcastedElement.type.name().split("::");
+            var typeName = typeNameParts[typeNameParts.length - 1];
+            return typeName + " <span style='color:grey'>&lt;" + tagName + "&gt;</span>";
+        });
+    });
+
     DbgObject.AddAction(Chromium.RendererProcessType("blink::Node"), "DOMTree", (node) => {
         return TreeInspector.GetActions("domtree", "DOMTree", node);
     });
