@@ -17,7 +17,7 @@ Loader.OnLoad(function() {
 
     function layoutObjectChildrenToFragments(layoutObject) {
         return layoutObject.array("child_objects_").dcast(new DbgObjectType("blink::LayoutBox", layoutObject.type)).map((box) => {
-            return box.F("NGPhysicalFragment").then((fragment) => {
+            return box.F("physical_fragments_").then((fragment) => {
                 if (fragment.isNull())
                     return box.vcast();
                 return fragmentToConcreteType(fragment);
