@@ -272,7 +272,12 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::ShareableElementData"), "attributes_", Chromium.RendererProcessType("blink::Attribute"), UserEditableFunctions.Create((shareableElementData) => {
-        return shareableElementData.f("attribute_array_").array(shareableElementData.f("array_size_"));
+        return shareableElementData.f("array_size_")
+        .then(null, () => {
+            return shareableElementData.f("bit_field_").val()
+            .then((bitFieldsVal) => bitFieldsVal & ((~0 >> 3) << 1));
+        })
+        .then((arraySize) => shareableElementData.f("attribute_array_").array(arraySize));
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Element"), "shadowRoot", Chromium.RendererProcessType("blink::ShadowRoot"), UserEditableFunctions.Create((element) => {
