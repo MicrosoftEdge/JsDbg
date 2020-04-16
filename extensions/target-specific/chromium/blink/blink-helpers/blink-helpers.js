@@ -170,6 +170,8 @@ Loader.OnLoad(function() {
         return shadowRoot.f("tree_scope_.raw_").f("selection_.raw_");
     }));
 
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ShadowRoot"), "type_", "blink::ShadowRootType");
+
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::DOMSelection"), "FrameSelection", Chromium.RendererProcessType("blink::FrameSelection"), UserEditableFunctions.Create((domSelection) => {
         return validExecutionContextOrNull(domSelection.f("execution_context_.raw_"))
         .then((validExecutionContextOrNull) => validExecutionContextOrNull.dcast(Chromium.RendererProcessType("blink::Document")).f("frame_.raw_").dcast(Chromium.RendererProcessType("blink::LocalFrame")).f("selection_.raw_"));
