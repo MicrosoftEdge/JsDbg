@@ -294,6 +294,10 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Element"), "assigned_slot_", Chromium.RendererProcessType("blink::HTMLSlotElement"), UserEditableFunctions.Create((element) => {
+        return element.F("rare_data_").f("flat_tree_node_data_.raw_").f("assigned_slot_.raw_");
+    }));
+
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::QualifiedName"), "Prefix", false, UserEditableFunctions.Create((qualifiedName) => {
         return qualifiedName.f("impl_").f("ptr_").f("prefix_").desc("Text");
     }));
