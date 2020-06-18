@@ -446,18 +446,18 @@ Loader.OnLoad(function () {
                 {name:"module", type:"string", description:"The module containing the symbol."},
                 {name:"symbol", type:"string", description:"The symbol to evaluate."},
                 {name:"typeName", type:"string", description: "The type name of the symbol to look up."},
-                {name:"scope", type:"string", description: "The scope of the symbol to look up (namespace, outer class, etc.). Required on some platforms."},
+                {name: "scopes", type:"array of strings", description: "(optional) Array of scopes of the symbol to look up (namespace, outer class, etc.). Order: [outermost scope, ..., innermost scope]."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },
-        LookupGlobalSymbol: function(module, symbol, typeName, scope, callback) {
+        LookupGlobalSymbol: function(module, symbol, typeName, scopes, callback) {
             var typenameStr = "";
             if (typeName)
                 typenameStr = "&typeName=" + esc(typeName);
-            var scopeStr = "";
-            if (scope)
-                scopeStr = "&scope=" + esc(scope);
-            JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol) + typenameStr + scopeStr, callback, JsDbgTransport.CacheType.Cached);
+            var scopesStr = "";
+            if (scopes)
+                scopesStr = "&scopes=" + esc(scopes);
+            JsDbgTransport.JsonRequest("/jsdbg-server/global?module=" + esc(module) + "&symbol=" + esc(symbol) + typenameStr + scopesStr, callback, JsDbgTransport.CacheType.Cached);
         },
 
         _help_GetCallStack: {

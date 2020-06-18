@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Tasks;
 using JsDbg.Core;
 
@@ -240,14 +241,11 @@ namespace JsDbg.Stdio {
             return field;
         }
 
-        public async Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typename, string scope) {
+        public async Task<SSymbolResult> LookupGlobalSymbol(string module, string symbol, string typename, string[] scopes) {
             NotifyDebuggerMessage(String.Format("Looking up value of global {0}...", symbol));
 
             // For GDB, we use scope instead of typename to disambiguate globals.
-            string symbolName = "";
-            if (!String.IsNullOrEmpty(scope))
-                symbolName = scope + "::";
-            symbolName += symbol;
+            string symbolName = GetScopePrefix(scopes) + symbol;
             string pythonResult = await this.QueryDebuggerPython(String.Format("LookupGlobalSymbol(\"{0}\",\"{1}\")", module, symbolName));
             // '{%s#%d}' % (self.type, self.pointer)
 
@@ -266,6 +264,21 @@ namespace JsDbg.Stdio {
             result.Pointer = UInt64.Parse(properties[1]);
 
             return result;
+        }
+
+        private string GetScopePrefix(string[] scopes) {
+            StringBuilder resultBuilder = new StringBuilder();
+            if (scopes != null) {
+                foreach (String scope in scopes) {
+                    if (scope.Equals("anonymous namespace")) {
+                        resultBuilder.Append('(').Append(scope).Append(')');
+                    } else {
+                        resultBuilder.Append(scope);
+                    }
+                    resultBuilder.Append("::");
+                }
+            }
+            return resultBuilder.ToString();
         }
 
         public async Task<SModule> GetModuleForName(string module) {
