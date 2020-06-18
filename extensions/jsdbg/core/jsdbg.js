@@ -446,7 +446,7 @@ Loader.OnLoad(function () {
                 {name:"module", type:"string", description:"The module containing the symbol."},
                 {name:"symbol", type:"string", description:"The symbol to evaluate."},
                 {name:"typeName", type:"string", description: "The type name of the symbol to look up."},
-                {name: "scopes", type:"array of strings", description: "(optional) Array of scopes of the symbol to look up (namespace, outer class, etc.). Order: [outermost scope, ..., innermost scope]."},
+                {name: "scopes", type:"array of strings", description: "Array of scopes of the symbol to look up (namespace, outer class, etc.). Order: [outermost scope, ..., innermost scope]. An anonymous namespace should be declared as \"anonymous namespace\"."},
                 {name:"callback", type:"function(object)", description:"A callback that is called when the operation succeeds or fails."}
             ]
         },

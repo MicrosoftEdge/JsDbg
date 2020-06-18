@@ -122,7 +122,7 @@ Loader.OnLoad(function() {
             {name:"moduleName", type:"string", description:"The name of the module containing the symbol."},
             {name:"symbol", type:"string", description:"The global symbol to lookup."},
             {name: "typeName", type:"string", description: "(optional) The type name of the symbol to look up."},
-            {name: "scopes", type:"array of strings", description: "(optional) Array of scopes of the symbol to look up (namespace, outer class, etc.). Order: [outermost scope, ..., innermost scope]."}
+            {name: "scopes", type:"array of strings", description: "(optional) Array of scopes of the symbol to look up (namespace, outer class, etc.). Order: [outermost scope, ..., innermost scope]. An anonymous namespace should be declared as \"anonymous namespace\"."}
         ]
     }
     DbgObject.global = function(moduleName, symbol, typeName, scopes) {
