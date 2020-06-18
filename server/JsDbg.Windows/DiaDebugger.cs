@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using Dia2Lib;
 using JsDbg.Core;
@@ -303,9 +304,8 @@ namespace JsDbg.Windows.Dia {
             return (await this.LoadType(module, typename)).Size;
         }
 
-        public async Task<SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName, string typeName, string scope) {
-            // The scope is not needed to lookup global symbols with DIA.
-
+        public async Task<SSymbolResult> LookupGlobalSymbol(string moduleName, string symbolName, string typeName, string[] scopes) {
+            symbolName = GetScopePrefix(scopes) + symbolName;
             Dia2Lib.IDiaSession session = await this.debuggerEngine.DiaLoader.LoadDiaSession(moduleName);
             if (session != null) {
                 // We have a DIA session, use that.
@@ -336,6 +336,21 @@ namespace JsDbg.Windows.Dia {
             } else {
                 return await this.debuggerEngine.LookupGlobalSymbol(moduleName, symbolName, typeName);
             }
+        }
+
+        private string GetScopePrefix(string[] scopes) {
+            StringBuilder resultBuilder = new StringBuilder();
+            if (scopes != null) {
+                foreach (String scope in scopes) {
+                    if (scope.Equals("anonymous namespace")) {
+                        resultBuilder.Append('`').Append(scope).Append('\'');
+                    } else {
+                        resultBuilder.Append(scope);
+                    }
+                    resultBuilder.Append("::");
+                }
+            }
+            return resultBuilder.ToString();
         }
 
         public Task<SModule> GetModuleForName(string module) {
