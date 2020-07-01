@@ -17,12 +17,13 @@ Loader.OnLoad(function() {
 
     function layoutObjectChildrenToFragments(layoutObject) {
         return layoutObject.array("child_objects_").dcast(new DbgObjectType("blink::LayoutBox", layoutObject.type)).map((box) => {
-            return box.F("physical_fragments_").then((fragment) => {
+            return box.array("physical_fragments_").map((fragment) => {
                 if (fragment.isNull())
                     return box.vcast();
                 return fragmentToConcreteType(fragment);
             });
-        });
+        })
+        .then((nested_fragment_array) => nested_fragment_array.flat());
     }
 
     NGPhysicalFragmentTree = {
