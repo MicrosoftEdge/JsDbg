@@ -747,6 +747,11 @@ Loader.OnLoad(function() {
         .thenAll((textString, startOffset, endOffset) => WhitespaceFormatter.CreateFormattedText(textString.substring(startOffset, endOffset)));
     }));
 
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::InlineTextBox"), "Text", false, UserEditableFunctions.Create((textBox) => {
+        return Promise.all([textBox.f("line_layout_item_").f("layout_object_").vcast().f("text_").desc("Text"), textBox.f("start_").val(), textBox.f("len_").val()])
+        .thenAll((textString, startOffset, length) => WhitespaceFormatter.CreateFormattedText(textString.substr(startOffset, length)));
+    }));
+
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "type_", "blink::NGPhysicalFragment::NGFragmentType");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "style_variant_", "blink::NGStyleVariant");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "line_orientation_", "blink::NGLineOrientation");
