@@ -742,6 +742,17 @@ Loader.OnLoad(function() {
         });
     }));
 
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGPhysicalBoxFragment"), "fragment_items_", Chromium.RendererProcessType("blink::NGFragmentItems"), UserEditableFunctions.Create((physicalBoxFragment) => {
+        return physicalBoxFragment.f("has_fragment_items_")
+        .then((hasFragmentItems) => {
+            if (hasFragmentItems) {
+                return physicalBoxFragment.f("children_").idx(physicalBoxFragment.f("num_children_").val()).as(Chromium.RendererProcessType("blink::NGFragmentItems"));
+            } else {
+                return DbgObject.NULL;
+            }
+        });
+    }));
+
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::NGPhysicalTextFragment"), "Text", false, UserEditableFunctions.Create((textFragment) => {
         return Promise.all([textFragment.f("text_").desc(), textFragment.f("text_offset_.start", "start_offset_").val(), textFragment.f("text_offset_.end", "end_offset_").val()])
         .thenAll((textString, startOffset, endOffset) => WhitespaceFormatter.CreateFormattedText(textString.substring(startOffset, endOffset)));
@@ -750,6 +761,34 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::InlineTextBox"), "Text", false, UserEditableFunctions.Create((textBox) => {
         return Promise.all([textBox.f("line_layout_item_").f("layout_object_").vcast().f("text_").desc("Text"), textBox.f("start_").val(), textBox.f("len_").val()])
         .thenAll((textString, startOffset, length) => WhitespaceFormatter.CreateFormattedText(textString.substr(startOffset, length)));
+    }));
+
+    DbgObject.AddArrayField(Chromium.RendererProcessType("blink::NGFragmentItems"), "Items", Chromium.RendererProcessType("blink::NGFragmentItem"), UserEditableFunctions.Create((fragmentItems) => {
+        return fragmentItems.f("items_").array(fragmentItems.f("size_"));
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGFragmentItem"), "[as box item]", Chromium.RendererProcessType("blink::NGFragmentItem::BoxItem"), UserEditableFunctions.Create((fragmentItem) => {
+        return fragmentItem.f("type_").desc().then((type) => {
+            return (type == "kBox") ? fragmentItem.as(Chromium.RendererProcessType("blink::NGFragmentItem::BoxItem")) : DbgObject.NULL;
+      });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGFragmentItem"), "[as line item]", Chromium.RendererProcessType("blink::NGFragmentItem::LineItem"), UserEditableFunctions.Create((fragmentItem) => {
+        return fragmentItem.f("type_").desc().then((type) => {
+            return (type == "kLine") ? fragmentItem.as(Chromium.RendererProcessType("blink::NGFragmentItem::LineItem")) : DbgObject.NULL;
+      });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGFragmentItem"), "[as text item]", Chromium.RendererProcessType("blink::NGFragmentItem::TextItem"), UserEditableFunctions.Create((fragmentItem) => {
+        return fragmentItem.f("type_").desc().then((type) => {
+            return (type == "kText") ? fragmentItem.as(Chromium.RendererProcessType("blink::NGFragmentItem::TextItem")) : DbgObject.NULL;
+      });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGFragmentItem"), "[as generated text item]", Chromium.RendererProcessType("blink::NGFragmentItem::GeneratedTextItem"), UserEditableFunctions.Create((fragmentItem) => {
+        return fragmentItem.f("type_").desc().then((type) => {
+            return (type == "kGeneratedText") ? fragmentItem.as(Chromium.RendererProcessType("blink::NGFragmentItem::GeneratedTextItem")) : DbgObject.NULL;
+      });
     }));
 
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "type_", "blink::NGPhysicalFragment::NGFragmentType");
@@ -767,6 +806,8 @@ Loader.OnLoad(function() {
 
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGBaselineRequest"), "algorithm_type_", "blink::NGBaselineAlgorithmType");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGBaselineRequest"), "baseline_type_", "blink::FontBaseline");
+
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGFragmentItem"), "type_", "blink::NGFragmentItem::ItemType");
 
     BlinkHelpers = {
         _help : {
