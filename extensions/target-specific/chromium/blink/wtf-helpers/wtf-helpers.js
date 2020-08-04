@@ -22,12 +22,25 @@ Loader.OnLoad(function() {
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("WTF::StringImpl"), "Text", true, UserEditableFunctions.Create((wtfStringImpl) => {
         if (!wtfStringImpl.isNull()) {
-            return wtfStringImpl.f("is_8bit_").val()
+            return wtfStringImpl.desc("is_8bit_")
             .then((is8bit) => wtfStringImpl.idx(1).as(is8bit ? "LChar" : "UChar", /*disregardSize*/true))
             .then((firstChar) => firstChar.string(wtfStringImpl.f("length_")));
         } else {
             return "";
         }
+    }));
+
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("WTF::StringImpl"), "TextLength", false, UserEditableFunctions.Create((wtfString) => {
+        return wtfString.f("impl_").f("ptr_")
+        .then((wtfStringImpl) => !wtfStringImpl.isNull() ? wtfStringImpl.f("length_").val() : 0);
+    }));
+
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("WTF::StringImpl"), "is_8bit_", false, UserEditableFunctions.Create((wtfStringImpl) => {
+        return wtfStringImpl.f("is_8bit_")
+        .then((is8Bit) => is8Bit.val(), () => {
+            return wtfStringImpl.f("hash_and_flags_").desc("Value")
+            .then((is8BitValue) => is8BitValue & (1 << 0));
+        })
     }));
 
     DbgObject.AddArrayField(
