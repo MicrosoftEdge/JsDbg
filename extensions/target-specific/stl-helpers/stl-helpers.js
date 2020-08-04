@@ -20,6 +20,13 @@ DbgObject.AddExtendedField(
     (uniquePtr) => uniquePtr.f("__ptr_.__value_")
 );
 
+DbgObject.AddTypeDescription(
+    (type) => type.name().match(/^std::__(Cr|1)::atomic<(.*)>$/) != null,
+    "Value",
+    false,
+    (atomic) => atomic.val()
+);
+
 DbgObject.AddArrayField(
     (type) => {
         return type.name().match(/^std::vector<(.*)>$/) != null;
