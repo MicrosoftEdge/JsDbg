@@ -433,15 +433,24 @@ Loader.OnLoad(function() {
         return layoutText.f("text_").desc("Text").then(WhitespaceFormatter.CreateFormattedText);
     }));
 
+    DbgObject.AddArrayField(
+        (type) => type.name().match(/^blink::(LayoutBox|LayoutInline|LayoutText)$/) != null,
+        "paint_fragments_",
+        Chromium.RendererProcessType("blink::NGPaintFragment"),
+        (layout_object) => {
+            return layout_object.f("bitfields_").f("is_in_layout_ng_inline_formatting_context_").val()
+            .then((isInLayoutNGInlineFormattingContext) => {
+                if (isInLayoutNGInlineFormattingContext) {
+                    return layout_object.f("first_paint_fragment_").list("next_for_same_layout_object_");
+                } else {
+                    return [];
+                }
+            })
+        }
+    );
+
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutText"), "text_fragments_", Chromium.RendererProcessType("blink::NGPhysicalTextFragment"), UserEditableFunctions.Create((layoutText) => {
-        return layoutText.f("bitfields_").f("is_in_layout_ng_inline_formatting_context_").val()
-        .then((isInLayoutNGInlineFormattingContext) => {
-            if (isInLayoutNGInlineFormattingContext) {
-                return Promise.map(layoutText.f("first_paint_fragment_").list("next_for_same_layout_object_").vcast(), (paintFragment) => paintFragment.f("physical_fragment_.ptr_").F("[as text fragment]"));
-            } else {
-                return [];
-            }
-        });
+        return Promise.map(layoutText.array("paint_fragments_"), (paintFragment) => paintFragment.f("physical_fragment_.ptr_").F("[as text fragment]"))
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutText"), "text_boxes_", Chromium.RendererProcessType("blink::InlineTextBox"), UserEditableFunctions.Create((layoutText) => {
