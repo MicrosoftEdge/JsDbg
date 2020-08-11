@@ -608,6 +608,8 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::StyleContentAlignmentData"), "distribution_", "blink::ContentDistributionType");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::StyleContentAlignmentData"), "overflow_", "blink::OverflowAlignment");
 
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::LayoutObject::LayoutObjectBitfields"), "positioned_state_", "blink::LayoutObject::LayoutObjectBitfields::PositionedState");
+
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::IntRect"), "start_location_", false, UserEditableFunctions.Create((rect) => {
         return rect.f("location_").desc();
     }));
