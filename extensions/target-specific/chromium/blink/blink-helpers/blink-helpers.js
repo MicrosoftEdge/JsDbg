@@ -805,6 +805,7 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "type_", "blink::NGPhysicalFragment::NGFragmentType");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "style_variant_", "blink::NGStyleVariant");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "line_orientation_", "blink::NGLineOrientation");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "base_or_resolved_direction_", "blink::TextDirection");
 
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::NGLayoutResult"), "status_", "blink::NGLayoutResult::NGLayoutResultStatus");
 
