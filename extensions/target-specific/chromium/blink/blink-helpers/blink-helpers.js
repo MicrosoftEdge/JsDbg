@@ -437,7 +437,7 @@ Loader.OnLoad(function() {
         (type) => type.name().match(/^blink::(LayoutBox|LayoutInline|LayoutText)$/) != null,
         "paint_fragments_",
         Chromium.RendererProcessType("blink::NGPaintFragment"),
-        (layout_object) => {
+        UserEditableFunctions.Create((layout_object) => {
             return layout_object.f("bitfields_").f("is_in_layout_ng_inline_formatting_context_").val()
             .then((isInLayoutNGInlineFormattingContext) => {
                 if (isInLayoutNGInlineFormattingContext) {
@@ -446,7 +446,7 @@ Loader.OnLoad(function() {
                     return [];
                 }
             })
-        }
+        })
     );
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutText"), "text_fragments_", Chromium.RendererProcessType("blink::NGPhysicalTextFragment"), UserEditableFunctions.Create((layoutText) => {
