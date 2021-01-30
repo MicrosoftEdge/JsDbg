@@ -173,6 +173,7 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ShadowRoot"), "type_", "blink::ShadowRootType");
 
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::DocumentMarkerController"), "possibly_existing_marker_types_", "blink::DocumentMarker::MarkerTypes");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::DocumentMarkerController"), "markers_", "blink::HeapHashMap<blink::WeakMember<const blink::Text>,blink::Member<blink::HeapVector<blink::Member<blink::DocumentMarkerList>,7> >,WTF::MemberHash<const blink::Text>,WTF::HashTraits<blink::WeakMember<const blink::Text> >,WTF::HashTraits<blink::Member<blink::HeapVector<blink::Member<blink::DocumentMarkerList>,7> > > >");
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::DOMSelection"), "FrameSelection", Chromium.RendererProcessType("blink::FrameSelection"), UserEditableFunctions.Create((domSelection) => {
         return validExecutionContextOrNull(domSelection.f("execution_context_.raw_"))
