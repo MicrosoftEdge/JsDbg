@@ -34,9 +34,9 @@ check: bin/test_program
 	@# so if $(RESTOREFLAGS) is set, just skip this test.
 	if test x"$(RESTOREFLAGS)" = x; then cd ../JsDbg.Stdio.Tests && $(DOTNET) restore $(RESTOREFLAGS) && $(DOTNET) test --no-restore; fi
 	cd testsuite && runtest
-	python ../JsDbg.Stdio/JsDbgBase_test.py
+	python2 ../JsDbg.Stdio/JsDbgBase_test.py
 	python3 ../JsDbg.Stdio/JsDbgBase_test.py
-	python JsDbg_test.py
+	python2 JsDbg_test.py
 	python3 JsDbg_test.py
 
 # We don't want users of the tarball to require a dotnet install, so
