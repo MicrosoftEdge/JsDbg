@@ -13,7 +13,9 @@ JsDbg currently supports WinDbg and the Visual Studio debugger on Windows, and G
 
 1. Download the [JsDbg WinDbg extension](https://aka.ms/jsdbg-windbg). (This extension changes infrequently because JsDbg extensions can be updated without updating the WinDbg extension. [Last update: Jan 30th, 2019])
 
-2. Copy jsdbg.dll into the `winext` folder located next your `windbg.exe` installation. Make sure to use the x64 version of the dll for 64-bit WinDbg, and the x86 version for 32-bit WinDbg.
+2. Extract the file somewhere and keep track of the directory.
+
+3. Set the environment variable `_NT_DEBUGGER_EXTENSION_PATH` to the directory containing `jsdbg.dll`. Make sure you use the right version (amd64 vs x86) for the WinDbg version you're using. This will also work with [WinDbg Preview](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/debugging-using-windbg-preview).
 
 ### Usage
 
