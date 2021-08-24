@@ -12,7 +12,7 @@ PYTHON_FILES=JsDbg.py ../JsDbg.Stdio/JsDbg{Base,Types}.py
 
 all: bin/test_program
 	cd ../JsDbg.Stdio && $(DOTNET) restore $(RESTOREFLAGS)
-	cd ../JsDbg.Stdio && $(DOTNET) publish -c Release --no-restore -o $(PUBLISH)
+	cd ../JsDbg.Stdio && $(DOTNET) publish -c Release --no-restore -o $(PUBLISH) $(PUBLISHFLAGS)
 
 clean:
 	rm -rf bin $(PUBLISH) $(PUBLISH_SC) ../JsDbg.{Core,Stdio,Stdio.Tests}/{bin,obj} jsdbg-gdb.tar.bz2 {.,../JsDbg.Stdio}/{*.pyc,__pycache__}
