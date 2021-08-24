@@ -1,3 +1,10 @@
+jsdbg (1.1.0) stable; urgency=medium
+
+  * Update to dotnet runtime 5.0
+  * Update extensions
+
+ -- Christian Biesinger <cbiesinger@google.com>  Tue, 24 Aug 2021 13:33:03 -0400
+
 jsdbg (1.0.0) stable; urgency=medium
 
   * GDB branch has been merged into master!
