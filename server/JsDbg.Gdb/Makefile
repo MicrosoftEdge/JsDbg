@@ -10,9 +10,25 @@ BINDEPS=$(filter-out %extensions %JsDbg.py %JsDbg.Gdb, $(wildcard $(PUBLISH)/*))
 
 PYTHON_FILES=JsDbg.py ../JsDbg.Stdio/JsDbg{Base,Types}.py
 
+# Setting MONO=1 compiles the code with mono instead of dotnet. It does also
+# set up a runtimeconfig.json file to allow running the code with dotnet, which
+# JsDbgBase.py makes use of.
+# Running with Mono will not work until https://github.com/mono/mono/issues/15119
+# is fixed.
+# Requires packages:
+# apt install libmono-system-runtime-serialization4.0-cil libmono-system-web4.0-cil
+MONO=
+
 all: bin/test_program
+ifdef MONO
+	mkdir -p $(PUBLISH)
+	mcs -r:System.Runtime.Serialization -r:System.Web ../JsDbg.Core/*.cs ../JsDbg.Stdio/*.cs -out:$(PUBLISH)/JsDbg.Stdio.dll
+	cp -r ../../extensions $(PUBLISH)
+	cp mono/* $(PUBLISH)
+else
 	cd ../JsDbg.Stdio && $(DOTNET) restore $(RESTOREFLAGS)
 	cd ../JsDbg.Stdio && $(DOTNET) publish -c Release --no-restore -o $(PUBLISH) $(PUBLISHFLAGS)
+endif
 
 clean:
 	rm -rf bin $(PUBLISH) $(PUBLISH_SC) ../JsDbg.{Core,Stdio,Stdio.Tests}/{bin,obj} jsdbg-gdb.tar.bz2 {.,../JsDbg.Stdio}/{*.pyc,__pycache__}
@@ -29,10 +45,12 @@ bin/test_program: testsuite/test_program.cc
 	$(CXX) $^ -o $@ -g
 
 check: bin/test_program
+ifndef MONO
 	@# The restore flags set by debian/rules do not work with dotnet test.
 	@# dotnet test does require us to download packages from the internet,
 	@# so if $(RESTOREFLAGS) is set, just skip this test.
 	if test x"$(RESTOREFLAGS)" = x; then cd ../JsDbg.Stdio.Tests && $(DOTNET) restore $(RESTOREFLAGS) && $(DOTNET) test --no-restore; fi
+endif
 	cd testsuite && runtest
 	python2 ../JsDbg.Stdio/JsDbgBase_test.py
 	python3 ../JsDbg.Stdio/JsDbgBase_test.py
