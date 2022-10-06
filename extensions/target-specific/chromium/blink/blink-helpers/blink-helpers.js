@@ -491,11 +491,14 @@ Loader.OnLoad(function() {
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutBox"), "physical_fragments_", Chromium.RendererProcessType("blink::NGPhysicalFragment"), UserEditableFunctions.Create((layoutBox) => {
         return layoutBox.f("cached_layout_result_.ptr_")
         .then((layoutResult) => [layoutResult], () => layoutBox.f("layout_results_").array("Elements"))
-        .then((layoutResults) => Promise.map(layoutResults, (layoutResult) => layoutResult.f("ptr_").f("physical_fragment_.ptr_")));
+        .then((layoutResults) => Promise.map(layoutResults, (layoutResult) => {
+            return layoutResult.F("Object").f("physical_fragment_").F("Object");
+        }));
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::InlineTextBoxList"), "entries_", Chromium.RendererProcessType("blink::InlineTextBox"), UserEditableFunctions.Create((inlineTextBoxList) => {
-        return inlineTextBoxList.f("first_").list("next_text_box_");
+        return inlineTextBoxList.f("first_").F("Object")
+        .list((textBox) => textBox.f("next_text_box_").F("Object"));
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LineBoxList"), "entries_", Chromium.RendererProcessType("blink::InlineFlowBox"), UserEditableFunctions.Create((lineBoxList) => {
@@ -719,17 +722,9 @@ Loader.OnLoad(function() {
         });
     }));
 
-    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "[as container fragment]", Chromium.RendererProcessType("blink::NGPhysicalContainerFragment"), UserEditableFunctions.Create((fragment) => {
-        return fragment.f("type_").desc().then((type) => {
-            if (type == "kFragmentBox" || type == "kFragmentLineBox" || type == "kFragmentRenderedLegend")
-                return fragment.as(Chromium.RendererProcessType("blink::NGPhysicalContainerFragment"));
-            return DbgObject.NULL;
-      });
-    }));
-
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGPhysicalFragment"), "[as box fragment]", Chromium.RendererProcessType("blink::NGPhysicalBoxFragment"), UserEditableFunctions.Create((fragment) => {
         return fragment.f("type_").desc().then((type) => {
-            if (type == "kFragmentBox" || type == "kFragmentRenderedLegend")
+            if (type == "kFragmentBox")
                 return fragment.as(Chromium.RendererProcessType("blink::NGPhysicalBoxFragment"));
             return DbgObject.NULL;
       });
@@ -753,32 +748,20 @@ Loader.OnLoad(function() {
 
     DbgObject.AddArrayField(
         Chromium.RendererProcessType("blink::NGPhysicalFragment"),
-        "children_",
-        (type) => {
-            // Older builds use NGLinkStorage, newer builds use NGLink -- so
-            // just get the actual type of the field, similar to stl-helpers.js
-            var box_type = new DbgObjectType("blink::NGPhysicalBoxFragment", type);
-            var dummyFragment = DbgObject.create(box_type, 0);
-            return dummyFragment.f("buffer_").then((buf) => buf.type);
-        },
-        UserEditableFunctions.Create((fragment) => {
-        return fragment.F("[as container fragment]").then((container) => {
-            if (!container.isNull())
-                return container.f("buffer_").array(container.f("num_children_"));
-            return [];
-        });
-    }));
-
-    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NGPhysicalBoxFragment"), "fragment_items_", Chromium.RendererProcessType("blink::NGFragmentItems"), UserEditableFunctions.Create((physicalBoxFragment) => {
-        return physicalBoxFragment.f("has_fragment_items_")
-        .then((hasFragmentItems) => {
-            if (hasFragmentItems) {
-                return physicalBoxFragment.f("children_").idx(physicalBoxFragment.f("num_children_").val()).as(Chromium.RendererProcessType("blink::NGFragmentItems"));
-            } else {
-                return DbgObject.NULL;
-            }
-        });
-    }));
+        "child_fragments_",
+        Chromium.RendererProcessType("blink::NGPhysicalFragment"),
+        UserEditableFunctions.Create((physicalFragment) => {
+            return physicalFragment.F("[as box fragment]")
+            .then((physicalBoxFragment) => {
+                if (!physicalBoxFragment.isNull()) {
+                    return physicalBoxFragment.f("children_").array(physicalBoxFragment.f("const_num_children_"))
+                    .map((link) => link.f("fragment").F("Object"));
+                } else {
+                    return DbgObject.NULL;
+                }
+            });
+        })
+    );
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::NGPhysicalTextFragment"), "Text", false, UserEditableFunctions.Create((textFragment) => {
         return Promise.all([textFragment.f("text_").desc(), textFragment.f("text_offset_.start", "start_offset_").val(), textFragment.f("text_offset_.end", "end_offset_").val()])
