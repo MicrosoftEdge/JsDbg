@@ -30,9 +30,8 @@ Loader.OnLoad(function() {
         }
     }));
 
-    DbgObject.AddTypeDescription(Chromium.RendererProcessType("WTF::StringImpl"), "TextLength", false, UserEditableFunctions.Create((wtfString) => {
-        return wtfString.f("impl_").f("ptr_")
-        .then((wtfStringImpl) => !wtfStringImpl.isNull() ? wtfStringImpl.f("length_").val() : 0);
+    DbgObject.AddTypeDescription(Chromium.RendererProcessType("WTF::StringImpl"), "TextLength", false, UserEditableFunctions.Create((wtfStringImpl) => {
+        return !wtfStringImpl.isNull() ? wtfStringImpl.f("length_") : 0;
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("WTF::StringImpl"), "is_8bit_", false, UserEditableFunctions.Create((wtfStringImpl) => {
