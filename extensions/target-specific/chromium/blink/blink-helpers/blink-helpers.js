@@ -478,7 +478,9 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutObjectChildList"), "entries_", Chromium.RendererProcessType("blink::LayoutObject"), UserEditableFunctions.Create((layoutObjectChildList) => {
-        return layoutObjectChildList.f("first_child_").list("next_").vcast();
+        return layoutObjectChildList.f("first_child_").F("Object")
+        .list((layoutObjectChild) => layoutObjectChild.f("next_").F("Object"))
+        .map((layoutObject) => layoutObject.vcast());
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::LayoutObject"), "Layer", Chromium.RendererProcessType("blink::PaintLayer"), UserEditableFunctions.Create((layoutObject) => {
