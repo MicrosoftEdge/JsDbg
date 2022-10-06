@@ -484,7 +484,8 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::LayoutObject"), "Layer", Chromium.RendererProcessType("blink::PaintLayer"), UserEditableFunctions.Create((layoutObject) => {
-        return layoutObject.f("fragment_.rare_data_").F("Object").f("layer").F("Object");
+        return layoutObject.f("fragment_").F("Object").f("rare_data_").F("Object")
+        .then((rareData) => !rareData.isNull() ? rareData.f("layer").F("Object") : DbgObject.NULL);
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LayoutBox"), "physical_fragments_", Chromium.RendererProcessType("blink::NGPhysicalFragment"), UserEditableFunctions.Create((layoutBox) => {
