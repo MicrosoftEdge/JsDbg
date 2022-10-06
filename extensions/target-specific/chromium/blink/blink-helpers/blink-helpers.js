@@ -482,11 +482,13 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::LineBoxList"), "entries_", Chromium.RendererProcessType("blink::InlineFlowBox"), UserEditableFunctions.Create((lineBoxList) => {
-        return lineBoxList.f("first_").list("next_line_box_");
+        return lineBoxList.f("first_").F("Object")
+        .list((lineBox) => lineBox.f("next_line_box_").F("Object"));
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::InlineFlowBox"), "children_", Chromium.RendererProcessType("blink::InlineBox"), UserEditableFunctions.Create((inlineFlowBox) => {
-        return inlineFlowBox.f("first_child_").list("next_");
+        return inlineFlowBox.f("first_child_").F("Object")
+        .list((flowBox) => flowBox.f("next_").F("Object"));
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Color"), "Color", true, UserEditableFunctions.Create((color) => {
