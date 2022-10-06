@@ -27,6 +27,13 @@ DbgObject.AddTypeDescription(
     (atomic) => atomic.val()
 );
 
+DbgObject.AddExtendedField(
+    (type) => type.name().match(/^std::Cr::atomic<(.*)>$/) != null,
+    "Object",
+    (type) => DbgObjectType(type.templateParameters()[0], type),
+    (atomic) => atomic.f("__a_.__a_value").as(atomic.type.templateParameters()[0])
+);
+
 DbgObject.AddArrayField(
     (type) => {
         return type.name().match(/^std::vector<(.*)>$/) != null;

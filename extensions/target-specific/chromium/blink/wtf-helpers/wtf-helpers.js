@@ -38,7 +38,7 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("WTF::StringImpl"), "is_8bit_", false, UserEditableFunctions.Create((wtfStringImpl) => {
         return wtfStringImpl.f("is_8bit_")
         .then((is8Bit) => is8Bit.val(), () => {
-            return wtfStringImpl.f("hash_and_flags_").desc("Value")
+            return wtfStringImpl.f("hash_and_flags_").F("Object").val()
             .then((is8BitValue) => is8BitValue & (1 << 0));
         })
     }));
