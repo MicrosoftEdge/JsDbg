@@ -466,7 +466,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::LayoutObject"), "containing_block_flow_", Chromium.RendererProcessType("blink::LayoutBlockFlow"), UserEditableFunctions.Create((layoutObject) => {
-        return layoutObject.f("parent_")
+        return layoutObject.f("parent_").F("Object")
         .then((parentLayoutObject) => {
             if (parentLayoutObject.isNull()) {
                 return DbgObject.NULL;
