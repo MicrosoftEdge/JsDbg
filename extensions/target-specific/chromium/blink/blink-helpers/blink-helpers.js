@@ -211,8 +211,8 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::ContainerNode"), "child_nodes_", Chromium.RendererProcessType("blink::Node"), UserEditableFunctions.Create((containerNode) => {
-        return containerNode.f("first_child_.raw_")
-        .list((containerNode) => containerNode.f("next_.raw_"))
+        return containerNode.f("first_child_.raw_").F("Decompress").as(Chromium.RendererProcessType("blink::Node"))
+        .list((node) => node.f("next_.raw_"))
         .map((child) => child.vcast());
     }));
 
@@ -835,6 +835,17 @@ Loader.OnLoad(function() {
                 return Promise.all([fragmentItem.F("box_fragment_").F("fragment_items_").f("text_content_").desc(), textItem.f("text_offset").f("start").val(), textItem.f("text_offset").f("end").val()])
                 .thenAll((textString, startOffset, endOffset) => WhitespaceFormatter.CreateFormattedText(textString.substr(startOffset, endOffset - startOffset)));
             }
+        });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("cppgc::internal::CompressedPointer"), "Decompress", Chromium.RendererProcessType("void"), UserEditableFunctions.Create((compressedPointer) => {
+        return Promise.all([DbgObject.global("v8", "g_base_", undefined, ["cppgc", "internal", "CageBaseGlobal"]).bigval(), compressedPointer.f("value_").sbigval()])
+        .thenAll((baseVal, compressedPointerVal) => {
+            if (compressedPointerVal.sign) {
+                compressedPointerVal = bigInt('18446744069414584320'/*0xFFFFFFFF00000000*/).add(compressedPointerVal);
+                compressedPointerVal = compressedPointerVal.shiftLeft(1);
+            }
+            return DbgObject.create(Chromium.RendererProcessType("void"), baseVal.and(compressedPointerVal));
         });
     }));
 
