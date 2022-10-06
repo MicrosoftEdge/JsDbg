@@ -739,7 +739,7 @@ Loader.OnLoad(function() {
                     return physicalBoxFragment.f("children_").array(physicalBoxFragment.f("const_num_children_"))
                     .map((link) => link.f("fragment").F("Object"));
                 } else {
-                    return DbgObject.NULL;
+                    return [];
                 }
             });
         })
