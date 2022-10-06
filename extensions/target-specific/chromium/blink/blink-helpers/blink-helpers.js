@@ -211,8 +211,8 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::ContainerNode"), "child_nodes_", Chromium.RendererProcessType("blink::Node"), UserEditableFunctions.Create((containerNode) => {
-        return containerNode.f("first_child_.raw_").F("Decompress").as(Chromium.RendererProcessType("blink::Node"))
-        .list((node) => node.f("next_.raw_"))
+        return containerNode.f("first_child_").F("Object")
+        .list((node) => node.f("next_").F("Object"))
         .map((child) => child.vcast());
     }));
 
@@ -837,6 +837,13 @@ Loader.OnLoad(function() {
             }
         });
     }));
+
+    DbgObject.AddExtendedField(
+        (type) => type.name().match(/^cppgc::internal::BasicMember<.*>/),
+        "Object",
+        (type) => DbgObjectType(type.templateParameters()[0], type),
+        (instance) => instance.f("raw_.").F("Decompress").as(instance.type.templateParameters()[0])
+    );
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("cppgc::internal::CompressedPointer"), "Decompress", Chromium.RendererProcessType("void"), UserEditableFunctions.Create((compressedPointer) => {
         return Promise.all([DbgObject.global("v8", "g_base_", undefined, ["cppgc", "internal", "CageBaseGlobal"]).bigval(), compressedPointer.f("value_").sbigval()])
