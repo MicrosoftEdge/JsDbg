@@ -28,7 +28,7 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Document"), "URL", false, UserEditableFunctions.Create((document) => document.f("base_url_").f("string_").desc("Text")));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Document"), "body", Chromium.RendererProcessType("blink::HTMLElement"), UserEditableFunctions.Create((document) => {
-        return document.f("document_element_.raw_").dcast(Chromium.RendererProcessType("blink::HTMLHtmlElement"))
+        return document.f("document_element_").F("Object").dcast(Chromium.RendererProcessType("blink::HTMLHtmlElement"))
         .then((htmlElement) => {
             if (!htmlElement.isNull()) {
                 return htmlElement.array("child_nodes_").filter((childNode) => {
@@ -47,7 +47,7 @@ Loader.OnLoad(function() {
         .thenAll((nodeFlags, hasRareDataFlag) => {
             var nodeHasRareData = nodeFlags & hasRareDataFlag;
             if (nodeHasRareData) {
-                return node.f("data_").f("rare_data_", "").f("raw_", "").as(Chromium.RendererProcessType("blink::NodeRareData"));
+                return node.f("data_").F("Object").f("rare_data_").F("Object").as(Chromium.RendererProcessType("blink::NodeRareData"));
             } else {
                 return DbgObject.NULL;
             }
@@ -101,12 +101,12 @@ Loader.OnLoad(function() {
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "node_layout_data_", Chromium.RendererProcessType("blink::NodeRenderingData"), UserEditableFunctions.Create((node) => {
         return node.F("rare_data_")
-        .then((nodeRareData) => (!nodeRareData.isNull() ? nodeRareData : node.f("data_")))
-        .then((nodeData) => nodeData.f("node_layout_data_", "").f("raw_", "").as(Chromium.RendererProcessType("blink::NodeRenderingData")));
+        .then((nodeRareData) => (!nodeRareData.isNull() ? nodeRareData : node.f("data_").F("object")))
+        .then((nodeData) => nodeData.f("node_layout_data_").F("Object").as(Chromium.RendererProcessType("blink::NodeRenderingData")));
     }));
 
     function getCollectionFromOwnerNode(node, collectionTypeOrPromise) {
-        return node.F("rare_data_").f("node_lists_.raw_").f("atomic_name_caches_").f("impl_")
+        return node.F("rare_data_").f("node_lists_").F("Object").f("atomic_name_caches_").f("impl_")
         .then((hashTable) => {
             if (!hashTable.isNull()) {
                 return Promise.all([hashTable.array("Pairs"), collectionTypeOrPromise])
@@ -118,7 +118,7 @@ Loader.OnLoad(function() {
                 })
                 .then((pairForCollectionType) => {
                     console.assert(pairForCollectionType.length <= 1);
-                    return (pairForCollectionType.length > 0) ? pairForCollectionType[0].f("value.raw_").vcast() : DbgObject.NULL;
+                    return (pairForCollectionType.length > 0) ? pairForCollectionType[0].f("value").F("Object").vcast() : DbgObject.NULL;
                 });
             } else {
                 return DbgObject.NULL;
@@ -163,11 +163,11 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Document"), "DOMSelection", Chromium.RendererProcessType("blink::DOMSelection"), UserEditableFunctions.Create((document) => {
-        return document.f("tree_scope_.raw_").f("selection_.raw_");
+        return document.f("tree_scope_").F("Object").f("selection_").F("Object");
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::ShadowRoot"), "DOMSelection", Chromium.RendererProcessType("blink::DOMSelection"), UserEditableFunctions.Create((shadowRoot) => {
-        return shadowRoot.f("tree_scope_.raw_").f("selection_.raw_");
+        return shadowRoot.f("tree_scope_").F("Object").f("selection_").F("Object");
     }));
 
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ShadowRoot"), "type_", "blink::ShadowRootType");
@@ -175,8 +175,8 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::DocumentMarkerController"), "possibly_existing_marker_types_", "blink::DocumentMarker::MarkerTypes");
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::DOMSelection"), "FrameSelection", Chromium.RendererProcessType("blink::FrameSelection"), UserEditableFunctions.Create((domSelection) => {
-        return validExecutionContextOrNull(domSelection.f("execution_context_.raw_"))
-        .then((validExecutionContextOrNull) => validExecutionContextOrNull.dcast(Chromium.RendererProcessType("blink::Document")).f("frame_.raw_").dcast(Chromium.RendererProcessType("blink::LocalFrame")).f("selection_.raw_"));
+        return validExecutionContextOrNull(domSelection.f("execution_context_").F("Object"))
+        .then((validExecutionContextOrNull) => validExecutionContextOrNull.dcast(Chromium.RendererProcessType("blink::Document")).f("frame_").F("Object").dcast(Chromium.RendererProcessType("blink::LocalFrame")).f("selection_").F("Object"));
     }));
 
     function validExecutionContextOrNull(executionContext) {
@@ -185,7 +185,7 @@ Loader.OnLoad(function() {
     }
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Range"), "startContainer", Chromium.RendererProcessType("blink::Node"), UserEditableFunctions.Create((range) => {
-        return range.f("start_").f("container_node_.raw_");
+        return range.f("start_").f("container_node_").F("Object");
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Range"), "startOffset", false, UserEditableFunctions.Create((range) => {
@@ -193,7 +193,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Range"), "endContainer", Chromium.RendererProcessType("blink::Node"), UserEditableFunctions.Create((range) => {
-        return range.f("end_").f("container_node_.raw_");
+        return range.f("end_").f("container_node_").F("Object");
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Range"), "endOffset", false, UserEditableFunctions.Create((range) => {
@@ -201,12 +201,12 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Element"), "id", false, UserEditableFunctions.Create((element) => {
-        return element.f("element_data_.raw_")
+        return element.f("element_data_").F("Object")
         .then((elementData) => (!elementData.isNull() ? elementData.f("id_for_style_resolution_").desc("Text") : ""));
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "ownerDocument", Chromium.RendererProcessType("blink::Document"), UserEditableFunctions.Create((node) => {
-        return node.f("tree_scope_.raw_").f("document_.raw_")
+        return node.f("tree_scope_").F("Object").f("document_").F("Object")
         .then((document) => (!node.equals(document) ? document : DbgObject.NULL));
     }));
 
@@ -217,7 +217,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "childNodes", Chromium.RendererProcessType("blink::NodeList"), UserEditableFunctions.Create((node) => {
-        return node.F("rare_data_").f("node_lists_.raw_").f("child_node_list_.raw_");
+        return node.F("rare_data_").f("node_lists_").F("Object").f("child_node_list_").F("Object");
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::HTMLDataListElement"), "options", Chromium.RendererProcessType("blink::HTMLDataListOptionsCollection"), UserEditableFunctions.Create((htmlDataListElement) => {
@@ -257,7 +257,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddArrayField(Chromium.RendererProcessType("blink::Element"), "attributes_", Chromium.RendererProcessType("blink::Attribute"), UserEditableFunctions.Create((element) => {
-        return element.f("element_data_.raw_")
+        return element.f("element_data_").F("Object")
         .then((elementData) => {
             if (!elementData.isNull()) {
                 return Promise.all([elementData.F("unique_element_data_"), elementData.F("shareable_element_data_")])
@@ -285,7 +285,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Element"), "shadowRoot", Chromium.RendererProcessType("blink::ShadowRoot"), UserEditableFunctions.Create((element) => {
-        return element.F("rare_data_").F("element_rare_data_").f("shadow_root_.raw_").vcast();
+        return element.F("rare_data_").F("element_rare_data_").f("shadow_root_").F("Object").vcast();
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::Element"), "tagName", false, UserEditableFunctions.Create((element) => {
@@ -297,7 +297,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "assigned_slot_", Chromium.RendererProcessType("blink::HTMLSlotElement"), UserEditableFunctions.Create((node) => {
-        return node.F("rare_data_").f("flat_tree_node_data_.raw_").f("assigned_slot_.raw_");
+        return node.F("rare_data_").f("flat_tree_node_data_").F("Object").f("assigned_slot_").F("Object");
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::QualifiedName"), "Prefix", false, UserEditableFunctions.Create((qualifiedName) => {
@@ -325,7 +325,7 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::HTMLFrameOwnerElement"), "contentWindow", Chromium.RendererProcessType("blink::DOMWindow"), UserEditableFunctions.Create((frameOwnerElement) => {
-        return frameOwnerElement.f("content_frame_.raw_").f("dom_window_.raw_");
+        return frameOwnerElement.f("content_frame_").F("Object").f("dom_window_").F("Object");
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::HTMLFrameOwnerElement"), "contentDocument", Chromium.RendererProcessType("blink::Document"), UserEditableFunctions.Create((frameOwnerElement) => {
@@ -333,11 +333,11 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::DOMWindow"), "document", Chromium.RendererProcessType("blink::Document"), UserEditableFunctions.Create((domWindow) => {
-        return domWindow.dcast(Chromium.RendererProcessType("blink::LocalDOMWindow")).f("document_.raw_");
+        return domWindow.dcast(Chromium.RendererProcessType("blink::LocalDOMWindow")).f("document_").F("Object");
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::HTMLTemplateElement"), "content", Chromium.RendererProcessType("blink::TemplateContentDocumentFragment"), UserEditableFunctions.Create((templateElement) => {
-        return templateElement.f("content_.raw_");
+        return templateElement.f("content_").F("Object");
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::HTMLInputElement"), "type", false, UserEditableFunctions.Create((inputElement) => {
@@ -393,10 +393,10 @@ Loader.OnLoad(function() {
                 return inputElement.F("shadowRoot").array("child_nodes_").dcast(Chromium.RendererProcessType("blink::PickerIndicatorElement")).filter((pickerIndicatorElement) => !pickerIndicatorElement.isNull())
                 .then((pickerIndicatorElement) => {
                     console.assert(pickerIndicatorElement.length == 1);
-                    return pickerIndicatorElement[0].f("chooser_.raw_").vcast();
+                    return pickerIndicatorElement[0].f("chooser_").F("Object").vcast();
                 });
             } else if (!colorInputType.isNull()) {
-                return colorInputType.f("chooser_.raw_").vcast();
+                return colorInputType.f("chooser_").F("Object").vcast();
             } else {
                 return DbgObject.NULL;
             }
@@ -405,11 +405,11 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::WebPagePopupImpl"), "document_", Chromium.RendererProcessType("blink::HTMLDocument"), UserEditableFunctions.Create((webPagePopupImpl) => {
-        return webPagePopupImpl.f("page_.raw_").f("main_frame_.raw_").dcast(Chromium.RendererProcessType("blink::LocalFrame")).f("dom_window_.raw_").F("document").vcast();
+        return webPagePopupImpl.f("page_").F("Object").f("main_frame_").F("Object").dcast(Chromium.RendererProcessType("blink::LocalFrame")).f("dom_window_").F("Object").F("document").vcast();
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::HTMLInputElement"), "specialized_input_type_", Chromium.RendererProcessType("blink::InputType"), UserEditableFunctions.Create((inputElement) => {
-        return inputElement.f("input_type_.raw_").vcast();
+        return inputElement.f("input_type_").F("Object").vcast();
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::BaseButtonInputType"), "value_mode_", false, () => "default");
@@ -422,7 +422,7 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::TextFieldInputType"), "value_mode_", false, () => "value");
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::ColorInputType"), "color_", false, UserEditableFunctions.Create((colorInputType) => {
-        return colorInputType.f("element_.raw_").desc("value")
+        return colorInputType.f("element_").F("Object").desc("value")
         .then((hexValue) => {
             var colorValue = parseInt(hexValue.substr(1), 16);
             var rgbChannels = [(colorValue >> 16) & 0xFF, (colorValue >> 8) & 0xFF, colorValue & 0xFF];
@@ -898,7 +898,7 @@ Loader.OnLoad(function() {
                     .then((parentFrame) => !parentFrame.isNull());
                 });
             })
-            .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_.raw_").f("dom_window_.raw_").F("document")))
+            .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_").F("Object").f("dom_window_").F("Object").F("document")))
             .then((sortedDocuments) => Promise.filter(sortedDocuments, (document) => !document.isNull()))
         },
         GetRootLayoutObjects: (...typenames_for_error) => {
