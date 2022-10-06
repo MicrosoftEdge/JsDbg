@@ -99,10 +99,9 @@ Loader.OnLoad(function() {
         });
     }
 
-    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "node_layout_data_", Chromium.RendererProcessType("blink::NodeRenderingData"), UserEditableFunctions.Create((node) => {
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "node_rendering_data_", Chromium.RendererProcessType("blink::NodeRenderingData"), UserEditableFunctions.Create((node) => {
         return node.F("rare_data_")
-        .then((nodeRareData) => (!nodeRareData.isNull() ? nodeRareData : node.f("data_").F("object")))
-        .then((nodeData) => nodeData.f("node_layout_data_").F("Object").as(Chromium.RendererProcessType("blink::NodeRenderingData")));
+        .then((nodeRareData) => (!nodeRareData.isNull() ? nodeRareData : node.f("data_").F("Object")).as(Chromium.RendererProcessType("blink::NodeRenderingData")));
     }));
 
     function getCollectionFromOwnerNode(node, collectionTypeOrPromise) {
@@ -912,7 +911,7 @@ Loader.OnLoad(function() {
                         `You may still specify a ${typenames_for_error.join(' or ')} explicitly.`;
                     return Promise.reject(errorMessage);
                 } else {
-                    return Promise.map(documents, (document) => document.F("node_layout_data_").f("layout_object_").vcast());
+                    return Promise.map(documents, (document) => document.F("node_rendering_data_").f("layout_object_").vcast());
                 }
             }, (error) => {
                 var errorMessage = ErrorMessages.CreateErrorsList(error) +
