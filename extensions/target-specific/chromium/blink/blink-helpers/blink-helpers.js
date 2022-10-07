@@ -279,7 +279,7 @@ Loader.OnLoad(function() {
         return shareableElementData.f("array_size_")
         .then(null, () => {
             return shareableElementData.f("bit_field_").val()
-            .then((bitFieldsVal) => bitFieldsVal & ((~0 >> 3) << 1));
+            .then((bitFieldsVal) => bitFieldsVal >>> 1);
         })
         .then((arraySize) => shareableElementData.f("attribute_array_").array(arraySize));
     }));
