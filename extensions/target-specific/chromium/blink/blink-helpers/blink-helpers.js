@@ -510,14 +510,17 @@ Loader.OnLoad(function() {
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "break_after_", "blink::EBreakBetween");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "break_before_", "blink::EBreakBetween");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "pointer_events_", "blink::EPointerEvents");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "scrollbar_gutter_", "blink::ScrollbarGutter");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "text_align_", "blink::ETextAlign");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "break_inside_", "blink::EBreakInside");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "vertical_align_", "blink::EVerticalAlign");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "clear_", "blink::EClear");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "floating_", "blink::EFloat");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "overflow_x_", "blink::EOverflow");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "overflow_y_", "blink::EOverflow");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "position_", "blink::EPosition");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "unicode_bidi_", "blink::UnicodeBidi");
+    DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "content_visibility_", "blink::EContentVisibility");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "inside_link_", "blink::EInsideLink");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "overflow_anchor_", "blink::EOverflowAnchor");
     DbgObject.AddTypeOverride(Chromium.RendererProcessType("blink::ComputedStyleBase"), "overscroll_behavior_x_", "blink::EOverscrollBehavior");
