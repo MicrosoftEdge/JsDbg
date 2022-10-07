@@ -42,18 +42,6 @@ Loader.OnLoad(function() {
         });
     }));
 
-    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "rare_data_", Chromium.RendererProcessType("blink::NodeRareData"), UserEditableFunctions.Create((node) => {
-        return Promise.all([node.f("node_flags_").val(), DbgObject.constantValue(Chromium.RendererProcessType("blink::Node::NodeFlags"), "kHasRareDataFlag")])
-        .thenAll((nodeFlags, hasRareDataFlag) => {
-            var nodeHasRareData = nodeFlags & hasRareDataFlag;
-            if (nodeHasRareData) {
-                return node.f("data_").F("Object").f("rare_data_").F("Object").as(Chromium.RendererProcessType("blink::NodeRareData"));
-            } else {
-                return DbgObject.NULL;
-            }
-        });
-    }));
-
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::NodeRareData"), "element_rare_data_", Chromium.RendererProcessType("blink::ElementRareData"), UserEditableFunctions.Create((nodeRareData) => {
         return nodeRareData.f("is_element_rare_data_").val()
         .then(null, () => {
@@ -99,9 +87,21 @@ Loader.OnLoad(function() {
         });
     }
 
-    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "node_rendering_data_", Chromium.RendererProcessType("blink::NodeRenderingData"), UserEditableFunctions.Create((node) => {
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "rare_data_", Chromium.RendererProcessType("blink::NodeRareData"), UserEditableFunctions.Create((node) => {
+        return Promise.all([node.f("node_flags_").val(), DbgObject.constantValue(Chromium.RendererProcessType("blink::Node::NodeFlags"), "kHasRareDataFlag")])
+        .thenAll((nodeFlags, hasRareDataFlag) => {
+            var nodeHasRareData = nodeFlags & hasRareDataFlag;
+            if (nodeHasRareData) {
+                return node.f("data_").F("Object").as(Chromium.RendererProcessType("blink::NodeRareData"));
+            } else {
+                return DbgObject.NULL;
+            }
+        });
+    }));
+
+    DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "rendering_data_", Chromium.RendererProcessType("blink::NodeRenderingData"), UserEditableFunctions.Create((node) => {
         return node.F("rare_data_")
-        .then((nodeRareData) => (!nodeRareData.isNull() ? nodeRareData : node.f("data_").F("Object")).as(Chromium.RendererProcessType("blink::NodeRenderingData")));
+        .then((nodeRareData) => (!nodeRareData.isNull() ? nodeRareData.f("node_layout_data_").F("Object") : node.f("data_").F("Object")).as(Chromium.RendererProcessType("blink::NodeRenderingData")));
     }));
 
     function getCollectionFromOwnerNode(node, collectionTypeOrPromise) {
@@ -882,7 +882,7 @@ Loader.OnLoad(function() {
                         `You may still specify a ${typenames_for_error.join(' or ')} explicitly.`;
                     return Promise.reject(errorMessage);
                 } else {
-                    return Promise.map(documents, (document) => document.F("node_rendering_data_").f("layout_object_").F("Object").vcast());
+                    return Promise.map(documents, (document) => document.F("rendering_data_").f("layout_object_").F("Object").vcast());
                 }
             }, (error) => {
                 var errorMessage = ErrorMessages.CreateErrorsList(error) +
