@@ -882,7 +882,7 @@ Loader.OnLoad(function() {
                         `You may still specify a ${typenames_for_error.join(' or ')} explicitly.`;
                     return Promise.reject(errorMessage);
                 } else {
-                    return Promise.map(documents, (document) => document.F("node_rendering_data_").f("layout_object_").vcast());
+                    return Promise.map(documents, (document) => document.F("node_rendering_data_").f("layout_object_").F("Object").vcast());
                 }
             }, (error) => {
                 var errorMessage = ErrorMessages.CreateErrorsList(error) +
