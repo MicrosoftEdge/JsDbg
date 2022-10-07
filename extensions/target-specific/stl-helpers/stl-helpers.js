@@ -14,7 +14,7 @@ DbgObject.AddExtendedField(
 );
 
 DbgObject.AddExtendedField(
-    (type) => type.name().match(/^std::__(Cr|1)::unique_ptr<.*>$/) != null,
+    (type) => type.name().match(/^std::(__)?(Cr|1)::unique_ptr<.*>$/) != null,
     "Object",
     (type) => type.templateParameters()[0],
     (uniquePtr) => uniquePtr.f("__ptr_.__value_")
