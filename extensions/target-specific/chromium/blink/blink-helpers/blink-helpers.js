@@ -46,7 +46,7 @@ Loader.OnLoad(function() {
         return nodeRareData.f("is_element_rare_data_").val()
         .then(null, () => {
             return nodeRareData.f("bit_field_").val()
-            .then((bitFieldVal) => bitFieldVal & (1 << 15));
+            .then((bitFieldVal) => bitFieldVal & (1 << 14));
         })
         .then((isElementRareData) => {
             if (isElementRareData) {
