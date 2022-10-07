@@ -216,7 +216,8 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "childNodes", Chromium.RendererProcessType("blink::NodeList"), UserEditableFunctions.Create((node) => {
-        return node.F("rare_data_").f("node_lists_").F("Object").f("child_node_list_").F("Object");
+        return node.F("rare_data_").f("node_lists_").F("Object")
+        .then((nodeListsNodeData) => !nodeListsNodeData.isNull() ? nodeListsNodeData.f("child_node_list_").F("Object") : DbgObject.NULL)
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::HTMLDataListElement"), "options", Chromium.RendererProcessType("blink::HTMLDataListOptionsCollection"), UserEditableFunctions.Create((htmlDataListElement) => {
@@ -296,7 +297,8 @@ Loader.OnLoad(function() {
     }));
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("blink::Node"), "assigned_slot_", Chromium.RendererProcessType("blink::HTMLSlotElement"), UserEditableFunctions.Create((node) => {
-        return node.F("rare_data_").f("flat_tree_node_data_").F("Object").f("assigned_slot_").F("Object");
+        return node.F("rare_data_").f("flat_tree_node_data_").F("Object")
+        .then((flatTreeNodeData) => !flatTreeNodeData.isNull() ? flatTreeNodeData.f("assigned_slot_").F("Object") : DbgObject.NULL);
     }));
 
     DbgObject.AddTypeDescription(Chromium.RendererProcessType("blink::QualifiedName"), "Prefix", false, UserEditableFunctions.Create((qualifiedName) => {
