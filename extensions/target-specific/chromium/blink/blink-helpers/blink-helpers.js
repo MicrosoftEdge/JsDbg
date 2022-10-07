@@ -814,17 +814,19 @@ Loader.OnLoad(function() {
         (type) => type.name().match(/^cppgc::internal::BasicMember<.*>/),
         "Object",
         (type) => DbgObjectType(type.templateParameters()[0], type),
-        (instance) => instance.f("raw_.").F("Decompress").as(instance.type.templateParameters()[0])
+        (instance) => instance.f("raw_").F("Decompress").as(instance.type.templateParameters()[0])
     );
 
     DbgObject.AddExtendedField(Chromium.RendererProcessType("cppgc::internal::CompressedPointer"), "Decompress", Chromium.RendererProcessType("void"), UserEditableFunctions.Create((compressedPointer) => {
-        return Promise.all([DbgObject.global("v8", "g_base_", undefined, ["cppgc", "internal", "CageBaseGlobal"]).bigval(), compressedPointer.f("value_").sbigval()])
+        return Promise.all([DbgObject.global("v8", "g_base_", undefined, ["cppgc", "internal", "CageBaseGlobal"]).bigval(), compressedPointer.f("value_").bigval()])
         .thenAll((baseVal, compressedPointerVal) => {
-            if (compressedPointerVal.sign) {
+            if (compressedPointerVal != 0) {
                 compressedPointerVal = bigInt('18446744069414584320'/*0xFFFFFFFF00000000*/).add(compressedPointerVal);
                 compressedPointerVal = compressedPointerVal.shiftLeft(1);
+                return DbgObject.create(Chromium.RendererProcessType("void"), baseVal.and(compressedPointerVal));
+            } else {
+                return DbgObject.NULL;
             }
-            return DbgObject.create(Chromium.RendererProcessType("void"), baseVal.and(compressedPointerVal));
         });
     }));
 
