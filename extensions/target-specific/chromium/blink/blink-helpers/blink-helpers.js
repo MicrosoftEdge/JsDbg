@@ -858,14 +858,17 @@ Loader.OnLoad(function() {
                 return DbgObject.global(Chromium.RendererProcessSyntheticModuleName, "g_frame_map");
             })
             .then((frameMap) => Promise.map(frameMap.F("Object").array("Keys"), (webFramePointer) => webFramePointer.deref()))
-            .then((webFrames) => {
+            .then((webFrames) => Promise.map(webFrames, (webFrame) => webFrame.dcast(Chromium.RendererProcessType("blink::WebLocalFrameImpl"))))
+            .then((webLocalFrames) => Promise.filter(webLocalFrames, (webLocalFrame) => (webLocalFrame) => !webLocalFrameImpl.isNull()))
+            .then((webLocalFrames) => Promise.map(webLocalFrames, (webLocalFrame) => webLocalFrame.f("frame_").F("Object")))
+            .then((frames) => {
                 // Put the main frame (frame with a null parent) at the front of the array.
-                return Promise.sort(webFrames, (webFrame) => {
-                    return webFrame.f("parent_")
+                return Promise.sort(frames, (frame) => {
+                    return frame.f("parent_").F("Object")
                     .then((parentFrame) => !parentFrame.isNull());
                 });
             })
-            .then((sortedWebFrames) => Promise.map(sortedWebFrames, (webFrame) => webFrame.vcast().f("frame_").F("Object").f("dom_window_").F("Object").F("document")))
+            .then((sortedFrames) => Promise.map(sortedFrames, (frame) => frame.f("dom_window_").F("Object").F("document")))
             .then((sortedDocuments) => Promise.filter(sortedDocuments, (document) => !document.isNull()))
         },
         GetRootLayoutObjects: (...typenames_for_error) => {

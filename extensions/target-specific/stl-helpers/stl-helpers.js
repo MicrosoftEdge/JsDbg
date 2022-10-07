@@ -156,6 +156,58 @@ DbgObject.AddArrayField(
     })
 );
 
+DbgObject.AddArrayField(
+    (type) => {
+        return type.name().match(/^std::Cr::map<(.*)>$/) != null;
+    },
+    "Pairs",
+    (type) => {
+        var allocator = type.templateParameters()[3];
+        var pair = new DbgObjectType(allocator, type).templateParameters()[0];
+        return new DbgObjectType(pair, type);
+    },
+    (map) => {
+        return map.f("__tree_").then((tree) => {
+            var fromType = map.type.templateParameters()[0];
+            var toType = map.type.templateParameters()[1];
+            var prefix = map.type.name().match(/^std::([a-zA-Z0-9]+)/)[0];
+            var nodeTypeName = `${prefix}::__tree_node<${prefix}::__value_type<${fromType},${toType}>,void *>`;
+            var nodeType = new DbgObjectType(nodeTypeName, tree.type);
+            return tree.f("__pair3_.__value_").val().then((size) => {
+                return Promise.map(tree.f("__begin_node_").as(nodeType).list(nextRbTreeNode, null, size), (node) => {
+                    return node.f("__value_.__cc_");
+                });
+            });
+        });
+    }
+);
+
+DbgObject.AddArrayField(
+    (type) => {
+        return type.name().match(/^std::Cr::map<(.*)>$/) != null;
+    },
+    "Keys",
+    (type) => {
+        return type.templateParameters()[0];
+    },
+    (map) => {
+        return Promise.map(map.array("Pairs"), (pair) => pair.field("first"));
+    }
+);
+
+DbgObject.AddArrayField(
+    (type) => {
+        return type.name().match(/^std::Cr::map<(.*)>$/) != null;
+    },
+    "Values",
+    (type) => {
+        return type.templateParameters()[1];
+    },
+    (map) => {
+        return Promise.map(map.array("Pairs"), (pair) => pair.field("second"));
+    }
+);
+
 function walkDownLeft(node) {
     return node.f("__left_").as(node.type).then((left) => {
         if (left.isNull() || left.equals(node))
