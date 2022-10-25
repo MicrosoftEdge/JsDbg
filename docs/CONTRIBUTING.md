@@ -54,7 +54,7 @@ After you are able to successfully build JsDbg, please follow the steps below to
 
 4. Launch JsDbg by pressing `F5` or `Debug -> Start Debugging` or the `Start` button on the Standard toolbar. You should see a JsDbg command prompt appear asking for a remote debugging connection string.
 
-5. From WinDbg, attach to the desired Microsoft Edge or Chromium process and start a new debugging server using the [.server](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/-server--create-debugging-server-) command. (You can also use an existing debugging server if one is present. To view the list of all debugging servers, use the [.servers](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/-servers--list-debugging-servers-) command.)
+5. From WinDbg, attach to the desired Microsoft Edge or Chromium process and start a new debugging server using the [.server](https://learn.microsoft.com/windows-hardware/drivers/debugger/-server--create-debugging-server-) command. (You can also use an existing debugging server if one is present. To view the list of all debugging servers, use the [.servers](https://learn.microsoft.com/windows-hardware/drivers/debugger/-servers--list-debugging-servers-) command.)
 
 6. Copy the remote debugging string from WinDbg and paste it into the JsDbg command prompt, and hit `Enter`.
 
@@ -66,7 +66,7 @@ After you are able to successfully build JsDbg, please follow the steps below to
 
 2. Right-click on the `JsDbg.VisualStudio` project in Solution Explorer and set it as the start up project by clicking `Set as StartUp Project`.
 
-3. Configure the JsDbg VS extension to work with the [Visual Studio Experimental Instance](https://docs.microsoft.com/en-us/visualstudio/extensibility/the-experimental-instance), if you have not already done so. To do this, please follow the steps below.
+3. Configure the JsDbg VS extension to work with the [Visual Studio Experimental Instance](https://learn.microsoft.com/visualstudio/extensibility/the-experimental-instance), if you have not already done so. To do this, please follow the steps below.
       1. Open the `JsDbg.VisualStudio` project properties by pressing `Alt+Enter` or right-click on the `JsDbg.VisualStudio` project in Solution Explorer and then click `Properties`.
       2. Navigate to the `Debug` pane.
       3. Check the checkbox next to `Start external program` under `Start action`.
