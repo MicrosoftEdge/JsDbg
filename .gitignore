@@ -333,3 +333,6 @@ ASALocalRun/
 persistent/
 *.sublime-workspace
 *.tmp.*
+
+# Makefile output
+out/

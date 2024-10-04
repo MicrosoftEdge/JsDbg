@@ -3,7 +3,7 @@ Section: devel
 Priority: optional
 Maintainer: Christian Biesinger <cbiesinger@google.com>
 Uploaders: Sanket Joshi <sajos@microsoft.com>
-Build-Depends: debhelper (>= 10), dotnet-sdk-5.0, dejagnu, gdb
+Build-Depends: debhelper (>= 10), dotnet-sdk-8.0, dejagnu, gdb
 Standards-Version: 4.1.2
 Homepage: https://github.com/MicrosoftEdge/JsDbg
 Vcs-Git: https://github.com/MicrosoftEdge/JsDbg
@@ -11,7 +11,7 @@ Vcs-Browser: https://github.com/MicrosoftEdge/JsDbg
 
 Package: jsdbg-gdb
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, dotnet-runtime-5.0
+Depends: ${misc:Depends}, ${shlibs:Depends}, dotnet-runtime-8.0
 Recommends: gdb
 Replaces: jsdbg
 Breaks: jsdbg
