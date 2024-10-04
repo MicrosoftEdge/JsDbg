@@ -1,3 +1,9 @@
+jsdbg (1.2.0) stable; urgency=medium
+
+  * Update to dotnet runtime 8.0
+
+ -- Mohamed Mansour <hello@mohamedmansour.com>  Thu, 3 Aug 2024 22:33:00 -0400
+
 jsdbg (1.1.0) stable; urgency=medium
 
   * Update to dotnet runtime 5.0
